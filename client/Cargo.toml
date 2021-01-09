@@ -1,0 +1,35 @@
+[package]
+name = "traffloat-client"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.2.0"
+edition = "2018"
+repository = "https://github.com/SOF3/traffloat"
+homepage = "https://github.com/SOF3/traffloat"
+license = "AGPL-3.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+anyhow = "1.0.37"
+console_error_panic_hook = "0.1.6"
+getrandom = {version = "0.2.1", features = ["js"]}
+js-sys = "0.3.46"
+log = "0.4.11"
+rand = "0.8.1"
+serde = {version = "1.0.118", features = ["derive"]}
+sha2 = "0.9.2"
+traffloat-common = {version = "0.2.0", path = "../common", features = ["yew"]}
+wasm-bindgen = {version = "0.2.69", features = ["serde-serialize"]}
+wasm-logger = "0.2.0"
+yew = "0.17.4"
+
+[dependencies.web-sys]
+version = "0.3.46"
+features = [
+	"HtmlCanvasElement",
+	"WebGlBuffer",
+	"WebGlProgram",
+	"WebGlRenderingContext",
+	"WebGlShader",
+]
