@@ -18,11 +18,14 @@ anyhow = "1.0.37"
 console_error_panic_hook = "0.1.6"
 getrandom = {version = "0.2.1", features = ["js"]}
 js-sys = "0.3.46"
+lazy_static = "1.4.0"
 log = "0.4.11"
 nalgebra = "0.24.0"
 rand = "0.8.1"
 serde = {version = "1.0.118", features = ["derive"]}
 sha2 = "0.9.2"
+smallvec = "1.6.1"
+strum = {version = "0.20.0", features = ["derive"]}
 traffloat-client-model = {version = "0.2.0", path = "model", features = ["dec"]}
 traffloat-common = {version = "0.2.0", path = "../common", features = ["yew"]}
 wasm-bindgen = {version = "0.2.69", features = ["serde-serialize"]}
@@ -33,6 +36,7 @@ yew = "0.17.4"
 version = "0.3.46"
 features = [
 	"HtmlCanvasElement",
+	"Performance",
 	"WebGlBuffer",
 	"WebGlProgram",
 	"WebGlRenderingContext",

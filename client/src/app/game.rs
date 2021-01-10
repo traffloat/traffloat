@@ -1,33 +1,40 @@
-use web_sys::WebGlRenderingContext;
+use web_sys::{HtmlCanvasElement, WebGlRenderingContext};
 use yew::prelude::*;
+use yew::services::keyboard::{KeyListenerHandle, KeyboardService};
 use yew::services::render::{RenderService, RenderTask};
 use yew::services::resize::{ResizeService, ResizeTask, WindowDimensions};
 
 use super::WebSocket;
-use crate::render::Render;
+use crate::render::{KeyAction, Render};
 
 pub struct Game {
     link: ComponentLink<Self>,
     props: Properties,
     _resize_task: ResizeTask,
     render_task: Option<RenderTask>,
+    key_handles: Vec<KeyListenerHandle>,
     render: Option<Render>,
     dim: WindowDimensions,
 }
 
 impl Game {
-    fn canvas() -> WebGlRenderingContext {
+    fn document() -> web_sys::Document {
+        let window = web_sys::window().unwrap();
+        window.document().unwrap()
+    }
+    fn canvas() -> (HtmlCanvasElement, WebGlRenderingContext) {
         use wasm_bindgen::JsCast;
 
-        let window = web_sys::window().unwrap();
-        let document = window.document().unwrap();
+        let document = Self::document();
         let elem = document.get_element_by_id("game_canvas").unwrap();
         let elem = elem.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
-        elem.get_context("webgl")
+        let gl = elem
+            .get_context("webgl")
             .unwrap()
             .unwrap()
             .dyn_into()
-            .unwrap()
+            .unwrap();
+        (elem, gl)
     }
 
     fn run_render(&mut self) {
@@ -53,6 +60,7 @@ impl Component for Game {
             link,
             props,
             _resize_task: resize_task,
+            key_handles: Vec::new(),
             render_task: None,
             render: None,
             dim: WindowDimensions::get_dimensions(&web_sys::window().unwrap()),
@@ -68,6 +76,24 @@ impl Component for Game {
             Message::Render(_time) => {
                 self.run_render();
                 self.schedule_render();
+                false
+            }
+            Message::KeyDown(key) => {
+                if let Some(render) = self.render.as_mut() {
+                    let code = key.code();
+                    if let Some(action) = KeyAction::from_code(code.as_str()) {
+                        render.set_key(action, true);
+                    }
+                }
+                false
+            }
+            Message::KeyUp(key) => {
+                if let Some(render) = self.render.as_mut() {
+                    let code = key.code();
+                    if let Some(action) = KeyAction::from_code(code.as_str()) {
+                        render.set_key(action, false);
+                    }
+                }
                 false
             }
         }
@@ -87,8 +113,19 @@ impl Component for Game {
     }
 
     fn rendered(&mut self, first_render: bool) {
-        let gl = Self::canvas();
+        let (_, gl) = Self::canvas();
         self.render = Some(Render::new(gl, (self.dim.width, self.dim.height)));
+
+        let body = Self::document().body().unwrap();
+
+        self.key_handles.push(KeyboardService::register_key_down(
+            &body,
+            self.link.callback(Message::KeyDown),
+        ));
+        self.key_handles.push(KeyboardService::register_key_up(
+            &body,
+            self.link.callback(Message::KeyUp),
+        ));
 
         if first_render {
             self.schedule_render();
@@ -99,6 +136,8 @@ impl Component for Game {
 pub enum Message {
     WindowResize(WindowDimensions),
     Render(f64),
+    KeyDown(KeyboardEvent),
+    KeyUp(KeyboardEvent),
 }
 
 #[derive(Clone, Debug, Properties)]

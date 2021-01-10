@@ -127,7 +127,7 @@ impl Component for Connect {
 
                             match packet {
                                 Ok(Packet::HandshakeAccept(_)) => {
-                                    log::debug!("Handshake accepted");
+                                    // TODO
                                 }
                                 Ok(Packet::HandshakeReject(packet)) => {
                                     anyhow::bail!("Connection rejected: {}", &packet.reason)

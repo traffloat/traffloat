@@ -1,16 +1,23 @@
 #![allow(clippy::unwrap_used)]
 
+use std::collections::HashSet;
 use std::f32::consts::PI;
+use std::time::Duration;
 
+use smallvec::SmallVec;
 use web_sys::{WebGlBuffer, WebGlProgram, WebGlRenderingContext as GL};
 
+use crate::config;
 use crate::models;
+use crate::Timer;
 use camera::Camera;
+pub use key::KeyAction;
 
 type Matrix = nalgebra::Matrix4<f32>;
 type Vector = nalgebra::Vector3<f32>;
 
 mod camera;
+mod key;
 
 macro_rules! shader {
     ($gl:expr, $prog:expr, $file:expr, $ty:ident) => {
@@ -116,6 +123,9 @@ pub struct Render {
     sphere_vertices: Buffer,
     sphere_faces: Buffer,
     camera: Camera,
+    action_set: HashSet<KeyAction>,
+    timer: Timer,
+    last_time: Duration,
     frames: u64,
 }
 
@@ -136,12 +146,62 @@ impl Render {
                 aspect: (aspect.0 as f32) / (aspect.1 as f32),
                 ..Camera::default()
             },
+            action_set: HashSet::new(),
+            timer: Timer::new(),
+            last_time: Duration::default(),
             frames: 0,
         }
     }
 
+    pub fn set_key(&mut self, key: KeyAction, state: bool) {
+        if state {
+            self.action_set.insert(key);
+        } else {
+            self.action_set.remove(&key);
+        }
+    }
+
+    fn run_action(&mut self, action: KeyAction, dt: Duration) {
+        match action {
+            KeyAction::MoveLeft => self.camera.pos[0] -= dt.as_secs_f32() * config::MOVE_SPEED,
+            KeyAction::MoveRight => self.camera.pos[0] += dt.as_secs_f32() * config::MOVE_SPEED,
+            KeyAction::MoveDown => self.camera.pos[1] -= dt.as_secs_f32() * config::MOVE_SPEED,
+            KeyAction::MoveUp => self.camera.pos[1] += dt.as_secs_f32() * config::MOVE_SPEED,
+            KeyAction::MoveBack => self.camera.pos[2] -= dt.as_secs_f32() * config::MOVE_SPEED,
+            KeyAction::MoveFront => self.camera.pos[2] += dt.as_secs_f32() * config::MOVE_SPEED,
+            KeyAction::RotLeft => self.camera.yaw -= dt.as_secs_f32() * config::ROT_YAW_SPEED,
+            KeyAction::RotRight => self.camera.yaw += dt.as_secs_f32() * config::ROT_YAW_SPEED,
+            KeyAction::RotDown => self.camera.pitch -= dt.as_secs_f32() * config::ROT_PITCH_SPEED,
+            KeyAction::RotUp => self.camera.pitch -= dt.as_secs_f32() * config::ROT_PITCH_SPEED,
+            KeyAction::ZoomOut => self.camera.zoom /= config::ZOOM_SPEED,
+            KeyAction::ZoomIn => self.camera.zoom *= config::ZOOM_SPEED,
+            _ => (),
+        }
+    }
+
     pub fn ren(&mut self) {
-        self.frames += 1;
+        let now = self.timer.elapsed();
+        let dt = now - self.last_time;
+        self.last_time = now;
+
+        {
+            use strum::EnumCount;
+
+            let has_shift = self.action_set.contains(&KeyAction::Shift);
+            let actions: SmallVec<[KeyAction; KeyAction::COUNT]> = self
+                .action_set
+                .iter()
+                .copied()
+                .filter(|&action| action != KeyAction::Shift)
+                .collect();
+            for action in &actions {
+                let mut action = *action;
+                if has_shift {
+                    action = action.shift();
+                }
+                self.run_action(action, dt);
+            }
+        }
 
         self.gl.clear_color(0., 0., 0., 1.);
         self.gl.clear_depth(1.);

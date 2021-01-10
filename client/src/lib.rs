@@ -30,8 +30,11 @@ use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 mod app;
+mod config;
 mod models;
 mod render;
+mod time;
+use time::Timer;
 
 #[wasm_bindgen(start)]
 pub fn run_app() {
