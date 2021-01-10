@@ -30,6 +30,7 @@ use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 mod app;
+mod models;
 mod render;
 
 #[wasm_bindgen(start)]

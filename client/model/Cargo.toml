@@ -1,0 +1,16 @@
+[package]
+name = "traffloat-client-model"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.2.0"
+edition = "2018"
+repository = "https://github.com/SOF3/traffloat"
+homepage = "https://github.com/SOF3/traffloat"
+license = "AGPL-3.0"
+
+[dependencies]
+quote = {version = "1.0.0", optional = true}
+proc-macro2 = {version = "1.0.24", optional = true}
+
+[features]
+enc = ["quote", "proc-macro2"]
+dec = []

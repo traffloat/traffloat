@@ -1,5 +1,3 @@
-
-
 use web_sys::WebGlRenderingContext;
 use yew::prelude::*;
 use yew::services::render::{RenderService, RenderTask};
