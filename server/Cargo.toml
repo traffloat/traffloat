@@ -18,4 +18,4 @@ structopt = "0.3.21"
 tokio = {version = "0.3.6", features = ["full"]}
 tokio-tungstenite = "0.12.0"
 traffloat-common = {version = "0.2.0", path = "../common"}
-tungstenite = "0.11.1"
+tungstenite = {version = "0.11.1", default-features = false, features = []}
