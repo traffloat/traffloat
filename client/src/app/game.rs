@@ -88,7 +88,7 @@ impl Component for Game {
 
     fn rendered(&mut self, first_render: bool) {
         let gl = Self::canvas();
-        self.render = Some(Render::new(gl));
+        self.render = Some(Render::new(gl, (self.dim.width, self.dim.height)));
 
         if first_render {
             self.schedule_render();

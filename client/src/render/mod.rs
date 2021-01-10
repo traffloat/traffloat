@@ -1,5 +1,7 @@
 #![allow(clippy::unwrap_used)]
 
+use std::f32::consts::PI;
+
 use web_sys::{WebGlBuffer, WebGlProgram, WebGlRenderingContext as GL};
 
 use crate::models;
@@ -102,13 +104,14 @@ macro_rules! buffer {
             &js_sys::$array::from($src),
             $name,
             $comp_size,
-            $src.len() as u32 / $comp_size,
+            $src.len() as u32,
         )
     }};
 }
 
 pub struct Render {
     gl: GL,
+    aspect: (i32, i32),
     tf: WebGlProgram,
     sphere_vertices: Buffer,
     sphere_faces: Buffer,
@@ -117,33 +120,41 @@ pub struct Render {
 }
 
 impl Render {
-    pub fn new(gl: GL) -> Self {
+    pub fn new(gl: GL, aspect: (i32, i32)) -> Self {
         let tf = prog!(gl, "tf");
 
-        let sphere_vertices = buffer!(&gl, "a_vertex_pos" ARRAY_BUFFER FLOAT Float32Array, models::SPHERE5.vertices(), 3);
-        let sphere_faces = buffer!(&gl, "a_vertex_pos" ELEMENT_ARRAY_BUFFER UNSIGNED_SHORT Int16Array, models::SPHERE5.faces(), 3);
+        let sphere_vertices = buffer!(&gl, "a_vertex_pos" ARRAY_BUFFER FLOAT Float32Array, models::CUBE.vertices(), 3);
+        let sphere_faces = buffer!(&gl, "a_vertex_pos" ELEMENT_ARRAY_BUFFER UNSIGNED_SHORT Int16Array, models::CUBE.faces(), 3);
 
         Self {
             gl,
+            aspect,
             tf,
             sphere_vertices,
             sphere_faces,
-            camera: Camera::default(),
+            camera: Camera {
+                aspect: (aspect.0 as f32) / (aspect.1 as f32),
+                ..Camera::default()
+            },
             frames: 0,
         }
     }
 
     pub fn ren(&mut self) {
         self.frames += 1;
+
         self.gl.clear_color(0., 0., 0., 1.);
         self.gl.clear_depth(1.);
         self.gl.enable(GL::DEPTH_TEST);
         self.gl.depth_func(GL::LEQUAL);
         self.gl.clear(GL::COLOR_BUFFER_BIT | GL::DEPTH_BUFFER_BIT);
 
-        self.camera.yaw = (self.frames % 200) as f32 / 100.0 * std::f32::consts::PI;
+        // self.camera.yaw = (self.frames % 200) as f32 / 100.0 * std::f32::consts::PI;
+        let pitch = (self.frames as i64 % 400 - 200) as f32 / 200.0 * std::f32::consts::PI;
+        self.camera.zoom = Vector::new(1., 1., 1.) * 0.1;
 
-        self.draw_sphere(Matrix::new_translation(&Vector::new(0., 0., -6.)));
+        let rot = Matrix::from_euler_angles(0., pitch, PI / 4.);
+        self.draw_sphere(Matrix::new_translation(&Vector::new(0., 0., -5.)) * rot);
     }
 
     fn draw_sphere(&mut self, matrix: Matrix) {
