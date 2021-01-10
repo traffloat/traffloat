@@ -5,12 +5,16 @@ use super::*;
 #[cfg(target_endian = "little")]
 pub fn decode_vertices(slice: &[u8]) -> &[f32] {
     let len = slice.len();
-    unsafe { std::slice::from_raw_parts(slice.as_ptr() as *const f32, len / size_of::<f32>()) }
+    #[allow(clippy::size_of_in_element_count)]
+    unsafe {
+        std::slice::from_raw_parts(slice.as_ptr() as *const f32, len / size_of::<f32>())
+    }
 }
 
 #[cfg(target_endian = "little")]
 pub fn decode_faces(slice: &[u8]) -> &[FaceIndex] {
     let len = slice.len();
+    #[allow(clippy::size_of_in_element_count)]
     unsafe {
         std::slice::from_raw_parts(
             slice.as_ptr() as *const FaceIndex,

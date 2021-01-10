@@ -36,7 +36,7 @@ jobs:
       - name: cargo clippy
         run: "cargo clippy --all ${{matrix.stability}}"
   test:
-    name: unit tsts
+    name: unit tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
