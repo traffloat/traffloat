@@ -120,8 +120,8 @@ impl Render {
     pub fn new(gl: GL) -> Self {
         let tf = prog!(gl, "tf");
 
-        let sphere_vertices = buffer!(&gl, "a_vertex_pos" ARRAY_BUFFER FLOAT Float32Array, models::SPHERE3.vertices(), 3);
-        let sphere_faces = buffer!(&gl, "a_vertex_pos" ELEMENT_ARRAY_BUFFER UNSIGNED_SHORT Int16Array, models::SPHERE3.faces(), 3);
+        let sphere_vertices = buffer!(&gl, "a_vertex_pos" ARRAY_BUFFER FLOAT Float32Array, models::SPHERE5.vertices(), 3);
+        let sphere_faces = buffer!(&gl, "a_vertex_pos" ELEMENT_ARRAY_BUFFER UNSIGNED_SHORT Int16Array, models::SPHERE5.faces(), 3);
 
         Self {
             gl,

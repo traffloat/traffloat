@@ -1,0 +1,10 @@
+version: "2.3"
+services:
+  server:
+    build:
+      context: .
+      target: server
+  client:
+    build:
+      context: .
+      target: client

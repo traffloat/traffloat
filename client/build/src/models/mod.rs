@@ -30,6 +30,16 @@ pub(crate) fn write() -> TokenStream {
         sphere::sphere(3),
     ));
     output.extend(quote_mesh(
+        &format_ident!("SPHERE{}", 4u32),
+        "Unit sphere",
+        sphere::sphere(4),
+    ));
+    output.extend(quote_mesh(
+        &format_ident!("SPHERE{}", 5u32),
+        "Unit sphere",
+        sphere::sphere(5),
+    ));
+    output.extend(quote_mesh(
         &format_ident!("CUBE"),
         "Unit cube",
         cube::cube(),
