@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 traffloat-client-build = {version = "0.2.0", path = "./build"}
 
 [dependencies]
-anyhow = "1.0.37"
+anyhow = "1.0.38"
 console_error_panic_hook = "0.1.6"
 getrandom = {version = "0.2.1", features = ["js"]}
 js-sys = "0.3.46"

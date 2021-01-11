@@ -8,7 +8,7 @@ homepage = "https://github.com/SOF3/traffloat"
 license = "AGPL-3.0"
 
 [dependencies]
-anyhow = "1.0.37"
+anyhow = "1.0.38"
 async-trait = "0.1.42"
 futures = "0.3.8"
 getset = "0.1.1"
