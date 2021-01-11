@@ -9,6 +9,7 @@ pub struct Timer {
 }
 
 impl Timer {
+    #[allow(clippy::unwrap_used)]
     pub fn new() -> Self {
         let window = web_sys::window().unwrap();
         let perf = window.performance().unwrap();
