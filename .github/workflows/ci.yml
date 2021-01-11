@@ -15,7 +15,7 @@ jobs:
           toolchain: beta
           profile: default
           default: true
-          components: [rustfmt]
+          components: rustfmt
       - run: cargo fmt --all -- --check
   lint:
     name: clippy lint
@@ -34,7 +34,7 @@ jobs:
           toolchain: ${{matrix.toolchain}}
           profile: default
           default: true
-          components: [clippy]
+          components: clippy
       - name: cargo clippy
         run: "cargo clippy --all ${{matrix.stability}}"
   test:
