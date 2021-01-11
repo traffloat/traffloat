@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::mem::MaybeUninit;
 
@@ -329,6 +329,52 @@ array!(512);
 array!(1024);
 array!(2048);
 array!(4096);
+
+impl ProtoType for crate::types::Vector {
+    const CHECKSUM: u128 = {
+        #[derive(codegen::Gen)]
+        struct _Vector([f32; 3]);
+        _Vector::CHECKSUM
+    };
+}
+
+impl BinRead for crate::types::Vector {
+    fn read(buf: &mut &[u8]) -> Result<Self> {
+        let inner = <[f32; 3]>::read(buf)?;
+        Ok(Self::from_column_slice(&inner[..]))
+    }
+}
+
+impl BinWrite for crate::types::Vector {
+    fn write(&self, vec: &mut Vec<u8>) {
+        let slice = self.as_slice();
+        let array: [f32; 3] = slice.try_into().expect("Vector has exactly 3 elements");
+        array.write(vec);
+    }
+}
+
+impl ProtoType for crate::types::Matrix {
+    const CHECKSUM: u128 = {
+        #[derive(codegen::Gen)]
+        struct _Matrix([f32; 16]);
+        _Matrix::CHECKSUM
+    };
+}
+
+impl BinRead for crate::types::Matrix {
+    fn read(buf: &mut &[u8]) -> Result<Self> {
+        let inner = <[f32; 16]>::read(buf)?;
+        Ok(Self::from_column_slice(&inner[..]))
+    }
+}
+
+impl BinWrite for crate::types::Matrix {
+    fn write(&self, vec: &mut Vec<u8>) {
+        let slice = self.as_slice();
+        let array: [f32; 16] = slice.try_into().expect("Matrix has exactly 16 elements");
+        array.write(vec);
+    }
+}
 
 #[cfg(test)]
 mod tests {

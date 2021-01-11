@@ -11,6 +11,10 @@ license = "AGPL-3.0"
 name = "common"
 
 [dependencies]
+derive_more = "0.99.11"
+enum-map = "0.6.4"
+nalgebra = "0.24.0"
+ratio-def = "0.1.2"
+specs = {version = "0.16.1", features = ["specs-derive"]}
 traffloat-codegen = {version = "0.2.0", path = "../codegen"}
-# specs = "0.16.1"
 yew = {version = "0.17.4", optional = true}

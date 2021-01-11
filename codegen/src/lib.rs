@@ -1,8 +1,7 @@
 extern crate proc_macro;
 
 use proc_macro2::TokenStream;
-use quote::{quote, quote_spanned, ToTokens};
-use syn::spanned::Spanned;
+use quote::{quote, ToTokens};
 use syn::Result;
 
 #[proc_macro_derive(Gen, attributes(max_size, from_client_only, from_server_only))]
@@ -49,11 +48,11 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
                 let field_name = match field.ident.as_ref() {
                     Some(ident) => ident.to_token_stream(),
                     None => {
-                        quote_spanned!(field.ty.span() => #i_lit)
+                        quote!(#i_lit)
                     }
                 };
                 let field_key = match field.ident.as_ref() {
-                    Some(ident) => quote_spanned!(ident.span() => #ident: ),
+                    Some(ident) => quote!(#ident: ),
                     None => quote!(),
                 };
                 let field_name_hash = match field.ident.as_ref() {
@@ -62,13 +61,13 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
                 };
                 let field_ty = &field.ty;
 
-                write_fields.push(quote_spanned! { field.ty.span() =>
+                write_fields.push(quote! {
                     crate::proto::BinWrite::write(&self.#field_name, &mut *buf);
                 });
-                read_fields.push(quote_spanned! { field.ty.span() =>
+                read_fields.push(quote! {
                     #field_key crate::proto::BinRead::read(&mut *buf)?
                 });
-                cksum_fields.push(quote_spanned! { field.ty.span() =>
+                cksum_fields.push(quote! {
                     output = output.wrapping_add(#field_name_hash);
                     output = output.wrapping_mul(crate::proto::PROTO_TYPE_CKSUM_PRIME);
 
@@ -132,9 +131,9 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
                 let variant_ty = variant.fields.iter().next();
                 let variant_ty_cksum = match &variant_ty {
                     Some(ty) => {
-                        quote_spanned!(variant.ident.span() => <#ty as crate::proto::ProtoType>::CHECKSUM)
+                        quote!(<#ty as crate::proto::ProtoType>::CHECKSUM)
                     }
-                    None => quote_spanned!(variant.ident.span() => (1 << 64) - 59),
+                    None => quote!((1 << 64) - 59),
                 };
 
                 let write_value = variant_ty.map(|_| quote!((value)));
@@ -143,16 +142,16 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
                 let read_inner =
                     variant_ty.map(|_| quote!((crate::proto::BinRead::read(&mut *buf)?)));
 
-                write_variants.push(quote_spanned! { variant.ident.span() =>
+                write_variants.push(quote! {
                     Self::#variant_name #write_value => {
                         <#discrim_ty as crate::proto::BinWrite>::write(&#i, &mut *buf);
                         #write_inner
                     }
                 });
-                read_variants.push(quote_spanned! { variant.ident.span() =>
+                read_variants.push(quote! {
                     #i => Ok(Self::#variant_name #read_inner)
                 });
-                cksum_variants.push(quote_spanned! { variant.ident.span() =>
+                cksum_variants.push(quote! {
                     output = output.wrapping_add(#variant_hash);
                     output = output.wrapping_mul(crate::proto::PROTO_TYPE_CKSUM_PRIME);
 

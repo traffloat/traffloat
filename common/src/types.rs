@@ -1,0 +1,117 @@
+use std::cmp::Ordering;
+use std::collections::BTreeMap;
+
+pub use specs::{storage, Component, Entity};
+
+use crate::proto::{self, BinRead, BinWrite, ProtoType};
+
+/// Standard vector type
+pub type Vector = nalgebra::Vector3<f32>;
+
+/// Standard homogenous matrix type
+pub type Matrix = nalgebra::Matrix4<f32>;
+
+macro_rules! ids {
+    ($($(#[$meta:meta])* $id:ident;)*) => {
+        mod id_impl {
+            $(
+                #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, codegen::Gen)]
+                #[repr(transparent)]
+                pub(super) struct $id(pub(super) u32);
+            )*
+        }
+        $(
+            #[derive(Debug, Clone, Copy, Default)]
+            $(#[$meta])*
+            pub struct $id {
+                network_id: id_impl::$id,
+                entity: Option<Entity>,
+            }
+
+            impl PartialEq for $id {
+                fn eq(&self, other: &Self) -> bool { self.network_id == other.network_id }
+            }
+
+            impl Eq for $id {}
+
+            impl PartialOrd for $id {
+                fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+                    Some(self.cmp(other))
+                }
+            }
+
+            impl Ord for $id {
+                fn cmp(&self, other: &Self) -> Ordering {
+                    self.network_id.cmp(&other.network_id)
+                }
+            }
+
+            impl ProtoType for $id {
+                const CHECKSUM: u128 = <id_impl::$id as ProtoType>::CHECKSUM;
+            }
+
+            impl BinWrite for $id {
+                fn write(&self, vec: &mut Vec<u8>) {
+                    self.network_id.write(vec);
+                }
+            }
+
+            impl BinRead for $id {
+                fn read(buf: &mut &[u8]) -> Result<Self, proto::Error> {
+                    Ok(Self {
+                        network_id: id_impl::$id::read(buf)?,
+                        entity: None,
+                    })
+                }
+            }
+        )*
+    }
+}
+
+ids! {
+    /// Identifies a node (building)
+    NodeId;
+
+    /// Identifies a liquid type
+    LiquidId;
+
+    /// Identifies a rail
+    PipeId;
+
+    /// Identifies a gas type
+    GasId;
+
+    /// Identifies a cargo type
+    CargoId;
+
+    /// Identifies a rail
+    RailId;
+
+    /// Identifies a reaction
+    ReactionId;
+}
+
+ratio_def::units! {
+    #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, codegen::Gen)] f64:
+
+    /// An amount of liquid
+    LiquidVolume;
+
+    /// The pressure of air in a room
+    GasPressure;
+
+    /// An absolute amount of gas
+    GasVolume;
+
+    /// Specific heat capacity
+    HeatCapacity;
+
+    /// Heat energy
+    HeatEnergy;
+
+    /// Dynamic electricity consumed immediately
+    ElectricPower;
+
+    /// Static electricity in stored form
+    ElectricEnergy;
+}
