@@ -36,6 +36,12 @@ jobs:
           profile: default
           default: true
           components: clippy
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            **/target
+          key: ${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
       - name: cargo clippy
         run: "cargo clippy --all ${{matrix.stability}}"
   test:
@@ -56,5 +62,11 @@ jobs:
           toolchain: ${{matrix.toolchain}}
           profile: default
           default: true
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            **/target
+          key: ${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
       - name: cargo test
         run: "cargo test --all ${{matrix.stability}}"
