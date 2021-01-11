@@ -14,6 +14,8 @@ jobs:
         with:
           toolchain: beta
           profile: default
+          default: true
+          components: [rustfmt]
       - run: cargo fmt --all -- --check
   lint:
     name: clippy lint
@@ -32,8 +34,9 @@ jobs:
           toolchain: ${{matrix.toolchain}}
           profile: default
           default: true
+          components: [clippy]
       - name: cargo clippy
-        run: "cargo +${{matrix.toolchain}} clippy --all ${{matrix.stability}}"
+        run: "cargo clippy --all ${{matrix.stability}}"
   test:
     name: unit tests
     runs-on: ubuntu-latest
@@ -52,4 +55,4 @@ jobs:
           profile: default
           default: true
       - name: cargo test
-        run: "cargo +${{matrix.toolchain}} test --all ${{matrix.stability}}"
+        run: "cargo test --all ${{matrix.stability}}"
