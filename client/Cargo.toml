@@ -19,7 +19,7 @@ console_error_panic_hook = "0.1.6"
 getrandom = {version = "0.2.1", features = ["js"]}
 js-sys = "0.3.46"
 lazy_static = "1.4.0"
-log = "0.4.11"
+log = "0.4.13"
 nalgebra = "0.24.0"
 rand = "0.8.1"
 serde = {version = "1.0.118", features = ["derive"]}
