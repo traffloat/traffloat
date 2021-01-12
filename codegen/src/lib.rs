@@ -36,6 +36,21 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
     let name = &input.ident;
     let ident_hash = hash(name);
 
+    let generics = &input.generics;
+    let generic_names = generics
+        .params
+        .iter()
+        .map(|param| match param {
+            syn::GenericParam::Type(param) => Ok(&param.ident),
+            param => Err(syn::Error::new_spanned(param, "Unsupported generic type")),
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let generic_names = if generics.params.is_empty() {
+        quote!()
+    } else {
+        quote!(<#(#generic_names),*>)
+    };
+
     Ok(match &input.data {
         syn::Data::Struct(data) => {
             let mut write_fields = Vec::with_capacity(data.fields.len());
@@ -88,7 +103,7 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
             };
 
             quote! {
-                impl crate::proto::ProtoType for #name {
+                impl #generics crate::proto::ProtoType for #name #generic_names {
                     const CHECKSUM: u128 = {
                         let mut output = #ident_hash;
                         output = output.wrapping_mul(crate::proto::PROTO_TYPE_CKSUM_PRIME);
@@ -99,7 +114,7 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
 
                 #client_source_cfg
                 #server_source_cfg
-                impl crate::proto::BinWrite for #name {
+                impl #generics crate::proto::BinWrite for #name #generic_names {
                     fn write(&self, buf: &mut Vec<u8>) {
                         #(#write_fields)*
                     }
@@ -107,7 +122,7 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
 
                 #client_sink_cfg
                 #server_sink_cfg
-                impl crate::proto::BinRead for #name {
+                impl #generics crate::proto::BinRead for #name #generic_names {
                     fn read(buf: &mut &[u8]) -> Result<Self, crate::proto::Error> {
                         Ok(Self #read_fields)
                     }
@@ -161,7 +176,7 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
             }
 
             quote! {
-                impl crate::proto::ProtoType for #name {
+                impl #generics crate::proto::ProtoType for #name #generic_names {
                     const CHECKSUM: u128 = {
                         let mut output = #ident_hash;
                         output = output.wrapping_mul(crate::proto::PROTO_TYPE_CKSUM_PRIME);
@@ -172,7 +187,7 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
 
                 #client_source_cfg
                 #server_source_cfg
-                impl crate::proto::BinWrite for #name {
+                impl #generics crate::proto::BinWrite for #name #generic_names {
                     fn write(&self, buf: &mut Vec<u8>) {
                         match self {
                             #(#write_variants,)*
@@ -182,7 +197,7 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
 
                 #client_sink_cfg
                 #server_sink_cfg
-                impl crate::proto::BinRead for #name {
+                impl #generics crate::proto::BinRead for #name #generic_names {
                     fn read(buf: &mut &[u8]) -> Result<Self, crate::proto::Error> {
                         let discrim = <#discrim_ty as crate::proto::BinRead>::read(&mut *buf)?;
                         match discrim {

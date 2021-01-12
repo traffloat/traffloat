@@ -1,7 +1,10 @@
 use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
+use std::iter;
 use std::mem::MaybeUninit;
+
+use smallvec::SmallVec;
 
 /// Binary encoding result
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -139,26 +142,36 @@ impl<T: ProtoType> ProtoType for Vec<T> {
 impl<T: BinRead> BinRead for Vec<T> {
     #[inline(always)]
     fn read(buf: &mut &[u8]) -> Result<Self> {
-        let count = <u32 as BinRead>::read(&mut *buf)? as usize;
-        if count > buf.len() {
-            return Err(error("nonsense vec length detected"));
-        }
-        let mut vec = Vec::<T>::with_capacity(count);
-        for _ in 0..count {
-            vec.push(<T as BinRead>::read(&mut *buf)?);
-        }
-        Ok(vec)
+        read_slice(buf, Vec::<T>::with_capacity)
     }
+}
+
+#[inline(always)]
+fn read_slice<T: BinRead, C: Extend<T>>(buf: &mut &[u8], create: fn(usize) -> C) -> Result<C> {
+    let count = <u32 as BinRead>::read(&mut *buf)? as usize;
+    if count > buf.len() {
+        return Err(error("nonsense vec length detected"));
+    }
+    let mut coll = create(count);
+    for _ in 0..count {
+        coll.extend(iter::once(<T as BinRead>::read(&mut *buf)?));
+    }
+    Ok(coll)
 }
 
 impl<T: BinWrite> BinWrite for Vec<T> {
     #[inline(always)]
     fn write(&self, buf: &mut Vec<u8>) {
-        let len = u32::try_from(self.len()).expect("Vec is unrealistically long");
-        <u32 as BinWrite>::write(&len, &mut *buf);
-        for elem in self {
-            <T as BinWrite>::write(elem, &mut *buf);
-        }
+        write_slice(self.as_slice(), buf)
+    }
+}
+
+#[inline(always)]
+fn write_slice<T: BinWrite>(slice: &[T], buf: &mut Vec<u8>) {
+    let len = u32::try_from(slice.len()).expect("Slice is unrealistically long");
+    <u32 as BinWrite>::write(&len, &mut *buf);
+    for elem in slice {
+        <T as BinWrite>::write(elem, &mut *buf);
     }
 }
 
@@ -373,6 +386,33 @@ impl BinWrite for crate::types::Matrix {
         let slice = self.as_slice();
         let array: [f32; 16] = slice.try_into().expect("Matrix has exactly 16 elements");
         array.write(vec);
+    }
+}
+
+impl<A: smallvec::Array> ProtoType for SmallVec<A>
+where
+    A::Item: ProtoType,
+{
+    const CHECKSUM: u128 = Vec::<A::Item>::CHECKSUM;
+}
+
+impl<A: smallvec::Array> BinRead for SmallVec<A>
+where
+    A::Item: BinRead,
+{
+    #[inline(always)]
+    fn read(buf: &mut &[u8]) -> Result<Self> {
+        read_slice(buf, SmallVec::<A>::with_capacity)
+    }
+}
+
+impl<A: smallvec::Array> BinWrite for SmallVec<A>
+where
+    A::Item: BinWrite,
+{
+    #[inline(always)]
+    fn write(&self, vec: &mut Vec<u8>) {
+        write_slice(self.as_slice(), vec)
     }
 }
 

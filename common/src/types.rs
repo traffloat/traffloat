@@ -1,15 +1,27 @@
+use std::any::Any;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-pub use specs::{storage, Component, Entity};
+pub use specs::{storage, Component, Entity, ReadStorage, System, WriteStorage};
 
 use crate::proto::{self, BinRead, BinWrite, ProtoType};
+pub use crate::time::*;
 
 /// Standard vector type
 pub type Vector = nalgebra::Vector3<f32>;
 
 /// Standard homogenous matrix type
 pub type Matrix = nalgebra::Matrix4<f32>;
+
+/// A generic variant-identifier mechanism
+pub trait Id: Any + Sized {
+    /// Returns the network ID value
+    fn network_id_u32(self) -> u32;
+
+    fn entity(self) -> Entity {
+        todo!()
+    }
+}
 
 macro_rules! ids {
     ($($(#[$meta:meta])* $id:ident;)*) => {
@@ -20,12 +32,19 @@ macro_rules! ids {
                 pub(super) struct $id(pub(super) u32);
             )*
         }
+
         $(
             #[derive(Debug, Clone, Copy, Default)]
             $(#[$meta])*
             pub struct $id {
                 network_id: id_impl::$id,
                 entity: Option<Entity>,
+            }
+
+            impl Id for $id {
+                fn network_id_u32(self) -> u32 {
+                    self.network_id.0
+                }
             }
 
             impl PartialEq for $id {
@@ -92,7 +111,9 @@ ids! {
 }
 
 ratio_def::units! {
-    #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, codegen::Gen)] f64:
+    Unit(std::fmt::Debug + Clone + Copy + Default + PartialEq + PartialOrd + ProtoType + BinWrite + BinRead);
+
+    #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, codegen::Gen)] f32:
 
     /// An amount of liquid
     LiquidVolume;
@@ -114,4 +135,14 @@ ratio_def::units! {
 
     /// Static electricity in stored form
     ElectricEnergy;
+}
+
+/// The endpoints of an edge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Component, codegen::Gen)]
+#[storage(storage::VecStorage)]
+pub struct EdgeId {
+    /// The source node of the edge
+    pub first: NodeId,
+    /// The destination node of the edge
+    pub second: NodeId,
 }

@@ -28,12 +28,12 @@
     )
 )]
 
-pub mod edge;
 pub mod liquid;
 pub mod proto;
 pub mod reaction;
 pub mod shape;
 pub mod terminal;
+pub mod time;
 pub mod types;
 mod util;
 pub use util::*;

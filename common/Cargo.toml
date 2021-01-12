@@ -12,9 +12,10 @@ name = "common"
 
 [dependencies]
 derive_more = "0.99.11"
-enum-map = "0.6.4"
 nalgebra = "0.24.0"
-ratio-def = "0.1.2"
+ratio-def = "0.3.0"
+shrev = "1.1.1"
+smallvec = "1.6.1"
 specs = {version = "0.16.1", features = ["specs-derive"]}
 traffloat-codegen = {version = "0.2.0", path = "../codegen"}
 yew = {version = "0.17.4", optional = true}
