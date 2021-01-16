@@ -123,8 +123,13 @@ impl Canvas {
         };
         buf.apply(&self.gl, &self.object_program);
         self.gl.use_program(Some(&self.object_program));
-        set_uniform_matrix(&self.gl, &self.star_program, "u_projection", camera_matrix);
-        set_uniform_matrix(&self.gl, &self.star_program, "u_object", camera_matrix);
+        set_uniform_matrix(
+            &self.gl,
+            &self.object_program,
+            "u_projection",
+            camera_matrix,
+        );
+        set_uniform_matrix(&self.gl, &self.object_program, "u_object", shape.transform);
         buf.draw(&self.gl);
     }
 }
@@ -210,7 +215,7 @@ impl Model {
 
             gl.vertex_attrib_pointer_with_i32(
                 location,
-                4,
+                3,
                 WebGlRenderingContext::FLOAT,
                 false,
                 0,
@@ -257,49 +262,39 @@ fn create_stars(seed: u64) -> impl AbstractMesh {
     let mut color_rng = rand_xoshiro::SplitMix64::seed_from_u64(seed);
     for sample in rand_distr::UnitSphere
         .sample_iter(&mut pos_rng)
-        .take(config::NOISE_SIZE)
+        .take(config::BG_STAR_COUNT)
     {
         let sample: [f32; 3] = sample; // type coercion
         let vector = Vector::from_column_slice(&sample);
         let mut a = vector.cross(&Vector::new(1., 0., 0.));
         let mut b = vector.cross(&a);
 
-        let size_root = size_rng.gen::<f32>();
-        let mut size = 1. - size_root * size_root;
-        size *= config::NOISE_SCALE;
+        let size_root: f32 = size_rng.gen();
+        let size_base = 1. - size_root.powi(3);
+        let size = config::BG_STAR_SCALE_MIN
+            + (config::BG_STAR_SCALE_MAX - config::BG_STAR_SCALE_MIN) * size_base;
 
         a *= size;
         b *= size;
 
-        let i = vertices.len().try_into().expect("NOISE_SIZE is too large");
-        vertices.push(Vertex(
-            (vector - a)
-                .as_slice()
-                .try_into()
-                .expect("Vector3 -> [f32; 3]"),
-        ));
-        vertices.push(Vertex(
-            (vector - b)
-                .as_slice()
-                .try_into()
-                .expect("Vector3 -> [f32; 3]"),
-        ));
-        vertices.push(Vertex(
-            (vector + b)
-                .as_slice()
-                .try_into()
-                .expect("Vector3 -> [f32; 3]"),
-        ));
-        vertices.push(Vertex(
-            (vector + a)
-                .as_slice()
-                .try_into()
-                .expect("Vector3 -> [f32; 3]"),
-        ));
-        colors.extend(iter::repeat(Color(color_rng.gen())).take(4));
+        let i = vertices
+            .len()
+            .try_into()
+            .expect("BG_STAR_SIZE is too large");
+        for point in &[vector, vector + a, vector + a * 0.5 + b * (0.75_f32)] {
+            vertices.push(Vertex(
+                point.as_slice().try_into().expect("Vector3 -> [f32; 3]"),
+            ));
+        }
+
+        for _ in 0..3 {
+            let r: f32 = color_rng.gen();
+            let b: f32 = color_rng.gen();
+            let g = if r > b { b } else { r };
+            colors.push(Color([r * 0.75 + 0.25, g * 0.75 + 0.25, b * 0.75 + 0.25]));
+        }
 
         faces.push(Face([i, i + 1, i + 2]));
-        faces.push(Face([i + 3, i + 1, i + 2]));
     }
 
     log::debug!("vertices.len() = {:?}", vertices.len());

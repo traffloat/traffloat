@@ -10,6 +10,7 @@ use yew::services::resize::{ResizeService, ResizeTask, WindowDimensions};
 use super::WebSocket;
 use crate::keymap::{Action, ActionEvent};
 use crate::render::{Camera, Canvas};
+use common::types::{Clock, Time};
 
 pub struct Game {
     link: ComponentLink<Self>,
@@ -104,6 +105,8 @@ impl Component for Game {
             Message::KeyUp(key) => update_key(&mut self.setup.0, key, false),
             Message::Dispatch(()) => {
                 let (world, dispatcher) = &mut self.setup;
+                let clock: &mut Clock = world.get_mut().expect("Clock was initialized at setup");
+                clock.inc_time(Time(1));
                 dispatcher.dispatch(world);
                 false
             }
@@ -130,6 +133,12 @@ impl Component for Game {
             Some(ptr) => *ptr = canvas,
             None => self.setup.0.insert::<Canvas>(canvas),
         }
+        let camera = self
+            .setup
+            .0
+            .get_mut::<Camera>()
+            .expect("Camera should be initialized");
+        camera.aspect = (self.dim.width as f32) / (self.dim.height as f32);
 
         let body = Self::document().body().unwrap();
 

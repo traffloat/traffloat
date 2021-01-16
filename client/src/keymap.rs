@@ -18,6 +18,8 @@ pub enum Action {
     MoveBack,
     ZoomIn,
     ZoomOut,
+    RotAntiClock,
+    RotClock,
     Shift,
 }
 
@@ -30,6 +32,8 @@ impl Action {
             "KeyD" => Self::MoveRight,
             "KeyX" => Self::MoveFront,
             "KeyZ" => Self::MoveBack,
+            "KeyQ" => Self::RotAntiClock,
+            "KeyE" => Self::RotClock,
             "ShiftLeft" => Self::Shift,
             "ShiftRight" => Self::Shift,
             _ => return None,

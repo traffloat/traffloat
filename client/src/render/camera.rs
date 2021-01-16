@@ -1,15 +1,16 @@
 use std::f32::consts::PI;
 
+use lazy_static::lazy_static;
+
 use crate::config;
 use crate::keymap::{self, Action};
 use common::types::*;
 
+#[derive(Debug)]
 pub struct Camera {
     pub pos: Vector,
-    pub zoom: Vector,
-    pub yaw: f32,
-    pub pitch: f32,
-    pub roll: f32,
+    pub zoom: f32,
+    pub rot: Matrix,
     pub aspect: f32,
     pub fovy: f32,
     pub znear: f32,
@@ -18,27 +19,41 @@ pub struct Camera {
 
 impl Camera {
     pub fn inv_transform(&self) -> Matrix {
-        let mut matrix = Matrix::identity();
-        matrix.append_translation_mut(&-self.pos);
-        matrix.append_nonuniform_scaling_mut(&self.zoom);
-        matrix = Matrix::from_euler_angles(-self.roll, -self.pitch, -self.yaw) * matrix;
-        Matrix::new_perspective(self.aspect, self.fovy, self.znear, self.zfar) * matrix
+        let trans = Matrix::identity().append_translation(&-self.pos);
+        let zoom = Matrix::identity().append_scaling(self.zoom);
+        let rot = self.rot_matrix(0);
+        let pers = Matrix::new_perspective(self.aspect, self.fovy, 0.1, 100.);
+        pers * zoom * rot * trans
     }
 
-    pub fn star_matrix(&self) -> Matrix {
-        let rot = Matrix::from_euler_angles(-self.roll, -self.pitch, -self.yaw);
-        Matrix::new_perspective(self.aspect, self.fovy, 0.9, 1.1) * rot
+    pub fn star_matrix(&self, noise: i32) -> Matrix {
+        let zoom = Matrix::identity().append_scaling(self.zoom);
+        let rot = self.rot_matrix(noise);
+        let pers = Matrix::new_perspective(self.aspect, self.fovy, 0.1, 10.);
+        pers * rot * zoom
+    }
+
+    #[inline(always)]
+    fn rot_matrix(&self, noise: i32) -> Matrix {
+        lazy_static! {
+            static ref NOISE_MATRIX: Matrix =
+                Matrix::from_euler_angles(0., 0., config::BG_STAR_NOISE);
+        }
+
+        let mut ret = self.rot;
+        if noise % 2 == 1 {
+            ret *= *NOISE_MATRIX;
+        }
+        ret
     }
 }
 
 impl Default for Camera {
     fn default() -> Self {
         Self {
-            pos: Vector::new(0., 0., 5.),
-            zoom: Vector::new(1., 1., 1.) * 0.1,
-            yaw: PI,
-            pitch: 0.,
-            roll: 0.,
+            pos: Vector::new(0., 0., 0.),
+            zoom: 1.,
+            rot: Matrix::identity(),
             aspect: 1.,
             fovy: PI / 4.,
             znear: 0.1,
@@ -68,42 +83,81 @@ impl<'a> specs::System<'a> for ViewSystem {
     fn run(&mut self, (action_set, clock, mut camera): Self::SystemData) {
         let time_delta = clock.delta.as_secs();
 
-        log::debug!("Actions: {:?}", action_set.actions().collect::<Vec<_>>());
+        lazy_static! {
+            static ref YAW_DEC: Matrix =
+                Matrix::from_euler_angles(0., -config::ROT_PITCH_SPEED * 0.01, 0.);
+            static ref YAW_INC: Matrix =
+                Matrix::from_euler_angles(0., config::ROT_PITCH_SPEED * 0.01, 0.);
+            static ref PITCH_DEC: Matrix =
+                Matrix::from_euler_angles(config::ROT_YAW_SPEED * 0.01, 0., 0.);
+            static ref PITCH_INC: Matrix =
+                Matrix::from_euler_angles(-config::ROT_YAW_SPEED * 0.01, 0., 0.);
+            static ref ROLL_DEC: Matrix =
+                Matrix::from_euler_angles(0., 0., config::ROT_ROLL_SPEED * 0.01);
+            static ref ROLL_INC: Matrix =
+                Matrix::from_euler_angles(0., 0., -config::ROT_ROLL_SPEED * 0.01);
+        }
+
+        use nalgebra::dimension as dim;
+        type Matrix3 = nalgebra::Matrix3<f32>;
+        let rot = camera
+            .rot
+            .fixed_slice::<dim::U3, dim::U3>(0, 0)
+            .try_inverse()
+            .unwrap_or_else(Matrix3::identity);
 
         for action in action_set.actions() {
             match action {
                 Action::MoveDown => {
-                    camera.pos -= Vector::new(0., config::MOVE_SPEED * time_delta, 0.);
+                    camera.pos -= rot * Vector::new(0., config::MOVE_SPEED * time_delta, 0.);
                 }
                 Action::MoveUp => {
-                    camera.pos += Vector::new(0., config::MOVE_SPEED * time_delta, 0.);
+                    camera.pos += rot * Vector::new(0., config::MOVE_SPEED * time_delta, 0.);
                 }
                 Action::MoveLeft => {
-                    camera.pos -= Vector::new(config::MOVE_SPEED * time_delta, 0., 0.);
+                    camera.pos -= rot * Vector::new(config::MOVE_SPEED * time_delta, 0., 0.);
                 }
                 Action::MoveRight => {
-                    camera.pos += Vector::new(config::MOVE_SPEED * time_delta, 0., 0.);
+                    camera.pos += rot * Vector::new(config::MOVE_SPEED * time_delta, 0., 0.);
                 }
                 Action::MoveBack => {
-                    camera.pos -= Vector::new(0., 0., config::MOVE_SPEED * time_delta);
+                    camera.pos += rot * Vector::new(0., 0., config::MOVE_SPEED * time_delta);
                 }
                 Action::MoveFront => {
-                    camera.pos += Vector::new(0., 0., config::MOVE_SPEED * time_delta);
+                    camera.pos -= rot * Vector::new(0., 0., config::MOVE_SPEED * time_delta);
                 }
                 Action::RotDown => {
-                    camera.pitch -= config::ROT_PITCH_SPEED * time_delta;
+                    camera.rot = *PITCH_DEC * camera.rot;
                 }
                 Action::RotUp => {
-                    camera.pitch += config::ROT_PITCH_SPEED * time_delta;
+                    camera.rot = *PITCH_INC * camera.rot;
                 }
                 Action::RotLeft => {
-                    camera.yaw -= config::ROT_YAW_SPEED * time_delta;
+                    camera.rot = *YAW_DEC * camera.rot;
                 }
                 Action::RotRight => {
-                    camera.yaw += config::ROT_YAW_SPEED * time_delta;
+                    camera.rot = *YAW_INC * camera.rot;
+                }
+                Action::RotAntiClock => {
+                    camera.rot = *ROLL_DEC * camera.rot;
+                }
+                Action::RotClock => {
+                    camera.rot = *ROLL_INC * camera.rot;
+                }
+                Action::ZoomIn => {
+                    camera.zoom *= config::ZOOM_SPEED.powf(time_delta);
+                }
+                Action::ZoomOut => {
+                    camera.zoom /= config::ZOOM_SPEED.powf(time_delta);
                 }
                 _ => {}
             }
         }
+
+        log::debug!(
+            "Camera: {:?}; Actions: {:?}",
+            &*camera,
+            action_set.actions().collect::<Vec<_>>()
+        );
     }
 }
