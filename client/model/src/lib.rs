@@ -27,6 +27,14 @@ pub struct Face(pub [FaceIndex; 3]);
 #[derive(Debug, Clone, Copy)]
 pub struct Color(pub [f32; 3]);
 
+/// Transmutes a slice from type T to type U
+///
+/// # Safety
+/// The sizes of `T` and `U` must be multiple of one another,
+/// such that the representation of sufficiently many continguous units of `T` represents
+/// contiguous units of `U`.
+///
+/// Furthermore, it is assumed that the size of the input slice is a multiple of this ratio.
 pub unsafe fn transmute_slice<T, U>(slice: &[T]) -> &[U] {
     let size = slice.len() * size_of::<T>() / size_of::<U>();
     std::slice::from_raw_parts(slice.as_ptr() as *const U, size)

@@ -1,9 +1,9 @@
 /// The rate of wasdzx
 pub const MOVE_SPEED: f32 = 0.5;
 /// The rate of shift-ad
-pub const ROT_YAW_SPEED: f32 = 0.5;
+pub const ROT_YAW_SPEED: f32 = 0.8;
 /// The rate of shift-ws
-pub const ROT_PITCH_SPEED: f32 = 0.5;
+pub const ROT_PITCH_SPEED: f32 = 0.8;
 /// The rate of qe
 pub const ROT_ROLL_SPEED: f32 = 0.8;
 /// The rate of shift-zx

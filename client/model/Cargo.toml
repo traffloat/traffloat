@@ -8,8 +8,10 @@ homepage = "https://github.com/SOF3/traffloat"
 license = "AGPL-3.0"
 
 [dependencies]
-quote = {version = "1.0.0", optional = true}
 proc-macro2 = {version = "1.0.24", optional = true}
+quote = {version = "1.0.0", optional = true}
+rand = "0.8.2"
+rand_xoshiro = "0.6.0"
 
 [features]
 enc = ["quote", "proc-macro2"]

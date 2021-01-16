@@ -27,9 +27,16 @@ pub fn encode_colors(slice: &[Color]) -> &[u8] {
 pub type Mesh = (Vec<Vertex>, Vec<Face>);
 
 pub fn quote_mesh(name: &proc_macro2::Ident, doc: &str, mesh: Mesh) -> TokenStream {
+    use rand::{Rng, SeedableRng};
+    use std::hash::{Hash, Hasher};
+
     let vertices = &mesh.0;
     let faces = &mesh.1;
-    let colors: Vec<Color> = mesh.0.iter().map(|_| Color([1., 1., 1.])).collect();
+
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    name.hash(&mut hasher);
+    let mut rng = rand_xoshiro::Xoshiro128PlusPlus::seed_from_u64(hasher.finish());
+    let colors: Vec<Color> = mesh.0.iter().map(|_| Color(rng.gen())).collect();
 
     let doc = &format!(
         "{}\n\nMesh with {} vertices and {} faces",

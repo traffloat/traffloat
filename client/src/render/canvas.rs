@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::iter;
 
 use web_sys::{WebGlBuffer, WebGlProgram, WebGlRenderingContext, WebGlShader};
@@ -76,8 +76,8 @@ pub struct Canvas {
 
     pub render_requested: bool,
     cube_buf: Model,
-    // tetra_buf: Model,
-    // sphere_buf: Model,
+    tetra_buf: Model,
+    sphere_buf: Model,
 }
 
 impl Canvas {
@@ -87,8 +87,10 @@ impl Canvas {
             star
         );
 
-        let noise_buf = Model::new(&gl, create_stars(noise_seed));
-        let cube_buf = Model::new(&gl, models::CUBE);
+        let noise_buf = Model::new(&gl, create_stars(noise_seed), false);
+        let cube_buf = Model::new(&gl, models::CUBE, true);
+        let tetra_buf = Model::new(&gl, models::TETRAHEDRON, true);
+        let sphere_buf = Model::new(&gl, models::SPHERE5, true);
 
         Self {
             gl,
@@ -96,6 +98,8 @@ impl Canvas {
             star_program,
             noise_buf,
             cube_buf,
+            tetra_buf,
+            sphere_buf,
 
             render_requested: false,
         }
@@ -119,6 +123,8 @@ impl Canvas {
     pub fn render_shape(&self, camera_matrix: Matrix, shape: Shape) {
         let buf = match shape.unit {
             shape::Unit::Cube => &self.cube_buf,
+            shape::Unit::Tetra => &self.tetra_buf,
+            shape::Unit::Sphere => &self.sphere_buf,
             _ => unimplemented!(),
         };
         buf.apply(&self.gl, &self.object_program);
@@ -150,9 +156,10 @@ struct Model {
 }
 
 impl Model {
-    fn new(gl: &WebGlRenderingContext, mesh: impl AbstractMesh) -> Self {
+    fn new(gl: &WebGlRenderingContext, mesh: impl AbstractMesh, _fixed: bool) -> Self {
         let positions = gl.create_buffer().unwrap();
         gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&positions));
+
         gl.buffer_data_with_array_buffer_view(
             WebGlRenderingContext::ARRAY_BUFFER,
             &js_sys::Float32Array::from(mesh.vertices()),
@@ -181,7 +188,7 @@ impl Model {
             positions,
             colors,
             indices,
-            len: mesh.vertices().len() as i32,
+            len: i32::try_from(mesh.faces().len()).expect("Too many faces") * 3,
         }
     }
 
@@ -296,8 +303,6 @@ fn create_stars(seed: u64) -> impl AbstractMesh {
 
         faces.push(Face([i, i + 1, i + 2]));
     }
-
-    log::debug!("vertices.len() = {:?}", vertices.len());
 
     DynamicMesh {
         vertices,

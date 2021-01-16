@@ -54,12 +54,30 @@ impl<'a> specs::System<'a> for RenderSystem {
         canvas.render_shape(
             camera_matrix,
             Shape {
+                unit: shape::Unit::Tetra,
+                transform: Matrix::identity()
+                    .append_scaling(0.1)
+                    .append_translation(&Vector::new(0., 0., -1.)),
+            },
+        );
+        canvas.render_shape(
+            camera_matrix,
+            Shape {
+                unit: shape::Unit::Sphere,
+                transform: Matrix::identity()
+                    .append_scaling(0.1)
+                    .append_translation(&Vector::new(0., -0.5, -1.)),
+            },
+            );
+        canvas.render_shape(
+            camera_matrix,
+            Shape {
                 unit: shape::Unit::Cube,
                 transform: Matrix::identity()
                     .append_scaling(0.1)
-                    .append_translation(&Vector::new(0., 0., 1.)),
+                    .append_translation(&Vector::new(0., 0.5, -1.)),
             },
-        );
+            );
 
         for (_, shape) in (&rendered, &shapes).join() {
             if shape.is_clipped() {
