@@ -1,4 +1,9 @@
-use super::types::*;
+//! Reactors available
+
+use specs::WorldExt;
+
+use crate::types::*;
+use crate::Setup;
 
 #[derive(Debug, codegen::Gen, Component)]
 #[storage(storage::BTreeStorage)]
@@ -25,7 +30,13 @@ pub enum Substance {
 
 #[derive(Debug, Component, codegen::Gen)]
 #[storage(storage::BTreeStorage)]
-pub struct Reractor {
+pub struct Reactor {
     pub reaction: ReactionId,
     pub rate: f32,
+}
+
+pub fn setup_specs((mut world, dispatcher): Setup) -> Setup {
+    world.register::<Reaction>();
+    world.register::<Reactor>();
+    (world, dispatcher)
 }

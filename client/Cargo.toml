@@ -5,6 +5,7 @@ version = "0.2.0"
 edition = "2018"
 repository = "https://github.com/SOF3/traffloat"
 homepage = "https://github.com/SOF3/traffloat"
+description = "Traffloat web client"
 license = "AGPL-3.0"
 
 [lib]
@@ -16,21 +17,27 @@ traffloat-client-build = {version = "0.2.0", path = "./build"}
 [dependencies]
 anyhow = "1.0.38"
 console_error_panic_hook = "0.1.6"
+crc64fast = "1.0.0"
+enum-map = "0.6.4"
 getrandom = {version = "0.2.1", features = ["js"]}
 js-sys = "0.3.46"
 lazy_static = "1.4.0"
 log = "0.4.13"
 nalgebra = "0.24.0"
 rand = "0.8.1"
+rand_distr = "0.4.0"
+rand_xoshiro = "0.6.0"
 serde = {version = "1.0.119", features = ["derive"]}
 sha2 = "0.9.2"
+shrev = "1.1.1"
 smallvec = "1.6.1"
+specs = {version = "0.16.1", default-features = false, features = ["wasm-bindgen"]}
 strum = {version = "0.20.0", features = ["derive"]}
 traffloat-client-model = {version = "0.2.0", path = "model", features = ["dec"]}
 traffloat-common = {version = "0.2.0", path = "../common", features = ["yew"]}
-wasm-bindgen = {version = "0.2.69", features = ["serde-serialize"]}
+wasm-bindgen = {version = "0.2.69"}
 wasm-logger = "0.2.0"
-yew = "0.17.4"
+yew = {version = "0.17.4", default-features = false, features = ["services", "web_sys"]}
 
 [dependencies.web-sys]
 version = "0.3.46"

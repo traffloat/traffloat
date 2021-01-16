@@ -1,6 +1,9 @@
 use std::ops::Mul;
 
+use specs::WorldExt;
+
 use crate::proto::{BinRead, BinWrite, ProtoType};
+use crate::Setup;
 
 ratio_def::units! {
     _TimeTrait(Clone + Copy);
@@ -10,6 +13,12 @@ ratio_def::units! {
     ///
     /// The underlying float is in seconds.
     Time;
+}
+
+impl Time {
+    pub fn as_secs(self) -> f32 {
+        self.value() as f32
+    }
 }
 
 /// The rate of change.
@@ -35,4 +44,8 @@ impl<T: ProtoType + BinRead + BinWrite + Mul<f32, Output = T>> std::ops::Mul<Tim
     fn mul(self, time: Time) -> T {
         self.0 * (time.0 as f32)
     }
+}
+
+pub fn setup_specs((world, dispatcher): Setup) -> Setup {
+    (world, dispatcher)
 }

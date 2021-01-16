@@ -2,10 +2,11 @@
 
 use shrev::EventChannel;
 use smallvec::SmallVec;
-use specs::Join;
+use specs::{Join, WorldExt};
 
 use crate::terminal::Terminal;
 use crate::types::*;
+use crate::Setup;
 
 #[derive(Debug, codegen::Gen, Component)]
 #[storage(storage::VecStorage)]
@@ -68,7 +69,16 @@ fn find_rate(ty: LiquidId, list: &[(LiquidId, Rate<LiquidVolume>)]) -> Rate<Liqu
 }
 
 /// Manages liquid flow logic
-pub struct LiquidSystem;
+pub struct LiquidSystem(());
+
+impl LiquidSystem {
+    pub fn new(world: &mut specs::World) -> Self {
+        use specs::SystemData;
+
+        <Self as specs::System<'_>>::SystemData::setup(world);
+        Self(())
+    }
+}
 
 impl<'a> System<'a> for LiquidSystem {
     #[allow(clippy::type_complexity)]
@@ -154,4 +164,14 @@ pub struct WithdrawEvent {
     pub node: NodeId,
     /// The liquid volume taken from the node
     pub volume: LiquidVolume,
+}
+
+pub fn setup_specs((mut world, mut dispatcher): Setup) -> Setup {
+    world.register::<Liquid>();
+    world.register::<Refrigerant>();
+    world.register::<Pipe>();
+    world.register::<SourceList>();
+    world.register::<SinkList>();
+    dispatcher = dispatcher.with(LiquidSystem::new(&mut world), "liquid", &[]);
+    (world, dispatcher)
 }

@@ -43,7 +43,7 @@ pub(super) fn sphere(depth: u32) -> (Vec<Vertex>, Vec<Face>) {
                 vertices.push(a.midpt(b));
                 vertices.len() - 1
             })
-    };
+    }
 
     for _ in 0..depth {
         for i in 0..faces.len() {

@@ -136,6 +136,8 @@ impl Component for Connect {
                             }
 
                             self.props.ready_hook.emit(super::GameArgs {
+                                addr: self.props.addr.clone(),
+                                port: self.props.port,
                                 ws: Rc::clone(&self.ws),
                             });
                             true

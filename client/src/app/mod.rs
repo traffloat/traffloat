@@ -95,6 +95,7 @@ impl Component for Lifecycle {
             },
             State::Game { args } => html! {
                 <game::Game
+                    addr=&args.addr port=args.port
                     ws=Rc::clone(&args.ws)
                     />
             },
@@ -119,6 +120,8 @@ type WebSocket = Rc<RefCell<WebSocketTask>>;
 
 #[derive(Debug, Clone)]
 pub struct GameArgs {
+    addr: String,
+    port: u16,
     ws: WebSocket,
 }
 

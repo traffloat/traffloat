@@ -46,6 +46,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "array-macro"
+version = "1.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06e97b4e522f9e55523001238ac59d13a8603af57f69980de5d8de4bbbe8ada6"
+
+[[package]]
 name = "arrayvec"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -90,16 +96,6 @@ name = "base64"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
-
-[[package]]
-name = "bincode"
-version = "1.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f30d3a39baa26f9651f17b375061f3233dde33424a8b72b0dbe93a68a0bc896d"
-dependencies = [
- "byteorder",
- "serde",
-]
 
 [[package]]
 name = "bitflags"
@@ -270,17 +266,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_more"
-version = "0.99.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41cb0e6161ad61ed084a36ba71fbba9e3ac5aee3606fb607fe08da6acbcf3d8c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "digest"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -294,6 +279,27 @@ name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
+
+[[package]]
+name = "enum-map"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4187999839f4ae8be35cf185d1381aa8dc32d2f5951349cc37ae49ebc4781855"
+dependencies = [
+ "array-macro",
+ "enum-map-derive",
+]
+
+[[package]]
+name = "enum-map-derive"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5c450cf304c9e18d45db562025a14fb1ca0f5c769b6f609309f81d4c31de455"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "env_logger"
@@ -739,7 +745,7 @@ dependencies = [
  "num-rational",
  "num-traits",
  "rand 0.7.3",
- "rand_distr",
+ "rand_distr 0.3.0",
  "simba",
  "typenum",
 ]
@@ -1019,6 +1025,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_distr"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da9e8f32ad24fb80d07d2323a9a2ce8b30d68a62b8cb4df88119ff49a698f038"
+dependencies = [
+ "num-traits",
+ "rand 0.8.1",
+]
+
+[[package]]
 name = "rand_hc"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1032,6 +1048,15 @@ name = "rand_hc"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3190ef7066a446f2e7f42e239d161e905420ccab01eb967c9eb27d21b2322a73"
+dependencies = [
+ "rand_core 0.6.1",
+]
+
+[[package]]
+name = "rand_xoshiro"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f97cdb2a36ed4183de61b2f824cc45c9f1037f28afe0a322e9fff4c108b5aaa"
 dependencies = [
  "rand_core 0.6.1",
 ]
@@ -1239,6 +1264,7 @@ dependencies = [
  "shrev",
  "specs-derive",
  "tuple_utils",
+ "uuid",
 ]
 
 [[package]]
@@ -1425,15 +1451,21 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
+ "crc64fast",
+ "enum-map",
  "getrandom 0.2.1",
  "js-sys",
  "lazy_static",
  "log",
  "nalgebra",
  "rand 0.8.1",
+ "rand_distr 0.4.0",
+ "rand_xoshiro",
  "serde",
  "sha2",
+ "shrev",
  "smallvec",
+ "specs",
  "strum",
  "traffloat-client-build",
  "traffloat-client-model",
@@ -1475,7 +1507,6 @@ dependencies = [
 name = "traffloat-common"
 version = "0.2.0"
 dependencies = [
- "derive_more",
  "nalgebra",
  "ratio-def",
  "shrev",
@@ -1495,6 +1526,7 @@ dependencies = [
  "getset",
  "log",
  "pretty_env_logger",
+ "specs",
  "structopt",
  "tokio",
  "tokio-tungstenite",
@@ -1597,6 +1629,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05e42f7c18b8f902290b009cde6d651262f956c98bc51bca4cd1d511c9cd85c7"
 
 [[package]]
+name = "uuid"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+dependencies = [
+ "getrandom 0.2.1",
+ "serde",
+]
+
+[[package]]
 name = "vec_map"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1627,8 +1669,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3cd364751395ca0f68cafb17666eee36b63077fb5ecd972bbcd74c90c4bf736e"
 dependencies = [
  "cfg-if 1.0.0",
- "serde",
- "serde_json",
  "wasm-bindgen-macro",
 ]
 
@@ -1748,7 +1788,6 @@ checksum = "2d8703eb5b883e816cd74c65e2f6dd4144eeedb77c1b3e0284e8f3f593b80ab1"
 dependencies = [
  "anyhow",
  "anymap",
- "bincode",
  "cfg-if 0.1.10",
  "cfg-match",
  "console_error_panic_hook",

@@ -1,20 +1,25 @@
+use std::time::Duration;
+
 use web_sys::{HtmlCanvasElement, WebGlRenderingContext};
 use yew::prelude::*;
+use yew::services::interval::{IntervalService, IntervalTask};
 use yew::services::keyboard::{KeyListenerHandle, KeyboardService};
 use yew::services::render::{RenderService, RenderTask};
 use yew::services::resize::{ResizeService, ResizeTask, WindowDimensions};
 
 use super::WebSocket;
-use crate::render::{KeyAction, Render};
+use crate::keymap::{Action, ActionEvent};
+use crate::render::{Camera, Canvas};
 
 pub struct Game {
     link: ComponentLink<Self>,
     props: Properties,
     _resize_task: ResizeTask,
+    _dispatch_task: IntervalTask,
     render_task: Option<RenderTask>,
     key_handles: Vec<KeyListenerHandle>,
-    render: Option<Render>,
     dim: WindowDimensions,
+    setup: (specs::World, specs::Dispatcher<'static, 'static>),
 }
 
 impl Game {
@@ -38,10 +43,10 @@ impl Game {
     }
 
     fn run_render(&mut self) {
-        self.render
-            .as_mut()
-            .expect("run_render called without initializing render context")
-            .ren();
+        let canvas = self.setup.0.get_mut::<Canvas>();
+        if let Some(canvas) = canvas {
+            canvas.render_requested = true;
+        }
     }
 
     fn schedule_render(&mut self) {
@@ -56,18 +61,35 @@ impl Component for Game {
 
     fn create(props: Properties, link: ComponentLink<Self>) -> Self {
         let resize_task = ResizeService::new().register(link.callback(Message::WindowResize));
+        let dispatch_task =
+            IntervalService::spawn(Duration::from_millis(10), link.callback(Message::Dispatch));
         Self {
             link,
             props,
             _resize_task: resize_task,
+            _dispatch_task: dispatch_task,
             key_handles: Vec::new(),
             render_task: None,
-            render: None,
             dim: WindowDimensions::get_dimensions(&web_sys::window().unwrap()),
+            setup: crate::setup_specs(),
         }
     }
 
     fn update(&mut self, msg: Message) -> ShouldRender {
+        fn update_key(world: &mut specs::World, key: KeyboardEvent, down: bool) -> ShouldRender {
+            let action = Action::from_code(key.code().as_str());
+            if let Some(action) = action {
+                let chan: &mut shrev::EventChannel<ActionEvent> = world
+                    .get_mut()
+                    .expect("EventChannel<ActionEvent> not initialized");
+                chan.single_write(ActionEvent {
+                    action,
+                    active: down,
+                });
+            }
+            false
+        }
+
         match msg {
             Message::WindowResize(dim) => {
                 self.dim = dim;
@@ -78,22 +100,11 @@ impl Component for Game {
                 self.schedule_render();
                 false
             }
-            Message::KeyDown(key) => {
-                if let Some(render) = self.render.as_mut() {
-                    let code = key.code();
-                    if let Some(action) = KeyAction::from_code(code.as_str()) {
-                        render.set_key(action, true);
-                    }
-                }
-                false
-            }
-            Message::KeyUp(key) => {
-                if let Some(render) = self.render.as_mut() {
-                    let code = key.code();
-                    if let Some(action) = KeyAction::from_code(code.as_str()) {
-                        render.set_key(action, false);
-                    }
-                }
+            Message::KeyDown(key) => update_key(&mut self.setup.0, key, true),
+            Message::KeyUp(key) => update_key(&mut self.setup.0, key, false),
+            Message::Dispatch(()) => {
+                let (world, dispatcher) = &mut self.setup;
+                dispatcher.dispatch(world);
                 false
             }
         }
@@ -114,7 +125,11 @@ impl Component for Game {
 
     fn rendered(&mut self, first_render: bool) {
         let (_, gl) = Self::canvas();
-        self.render = Some(Render::new(gl, (self.dim.width, self.dim.height)));
+        let canvas = Canvas::new(gl, self.props.server_seed());
+        match self.setup.0.get_mut::<Canvas>() {
+            Some(ptr) => *ptr = canvas,
+            None => self.setup.0.insert::<Canvas>(canvas),
+        }
 
         let body = Self::document().body().unwrap();
 
@@ -138,9 +153,22 @@ pub enum Message {
     Render(f64),
     KeyDown(KeyboardEvent),
     KeyUp(KeyboardEvent),
+    Dispatch(()),
 }
 
 #[derive(Clone, Debug, Properties)]
 pub struct Properties {
+    pub addr: String,
+    pub port: u16,
     pub ws: WebSocket,
+}
+
+impl Properties {
+    fn server_seed(&self) -> u64 {
+        use crc64fast::Digest;
+        let mut c = Digest::new();
+        c.write(self.addr.as_bytes());
+        c.write(&self.port.to_le_bytes());
+        c.sum64()
+    }
 }

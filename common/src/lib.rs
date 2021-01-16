@@ -37,3 +37,13 @@ pub mod time;
 pub mod types;
 mod util;
 pub use util::*;
+
+pub type Setup = (specs::World, specs::DispatcherBuilder<'static, 'static>);
+pub fn setup_specs(mut setup: Setup) -> Setup {
+    setup = liquid::setup_specs(setup);
+    setup = reaction::setup_specs(setup);
+    setup = shape::setup_specs(setup);
+    setup = terminal::setup_specs(setup);
+    setup = time::setup_specs(setup);
+    setup
+}
