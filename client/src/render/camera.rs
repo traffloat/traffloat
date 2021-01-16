@@ -29,7 +29,7 @@ impl Camera {
     pub fn star_matrix(&self, noise: i32) -> Matrix {
         let zoom = Matrix::identity().append_scaling(self.zoom);
         let rot = self.rot_matrix(noise);
-        let pers = Matrix::new_perspective(self.aspect, self.fovy, 0.1, 10.);
+        let pers = Matrix::new_perspective(self.aspect, self.fovy, 0., 1.01);
         pers * rot * zoom
     }
 

@@ -2,7 +2,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-mod models;
+pub mod models;
 
 pub fn main() {
     let dir = PathBuf::from(env::var("OUT_DIR").unwrap());

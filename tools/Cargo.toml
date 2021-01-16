@@ -1,0 +1,12 @@
+[package]
+name = "traffloat-tools"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.2.0"
+edition = "2018"
+repository = "https://github.com/SOF3/traffloat"
+homepage = "https://github.com/SOF3/traffloat"
+description = "Traffloat frontend server"
+license = "AGPL-3.0"
+
+[dependencies]
+traffloat-client-build = {version = "0.2.0", path = "../client/build"}

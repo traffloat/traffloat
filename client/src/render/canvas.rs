@@ -94,7 +94,7 @@ impl Canvas {
         let noise_buf = Model::new(&gl, create_stars(noise_seed), false);
         let cube_buf = Model::new(&gl, models::CUBE, true);
         let tetra_buf = Model::new(&gl, models::TETRAHEDRON, true);
-        let sphere_buf = Model::new(&gl, models::SPHERE5, true);
+        let sphere_buf = Model::new(&gl, models::SPHERE1, true);
 
         Self {
             gl,

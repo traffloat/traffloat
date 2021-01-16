@@ -4,7 +4,7 @@ use std::f32::consts::PI;
 use super::*;
 use traffloat_client_model::FaceIndex;
 
-pub(super) fn sphere(depth: u32) -> (Vec<Vertex>, Vec<Face>) {
+pub fn sphere(depth: u32) -> (Vec<Vertex>, Vec<Face>) {
     let mut vertices: Vec<UnitVertex> = Vec::with_capacity(4);
     {
         vertices.push(UnitVertex {
@@ -14,7 +14,7 @@ pub(super) fn sphere(depth: u32) -> (Vec<Vertex>, Vec<Face>) {
         let base_phi = PI / 2. - 2. * (2.0_f32).sqrt().atan();
         for i in 0..3 {
             vertices.push(UnitVertex {
-                theta: PI / 3. * (i as f32),
+                theta: PI * 2. / 3. * (i as f32),
                 phi: base_phi,
             });
         }
@@ -130,9 +130,9 @@ fn midpt_tests() {
 impl From<UnitVertex> for Vertex {
     fn from(v: UnitVertex) -> Self {
         Self([
-            v.theta.cos() * v.phi.cos(),
-            v.theta.cos() * v.phi.sin(),
-            v.theta.sin(),
+            v.phi.cos() * v.theta.cos(),
+            v.phi.cos() * v.theta.sin(),
+            v.phi.sin(),
         ])
     }
 }
