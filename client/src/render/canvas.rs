@@ -79,6 +79,11 @@ pub struct Canvas {
     sphere_buf: Model,
 }
 
+// We do not use any threading in wasm32,
+// so everything is automatically Send + Sync.
+unsafe impl Send for Canvas {}
+unsafe impl Sync for Canvas {}
+
 impl Canvas {
     pub fn new(gl: WebGlRenderingContext, noise_seed: u64) -> Self {
         let (object_program, star_program) = create_programs!(&gl;
