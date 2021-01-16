@@ -24,7 +24,7 @@ js-sys = "0.3.46"
 lazy_static = "1.4.0"
 log = "0.4.13"
 nalgebra = "0.24.0"
-rand = "0.8.1"
+rand = "0.8.2"
 rand_distr = "0.4.0"
 rand_xoshiro = "0.6.0"
 serde = {version = "1.0.119", features = ["derive"]}
