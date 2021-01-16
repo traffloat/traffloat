@@ -13,7 +13,7 @@ name = "common"
 
 [dependencies]
 nalgebra = "0.24.0"
-ratio-def = "0.3.0"
+ratio-def = "0.3.1"
 shrev = "1.1.1"
 smallvec = "1.6.1"
 specs = {version = "0.16.1", default-features = false, features = ["specs-derive"]}

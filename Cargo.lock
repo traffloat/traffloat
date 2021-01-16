@@ -1063,9 +1063,9 @@ dependencies = [
 
 [[package]]
 name = "ratio-def"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "646301890dfc87ddf36520cc403b13c804d085094c77a7cc479e334356f1932e"
+checksum = "31f74cebf9b6e79e43664fa49e6e760b728141122a5e13e14f17131ba3af80fb"
 
 [[package]]
 name = "rawpointer"
