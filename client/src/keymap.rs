@@ -1,9 +1,6 @@
 use enum_map::{Enum, EnumMap};
 use shrev::EventChannel;
 
-use crate::render::Camera;
-use common::types::*;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Enum)]
 pub enum Action {
     MoveUp,
@@ -98,13 +95,11 @@ impl KeymapSystem {
 
 impl<'a> specs::System<'a> for KeymapSystem {
     type SystemData = (
-        specs::Write<'a, Camera>,
         specs::Read<'a, EventChannel<ActionEvent>>,
         specs::Write<'a, CurrentActions>,
-        specs::Read<'a, common::time::Clock>,
     );
 
-    fn run(&mut self, (camera, action_channel, mut action_set, clock): Self::SystemData) {
+    fn run(&mut self, (action_channel, mut action_set): Self::SystemData) {
         for event in action_channel.read(&mut self.action_reader) {
             action_set.0[event.action] = event.active;
         }

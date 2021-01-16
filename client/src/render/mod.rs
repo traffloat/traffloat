@@ -25,6 +25,7 @@ impl RenderSystem {
 }
 
 impl<'a> specs::System<'a> for RenderSystem {
+    #[allow(clippy::type_complexity)]
     type SystemData = (
         specs::ReadExpect<'a, Camera>,
         Option<specs::Read<'a, Canvas>>,
@@ -68,7 +69,7 @@ impl<'a> specs::System<'a> for RenderSystem {
                     .append_scaling(0.1)
                     .append_translation(&Vector::new(0., -0.5, -1.)),
             },
-            );
+        );
         canvas.render_shape(
             camera_matrix,
             Shape {
@@ -77,7 +78,7 @@ impl<'a> specs::System<'a> for RenderSystem {
                     .append_scaling(0.1)
                     .append_translation(&Vector::new(0., 0.5, -1.)),
             },
-            );
+        );
 
         for (_, shape) in (&rendered, &shapes).join() {
             if shape.is_clipped() {

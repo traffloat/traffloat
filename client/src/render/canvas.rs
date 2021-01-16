@@ -1,7 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
 use std::convert::{TryFrom, TryInto};
-use std::iter;
 
 use web_sys::{WebGlBuffer, WebGlProgram, WebGlRenderingContext, WebGlShader};
 
@@ -273,22 +272,26 @@ fn create_stars(seed: u64) -> impl AbstractMesh {
     {
         let sample: [f32; 3] = sample; // type coercion
         let vector = Vector::from_column_slice(&sample);
-        let mut a = vector.cross(&Vector::new(1., 0., 0.));
-        let mut b = vector.cross(&a);
+        let points = {
+            let mut a = vector.cross(&Vector::new(1., 0., 0.));
+            let mut b = vector.cross(&a);
 
-        let size_root: f32 = size_rng.gen();
-        let size_base = 1. - size_root.powi(3);
-        let size = config::BG_STAR_SCALE_MIN
-            + (config::BG_STAR_SCALE_MAX - config::BG_STAR_SCALE_MIN) * size_base;
+            let size_root: f32 = size_rng.gen();
+            let size_base = 1. - size_root.powi(3);
+            let size = config::BG_STAR_SCALE_MIN
+                + (config::BG_STAR_SCALE_MAX - config::BG_STAR_SCALE_MIN) * size_base;
 
-        a *= size;
-        b *= size;
+            a *= size;
+            b *= size;
 
-        let i = vertices
+            [vector, vector + a, vector + a * 0.5 + b * (0.75_f32)]
+        };
+
+        let vertex0 = vertices
             .len()
             .try_into()
             .expect("BG_STAR_SIZE is too large");
-        for point in &[vector, vector + a, vector + a * 0.5 + b * (0.75_f32)] {
+        for point in &points {
             vertices.push(Vertex(
                 point.as_slice().try_into().expect("Vector3 -> [f32; 3]"),
             ));
@@ -301,7 +304,7 @@ fn create_stars(seed: u64) -> impl AbstractMesh {
             colors.push(Color([r * 0.75 + 0.25, g * 0.75 + 0.25, b * 0.75 + 0.25]));
         }
 
-        faces.push(Face([i, i + 1, i + 2]));
+        faces.push(Face([vertex0, vertex0 + 1, vertex0 + 2]));
     }
 
     DynamicMesh {

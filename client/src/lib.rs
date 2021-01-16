@@ -34,8 +34,6 @@ mod config;
 mod keymap;
 mod models;
 mod render;
-mod time;
-use time::Timer;
 
 #[wasm_bindgen(start)]
 pub fn run_app() {

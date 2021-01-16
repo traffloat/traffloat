@@ -45,5 +45,12 @@ pub(crate) fn write() -> TokenStream {
         cube::cube(),
     ));
 
-    output
+    quote! {
+        #[allow(dead_code)]
+        mod _inner {
+            pub use traffloat_client_model::*;
+
+            #output
+        }
+    }
 }
