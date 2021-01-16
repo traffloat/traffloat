@@ -6,6 +6,8 @@ use crate::types::*;
 use crate::Setup;
 
 /// A terminal building.
+///
+/// It provides driving force for pipes and rails.
 #[derive(Debug, codegen::Gen, Component)]
 #[storage(storage::BTreeStorage)]
 pub struct Terminal {
@@ -15,6 +17,7 @@ pub struct Terminal {
     pub pump_force: f32,
 }
 
+/// Initializes the terminal module
 pub fn setup_specs((mut world, dispatcher): Setup) -> Setup {
     world.register::<Terminal>();
     (world, dispatcher)

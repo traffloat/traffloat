@@ -1,6 +1,7 @@
+//! The common types imported everywhere.
+
 use std::any::Any;
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
 
 pub use specs::{storage, Component, Entity, ReadStorage, System, WriteStorage};
 
@@ -18,6 +19,7 @@ pub trait Id: Any + Sized {
     /// Returns the network ID value
     fn network_id_u32(self) -> u32;
 
+    /// Finds the specs entity ID for this entity.
     fn entity(self) -> Entity {
         todo!()
     }
@@ -111,6 +113,7 @@ ids! {
 }
 
 ratio_def::units! {
+    /// A common unit type
     Unit(std::fmt::Debug + Clone + Copy + Default + PartialEq + PartialOrd + ProtoType + BinWrite + BinRead);
 
     #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, codegen::Gen)] f32:
@@ -123,6 +126,9 @@ ratio_def::units! {
 
     /// An absolute amount of gas
     GasVolume;
+
+    /// The standard size for cargo
+    CargoSize;
 
     /// Specific heat capacity
     HeatCapacity;

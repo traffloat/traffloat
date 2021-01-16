@@ -38,7 +38,10 @@ pub mod types;
 mod util;
 pub use util::*;
 
+/// The standard setup parameters
 pub type Setup = (specs::World, specs::DispatcherBuilder<'static, 'static>);
+
+/// Initializes common modules.
 pub fn setup_specs(mut setup: Setup) -> Setup {
     setup = liquid::setup_specs(setup);
     setup = reaction::setup_specs(setup);

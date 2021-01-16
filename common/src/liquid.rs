@@ -8,6 +8,10 @@ use crate::terminal::Terminal;
 use crate::types::*;
 use crate::Setup;
 
+/// A Pipe entity.
+///
+/// A pipe transfers liquid from one node to another through an edge.
+/// Construction of pipes shall depend on the edge level.
 #[derive(Debug, codegen::Gen, Component)]
 #[storage(storage::VecStorage)]
 pub struct Pipe {
@@ -72,6 +76,7 @@ fn find_rate(ty: LiquidId, list: &[(LiquidId, Rate<LiquidVolume>)]) -> Rate<Liqu
 pub struct LiquidSystem(());
 
 impl LiquidSystem {
+    /// Initializes a LiquidSystem
     pub fn new(world: &mut specs::World) -> Self {
         use specs::SystemData;
 
@@ -146,6 +151,7 @@ impl<'a> System<'a> for LiquidSystem {
     }
 }
 
+/// Computes the amount of liquid to pump
 fn compute_pump_amount(force: f32, volume: LiquidVolume) -> LiquidVolume {
     todo!("I expect some more complex algorithm here")
 }
@@ -166,6 +172,7 @@ pub struct WithdrawEvent {
     pub volume: LiquidVolume,
 }
 
+/// Initializes the liquid module
 pub fn setup_specs((mut world, mut dispatcher): Setup) -> Setup {
     world.register::<Liquid>();
     world.register::<Refrigerant>();

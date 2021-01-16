@@ -1,4 +1,5 @@
-use smallvec::SmallVec;
+//! Primitive shape processing
+
 use specs::WorldExt;
 
 use crate::types::*;
@@ -29,6 +30,7 @@ pub enum Unit {
 impl Unit {
     /// Checks whether the specified point is inside the unit
     pub fn contains(self, vector: &Vector) -> bool {
+        #[allow(clippy::indexing_slicing)]
         match self {
             Unit::Sphere => vector.norm_squared() < 1.,
             Unit::Cylinder => vector.xy().norm_squared() < 1. && vector[2].abs() < 1.,
@@ -55,6 +57,7 @@ impl Shape {
     }
 }
 
+/// Initializes the shape module
 pub fn setup_specs((mut world, dispatcher): Setup) -> Setup {
     world.register::<Shape>();
     (world, dispatcher)
