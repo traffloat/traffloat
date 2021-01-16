@@ -153,11 +153,5 @@ impl<'a> specs::System<'a> for ViewSystem {
                 _ => {}
             }
         }
-
-        log::debug!(
-            "Camera: {:?}; Actions: {:?}",
-            &*camera,
-            action_set.actions().collect::<Vec<_>>()
-        );
     }
 }
