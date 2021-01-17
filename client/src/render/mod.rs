@@ -1,8 +1,8 @@
 use specs::Join;
 
+use common::heat::Sun;
 use common::shape::{self, Shape};
 use common::types::*;
-use common::heat::Sun;
 
 mod camera;
 pub use camera::Camera;

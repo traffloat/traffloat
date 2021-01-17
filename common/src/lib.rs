@@ -34,6 +34,7 @@ pub mod proto;
 pub mod reaction;
 pub mod shape;
 pub mod terminal;
+pub mod texture;
 pub mod time;
 pub mod types;
 mod util;

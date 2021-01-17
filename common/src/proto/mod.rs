@@ -2,6 +2,7 @@
 
 pub mod handshake;
 mod io;
+pub mod objects;
 
 /// A large prime number used for polynomial checksum.
 pub const PROTO_TYPE_CKSUM_PRIME: u128 = (1_u128 << 80) - 65;
@@ -9,14 +10,13 @@ pub const PROTO_TYPE_CKSUM_PRIME: u128 = (1_u128 << 80) - 65;
 pub use io::{BinRead, BinWrite, Error, ProtoType};
 
 /// Wrapper for all packets.
+#[allow(missing_docs)]
 #[derive(codegen::Gen)]
 pub enum Packet {
-    /// [`handshake::Login`](handshake/struct.Login.html)
     HandshakeLogin(handshake::Login),
-    /// [`handshake::Accept`](handshake/struct.Accept.html)
     HandshakeAccept(handshake::Accept),
-    /// [`handshake::Reject`](handshake/struct.Reject.html)
     HandshakeReject(handshake::Reject),
+    AddNodes(objects::AddNodes),
 }
 
 /// The computed version checksum

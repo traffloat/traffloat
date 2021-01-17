@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use specs::WorldExt;
 use web_sys::{HtmlCanvasElement, WebGlRenderingContext};
 use yew::prelude::*;
 use yew::services::interval::{IntervalService, IntervalTask};
@@ -108,6 +109,7 @@ impl Component for Game {
                 let clock: &mut Clock = world.get_mut().expect("Clock was initialized at setup");
                 clock.inc_time(Time(1));
                 dispatcher.dispatch(world);
+                world.maintain();
                 false
             }
         }
@@ -141,7 +143,7 @@ impl Component for Game {
 
         #[allow(clippy::cast_precision_loss)]
         {
-        camera.aspect = (self.dim.width as f32) / (self.dim.height as f32);
+            camera.aspect = (self.dim.width as f32) / (self.dim.height as f32);
         }
 
         let body = Self::document().body().unwrap();

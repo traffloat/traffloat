@@ -95,18 +95,32 @@ impl<'a> System<'a> for LiquidSystem {
         specs::Write<'a, EventChannel<WithdrawEvent>>,
         specs::Write<'a, EventChannel<SupplyEvent>>,
         specs::Read<'a, Clock>,
+        specs::Read<'a, IdStore>,
+        specs::Entities<'a>,
     );
 
     fn run(
         &mut self,
-        (mut pipes, terminals, sources, sinks, mut withdraw_events, mut supply_events, clock) : Self::SystemData,
+        (
+            mut pipes,
+            terminals,
+            sources,
+            sinks,
+            mut withdraw_events,
+            mut supply_events,
+            clock,
+            store,
+            entities,
+        ): Self::SystemData,
     ) {
         let mut withdraw_vec = Vec::with_capacity(pipes.count());
         let mut supply_vec = Vec::with_capacity(pipes.count());
 
+        let make_entity = || entities.create();
+
         for (pipe,) in (&mut pipes,).join() {
-            let src = pipe.edge.first.entity();
-            let dest = pipe.edge.second.entity();
+            let src = pipe.edge.first.entity(&*store, make_entity);
+            let dest = pipe.edge.second.entity(&*store, make_entity);
 
             let mut force = 0_f32;
             for &ent in &[src, dest] {

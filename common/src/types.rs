@@ -1,8 +1,10 @@
 //! The common types imported everywhere.
 
-use std::any::Any;
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
+use std::sync::RwLock;
 
+use enum_map::EnumMap;
 pub use specs::{storage, Component, Entity, ReadStorage, System, WriteStorage};
 
 use crate::proto::{self, BinRead, BinWrite, ProtoType};
@@ -14,15 +16,40 @@ pub type Vector = nalgebra::Vector3<f32>;
 /// Standard homogenous matrix type
 pub type Matrix = nalgebra::Matrix4<f32>;
 
-/// A generic variant-identifier mechanism
-pub trait Id: Any + Sized {
+/// A generic variant-identifier mechanism.
+///
+/// It is intended that there are only a small finite number of IDs for each type,
+/// typically sent to the client at initialization time.
+/// IDs are never removed from a world.
+pub trait Id: Copy + Sized {
+    /// The ID type
+    fn id_type() -> IdType;
+
     /// Returns the network ID value
     fn network_id_u32(self) -> u32;
 
     /// Finds the specs entity ID for this entity.
-    fn entity(self) -> Entity {
-        todo!()
+    #[allow(clippy::indexing_slicing)]
+    fn entity(self, store: &IdStore, make_entity: impl FnOnce() -> Entity) -> Entity {
+        let map = &store.ids[Self::id_type()];
+        {
+            let map = map.read().expect("RwLock poisoned");
+            if let Some(&entity) = map.get(&self.network_id_u32()) {
+                return entity;
+            }
+        }
+
+        {
+            let mut map = map.write().expect("RwLock poisoned");
+            *map.entry(self.network_id_u32()).or_insert_with(make_entity)
+        }
     }
+}
+
+/// A resourc ethat maps network variant ID to specs entity ID
+#[derive(Default)]
+pub struct IdStore {
+    ids: EnumMap<IdType, RwLock<BTreeMap<u32, Entity>>>,
 }
 
 macro_rules! ids {
@@ -35,6 +62,13 @@ macro_rules! ids {
             )*
         }
 
+        /// The type of ID
+        #[allow(missing_docs)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, enum_map::Enum)]
+        pub enum IdType {
+            $($id,)*
+        }
+
         $(
             #[derive(Debug, Clone, Copy, Default)]
             $(#[$meta])*
@@ -44,6 +78,10 @@ macro_rules! ids {
             }
 
             impl Id for $id {
+                fn id_type() -> IdType {
+                    IdType::$id
+                }
+
                 fn network_id_u32(self) -> u32 {
                     self.network_id.0
                 }
@@ -110,6 +148,9 @@ ids! {
 
     /// Identifies a reaction
     ReactionId;
+
+    /// Identifies a model
+    ModelId;
 }
 
 ratio_def::units! {

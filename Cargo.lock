@@ -1509,6 +1509,7 @@ dependencies = [
 name = "traffloat-common"
 version = "0.2.0"
 dependencies = [
+ "enum-map",
  "nalgebra",
  "ratio-def",
  "shrev",

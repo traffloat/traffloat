@@ -124,7 +124,13 @@ impl Canvas {
         self.noise_buf.draw(&self.gl);
     }
 
-    pub fn render_shape(&self, camera_matrix: Matrix, shape: Shape, sun: Vector, camera_pos: Vector) {
+    pub fn render_shape(
+        &self,
+        camera_matrix: Matrix,
+        shape: Shape,
+        sun: Vector,
+        camera_pos: Vector,
+    ) {
         let buf = match shape.unit {
             shape::Unit::Cube => &self.cube_buf,
             shape::Unit::Tetra => &self.tetra_buf,
@@ -143,7 +149,12 @@ impl Canvas {
         set_uniform_vector(&self.gl, &self.object_program, "u_sun", sun);
         set_uniform_vector(&self.gl, &self.object_program, "u_camera", camera_pos);
         set_uniform_float(&self.gl, &self.object_program, "u_shininess", 0.2);
-        set_uniform_vector(&self.gl, &self.object_program, "u_comp", Vector::new(0.4, 0.4, 0.2));
+        set_uniform_vector(
+            &self.gl,
+            &self.object_program,
+            "u_comp",
+            Vector::new(0.4, 0.4, 0.2),
+        );
         buf.draw(&self.gl);
     }
 }
@@ -305,12 +316,7 @@ fn set_uniform_vector(
     let uniform = gl.get_uniform_location(program, name);
     gl.uniform3fv_with_f32_array(uniform.as_ref(), vector.as_slice());
 }
-fn set_uniform_float(
-    gl: &WebGlRenderingContext,
-    program: &WebGlProgram,
-    name: &str,
-    float: f32,
-) {
+fn set_uniform_float(gl: &WebGlRenderingContext, program: &WebGlProgram, name: &str, float: f32) {
     let uniform = gl.get_uniform_location(program, name);
     gl.uniform1f(uniform.as_ref(), float);
 }

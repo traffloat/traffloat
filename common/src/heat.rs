@@ -24,10 +24,7 @@ impl SunSystem {
 }
 
 impl<'a> specs::System<'a> for SunSystem {
-    type SystemData = (
-        specs::WriteExpect<'a, Sun>,
-        specs::Read<'a, Clock>,
-    );
+    type SystemData = (specs::WriteExpect<'a, Sun>, specs::Read<'a, Clock>);
 
     fn run(&mut self, (mut sun, clock): Self::SystemData) {
         use nalgebra::dimension as dim;
@@ -40,7 +37,9 @@ impl<'a> specs::System<'a> for SunSystem {
 
 /// Initializes the reaction module
 pub fn setup_specs((mut world, mut dispatcher): Setup) -> Setup {
-    world.insert(Sun { position: Vector::new(0., 0., -1.) });
+    world.insert(Sun {
+        position: Vector::new(0., 0., -1.),
+    });
     dispatcher = dispatcher.with(SunSystem::new(&mut world), "sun", &[]);
     (world, dispatcher)
 }

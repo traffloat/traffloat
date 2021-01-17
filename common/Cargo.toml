@@ -12,6 +12,7 @@ license = "AGPL-3.0"
 name = "common"
 
 [dependencies]
+enum-map = "0.6.4"
 nalgebra = "0.24.0"
 ratio-def = "0.3.1"
 shrev = "1.1.1"
