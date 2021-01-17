@@ -60,6 +60,7 @@ pub struct CurrentActions(pub EnumMap<Action, bool>);
 
 impl CurrentActions {
     pub fn actions(&self) -> impl Iterator<Item = Action> + '_ {
+        #[allow(clippy::indexing_slicing)] // we can't panic at all :(
         let shift = self.0[Action::Shift];
         self.0
             .iter()
@@ -100,6 +101,7 @@ impl<'a> specs::System<'a> for KeymapSystem {
     );
 
     fn run(&mut self, (action_channel, mut action_set): Self::SystemData) {
+        #[allow(clippy::indexing_slicing)] // we can't panic at all :(
         for event in action_channel.read(&mut self.action_reader) {
             action_set.0[event.action] = event.active;
         }

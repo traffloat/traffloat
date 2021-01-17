@@ -17,6 +17,10 @@ pub use dec::*;
 #[derive(Debug, Clone, Copy)]
 pub struct Vertex(pub [f32; 3]);
 
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy)]
+pub struct Normal(pub [f32; 3]);
+
 pub type FaceIndex = u16;
 
 #[repr(transparent)]

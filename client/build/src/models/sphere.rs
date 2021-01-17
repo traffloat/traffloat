@@ -2,9 +2,9 @@ use std::collections::BTreeMap;
 use std::f32::consts::PI;
 
 use super::*;
-use traffloat_client_model::FaceIndex;
+use traffloat_client_model::{FaceIndex, Mesh};
 
-pub fn sphere(depth: u32) -> (Vec<Vertex>, Vec<Face>) {
+pub fn sphere(depth: u32) -> Mesh {
     let mut vertices: Vec<UnitVertex> = Vec::with_capacity(4);
     {
         vertices.push(UnitVertex {
@@ -58,8 +58,29 @@ pub fn sphere(depth: u32) -> (Vec<Vertex>, Vec<Face>) {
         }
     }
 
-    let vertices = vertices.into_iter().map(Vertex::from).collect();
-    (vertices, faces)
+    fn rand_color(i: usize, step: usize, cycle: usize) -> f32 {
+        let value = (i / step) % cycle;
+        (value as f32) / (cycle as f32)
+    }
+
+    let vertices: Vec<Vertex> = vertices.into_iter().map(Vertex::from).collect();
+    let normals = vertices
+        .iter()
+        .map(|&Vertex(array)| Normal(array))
+        .collect();
+    let colors = vertices
+        .iter()
+        .enumerate()
+        .map(|(i, _)| {
+            Color([
+                rand_color(i, 100, 10),
+                rand_color(i, 10, 10),
+                rand_color(i, 1, 10),
+            ])
+        })
+        .collect();
+
+    (vertices, normals, faces, colors)
 }
 
 #[derive(Debug, Clone, Copy)]

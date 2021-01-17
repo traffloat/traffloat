@@ -138,7 +138,11 @@ impl Component for Game {
             .0
             .get_mut::<Camera>()
             .expect("Camera should be initialized");
+
+        #[allow(clippy::cast_precision_loss)]
+        {
         camera.aspect = (self.dim.width as f32) / (self.dim.height as f32);
+        }
 
         let body = Self::document().body().unwrap();
 

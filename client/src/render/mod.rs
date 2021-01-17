@@ -2,6 +2,7 @@ use specs::Join;
 
 use common::shape::{self, Shape};
 use common::types::*;
+use common::heat::Sun;
 
 mod camera;
 pub use camera::Camera;
@@ -32,9 +33,10 @@ impl<'a> specs::System<'a> for RenderSystem {
         ReadStorage<'a, Rendered>,
         ReadStorage<'a, Shape>,
         specs::Read<'a, Clock>,
+        specs::ReadExpect<'a, Sun>,
     );
 
-    fn run(&mut self, (camera, canvas, rendered, shapes, clock): Self::SystemData) {
+    fn run(&mut self, (camera, canvas, rendered, shapes, clock, sun): Self::SystemData) {
         let canvas = match canvas {
             Some(canvas) => canvas,
             None => return,
@@ -60,6 +62,8 @@ impl<'a> specs::System<'a> for RenderSystem {
                     .append_scaling(0.1)
                     .append_translation(&Vector::new(0., 0., -1.)),
             },
+            sun.position,
+            camera.pos,
         );
         canvas.render_shape(
             camera_matrix,
@@ -69,6 +73,8 @@ impl<'a> specs::System<'a> for RenderSystem {
                     .append_scaling(0.1)
                     .append_translation(&Vector::new(0., -0.5, -1.)),
             },
+            sun.position,
+            camera.pos,
         );
         canvas.render_shape(
             camera_matrix,
@@ -78,11 +84,13 @@ impl<'a> specs::System<'a> for RenderSystem {
                     .append_scaling(0.1)
                     .append_translation(&Vector::new(0., 0.5, -1.)),
             },
+            sun.position,
+            camera.pos,
         );
 
         for (_, shape) in (&rendered, &shapes).join() {
             if shape.is_clipped() {
-                canvas.render_shape(camera_matrix, shape.clone());
+                canvas.render_shape(camera_matrix, shape.clone(), sun.position, camera.pos);
             }
         }
     }

@@ -3,10 +3,17 @@ use super::*;
 pub fn cube() -> Mesh {
     let endpoints = [-1_f32, 1_f32];
     let mut vertices = vec![Vertex([0., 0., 0.]); 8];
+    let mut normals = vec![Normal([0., 0., 0.]); 8];
+    let mut colors = vec![Color([0., 0., 0.]); 8];
+
     for (xi, &x) in endpoints.iter().enumerate() {
         for (yi, &y) in endpoints.iter().enumerate() {
             for (zi, &z) in endpoints.iter().enumerate() {
-                vertices[(xi << 2) | (yi << 1) | zi] = Vertex([x, y, z]);
+                let index = (xi << 2) | (yi << 1) | zi;
+                vertices[index] = Vertex([x, y, z]);
+                let ratio = 1. / 3_f32.sqrt();
+                normals[index] = Normal([x * ratio, y * ratio, z * ratio]);
+                colors[index] = Color([0.5; 3]);
             }
         }
     }
@@ -25,5 +32,5 @@ pub fn cube() -> Mesh {
     quad(&mut faces, 0b000, 0b100, 0b110, 0b010);
     quad(&mut faces, 0b001, 0b101, 0b111, 0b011);
 
-    (vertices, faces)
+    (vertices, normals, faces, colors)
 }

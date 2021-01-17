@@ -124,7 +124,7 @@ impl Canvas {
         self.noise_buf.draw(&self.gl);
     }
 
-    pub fn render_shape(&self, camera_matrix: Matrix, shape: Shape) {
+    pub fn render_shape(&self, camera_matrix: Matrix, shape: Shape, sun: Vector, camera_pos: Vector) {
         let buf = match shape.unit {
             shape::Unit::Cube => &self.cube_buf,
             shape::Unit::Tetra => &self.tetra_buf,
@@ -140,6 +140,10 @@ impl Canvas {
             camera_matrix,
         );
         set_uniform_matrix(&self.gl, &self.object_program, "u_object", shape.transform);
+        set_uniform_vector(&self.gl, &self.object_program, "u_sun", sun);
+        set_uniform_vector(&self.gl, &self.object_program, "u_camera", camera_pos);
+        set_uniform_float(&self.gl, &self.object_program, "u_shininess", 0.2);
+        set_uniform_vector(&self.gl, &self.object_program, "u_comp", Vector::new(0.4, 0.4, 0.2));
         buf.draw(&self.gl);
     }
 }
@@ -154,21 +158,32 @@ fn create_shader(gl: &WebGlRenderingContext, code: &'static str, ty: u32) -> Web
 
 struct Model {
     positions: WebGlBuffer,
+    normals: WebGlBuffer,
     colors: WebGlBuffer,
     indices: WebGlBuffer,
+    uses_normal: bool,
     len: i32,
 }
 
 impl Model {
-    fn new(gl: &WebGlRenderingContext, mesh: impl AbstractMesh, _fixed: bool) -> Self {
+    fn new(gl: &WebGlRenderingContext, mesh: impl AbstractMesh, uses_normal: bool) -> Self {
         let positions = gl.create_buffer().unwrap();
         gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&positions));
-
         gl.buffer_data_with_array_buffer_view(
             WebGlRenderingContext::ARRAY_BUFFER,
             &js_sys::Float32Array::from(mesh.vertices()),
             WebGlRenderingContext::STATIC_DRAW,
         );
+
+        let normals = gl.create_buffer().unwrap();
+        if uses_normal {
+            gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&normals));
+            gl.buffer_data_with_array_buffer_view(
+                WebGlRenderingContext::ARRAY_BUFFER,
+                &js_sys::Float32Array::from(mesh.normals()),
+                WebGlRenderingContext::STATIC_DRAW,
+            );
+        }
 
         let colors = gl.create_buffer().unwrap();
         gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&colors));
@@ -190,8 +205,10 @@ impl Model {
 
         Self {
             positions,
+            normals,
             colors,
             indices,
+            uses_normal,
             len: i32::try_from(mesh.faces().len()).expect("Too many faces") * 3,
         }
     }
@@ -202,6 +219,25 @@ impl Model {
             let location = gl.get_attrib_location(program, "a_vertex_pos");
             if location == -1 {
                 panic!("Shader attribute a_vertex_pos cannot be enabled");
+            }
+            let location = location as u32;
+
+            gl.vertex_attrib_pointer_with_i32(
+                location,
+                3,
+                WebGlRenderingContext::FLOAT,
+                false,
+                0,
+                0,
+            );
+            gl.enable_vertex_attrib_array(location);
+        }
+
+        if self.uses_normal {
+            gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&self.normals));
+            let location = gl.get_attrib_location(program, "a_vertex_normal");
+            if location == -1 {
+                panic!("Shader attribute a_vertex_normal cannot be enabled");
             }
             let location = location as u32;
 
@@ -260,13 +296,32 @@ fn set_uniform_matrix(
     let uniform = gl.get_uniform_location(program, name);
     gl.uniform_matrix4fv_with_f32_array(uniform.as_ref(), false, matrix.as_slice());
 }
+fn set_uniform_vector(
+    gl: &WebGlRenderingContext,
+    program: &WebGlProgram,
+    name: &str,
+    vector: Vector,
+) {
+    let uniform = gl.get_uniform_location(program, name);
+    gl.uniform3fv_with_f32_array(uniform.as_ref(), vector.as_slice());
+}
+fn set_uniform_float(
+    gl: &WebGlRenderingContext,
+    program: &WebGlProgram,
+    name: &str,
+    float: f32,
+) {
+    let uniform = gl.get_uniform_location(program, name);
+    gl.uniform1f(uniform.as_ref(), float);
+}
 
 fn create_stars(seed: u64) -> impl AbstractMesh {
     use rand::prelude::*;
 
     let mut vertices = Vec::new();
-    let mut faces = Vec::new();
+    let normals = Vec::new();
     let mut colors = Vec::new();
+    let mut faces = Vec::new();
 
     let mut pos_rng = rand_xoshiro::SplitMix64::seed_from_u64(seed);
     let mut size_rng = rand_xoshiro::SplitMix64::seed_from_u64(seed);
@@ -314,7 +369,8 @@ fn create_stars(seed: u64) -> impl AbstractMesh {
 
     DynamicMesh {
         vertices,
-        faces,
+        normals,
         colors,
+        faces,
     }
 }

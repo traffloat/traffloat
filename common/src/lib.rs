@@ -28,6 +28,7 @@
     )
 )]
 
+pub mod heat;
 pub mod liquid;
 pub mod proto;
 pub mod reaction;
@@ -43,6 +44,7 @@ pub type Setup = (specs::World, specs::DispatcherBuilder<'static, 'static>);
 
 /// Initializes common modules.
 pub fn setup_specs(mut setup: Setup) -> Setup {
+    setup = heat::setup_specs(setup);
     setup = liquid::setup_specs(setup);
     setup = reaction::setup_specs(setup);
     setup = shape::setup_specs(setup);
