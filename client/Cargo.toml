@@ -19,7 +19,7 @@ anyhow = "1.0.38"
 console_error_panic_hook = "0.1.6"
 crc64fast = "1.0.0"
 enum-map = "0.6.4"
-getrandom = {version = "0.2.1", features = ["js"]}
+getrandom = {version = "0.2.2", features = ["js"]}
 js-sys = "0.3.46"
 lazy_static = "1.4.0"
 log = "0.4.13"
