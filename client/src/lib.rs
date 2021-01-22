@@ -32,7 +32,6 @@ use yew::prelude::*;
 mod app;
 mod config;
 mod keymap;
-mod models;
 mod render;
 
 #[wasm_bindgen(start)]

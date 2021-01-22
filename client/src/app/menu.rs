@@ -40,7 +40,7 @@ impl Component for Menu {
                 true
             }
             Message::Connect => {
-                self.props.connect_hook.emit(super::ClientArgs {
+                self.props.connect_hook.emit(super::GameArgs {
                     addr: self.props.addr.clone(),
                     port: self.props.port,
                     allow_insecure: self.props.allow_insecure,
@@ -101,7 +101,7 @@ pub enum Message {
 #[derive(Clone, Debug, Properties)]
 pub struct Properties {
     pub err: Option<String>,
-    pub connect_hook: Callback<super::ClientArgs>,
+    pub connect_hook: Callback<super::GameArgs>,
     #[prop_or("localhost".to_string())]
     pub addr: String,
     #[prop_or(common::DEFAULT_PORT)]

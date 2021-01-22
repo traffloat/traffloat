@@ -6,7 +6,8 @@ use crate::config;
 use crate::keymap::{self, Action};
 use common::types::*;
 
-#[derive(Debug)]
+#[derive(Debug, Component)]
+#[storage(storage::BTreeStorage)]
 pub struct Camera {
     pub pos: Vector,
     pub zoom: f32,
