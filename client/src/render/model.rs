@@ -117,7 +117,12 @@ impl LoadedModel {
             Some(&self.faces),
         );
 
-        gl.draw_elements_with_i32(WebGlRenderingContext::TRIANGLES, self.len, WebGlRenderingContext::UNSIGNED_SHORT, 0);
+        gl.draw_elements_with_i32(
+            WebGlRenderingContext::TRIANGLES,
+            self.len,
+            WebGlRenderingContext::UNSIGNED_SHORT,
+            0,
+        );
     }
 }
 
