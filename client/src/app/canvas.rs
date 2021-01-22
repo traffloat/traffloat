@@ -1,13 +1,13 @@
 use std::rc::Rc;
 
 use specs::{world::Builder, WorldExt};
-use yew::prelude::*;
 use web_sys::{HtmlCanvasElement, WebGlRenderingContext};
-use yew::services::resize::WindowDimensions;
+use yew::prelude::*;
 use yew::services::render::{RenderService, RenderTask};
+use yew::services::resize::WindowDimensions;
 
-use common::types::Entity;
 use crate::render::{Camera, RenderContext};
+use common::types::Entity;
 
 pub struct Canvas {
     link: ComponentLink<Self>,
@@ -32,7 +32,13 @@ impl Component for Canvas {
 
         let id = rand::random::<[char; 16]>().iter().collect::<String>();
 
-        Self { link, props, entity, id, render_task: None }
+        Self {
+            link,
+            props,
+            entity,
+            id,
+            render_task: None,
+        }
     }
 
     fn update(&mut self, msg: Message) -> ShouldRender {
@@ -40,10 +46,12 @@ impl Component for Canvas {
             Message::Render(_) => {
                 let (world, _) = &mut *self.props.setup.borrow_mut();
                 let mut ctx = world.write_component::<RenderContext>();
-                let ctx = ctx.get_mut(self.entity)
+                let ctx = ctx
+                    .get_mut(self.entity)
                     .expect("Render requested without context initialization");
                 ctx.should_render = true;
-                let task = RenderService::request_animation_frame(self.link.callback(Message::Render));
+                let task =
+                    RenderService::request_animation_frame(self.link.callback(Message::Render));
                 self.render_task = Some(task);
                 false
             }
@@ -101,11 +109,12 @@ impl Component for Canvas {
         let (world, _) = &*self.props.setup.borrow();
         let canvas = RenderContext::new(gl, self.props.server_seed);
 
-        world.write_component::<RenderContext>().insert(self.entity, canvas)
+        world
+            .write_component::<RenderContext>()
+            .insert(self.entity, canvas)
             .expect("Could not insert render context");
 
-        let mut camera = world
-            .write_component::<Camera>();
+        let mut camera = world.write_component::<Camera>();
         let camera = camera
             .get_mut(self.entity)
             .expect("Camera should be initialized");
@@ -125,7 +134,9 @@ impl Component for Canvas {
 impl Drop for Canvas {
     fn drop(&mut self) {
         let (world, _) = &mut *self.props.setup.borrow_mut();
-        world.delete_entity(self.entity).expect("entity killed before canvas drop");
+        world
+            .delete_entity(self.entity)
+            .expect("entity killed before canvas drop");
     }
 }
 

@@ -37,12 +37,11 @@ impl<'a> specs::System<'a> for RenderSystem {
     );
 
     fn run(&mut self, (camera, mut canvas_store, rendered, shapes, clock, sun): Self::SystemData) {
-        for canvas in (&mut canvas_store ).join() {
+        for canvas in (&mut canvas_store).join() {
             if !canvas.should_render {
                 return;
             }
             canvas.should_render = false;
-
 
             let camera_matrix = camera.inv_transform();
 

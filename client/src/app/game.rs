@@ -1,6 +1,6 @@
-use std::time::Duration;
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
+use std::time::Duration;
 
 use specs::WorldExt;
 use yew::prelude::*;
@@ -9,9 +9,9 @@ use yew::services::keyboard::{KeyListenerHandle, KeyboardService};
 use yew::services::resize::{ResizeService, ResizeTask, WindowDimensions};
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 
+use super::canvas;
 use crate::keymap::{Action, ActionEvent};
 use common::types::{Clock, Time};
-use super::canvas;
 
 pub struct Game {
     link: ComponentLink<Self>,
@@ -125,8 +125,7 @@ impl Component for Game {
     }
 
     fn view(&self) -> Html {
-        html! {
-        }
+        html! {}
     }
 }
 

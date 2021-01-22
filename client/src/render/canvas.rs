@@ -9,7 +9,6 @@ use common::shape::{self, Shape};
 use common::types::*;
 use traffloat_client_model::*;
 
-
 pub struct RenderContext {
     gl: WebGlRenderingContext,
     server_seed: u64,
