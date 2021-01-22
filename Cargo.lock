@@ -1467,32 +1467,11 @@ dependencies = [
  "smallvec",
  "specs",
  "strum",
- "traffloat-client-build",
- "traffloat-client-model",
  "traffloat-common",
  "wasm-bindgen",
  "wasm-logger",
  "web-sys",
  "yew",
-]
-
-[[package]]
-name = "traffloat-client-build"
-version = "0.2.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "traffloat-client-model",
-]
-
-[[package]]
-name = "traffloat-client-model"
-version = "0.2.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "rand 0.8.2",
- "rand_xoshiro",
 ]
 
 [[package]]
@@ -1535,13 +1514,6 @@ dependencies = [
  "tokio-tungstenite",
  "traffloat-common",
  "tungstenite",
-]
-
-[[package]]
-name = "traffloat-tools"
-version = "0.2.0"
-dependencies = [
- "traffloat-client-build",
 ]
 
 [[package]]

@@ -2,8 +2,11 @@
 
 use std::convert::TryInto;
 
+use crate::types::*;
+
 /// A GL-renderable model
-#[derive(Debug, codegen::Gen)]
+#[derive(Debug, codegen::Gen, Component)]
+#[storage(storage::BTreeStorage)]
 pub struct Model {
     /// The vertices used in the model
     pub vertices: Vec<Vertex>,

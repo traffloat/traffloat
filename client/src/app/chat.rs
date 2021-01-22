@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::collections::{vec_deque, VecDeque};
+use std::rc::Rc;
+
 use yew::prelude::*;
 
 pub struct ChatComp {
@@ -25,7 +29,7 @@ impl Component for ChatComp {
     fn view(&self) -> Html {
         html! {
             <div>
-                { for self.props.messages.iter().map(|chat| html! {
+                { for self.props.messages.messages().map(|chat| html! {
                     <div>
                         <div>{ chat.speaker.as_str() }</div>
                         <div>{ chat.content.as_str() }</div>
@@ -41,11 +45,42 @@ pub enum Message {}
 
 #[derive(Clone, Properties)]
 pub struct Properties {
-    messages: Vec<Chat>,
+    pub messages: List,
 }
 
-#[derive(Clone)]
 pub struct Chat {
     pub speaker: String,
     pub content: String,
+}
+
+#[derive(Clone)]
+pub struct List {
+    pub deque: Rc<RefCell<VecDeque<Chat>>>,
+    pub size: usize,
+}
+
+impl List {
+    pub fn push(&self, message: Chat) {
+        let deque = &mut *self.deque.borrow_mut();
+        deque.push_back(message);
+    }
+
+    pub fn push_system(&self, content: String) {
+        self.push(Chat {
+            speaker: String::from("Traffloat"),
+            content,
+        })
+    }
+
+    pub fn messages(&self) -> impl Iterator<Item = std::cell::Ref<'_, Chat>> {
+        use std::cell::Ref;
+
+        let borrow = self.deque.borrow();
+        let size = borrow.len();
+        (0..size).map(move |index| {
+            Ref::map(Ref::clone(&borrow), |deque| {
+                deque.get(index).expect("index < size")
+            })
+        })
+    }
 }

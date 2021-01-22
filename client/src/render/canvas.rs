@@ -7,7 +7,6 @@ use web_sys::{WebGlBuffer, WebGlProgram, WebGlRenderingContext, WebGlShader};
 use crate::config;
 use common::shape::{self, Shape};
 use common::types::*;
-use traffloat_client_model::*;
 
 pub struct RenderContext {
     gl: WebGlRenderingContext,

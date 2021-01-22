@@ -1,9 +1,8 @@
 [workspace]
 members = [
 	"common",
-	"client", "client/build", "client/model",
+	"client",
 	"server",
-	"tools"
 ]
 
 [profile.dev]

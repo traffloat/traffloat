@@ -10,6 +10,7 @@ use yew::services::resize::{ResizeService, ResizeTask, WindowDimensions};
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 
 use super::canvas;
+use super::chat;
 use crate::keymap::{Action, ActionEvent};
 use common::types::{Clock, Time};
 
@@ -23,6 +24,7 @@ pub struct Game {
     key_handles: Vec<KeyListenerHandle>,
     dim: WindowDimensions,
     setup: super::Setup,
+    chat_list: chat::List,
 }
 
 impl Game {
@@ -73,6 +75,10 @@ impl Component for Game {
             key_handles,
             dim: WindowDimensions::get_dimensions(&web_sys::window().unwrap()),
             setup,
+            chat_list: chat::List {
+                deque: Rc::default(),
+                size: 100,
+            },
         }
     }
 
@@ -114,8 +120,8 @@ impl Component for Game {
                 false
             }
             Message::WsStatus(status) => {
-                // TODO
-                false
+                self.chat_list.push_system(format!("{:?}", status));
+                true
             }
         }
     }
@@ -125,7 +131,9 @@ impl Component for Game {
     }
 
     fn view(&self) -> Html {
-        html! {}
+        html! {
+            <chat::ChatComp messages=&self.chat_list/>
+        }
     }
 }
 

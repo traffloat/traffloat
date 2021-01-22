@@ -10,6 +10,8 @@ pub use camera::Camera;
 mod canvas;
 pub use canvas::RenderContext;
 
+mod model;
+
 #[derive(Debug, Component, Default)]
 #[storage(storage::NullStorage)]
 pub struct Rendered;
