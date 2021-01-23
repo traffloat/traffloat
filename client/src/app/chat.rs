@@ -31,8 +31,10 @@ impl Component for ChatComp {
             <div>
                 { for self.props.messages.messages().map(|chat| html! {
                     <div>
-                        <div>{ chat.speaker.as_str() }</div>
-                        <div>{ chat.content.as_str() }</div>
+                        { "<" }
+                        <span>{ chat.speaker.as_str() }</span>
+                        { "> " }
+                        <span>{ chat.content.as_str() }</span>
                     </div>
                 }) }
                 // TODO chat input

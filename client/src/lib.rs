@@ -33,6 +33,7 @@ mod app;
 mod config;
 mod keymap;
 mod render;
+mod session;
 
 #[wasm_bindgen(start)]
 pub fn run_app() {

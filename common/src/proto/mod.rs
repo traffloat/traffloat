@@ -17,6 +17,7 @@ pub enum Packet {
     HandshakeAccept(handshake::Accept),
     HandshakeReject(handshake::Reject),
     AddNodes(objects::AddNodes),
+    GameStart(handshake::GameStart),
 }
 
 /// The computed version checksum

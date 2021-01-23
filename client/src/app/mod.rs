@@ -79,6 +79,7 @@ impl Component for Lifecycle {
                     allow_insecure=args.allow_insecure
                     name=&args.name
                     identity=&self.config.identity
+                    error_hook=self.link.callback(Message::GameError)
                     />
             },
         }

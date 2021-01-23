@@ -19,3 +19,6 @@ pub struct Reject {
     /// The reason for login rejection.
     pub reason: String,
 }
+
+#[derive(codegen::Gen)]
+pub struct GameStart {}
