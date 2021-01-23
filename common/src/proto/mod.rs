@@ -24,6 +24,7 @@ pub enum Packet {
 pub const VERSION: [u8; 16] = Packet::CHECKSUM.to_le_bytes();
 
 #[cfg(feature = "yew")]
+#[allow(clippy::from_over_into)]
 impl Into<yew::format::Binary> for Packet {
     fn into(self) -> yew::format::Binary {
         let mut vec = Vec::new();

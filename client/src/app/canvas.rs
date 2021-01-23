@@ -144,13 +144,14 @@ pub enum Message {
 
 #[derive(Clone, Properties)]
 pub struct Properties {
-    setup: super::Setup,
-    server_seed: u64,
-    window: Dim,
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
+    pub setup: super::Setup,
+    pub server_seed: u64,
+    pub window: Dim,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub ty: Perspective,
 }
 
 #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
@@ -191,11 +192,16 @@ impl From<(i32, i32)> for Dim {
     }
 }
 
-impl From<WindowDimensions> for Dim {
-    fn from(dim: WindowDimensions) -> Self {
+impl<'t> From<&'t WindowDimensions> for Dim {
+    fn from(dim: &'t WindowDimensions) -> Self {
         Self {
             width: dim.width,
             height: dim.height,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Perspective {
+    Normal,
 }

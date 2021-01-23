@@ -25,6 +25,7 @@
         clippy::indexing_slicing,
     )
 )]
+#![feature(bool_to_option)]
 
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
@@ -32,6 +33,7 @@ use yew::prelude::*;
 mod app;
 mod config;
 mod keymap;
+mod net;
 mod render;
 mod session;
 
@@ -57,6 +59,7 @@ fn setup_specs() -> (specs::World, specs::Dispatcher<'static, 'static>) {
     let mut setup = (specs::World::new(), specs::DispatcherBuilder::new());
     setup = common::setup_specs(setup);
 
+    setup = net::setup_specs(setup);
     setup = keymap::setup_specs(setup);
     setup = render::setup_specs(setup);
 

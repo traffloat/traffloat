@@ -9,7 +9,7 @@ use yew::services::keyboard::{KeyListenerHandle, KeyboardService};
 use yew::services::resize::{ResizeService, ResizeTask, WindowDimensions};
 use yew::services::websocket::{WebSocketService, WebSocketStatus};
 
-use super::chat;
+use super::{canvas, chat};
 use crate::keymap::{Action, ActionEvent};
 use crate::session::{self, Session};
 use common::types::{Clock, Time};
@@ -25,6 +25,8 @@ pub struct Game {
     setup: super::Setup,
     chat_list: chat::List,
     session: Session,
+
+    perspectives: Vec<Perspective>,
 }
 
 impl Game {
@@ -88,6 +90,7 @@ impl Component for Game {
             setup,
             chat_list,
             session,
+            perspectives: Vec::new(),
         }
     }
 
@@ -134,13 +137,16 @@ impl Component for Game {
                         return false;
                     }
                 };
-                let _message = match self.session.handle_message(&message, {
+                use common::proto::Packet;
+
+                match self.session.handle_message(&message, {
                     let chat_list = self.chat_list.clone(); // chat::List is backed by an Rc
                     move |msg| chat_list.push_system(msg)
                 }) {
-                    Ok(Some(_message)) => {
-                        let (_world, _) = &mut *self.setup.borrow_mut();
-                        // TODO send message to message handler
+                    Ok(Some(message)) => {
+                        let (world, _) = &mut *self.setup.borrow_mut();
+                        let chan: &mut shrev::EventChannel<Packet> = world.get_mut().expect("EventChannel<Packet> not initialized");
+                        chan.single_write(message);
                     }
                     Ok(None) => (),
                     Err(err) => {
@@ -150,50 +156,50 @@ impl Component for Game {
                         return false;
                     }
                 };
-                false
+                true
             }
-            Message::WsStatus(status) => match status {
-                WebSocketStatus::Opened => {
-                    self.session.handle_opened();
-                    false
-                }
-                WebSocketStatus::Error => {
-                    self.chat_list
-                        .push_system(String::from("Websocket connection error"));
-                    match self.session.handle_error() {
-                        session::ErrorHandler::RetryInsecure => {
-                            self.chat_list.push_system(String::from(
-                                "Retrying connection with insecure connection",
-                            ));
-                            let ws_addr = format!("ws://{}:{}", self.props.addr, self.props.port);
-                            self.chat_list
-                                .push_system(format!("Connecting to {}", ws_addr));
-                            let ws = WebSocketService::connect_binary(
-                                &ws_addr,
-                                self.link.callback(Message::WsReceive),
-                                self.link.callback(Message::WsStatus),
-                            )
-                            .unwrap();
-                            self.session.ws = ws;
-                            false
-                        }
-                        session::ErrorHandler::Close => {
-                            self.props
-                                .error_hook
-                                .emit(Some(String::from("Websocket connection error")));
-                            false
+            Message::WsStatus(status) => {
+                match status {
+                    WebSocketStatus::Opened => {
+                        self.session.handle_opened();
+                    }
+                    WebSocketStatus::Error => {
+                        self.chat_list
+                            .push_system(String::from("Websocket connection error"));
+                        match self.session.handle_error() {
+                            session::ErrorHandler::RetryInsecure => {
+                                self.chat_list.push_system(String::from(
+                                        "Retrying connection with insecure connection",
+                                        ));
+                                let ws_addr = format!("ws://{}:{}", self.props.addr, self.props.port);
+                                self.chat_list
+                                    .push_system(format!("Connecting to {}", ws_addr));
+                                let ws = WebSocketService::connect_binary(
+                                    &ws_addr,
+                                    self.link.callback(Message::WsReceive),
+                                    self.link.callback(Message::WsStatus),
+                                    )
+                                    .unwrap();
+                                self.session.ws = ws;
+                            }
+                            session::ErrorHandler::Close => {
+                                self.props
+                                    .error_hook
+                                    .emit(Some(String::from("Websocket connection error")));
+                            }
                         }
                     }
+                    WebSocketStatus::Closed => {
+                        self.chat_list
+                            .push_system(String::from("Websocket connection closed"));
+                        self.session.handle_closed();
+                        self.props
+                            .error_hook
+                            .emit(Some(String::from("Websocket connection closed")));
+                    }
                 }
-                WebSocketStatus::Closed => {
-                    self.chat_list
-                        .push_system(String::from("Websocket connection closed"));
-                    self.session.handle_closed();
-                    self.props
-                        .error_hook
-                        .emit(Some(String::from("Websocket connection closed")));
-                    false
-                }
+
+                true
             },
         }
     }
@@ -203,8 +209,25 @@ impl Component for Game {
     }
 
     fn view(&self) -> Html {
+        let dim = canvas::Dim::from(&self.dim);
         html! {
-            <chat::ChatComp messages=&self.chat_list/>
+            <div style="margin: 0;">
+                { for self.perspectives.iter().map(|pers| html! {
+                    <canvas::Canvas
+                        setup=&self.setup
+                        server_seed=self.props.server_seed()
+                        window=dim
+                        x=pers.x
+                        y=pers.y
+                        width=pers.width
+                        height=pers.height
+                        ty=pers.ty
+                        />
+                })}
+                <chat::ChatComp
+                    messages=&self.chat_list z_index=self.perspectives.len()
+                    has_input=false/>
+            </div>
         }
     }
 }
@@ -247,4 +270,12 @@ impl Properties {
 
         digest.finalize().as_slice().to_vec()
     }
+}
+
+struct Perspective {
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    ty: canvas::Perspective,
 }

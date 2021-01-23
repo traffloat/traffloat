@@ -28,7 +28,7 @@ impl Component for ChatComp {
 
     fn view(&self) -> Html {
         html! {
-            <div>
+            <div style=format!("z-index: {};", self.props.z_index)>
                 { for self.props.messages.messages().map(|chat| html! {
                     <div>
                         { "<" }
@@ -38,6 +38,15 @@ impl Component for ChatComp {
                     </div>
                 }) }
                 // TODO chat input
+                { for self.props.has_input.then(|| html! {
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="Enter chat here"
+                            focused=true
+                            />
+                    </div>
+                }) }
             </div>
         }
     }
@@ -48,6 +57,8 @@ pub enum Message {}
 #[derive(Clone, Properties)]
 pub struct Properties {
     pub messages: List,
+    pub z_index: usize,
+    pub has_input: bool,
 }
 
 pub struct Chat {

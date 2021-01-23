@@ -7,7 +7,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: beta
+          toolchain: nightly
           profile: default
           default: true
       - uses: actions/cache@v2
