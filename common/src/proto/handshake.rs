@@ -20,5 +20,6 @@ pub struct Reject {
     pub reason: String,
 }
 
+/// Notifies the client that the game can start rendering
 #[derive(codegen::Gen)]
 pub struct GameStart {}

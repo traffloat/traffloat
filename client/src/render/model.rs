@@ -41,6 +41,7 @@ pub struct LoadedModel {
 
 #[allow(clippy::unwrap_used)]
 impl LoadedModel {
+    #[allow(clippy::cast_possible_truncation)]
     pub fn new(gl: &WebGlRenderingContext, buffers: LoadedBuffers) -> Self {
         fn new_f32_buffer(gl: &WebGlRenderingContext, data: &[f32]) -> WebGlBuffer {
             let buf = gl.create_buffer().unwrap();
@@ -69,6 +70,7 @@ impl LoadedModel {
         let shininesses = new_f32_buffer(gl, &buffers.buffers.shininesses);
         let reflectances = new_f32_buffer(gl, &buffers.buffers.reflectances);
         let faces = new_u16_buffer(gl, &buffers.buffers.faces);
+
         let len = (buffers.buffers.faces.len() / 3) as i32;
 
         Self {

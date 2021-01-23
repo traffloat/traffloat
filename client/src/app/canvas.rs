@@ -155,6 +155,7 @@ pub struct Properties {
     height: f32,
 }
 
+#[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
 impl Properties {
     fn x_offset(&self) -> i32 {
         (self.window.width as f32 * self.x) as i32
@@ -180,6 +181,7 @@ pub struct Dim {
 }
 
 impl Dim {
+    #[allow(clippy::cast_precision_loss)]
     pub fn aspect(self) -> f32 {
         (self.width as f32) / (self.height as f32)
     }
