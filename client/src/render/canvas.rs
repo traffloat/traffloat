@@ -1,12 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use std::convert::{TryFrom, TryInto};
-
 use web_sys::{WebGlBuffer, WebGlProgram, WebGlRenderingContext, WebGlShader};
-
-use crate::config;
-use common::shape::{self, Shape};
-use common::types::*;
 
 pub struct RenderContext {
     gl: WebGlRenderingContext,

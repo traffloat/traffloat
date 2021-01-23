@@ -7,7 +7,6 @@ use rand::Rng;
 use yew::format::Json;
 use yew::prelude::*;
 use yew::services::storage::{Area, StorageService};
-use yew::services::websocket::WebSocketTask;
 
 mod canvas;
 mod chat;

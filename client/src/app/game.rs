@@ -7,9 +7,8 @@ use yew::prelude::*;
 use yew::services::interval::{IntervalService, IntervalTask};
 use yew::services::keyboard::{KeyListenerHandle, KeyboardService};
 use yew::services::resize::{ResizeService, ResizeTask, WindowDimensions};
-use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
+use yew::services::websocket::{WebSocketService, WebSocketStatus};
 
-use super::canvas;
 use super::chat;
 use crate::keymap::{Action, ActionEvent};
 use crate::session::{self, Session};
@@ -135,12 +134,12 @@ impl Component for Game {
                         return false;
                     }
                 };
-                let message = match self.session.handle_message(&message, {
+                let _message = match self.session.handle_message(&message, {
                     let chat_list = self.chat_list.clone(); // chat::List is backed by an Rc
                     move |msg| chat_list.push_system(msg)
                 }) {
-                    Ok(Some(message)) => {
-                        let (world, _) = &mut *self.setup.borrow_mut();
+                    Ok(Some(_message)) => {
+                        let (_world, _) = &mut *self.setup.borrow_mut();
                         // TODO send message to message handler
                     }
                     Ok(None) => (),

@@ -3,6 +3,8 @@ use std::convert::TryInto;
 use anyhow::Context;
 use yew::services::websocket::WebSocketTask;
 
+use common::proto::{handshake, BinRead, BinWrite, Packet};
+
 #[derive(derive_new::new)]
 pub struct Session {
     #[new(value = "Step::SecureOpen")]
@@ -41,8 +43,6 @@ impl Session {
         payload: &[u8],
         mut logger: impl FnMut(String),
     ) -> anyhow::Result<Option<common::proto::Packet>> {
-        use common::proto::{handshake, BinRead, Packet};
-
         match self.step {
             Step::SecureOpen | Step::InsecureOpen => {
                 anyhow::bail!("Unexpected packet received before handshake is sent");
@@ -99,7 +99,11 @@ impl Session {
         }
     }
 
-    pub fn send_packet(&mut self, packet: common::proto::Packet) {}
+    pub fn send_packet(&mut self, packet: common::proto::Packet) {
+        let mut vec = Vec::new();
+        packet.write(&mut vec);
+        self.ws.send_binary(Ok(vec));
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

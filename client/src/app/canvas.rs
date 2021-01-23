@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use specs::{world::Builder, WorldExt};
 use web_sys::{HtmlCanvasElement, WebGlRenderingContext};
 use yew::prelude::*;
