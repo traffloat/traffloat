@@ -145,7 +145,9 @@ impl Component for Game {
                 }) {
                     Ok(Some(message)) => {
                         let (world, _) = &mut *self.setup.borrow_mut();
-                        let chan: &mut shrev::EventChannel<Packet> = world.get_mut().expect("EventChannel<Packet> not initialized");
+                        let chan: &mut shrev::EventChannel<Packet> = world
+                            .get_mut()
+                            .expect("EventChannel<Packet> not initialized");
                         chan.single_write(message);
                     }
                     Ok(None) => (),
@@ -169,17 +171,18 @@ impl Component for Game {
                         match self.session.handle_error() {
                             session::ErrorHandler::RetryInsecure => {
                                 self.chat_list.push_system(String::from(
-                                        "Retrying connection with insecure connection",
-                                        ));
-                                let ws_addr = format!("ws://{}:{}", self.props.addr, self.props.port);
+                                    "Retrying connection with insecure connection",
+                                ));
+                                let ws_addr =
+                                    format!("ws://{}:{}", self.props.addr, self.props.port);
                                 self.chat_list
                                     .push_system(format!("Connecting to {}", ws_addr));
                                 let ws = WebSocketService::connect_binary(
                                     &ws_addr,
                                     self.link.callback(Message::WsReceive),
                                     self.link.callback(Message::WsStatus),
-                                    )
-                                    .unwrap();
+                                )
+                                .unwrap();
                                 self.session.ws = ws;
                             }
                             session::ErrorHandler::Close => {
@@ -200,7 +203,7 @@ impl Component for Game {
                 }
 
                 true
-            },
+            }
         }
     }
 

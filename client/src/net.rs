@@ -21,15 +21,9 @@ impl NetSystem {
 }
 
 impl<'a> specs::System<'a> for NetSystem {
-    type SystemData = (
-        specs::Read<'a, EventChannel<Packet>>,
-    );
+    type SystemData = (specs::Read<'a, EventChannel<Packet>>,);
 
-    fn run(&mut self, (
-        packets,
-    ): Self::SystemData) {
-
-    }
+    fn run(&mut self, (packets,): Self::SystemData) {}
 }
 
 pub fn setup_specs((mut world, mut dispatcher): common::Setup) -> common::Setup {
