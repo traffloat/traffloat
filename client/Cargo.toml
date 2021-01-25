@@ -33,7 +33,7 @@ smallvec = "1.6.1"
 specs = {version = "0.16.1", default-features = false, features = ["wasm-bindgen"]}
 strum = {version = "0.20.0", features = ["derive"]}
 traffloat-common = {version = "0.2.0", path = "../common", features = ["yew"]}
-wasm-bindgen = {version = "0.2.69"}
+wasm-bindgen = {version = "0.2.70"}
 wasm-logger = "0.2.0"
 yew = {version = "0.17.4", default-features = false, features = ["services", "web_sys"]}
 
