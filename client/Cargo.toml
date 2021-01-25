@@ -19,7 +19,7 @@ derive-new = "0.5.8"
 enum-map = "0.6.4"
 getrandom = {version = "0.2.2", features = ["js"]}
 hex = "0.4.2"
-js-sys = "0.3.46"
+js-sys = "0.3.47"
 lazy_static = "1.4.0"
 log = "0.4.13"
 nalgebra = "0.24.0"
