@@ -38,7 +38,7 @@ wasm-logger = "0.2.0"
 yew = {version = "0.17.4", default-features = false, features = ["services", "web_sys"]}
 
 [dependencies.web-sys]
-version = "0.3.46"
+version = "0.3.47"
 features = [
 	"HtmlCanvasElement",
 	"Performance",
