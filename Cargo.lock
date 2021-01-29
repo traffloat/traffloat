@@ -751,9 +751,9 @@ checksum = "a785740271256c230f57462d3b83e52f998433a7062fc18f96d5999474a9f915"
 
 [[package]]
 name = "nalgebra"
-version = "0.24.0"
+version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77fea728d5bead12fae18a36258f43f397c20850925cd84af2caf9b8fc7f5d49"
+checksum = "1a9002895a0de45e3cde58b36d0cf2f83249e7dba4a43ee64dafbf01bfd464ff"
 dependencies = [
  "approx",
  "generic-array",
