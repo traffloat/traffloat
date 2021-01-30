@@ -22,12 +22,12 @@ jobs:
         working-directory: client
       - run: npm run build
         working-directory: client
-      - run: cargo build --release
-        working-directory: server
+        # - run: cargo build --release
+        # working-directory: server
       - run: cp -r client/dist ../pkg
       - run: cp -r target/doc ../pkg/doc
-      - run: cp target/release/traffloat-server ../pkg/server-unix
-      - run: gzip ../pkg/server-unix
+        # - run: cp target/release/traffloat-server ../pkg/server-unix
+        # - run: gzip ../pkg/server-unix
       - run: git checkout -- . && git clean -fd
       - run: git fetch && git checkout gh-pages
       - run: test ! -d $(echo ${{github.ref}} | cut -d/ -f3) || rm -r $(echo ${{github.ref}} | cut -d/ -f3)
