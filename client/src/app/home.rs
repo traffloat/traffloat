@@ -73,7 +73,7 @@ impl Component for Home {
                     </ul>
                 </div>
 
-                { for Some(&self.game_mode).filter(|&&mode| mode == GameMode::Single).map(|mode| html! {
+                { for (self.game_mode == GameMode::Single).then(|| html! {
                     <div>
                         <button onclick=self.link.callback(Msg::StartSingle)>{ "Start" }</button>
                     </div>

@@ -1,8 +1,12 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use crate::camera::Camera;
+
 mod canvas;
 pub use canvas::{Canvas, Dimension};
+
+mod fps;
 
 /// The state used to store the canvas.
 ///
@@ -14,22 +18,44 @@ pub struct RenderFlag {
 }
 
 #[legion::system]
-pub fn render(#[state] canvas_flag: &mut RenderFlag) {
+#[allow(clippy::indexing_slicing)]
+pub fn render(
+    #[state] canvas_flag: &mut RenderFlag,
+    #[state] render_fps: &mut fps::Counter,
+    #[state] simul_fps: &mut fps::Counter,
+    #[resource] camera: &mut Camera,
+) {
+    let simul_fps = simul_fps.add_frame();
+
     let canvas = match canvas_flag.cell.replace(None) {
         Some(canvas) => canvas,
         None => return,
     };
 
-    canvas.fill_rect(
+    let render_fps = render_fps.add_frame();
+
+    canvas.rect(
         (0, 0),
         (canvas.dim.width, canvas.dim.height),
         [0., 0., 0., 1.],
     );
-    canvas
-        .context
-        .fill_rect(0., 0., canvas.dim.width as f64, canvas.dim.height as f64);
+
+    canvas.note(
+        format!("FPS: graphics {}, physics {}", render_fps, simul_fps),
+        (10, 20),
+        [1., 1., 1., 1.],
+    );
+    canvas.note(
+        format!("Position: ({}, {})", &camera.position[0], &camera.position[1]),
+        (10, 50),
+        [1., 1., 1., 1.],
+    );
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs, render_flag: &RenderFlag) -> traffloat::SetupEcs {
-    setup.system_local(render_system(render_flag.clone()))
+    setup.system_local(render_system(
+        render_flag.clone(),
+        fps::Counter::default(),
+        fps::Counter::default(),
+    ))
 }

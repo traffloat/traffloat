@@ -77,6 +77,20 @@ impl SetupEcs {
         self.resources.insert(res);
         self
     }
+    /// Declare a published event
+    pub fn publish<T: shrev::Event>(mut self) -> Self {
+        let _ = self
+            .resources
+            .get_or_insert_with(shrev::EventChannel::<T>::new);
+        self
+    }
+    /// Declare a subscribed event
+    pub fn subscribe<T: shrev::Event>(&mut self) -> shrev::ReaderId<T> {
+        let mut channel = self
+            .resources
+            .get_mut_or_insert_with(shrev::EventChannel::<T>::new);
+        channel.register_reader()
+    }
 
     /// Build the setup into a legion
     pub fn build(mut self) -> Legion {

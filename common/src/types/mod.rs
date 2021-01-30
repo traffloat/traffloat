@@ -5,10 +5,10 @@ pub use legion::Entity;
 use crate::SetupEcs;
 
 /// Standard vector type
-pub type Vector = nalgebra::Vector3<f32>;
+pub type Vector = nalgebra::Vector2<f32>;
 
 /// Standard homogenous matrix type
-pub type Matrix = nalgebra::Matrix4<f32>;
+pub type Matrix = nalgebra::Matrix3<f32>;
 
 mod ids;
 pub use ids::*;

@@ -25,13 +25,17 @@
         clippy::indexing_slicing,
     )
 )]
-#![feature(bool_to_option)]
+#![feature(bool_to_option, vecdeque_binary_search)]
 
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 mod app;
+mod camera;
+mod config;
+mod input;
 mod render;
+mod util;
 
 #[wasm_bindgen(start)]
 pub fn run_app() {
@@ -50,5 +54,8 @@ pub fn run_app() {
 }
 
 fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(traffloat::setup_ecs)
+    setup
+        .uses(traffloat::setup_ecs)
+        .uses(input::setup_ecs)
+        .uses(camera::setup_ecs)
 }

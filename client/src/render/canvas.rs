@@ -18,19 +18,32 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    pub fn fill_rect(&self, start: (u32, u32), end: (u32, u32), color: [f32; 4]) {
-        self.context.set_fill_style(
-            &format!(
-                "rgba({}, {}, {}, {})",
-                color[0], color[1], color[2], color[3]
-            )
-            .into(),
-        );
+    fn color<T: From<String>>(rgba: [f32; 4]) -> T {
+        format!(
+            "rgba({}, {}, {}, {})",
+            rgba[0] * 255.,
+            rgba[1] * 255.,
+            rgba[2] * 255.,
+            rgba[3]
+        )
+        .into()
+    }
+
+    pub fn rect(&self, start: (u32, u32), end: (u32, u32), color: [f32; 4]) {
+        self.context.set_fill_style(&Self::color(color));
         self.context.fill_rect(
             start.0 as f64,
             start.1 as f64,
             (end.0 - start.0) as f64,
             (end.1 - start.1) as f64,
         );
+    }
+
+    pub fn note(&self, text: impl AsRef<str>, pos: (u32, u32), color: [f32; 4]) {
+        self.context.set_fill_style(&Self::color(color));
+        self.context.set_font("12px sans-serif");
+        self.context
+            .fill_text(text.as_ref(), pos.0 as f64, pos.1 as f64)
+            .expect("Error writing text");
     }
 }

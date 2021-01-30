@@ -94,5 +94,8 @@ impl<T: ProtoType + BinRead + BinWrite + Mul<f32, Output = T>> std::ops::Mul<Tim
 
 /// Initializes the time module.
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup
+    setup.resource(Clock {
+        now: Instant::default(), // TODO multiplayer calibration
+        delta: Time::default(),
+    })
 }

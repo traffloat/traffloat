@@ -5,6 +5,7 @@ use yew::services::{interval, render as render_srv, resize};
 
 use super::{GameArgs, SpGameArgs};
 use crate::render;
+use traffloat::types::{Clock, Time};
 use traffloat::SetupEcs;
 
 pub struct Game {
@@ -20,6 +21,14 @@ pub struct Game {
 
 impl Game {
     fn simulate(&mut self) {
+        {
+            let mut clock = self
+                .legion
+                .resources
+                .get_mut::<Clock>()
+                .expect("Clock was uninitialized");
+            clock.inc_time(Time(1));
+        }
         self.legion.run();
     }
 
@@ -109,6 +118,11 @@ impl Component for Game {
                     style="width: 100vw; height: 100vh;"/>
             </div>
         }
+    }
+
+    fn rendered(&mut self, _first: bool) {
+        let window = web_sys::window().expect("Failed to get window object");
+        self.on_resize(resize::WindowDimensions::get_dimensions(&window));
     }
 }
 
