@@ -5,7 +5,7 @@ use yew::services::{interval, render as render_srv, resize};
 
 use super::{GameArgs, SpGameArgs};
 use crate::render;
-use crate::setup_ecs;
+use traffloat::SetupEcs;
 
 pub struct Game {
     props: Props,
@@ -25,6 +25,9 @@ impl Game {
 
     fn request_render(&mut self) {
         self.render_flag.cell.replace(self.canvas_context());
+        self.render_task = render_srv::RenderService::request_animation_frame(
+            self.link.callback(Msg::RenderFrame),
+        );
     }
 
     fn canvas_context(&self) -> Option<render::Canvas> {
@@ -46,7 +49,14 @@ impl Game {
     }
 
     fn on_resize(&mut self, dim: resize::WindowDimensions) {
-        todo!()
+        let canvas = match self.canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
+            Some(canvas) => canvas,
+            None => return,
+        };
+        canvas.set_width(dim.width as u32);
+        canvas.set_height(dim.height as u32);
+
+        self.request_render();
     }
 }
 
@@ -55,8 +65,11 @@ impl Component for Game {
     type Properties = Props;
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        let legion = setup_ecs(Default::default()).build(); // TODO setup depending on gamemode
         let render_flag = render::RenderFlag::default();
+        let legion = SetupEcs::default()
+            .uses(crate::setup_ecs)
+            .uses(|setup| render::setup_ecs(setup, &render_flag))
+            .build(); // TODO setup depending on gamemode
 
         Self {
             props,

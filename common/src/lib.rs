@@ -43,7 +43,7 @@ pub struct SetupEcs {
 
 impl SetupEcs {
     /// Register a bundle
-    pub fn uses(self, setup_ecs: fn(Self) -> Self) -> Self {
+    pub fn uses(self, setup_ecs: impl FnOnce(Self) -> Self) -> Self {
         setup_ecs(self)
     }
 
@@ -99,6 +99,7 @@ pub struct Legion {
 }
 
 impl Legion {
+    /// Spins all systems once.
     pub fn run(&mut self) {
         self.schedule.execute(&mut self.world, &mut self.resources)
     }

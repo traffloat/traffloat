@@ -49,8 +49,6 @@ pub fn run_app() {
     App::<app::Mux>::new().mount_to_body();
 }
 
-fn setup_ecs(mut setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup = traffloat::setup_ecs(setup);
-
-    setup
+fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    setup.uses(traffloat::setup_ecs)
 }
