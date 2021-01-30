@@ -1,8 +1,8 @@
 [workspace]
 members = [
+	"codegen",
 	"common",
 	"client",
-	"server",
 ]
 
 [profile.dev]
@@ -11,11 +11,10 @@ opt-level = 3
 [profile.dev.package]
 traffloat-common = {opt-level = 0}
 traffloat-client = {opt-level = 0}
-traffloat-server = {opt-level = 0}
 
 [profile.release]
 lto = true
 opt-level = 3
 
-[profile.release.package.traffloat-client]
-opt-level = "s"
+# [profile.release.package.traffloat-client]
+# opt-level = "s"

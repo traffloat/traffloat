@@ -3,7 +3,7 @@
 use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
 use crate::proto::{BinRead, BinWrite, ProtoType};
-use crate::Setup;
+use crate::SetupEcs;
 
 ratio_def::units! {
     /// Internal trait jjust because declarative macros are stupid.
@@ -26,12 +26,6 @@ impl Time {
         self.value() as f32 * 0.01
     }
 }
-
-/// The rate of change.
-///
-/// The inner value is the amount of change over one second.
-#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, codegen::Gen)]
-pub struct Rate<T: ProtoType + BinRead + BinWrite>(pub T);
 
 /// A specific point of time,
 /// represented as a duration since game epoch.
@@ -83,6 +77,12 @@ impl Clock {
     }
 }
 
+/// The rate of change.
+///
+/// The inner value is the amount of change over one second.
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, codegen::Gen)]
+pub struct Rate<T: ProtoType + BinRead + BinWrite>(pub T);
+
 impl<T: ProtoType + BinRead + BinWrite + Mul<f32, Output = T>> std::ops::Mul<Time> for Rate<T> {
     type Output = T;
 
@@ -93,6 +93,6 @@ impl<T: ProtoType + BinRead + BinWrite + Mul<f32, Output = T>> std::ops::Mul<Tim
 }
 
 /// Initializes the time module.
-pub fn setup_specs((world, dispatcher): Setup) -> Setup {
-    (world, dispatcher)
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
+    setup
 }

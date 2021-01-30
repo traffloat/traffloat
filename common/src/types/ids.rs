@@ -1,20 +1,11 @@
-//! The common types imported everywhere.
-
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::sync::RwLock;
 
 use enum_map::EnumMap;
-pub use specs::{storage, Component, Entity, ReadStorage, System, WriteStorage};
+use legion::Entity;
 
 use crate::proto::{self, BinRead, BinWrite, ProtoType};
-pub use crate::time::*;
-
-/// Standard vector type
-pub type Vector = nalgebra::Vector3<f32>;
-
-/// Standard homogenous matrix type
-pub type Matrix = nalgebra::Matrix4<f32>;
 
 /// A generic variant-identifier mechanism.
 ///
@@ -128,9 +119,6 @@ macro_rules! ids {
 }
 
 ids! {
-    /// Identifies a node (building)
-    NodeId;
-
     /// Identifies a liquid type
     LiquidId;
 
@@ -153,40 +141,12 @@ ids! {
     ModelId;
 }
 
-ratio_def::units! {
-    /// A common unit type
-    Unit(std::fmt::Debug + Clone + Copy + Default + PartialEq + PartialOrd + ProtoType + BinWrite + BinRead);
-
-    #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, codegen::Gen)] f32:
-
-    /// An amount of liquid
-    LiquidVolume;
-
-    /// The pressure of air in a room
-    GasPressure;
-
-    /// An absolute amount of gas
-    GasVolume;
-
-    /// The standard size for cargo
-    CargoSize;
-
-    /// Specific heat capacity
-    HeatCapacity;
-
-    /// Heat energy
-    HeatEnergy;
-
-    /// Dynamic electricity consumed immediately
-    ElectricPower;
-
-    /// Static electricity in stored form
-    ElectricEnergy;
-}
+/// Identifies a node (building)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, codegen::Gen)]
+pub struct NodeId(u32);
 
 /// The endpoints of an edge.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Component, codegen::Gen)]
-#[storage(storage::VecStorage)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, codegen::Gen)]
 pub struct EdgeId {
     /// The source node of the edge
     pub first: NodeId,

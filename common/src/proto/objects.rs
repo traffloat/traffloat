@@ -1,7 +1,5 @@
 //! Information abaout nodes
 
-use crate::shape;
-use crate::texture;
 use crate::types::*;
 
 /// Instructs the client to add new nodes
@@ -17,8 +15,4 @@ pub struct AddNodes {
 pub struct Node {
     /// ID of the node
     pub id: NodeId,
-    /// Bounding box model of the node
-    pub shape: shape::Shape,
-    /// Rendering model of the node
-    pub model: texture::Model,
 }

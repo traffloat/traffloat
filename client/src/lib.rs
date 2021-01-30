@@ -31,11 +31,7 @@ use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 mod app;
-mod config;
-mod keymap;
-mod net;
 mod render;
-mod session;
 
 #[wasm_bindgen(start)]
 pub fn run_app() {
@@ -50,18 +46,11 @@ pub fn run_app() {
         wasm_logger::init(config);
     }
 
-    App::<app::Lifecycle>::new().mount_to_body();
+    App::<app::Mux>::new().mount_to_body();
 }
 
-fn setup_specs() -> (specs::World, specs::Dispatcher<'static, 'static>) {
-    use specs::WorldExt;
+fn setup_ecs(mut setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    setup = traffloat::setup_ecs(setup);
 
-    let mut setup = (specs::World::new(), specs::DispatcherBuilder::new());
-    setup = common::setup_specs(setup);
-
-    setup = net::setup_specs(setup);
-    setup = keymap::setup_specs(setup);
-    setup = render::setup_specs(setup);
-
-    (setup.0, setup.1.build())
+    setup
 }
