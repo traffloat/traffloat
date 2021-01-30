@@ -1,6 +1,7 @@
-use traffloat::types::{Clock, Vector};
 use crate::{config, input};
+use traffloat::types::{Clock, Vector};
 
+#[derive(Debug)]
 pub struct Camera {
     pub position: Vector,
     pub render_height: f32,
@@ -8,20 +9,26 @@ pub struct Camera {
 
 #[legion::system]
 #[allow(clippy::indexing_slicing)]
-fn camera(#[resource] camera: &mut Camera,
-          #[resource] actions: &mut input::keyboard::ActionSet,
-          #[resource] clock: &mut Clock) {
+fn camera(
+    #[resource] camera: &mut Camera,
+    #[resource] actions: &mut input::keyboard::ActionSet,
+    #[resource] clock: &mut Clock,
+) {
     if actions[input::keyboard::Action::Left] {
-        camera.position -= Vector::new(1., 0.) * config::WASD_VELOCITY * (clock.delta.value() as f32);
+        camera.position -=
+            Vector::new(1., 0.) * config::WASD_VELOCITY * (clock.delta.value() as f32);
     }
     if actions[input::keyboard::Action::Right] {
-        camera.position += Vector::new(1., 0.) * config::WASD_VELOCITY * (clock.delta.value() as f32);
-    }
-    if actions[input::keyboard::Action::Up] {
-        camera.position -= Vector::new(0., 1.) * config::WASD_VELOCITY * (clock.delta.value() as f32);
+        camera.position +=
+            Vector::new(1., 0.) * config::WASD_VELOCITY * (clock.delta.value() as f32);
     }
     if actions[input::keyboard::Action::Down] {
-        camera.position += Vector::new(0., 1.) * config::WASD_VELOCITY * (clock.delta.value() as f32);
+        camera.position -=
+            Vector::new(0., 1.) * config::WASD_VELOCITY * (clock.delta.value() as f32);
+    }
+    if actions[input::keyboard::Action::Up] {
+        camera.position +=
+            Vector::new(0., 1.) * config::WASD_VELOCITY * (clock.delta.value() as f32);
     }
 
     if actions[input::keyboard::Action::ZoomIn] {

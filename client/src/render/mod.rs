@@ -46,8 +46,11 @@ pub fn render(
         [1., 1., 1., 1.],
     );
     canvas.note(
-        format!("Position: ({}, {})", &camera.position[0], &camera.position[1]),
-        (10, 50),
+        format!(
+            "Position: ({}, {})",
+            &camera.position[0], &camera.position[1]
+        ),
+        (10, 40),
         [1., 1., 1., 1.],
     );
 }

@@ -22,11 +22,13 @@ impl Component for Home {
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
-            Msg::ModeSingle(_) => {
+            Msg::ModeSingle(event) => {
+                event.prevent_default();
                 self.game_mode = GameMode::Single;
                 true
             }
-            Msg::ModeMulti(_) => {
+            Msg::ModeMulti(event) => {
+                event.prevent_default();
                 self.game_mode = GameMode::Multi;
                 true
             }

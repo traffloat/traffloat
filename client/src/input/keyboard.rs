@@ -4,6 +4,7 @@ use enum_map::EnumMap;
 
 pub type ActionSet = EnumMap<Action, bool>;
 
+#[derive(Debug)]
 pub struct KeyEvent {
     code: Action,
     down: bool,
@@ -46,7 +47,7 @@ impl KeyEvent {
 #[allow(clippy::indexing_slicing)]
 fn input(
     #[state] reader: &mut shrev::ReaderId<KeyEvent>,
-    #[state] key_set: &mut ActionSet,
+    #[resource] key_set: &mut ActionSet,
     #[resource] chan: &mut shrev::EventChannel<KeyEvent>,
 ) {
     for event in chan.read(reader) {
@@ -58,5 +59,5 @@ pub fn setup_ecs(mut setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     let reader = setup.subscribe::<KeyEvent>();
     setup
         .resource(ActionSet::default())
-        .system(input_system(reader, EnumMap::default()))
+        .system(input_system(reader))
 }
