@@ -1,4 +1,4 @@
-use traffloat::types::{Matrix, Vector, Point};
+use traffloat::types::{Matrix, Point, Vector};
 
 /// The dimension of a canvas
 #[derive(Debug, Clone, Copy)]
@@ -26,8 +26,10 @@ pub struct Canvas {
 
 impl Canvas {
     pub fn reset(&self, color: [f64; 4]) {
-        self.context.reset_transform().expect("Failed to reset canvas transformation");
-        self .rect((0, 0), (self.dim.width, self.dim.height), color);
+        self.context
+            .reset_transform()
+            .expect("Failed to reset canvas transformation");
+        self.rect((0, 0), (self.dim.width, self.dim.height), color);
     }
 
     fn color<T: From<String>>(rgba: [f64; 4]) -> T {

@@ -48,12 +48,12 @@ impl<T: JsCast> ReifiedPromise<T> {
                 let value = reified_value(reified.clone());
                 let value = value.dyn_into::<T>()?;
                 Ok(value)
-            },
+            }
             2 => {
                 let err = reified_value(reified.clone());
                 log::warn!("Promise failed with error: {:?}", err);
                 Err(())
-            },
+            }
             _ => unreachable!(),
         };
 
