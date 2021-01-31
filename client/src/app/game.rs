@@ -4,7 +4,7 @@ use std::time::Duration;
 use yew::prelude::*;
 use yew::services::{interval, keyboard as kb_srv, render as render_srv, resize};
 
-use super::{GameArgs, SpGameArgs};
+use super::GameArgs;
 use crate::input;
 use crate::render;
 use crate::util;
@@ -19,7 +19,7 @@ pub struct Game {
     _resize_task: resize::ResizeTask,
     render_task: render_srv::RenderTask,
     _simulation_task: interval::IntervalTask,
-    keyboard_task: [kb_srv::KeyListenerHandle; 2],
+    _keyboard_task: [kb_srv::KeyListenerHandle; 2],
     render_flag: render::RenderFlag,
     canvas_ref: NodeRef,
 }
@@ -127,7 +127,7 @@ impl Component for Game {
                 Duration::from_millis(10),
                 link.callback(Msg::SimulationFrame),
             ),
-            keyboard_task,
+            _keyboard_task: keyboard_task,
             render_flag,
             canvas_ref: NodeRef::default(),
             link,

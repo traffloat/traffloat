@@ -1,3 +1,5 @@
+//! Shape and appearance of an object
+
 use crate::types::{Config, ConfigStore, Id, Matrix, Position};
 use crate::SetupEcs;
 
@@ -26,6 +28,7 @@ pub struct Texture {
 
 impl Config for Texture {}
 
+/// Initializes systems
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
     setup.resource(ConfigStore::<Texture>::default())
 }

@@ -41,8 +41,11 @@ pub use util::*;
 /// The standard setup parameters
 #[derive(Default)]
 pub struct SetupEcs {
+    /// The legion::Scheduler builder
     pub builder: legion::systems::Builder,
+    /// The legion world storing entities and components
     pub world: legion::World,
+    /// The resource set storing legion resources
     pub resources: legion::Resources,
 }
 

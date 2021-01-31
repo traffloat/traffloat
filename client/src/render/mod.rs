@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use crate::camera::Camera;
 use traffloat::shape::{Shape, Texture};
-use traffloat::types::{ConfigStore, Position, Vector};
+use traffloat::types::{ConfigStore, Position};
 
 mod canvas;
 pub use canvas::*;

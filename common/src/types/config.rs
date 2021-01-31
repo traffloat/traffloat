@@ -7,9 +7,9 @@
 
 use std::cmp;
 use std::convert::TryFrom;
-use std::fmt;
 use std::marker::PhantomData;
 
+/// A marker trait for configuration types
 pub trait Config: std::any::Any + 'static + Send + Sync + Sized {}
 
 /// The ID of a mostly-fixed set of metadata
@@ -20,6 +20,7 @@ pub struct Id<T: Config> {
 }
 
 impl<T: Config> Id<T> {
+    /// Gets the configuration represented by this ID
     pub fn get(self, store: &ConfigStore<T>) -> &T {
         store.get(self)
     }
@@ -32,6 +33,7 @@ impl<T: Config> Id<T> {
         Some(Self::new_unchecked(value))
     }
 
+    /// Creates an ID without checking its existence
     pub fn new_unchecked(value: u32) -> Self {
         Self {
             value,

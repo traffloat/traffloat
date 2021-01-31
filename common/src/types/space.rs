@@ -14,11 +14,13 @@ pub type Matrix = nalgebra::Matrix3<f64>;
 pub struct Position(pub Point);
 
 impl Position {
+    /// Creates a position
     pub fn new(x: f64, y: f64) -> Position {
         Position(Point::new(x, y))
     }
 
     /// Returns the vector from the origin to the position
+    #[allow(clippy::indexing_slicing)]
     pub fn vector(&self) -> Vector {
         Vector::new(self.0[0], self.0[1])
     }

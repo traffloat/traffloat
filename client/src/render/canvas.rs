@@ -90,42 +90,6 @@ impl Canvas {
     }
 }
 
-pub trait CanvasPoint {
-    fn to_xy(&self) -> (f64, f64);
-
-    fn y_ordering() -> AxisOrdering;
-
-    fn to_image_xy(&self, height: f64) -> (f64, f64) {
-        let (x, mut y) = self.to_xy();
-        Self::y_ordering().convert(AxisOrdering::Image, &mut y, height);
-        (x, y)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AxisOrdering {
-    Classic,
-    Image,
-}
-
-impl AxisOrdering {
-    pub fn convert(self, other: AxisOrdering, value: &mut f64, max: f64) {
-        if self != other {
-            *value = max - *value;
-        }
-    }
-}
-
-impl CanvasPoint for nalgebra::Point2<f64> {
-    fn to_xy(&self) -> (f64, f64) {
-        (self[0], self[1])
-    }
-
-    fn y_ordering() -> AxisOrdering {
-        AxisOrdering::Classic
-    }
-}
-
 pub trait Image {
     fn as_bitmap(&self) -> Option<&web_sys::ImageBitmap>;
 }
