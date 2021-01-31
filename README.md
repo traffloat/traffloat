@@ -1,5 +1,5 @@
 # traffloat
-A cooperative 3D web game with elements of City Building, Logistics and Player Vs AI.
+A cooperative 2D web game with elements of City Building, Logistics and Tower Defense.
 
 ## Gameplay
 You are managing a space colony.
