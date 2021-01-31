@@ -11,6 +11,8 @@ mod able;
 pub use able::*;
 mod image;
 pub use image::*;
+mod perf;
+pub use perf::*;
 
 mod fps;
 
@@ -28,9 +30,11 @@ pub struct RenderFlag {
 #[read_component(Renderable)]
 #[read_component(Position)]
 #[read_component(Shape)]
+#[allow(clippy::too_many_arguments)]
 pub fn render(
     world: &legion::world::SubWorld,
     #[state] canvas_flag: &mut RenderFlag,
+    #[state] perf: &mut Rc<Perf>,
     #[state] image_store: &mut ImageStore,
     #[state] render_fps: &mut fps::Counter,
     #[state] simul_fps: &mut fps::Counter,
@@ -56,13 +60,18 @@ pub fn render(
     );
 
     canvas.note(
-        format!("FPS: graphics {}, physics {}", render_fps, simul_fps),
+        format!(
+            "FPS: graphics {}, physics {}, cycle time {} \u{03bc}s",
+            render_fps,
+            simul_fps,
+            perf.average_exec_us()
+        ),
         (10, 20),
         [1., 1., 1., 1.],
     );
     canvas.note(
         format!(
-            "Position: ({}, {})",
+            "Position: ({:.1}, {:.1})",
             &camera.position[0], &camera.position[1]
         ),
         (10, 40),
@@ -80,7 +89,11 @@ pub fn render(
     }
 }
 
-pub fn setup_ecs(setup: traffloat::SetupEcs, render_flag: &RenderFlag) -> traffloat::SetupEcs {
+pub fn setup_ecs(
+    setup: traffloat::SetupEcs,
+    render_flag: &RenderFlag,
+    perf: &Rc<Perf>,
+) -> traffloat::SetupEcs {
     let id = {
         let mut t = setup.resources.get_mut::<ConfigStore<Texture>>().expect("");
         t.add(Texture {
@@ -90,6 +103,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs, render_flag: &RenderFlag) -> traffl
     setup
         .system_local(render_system(
             render_flag.clone(),
+            Rc::clone(perf),
             ImageStore::default(),
             fps::Counter::default(),
             fps::Counter::default(),

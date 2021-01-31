@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::time::Duration;
 
 use yew::prelude::*;
@@ -6,6 +7,7 @@ use yew::services::{interval, keyboard as kb_srv, render as render_srv, resize};
 use super::{GameArgs, SpGameArgs};
 use crate::input;
 use crate::render;
+use crate::util;
 use traffloat::types::{Clock, Time};
 use traffloat::SetupEcs;
 
@@ -13,6 +15,7 @@ pub struct Game {
     props: Props,
     link: ComponentLink<Self>,
     legion: traffloat::Legion,
+    perf: Rc<render::Perf>,
     _resize_task: resize::ResizeTask,
     render_task: render_srv::RenderTask,
     _simulation_task: interval::IntervalTask,
@@ -31,7 +34,9 @@ impl Game {
                 .expect("Clock was uninitialized");
             clock.inc_time(Time(1));
         }
-        self.legion.run();
+
+        let time = util::measure(|| self.legion.run());
+        self.perf.push_exec_us(time);
     }
 
     fn request_render(&mut self) {
@@ -97,9 +102,11 @@ impl Component for Game {
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
         let render_flag = render::RenderFlag::default();
+        let perf = Rc::new(render::Perf::default());
+
         let legion = SetupEcs::default()
             .uses(crate::setup_ecs)
-            .uses(|setup| render::setup_ecs(setup, &render_flag))
+            .uses(|setup| render::setup_ecs(setup, &render_flag, &perf))
             .build(); // TODO setup depending on gamemode
 
         let body = body();
@@ -111,6 +118,7 @@ impl Component for Game {
         Self {
             props,
             legion,
+            perf,
             _resize_task: resize::ResizeService::new().register(link.callback(Msg::Resize)),
             render_task: render_srv::RenderService::request_animation_frame(
                 link.callback(Msg::RenderFrame),

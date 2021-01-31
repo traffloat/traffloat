@@ -8,8 +8,19 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
 /// Retrieves the real system time
-pub fn real_time() -> u64 {
-    js_sys::Date::now() as u64
+pub fn high_res_time() -> u64 {
+    let window = web_sys::window().expect("Window uninitialized");
+    let perf = window
+        .performance()
+        .expect("window.performance uninitialized");
+    (perf.now() * 1000.) as u64
+}
+
+pub fn measure(closure: impl FnOnce()) -> u64 {
+    let start = high_res_time();
+    closure();
+    let end = high_res_time();
+    end - start
 }
 
 #[wasm_bindgen(module = "/js/reified.js")]
