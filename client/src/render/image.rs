@@ -19,7 +19,6 @@ impl ImageStore {
 
 fn create_bitmap(texture: &Texture) -> MaybeBitmap {
     use wasm_bindgen::prelude::*;
-    use wasm_bindgen::JsCast;
 
     #[wasm_bindgen(module = "/js/bitmap.js")]
     extern "C" {

@@ -17,6 +17,9 @@ impl Perf {
 
     pub fn average_exec_us(&self) -> f64 {
         let exec_us = self.exec_us.borrow();
-        exec_us.iter().map(|&us| us as f64).sum::<f64>() / (exec_us.len() as f64)
+        #[allow(clippy::cast_precision_loss)]
+        {
+            exec_us.iter().map(|&us| us as f64).sum::<f64>() / (exec_us.len() as f64)
+        }
     }
 }

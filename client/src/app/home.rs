@@ -39,8 +39,8 @@ impl Component for Home {
         }
     }
 
-    fn change(&mut self, props: Props) -> ShouldRender {
-        true
+    fn change(&mut self, _: Props) -> ShouldRender {
+        unreachable!()
     }
 
     fn view(&self) -> Html {

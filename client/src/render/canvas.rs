@@ -1,4 +1,4 @@
-use traffloat::types::{Matrix, Point, Vector};
+use traffloat::types::{Matrix, Vector};
 
 /// The dimension of a canvas
 #[derive(Debug, Clone, Copy)]
@@ -61,6 +61,7 @@ impl Canvas {
             .expect("Error writing text");
     }
 
+    #[allow(clippy::indexing_slicing)]
     fn set_transform(&self, matrix: Matrix) {
         self.context
             .set_transform(

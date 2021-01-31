@@ -145,7 +145,7 @@ impl Component for Game {
         false
     }
 
-    fn change(&mut self, props: Props) -> ShouldRender {
+    fn change(&mut self, _: Props) -> ShouldRender {
         unreachable!()
     }
 

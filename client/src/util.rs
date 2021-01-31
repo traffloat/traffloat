@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::ops::Deref;
 
 use once_cell::unsync::OnceCell;
 
@@ -13,7 +12,11 @@ pub fn high_res_time() -> u64 {
     let perf = window
         .performance()
         .expect("window.performance uninitialized");
-    (perf.now() * 1000.) as u64
+
+    #[allow(clippy::cast_possible_truncation)]
+    {
+        (perf.now() * 1000.) as u64
+    }
 }
 
 pub fn measure(closure: impl FnOnce()) -> u64 {
