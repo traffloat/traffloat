@@ -985,6 +985,7 @@ version = "0.2.0"
 dependencies = [
  "enum-map",
  "legion",
+ "log",
  "nalgebra",
  "ratio-def",
  "shrev",

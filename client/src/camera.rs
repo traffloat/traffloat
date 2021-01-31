@@ -7,20 +7,24 @@ pub struct Camera {
     pub position: Vector,
     /// The screen height rendered
     pub render_height: f64,
-    /// The screen width rendered, computed passively by the render system
-    pub render_width: f64,
 }
 
 impl Camera {
-    pub fn viewport(&self) -> (Vector, Vector) {
-        let semidiagonal = Vector::new(self.render_width, self.render_height) / 2.;
+    /// The area viewed by the camera
+    pub fn viewport(&self, aspect: f64) -> (Vector, Vector) {
+        // aspect = canvas.width / canvas.height
+        // viewport.height / canvas.height = viewport.width / canvas.width
+        // viewport.width = viewport.height * aspect
+        let render_width = self.render_height * aspect;
+
+        let semidiagonal = Vector::new(render_width, self.render_height) / 2.;
         (self.position - semidiagonal, self.position + semidiagonal)
     }
 
     /// Projects physical coordinates to canvas coordinates
     pub fn projection(&self, dim: render::Dimension) -> Matrix {
         // project viewport to (origin, dim)
-        let (viewport_start, viewport_end) = self.viewport();
+        let (viewport_start, viewport_end) = self.viewport(dim.aspect());
         let viewport_size = viewport_end - viewport_start;
 
         let canvas = dim.as_vector();
@@ -42,11 +46,11 @@ impl Camera {
 
     /// Converts coordinates in the unit square with inversed y to real coordinates
     #[allow(clippy::indexing_slicing)]
-    pub fn image_unit_to_real(&self, mut image: Vector) -> Position {
+    pub fn image_unit_to_real(&self, mut image: Vector, aspect: f64) -> Position {
         // correct y axis
         image[1] = 1. - image[1];
 
-        let (viewport_start, viewport_end) = self.viewport();
+        let (viewport_start, viewport_end) = self.viewport(aspect);
         let viewport_size = viewport_end - viewport_start;
 
         let transform = Matrix::identity()
@@ -58,14 +62,6 @@ impl Camera {
             .append_translation(&self.position);
 
         Position(transform.transform_point(&Point::new(image[0], image[1])))
-    }
-
-    /// Updates the render_width field according to the dimension given
-    pub fn update_width(&mut self, dim: render::Dimension) {
-        // aspect = canvas.width / canvas.height
-        // viewport.height / canvas.height = viewport.width / canvas.width
-        // viewport.width = viewport.height * aspect
-        self.render_width = self.render_height * dim.aspect();
     }
 }
 
@@ -106,7 +102,6 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
         .resource(Camera {
             position: Vector::new(0., 0.),
             render_height: 20.,
-            render_width: 20.,
         })
         .system(camera_system())
 }

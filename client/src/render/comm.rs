@@ -1,5 +1,6 @@
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
+use std::ops::Deref;
 use std::rc::Rc;
 
 use super::Canvas;
@@ -7,10 +8,35 @@ use super::Canvas;
 /// Thread-local communication between yew and legion renderer
 #[derive(Clone, Default)]
 pub struct Comm {
+    inner: Rc<CommInner>,
+}
+
+impl Deref for Comm {
+    type Target = CommInner;
+
+    fn deref(&self) -> &CommInner {
+        &*self.inner
+    }
+}
+
+/// The actual fields of Comm
+pub struct CommInner {
     /// Render request tracker
-    pub flag: Rc<RenderFlag>,
+    pub flag: RenderFlag,
     /// Performance tracker
-    pub perf: Rc<Perf>,
+    pub perf: Perf,
+    /// The cursor CSS property for the canvas
+    pub canvas_cursor_type: Cell<&'static str>,
+}
+
+impl Default for CommInner {
+    fn default() -> Self {
+        Self {
+            flag: RenderFlag::default(),
+            perf: Perf::default(),
+            canvas_cursor_type: Cell::new("initial"),
+        }
+    }
 }
 
 /// The state used to store the canvas.

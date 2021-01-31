@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use crate::camera::Camera;
 use crate::input;
-use traffloat::shape::{Shape, Texture};
+use traffloat::shape::{self, Shape, Texture};
 use traffloat::types::{ConfigStore, Position, Vector};
 
 mod canvas;
@@ -25,7 +25,7 @@ mod fps;
 #[allow(clippy::too_many_arguments)]
 pub fn render(
     world: &legion::world::SubWorld,
-    #[state] comm: &mut Comm,
+    #[resource] comm: &mut Comm,
     #[state] image_store: &mut ImageStore,
     #[state] render_fps: &mut fps::Counter,
     #[state] simul_fps: &mut fps::Counter,
@@ -51,7 +51,6 @@ pub fn render(
         [0., 0., 0., 1.],
     );
 
-    camera.update_width(canvas.dim);
     let projection = camera.projection(canvas.dim);
 
     for (&position, shape, _) in <(&Position, &Shape, &Renderable)>::query().iter(world) {
@@ -80,16 +79,22 @@ pub fn render(
         (10, 40),
         [1., 1., 1., 1.],
     );
-    if let Some(pos) = cursor.value.as_ref() {
+    if let Some(pos) = cursor.pos.as_ref() {
+        let entity = cursor.entity.as_ref();
         canvas.note(
-            format!("Cursor position: ({:.1}, {:.1})", pos.x(), pos.y()),
+            format!(
+                "Cursor position: ({:.1}, {:.1}) ({:?})",
+                pos.x(),
+                pos.y(),
+                entity
+            ),
             (10, 60),
             [1., 1., 1., 1.],
         );
     }
 }
 
-pub fn setup_ecs(setup: traffloat::SetupEcs, comm: &Comm) -> traffloat::SetupEcs {
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     let id = {
         let mut t = setup.resources.get_mut::<ConfigStore<Texture>>().expect("");
         t.add(Texture {
@@ -98,15 +103,16 @@ pub fn setup_ecs(setup: traffloat::SetupEcs, comm: &Comm) -> traffloat::SetupEcs
     };
     setup
         .system_local(render_system(
-            comm.clone(),
             ImageStore::default(),
             fps::Counter::default(),
             fps::Counter::default(),
         ))
         .entity((
             Renderable,
+            input::mouse::Clickable,
             Position::new(1., 2.),
             Shape {
+                unit: shape::Unit::Square,
                 matrix: traffloat::types::Matrix::identity()
                     .append_translation(&Vector::new(-0.5, -0.5)),
                 texture: id,

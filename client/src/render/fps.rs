@@ -11,7 +11,7 @@ pub struct Counter {
 impl Counter {
     pub fn add_frame(&mut self) -> usize {
         let now = util::high_res_time();
-        let index = match self.deque.binary_search(&(now - 1000000)) {
+        let index = match self.deque.binary_search(&now.saturating_sub(1000000)) {
             Ok(index) => index,
             Err(index) => index,
             // index is somewhere between lower and upper bound

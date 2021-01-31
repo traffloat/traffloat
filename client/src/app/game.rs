@@ -43,6 +43,12 @@ impl Game {
         self.render_task = render_srv::RenderService::request_animation_frame(
             self.link.callback(Msg::RenderFrame),
         );
+        if let Some(canvas) = self.canvas_ref.cast::<web_sys::HtmlElement>() {
+            canvas
+                .style()
+                .set_property("cursor", self.render_comm.canvas_cursor_type.get())
+                .expect("Failed to set canvas cursor property");
+        }
     }
 
     fn canvas_context(&self) -> Option<render::Canvas> {
@@ -64,6 +70,18 @@ impl Game {
     }
 
     fn on_resize(&mut self, dim: resize::WindowDimensions) {
+        {
+            let mut dim = self
+                .legion
+                .resources
+                .get_mut::<render::Dimension>()
+                .expect("render::Dimension uninitialized");
+            *dim = render::Dimension {
+                width: dim.width,
+                height: dim.height,
+            };
+        }
+
         let canvas = match self.canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
             Some(canvas) => canvas,
             None => return,
@@ -123,8 +141,16 @@ impl Component for Game {
         let render_comm = render::Comm::default();
 
         let legion = SetupEcs::default()
+            .resource(render_comm.clone())
+            .resource({
+                let window = web_sys::window().expect("Failed to get window object");
+                let dim = resize::WindowDimensions::get_dimensions(&window);
+                render::Dimension {
+                    width: dim.width as u32,
+                    height: dim.height as u32,
+                }
+            })
             .uses(crate::setup_ecs)
-            .uses(|setup| render::setup_ecs(setup, &render_comm))
             .build(); // TODO setup depending on gamemode
 
         let body = body();
