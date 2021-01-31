@@ -15,12 +15,11 @@ pub struct Game {
     props: Props,
     link: ComponentLink<Self>,
     legion: traffloat::Legion,
-    perf: Rc<render::Perf>,
     _resize_task: resize::ResizeTask,
     render_task: render_srv::RenderTask,
     _simulation_task: interval::IntervalTask,
     _keyboard_task: [kb_srv::KeyListenerHandle; 2],
-    render_flag: render::RenderFlag,
+    render_comm: render::Comm,
     canvas_ref: NodeRef,
 }
 
@@ -36,11 +35,11 @@ impl Game {
         }
 
         let time = util::measure(|| self.legion.run());
-        self.perf.push_exec_us(time);
+        self.render_comm.perf.push_exec_us(time);
     }
 
     fn request_render(&mut self) {
-        self.render_flag.cell.replace(self.canvas_context());
+        self.render_comm.flag.cell.replace(self.canvas_context());
         self.render_task = render_srv::RenderService::request_animation_frame(
             self.link.callback(Msg::RenderFrame),
         );
@@ -85,6 +84,26 @@ impl Game {
             channel.single_write(event);
         }
     }
+
+    fn on_mouse(&mut self, x: i32, y: i32, dx: i32, dy: i32) {
+        let mut channel = self
+            .legion
+            .resources
+            .get_mut::<shrev::EventChannel<input::mouse::MouseEvent>>()
+            .expect("EventChannel<MouseEvent> uninitialized");
+
+        let canvas = match self.canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
+            Some(canvas) => canvas,
+            None => return,
+        };
+
+        let x = (x as f64) / (canvas.width() as f64);
+        let y = (y as f64) / (canvas.height() as f64);
+        let dx = (dx as f64) / (canvas.width() as f64);
+        let dy = (dy as f64) / (canvas.height() as f64);
+
+        channel.single_write(input::mouse::MouseEvent::Move { x, y, dx, dy });
+    }
 }
 
 fn body() -> web_sys::HtmlElement {
@@ -101,12 +120,11 @@ impl Component for Game {
     type Properties = Props;
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        let render_flag = render::RenderFlag::default();
-        let perf = Rc::new(render::Perf::default());
+        let render_comm = render::Comm::default();
 
         let legion = SetupEcs::default()
             .uses(crate::setup_ecs)
-            .uses(|setup| render::setup_ecs(setup, &render_flag, &perf))
+            .uses(|setup| render::setup_ecs(setup, &render_comm))
             .build(); // TODO setup depending on gamemode
 
         let body = body();
@@ -118,7 +136,6 @@ impl Component for Game {
         Self {
             props,
             legion,
-            perf,
             _resize_task: resize::ResizeService::new().register(link.callback(Msg::Resize)),
             render_task: render_srv::RenderService::request_animation_frame(
                 link.callback(Msg::RenderFrame),
@@ -128,7 +145,7 @@ impl Component for Game {
                 link.callback(Msg::SimulationFrame),
             ),
             _keyboard_task: keyboard_task,
-            render_flag,
+            render_comm,
             canvas_ref: NodeRef::default(),
             link,
         }
@@ -141,6 +158,12 @@ impl Component for Game {
             Msg::Resize(dim) => self.on_resize(dim),
             Msg::KeyDown(event) => self.on_key(&event.code(), true),
             Msg::KeyUp(event) => self.on_key(&event.code(), false),
+            Msg::MouseMove(event) => self.on_mouse(
+                event.client_x(),
+                event.client_y(),
+                event.movement_x(),
+                event.movement_y(),
+            ),
         }
         false
     }
@@ -154,6 +177,7 @@ impl Component for Game {
             <div style="margin: 0;">
                 <canvas
                     ref=self.canvas_ref.clone()
+                    onmousemove=self.link.callback(Msg::MouseMove)
                     style="width: 100vw; height: 100vh;"/>
             </div>
         }
@@ -171,6 +195,7 @@ pub enum Msg {
     Resize(resize::WindowDimensions),
     KeyDown(KeyboardEvent),
     KeyUp(KeyboardEvent),
+    MouseMove(MouseEvent),
 }
 
 #[derive(Clone, Properties)]

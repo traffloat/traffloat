@@ -19,10 +19,18 @@ impl Position {
         Position(Point::new(x, y))
     }
 
-    /// Returns the vector from the origin to the position
     #[allow(clippy::indexing_slicing)]
+    pub fn x(self) -> f64 {
+        self.0[0]
+    }
+    #[allow(clippy::indexing_slicing)]
+    pub fn y(self) -> f64 {
+        self.0[1]
+    }
+
+    /// Returns the vector from the origin to the position
     pub fn vector(&self) -> Vector {
-        Vector::new(self.0[0], self.0[1])
+        Vector::new(self.x(), self.y())
     }
 
     /// Returns the underlying point

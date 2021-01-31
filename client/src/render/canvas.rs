@@ -53,7 +53,13 @@ impl Canvas {
         );
     }
 
+    /// Writes small print on the canvas
     pub fn note(&self, text: impl AsRef<str>, pos: (u32, u32), color: [f64; 4]) {
+        self.context
+            .reset_transform()
+            .expect("Could not reset transformation matrix");
+        self.context
+            .set_stroke_style(&Self::color([0., 0., 0., 1.]));
         self.context.set_fill_style(&Self::color(color));
         self.context.set_font("12px sans-serif");
         self.context
@@ -75,7 +81,16 @@ impl Canvas {
             .expect("Invalid transformation matrix used");
     }
 
+    /// Draws an image with the given transformation matrix.
+    ///
+    /// The transformation matrix shall transform the unit square `[0, 1]^2`
+    /// into the quadrilateral containing the image on the canvas.
+    ///
+    /// The image is first flippedg vertically within the unit square,
+    /// then transformed with the given transformation matrix,
+    /// then flipped vertically within the canvas.
     pub fn draw_image(&self, image: &impl Image, mut transform: Matrix) {
+        transform.prepend_translation_mut(&Vector::new(0., 1.));
         transform.prepend_nonuniform_scaling_mut(&Vector::new(1., -1.));
         transform.append_translation_mut(&Vector::new(0., self.dim.height as f64 / -2.));
         transform.append_nonuniform_scaling_mut(&Vector::new(1., -1.));
