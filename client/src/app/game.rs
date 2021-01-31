@@ -83,9 +83,12 @@ impl Game {
 }
 
 fn body() -> web_sys::HtmlElement {
-    web_sys::window().expect("Window is undefined")
-        .document().expect("Document is undefined")
-        .body().expect("document.body is undefined")
+    web_sys::window()
+        .expect("Window is undefined")
+        .document()
+        .expect("Document is undefined")
+        .body()
+        .expect("document.body is undefined")
 }
 
 impl Component for Game {
