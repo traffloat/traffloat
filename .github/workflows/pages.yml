@@ -14,9 +14,16 @@ jobs:
         with:
           path: |
             ~/.cargo
+          key: wasm-pack-v0.9
+      - run: test -f ~/.cargo/bin/wasm-pack || cargo install wasm-pack
+      - name: Check rustc version
+        id: rustc-version
+        run: echo "::set-ouptut name=RUSTC_VERSION::$(rustc --version)"
+      - uses: actions/cache@v2
+        with:
+          path: |
             **/target
-          key: ${{ matrix.toolchain }}
-      - run: test ! -f ~/.cargo/bin/wasm-pack && cargo install wasm-pack
+          key: pages-${{ steps.rustc-version.outputs.RUSTC_VERSION }}
       - run: cargo doc --lib
       - run: npm install
         working-directory: client
