@@ -15,7 +15,7 @@ jobs:
           path: |
             ~/.cargo
             **/target
-          key: ${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.toolchain }}
       - run: test ! -f ~/.cargo/bin/wasm-pack && cargo install wasm-pack
       - run: cargo doc --lib
       - run: npm install
