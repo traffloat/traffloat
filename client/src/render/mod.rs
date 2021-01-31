@@ -1,6 +1,3 @@
-use std::cell::Cell;
-use std::rc::Rc;
-
 use crate::camera::Camera;
 use crate::input;
 use traffloat::shape::{self, Shape, Texture};

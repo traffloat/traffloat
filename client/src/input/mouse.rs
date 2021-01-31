@@ -1,6 +1,5 @@
 //! Keyboard input handler
 
-use enum_map::EnumMap;
 use legion::Entity;
 
 use crate::camera::Camera;
@@ -26,7 +25,7 @@ pub struct CursorPosition {
 pub struct Clickable;
 
 #[legion::system]
-#[allow(clippy::indexing_slicing)]
+#[allow(clippy::too_many_arguments)]
 #[read_component(Shape)]
 #[read_component(Position)]
 #[read_component(Clickable)]

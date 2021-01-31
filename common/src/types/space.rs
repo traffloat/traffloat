@@ -19,10 +19,12 @@ impl Position {
         Position(Point::new(x, y))
     }
 
+    /// The X coordinate of the position
     #[allow(clippy::indexing_slicing)]
     pub fn x(self) -> f64 {
         self.0[0]
     }
+    /// The Y coordinate of the position
     #[allow(clippy::indexing_slicing)]
     pub fn y(self) -> f64 {
         self.0[1]

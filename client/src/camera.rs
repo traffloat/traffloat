@@ -45,10 +45,12 @@ impl Camera {
     }
 
     /// Converts coordinates in the unit square with inversed y to real coordinates
-    #[allow(clippy::indexing_slicing)]
     pub fn image_unit_to_real(&self, mut image: Vector, aspect: f64) -> Position {
         // correct y axis
-        image[1] = 1. - image[1];
+        #[allow(clippy::indexing_slicing)]
+        {
+            image[1] = 1. - image[1];
+        }
 
         let (viewport_start, viewport_end) = self.viewport(aspect);
         let viewport_size = viewport_end - viewport_start;
@@ -61,7 +63,10 @@ impl Camera {
             // translate origin to viewport center
             .append_translation(&self.position);
 
-        Position(transform.transform_point(&Point::new(image[0], image[1])))
+        #[allow(clippy::indexing_slicing)]
+        {
+            Position(transform.transform_point(&Point::new(image[0], image[1])))
+        }
     }
 }
 

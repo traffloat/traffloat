@@ -30,12 +30,13 @@ pub enum Unit {
 }
 
 impl Unit {
+    /// Checks whether the given point is within this unit shape
     #[allow(clippy::indexing_slicing)]
     pub fn contains(&self, pos: Point) -> bool {
         let x = pos[0];
         let y = pos[1];
         match self {
-            Self::Square => 0. <= x && x <= 1. && 0. <= y && y <= 1.,
+            Self::Square => (0. ..=1.).contains(&x) && (0. ..=1.).contains(&y),
             Self::Circle => x * x + y * y <= 1.,
         }
     }
