@@ -1,6 +1,6 @@
 //! Information abaout nodes
 
-use crate::types::*;
+use crate::graph::NodeId;
 
 /// Instructs the client to add new nodes
 #[derive(codegen::Gen)]

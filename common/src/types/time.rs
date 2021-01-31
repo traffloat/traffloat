@@ -22,8 +22,8 @@ impl Time {
     ///
     /// This value is not precise and shall not be used for critical logic.
     #[allow(clippy::cast_precision_loss)]
-    pub fn as_secs(self) -> f32 {
-        self.value() as f32 * 0.01
+    pub fn as_secs(self) -> f64 {
+        self.value() as f64 * 0.01
     }
 }
 
@@ -83,12 +83,12 @@ impl Clock {
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, codegen::Gen)]
 pub struct Rate<T: ProtoType + BinRead + BinWrite>(pub T);
 
-impl<T: ProtoType + BinRead + BinWrite + Mul<f32, Output = T>> std::ops::Mul<Time> for Rate<T> {
+impl<T: ProtoType + BinRead + BinWrite + Mul<f64, Output = T>> std::ops::Mul<Time> for Rate<T> {
     type Output = T;
 
     #[allow(clippy::cast_precision_loss)]
     fn mul(self, time: Time) -> T {
-        self.0 * (time.0 as f32)
+        self.0 * (time.0 as f64)
     }
 }
 

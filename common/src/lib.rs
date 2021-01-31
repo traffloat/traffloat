@@ -28,7 +28,12 @@
     )
 )]
 
+#[macro_use]
+mod macros;
+
+mod graph;
 pub mod proto;
+pub mod shape;
 pub mod types;
 mod util;
 pub use util::*;
@@ -36,9 +41,9 @@ pub use util::*;
 /// The standard setup parameters
 #[derive(Default)]
 pub struct SetupEcs {
-    builder: legion::systems::Builder,
-    world: legion::World,
-    resources: legion::Resources,
+    pub builder: legion::systems::Builder,
+    pub world: legion::World,
+    pub resources: legion::Resources,
 }
 
 impl SetupEcs {
@@ -121,5 +126,5 @@ impl Legion {
 
 /// Initializes common modules.
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.uses(types::setup_ecs)
+    setup.uses(types::setup_ecs).uses(shape::setup_ecs)
 }
