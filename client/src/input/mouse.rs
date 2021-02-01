@@ -9,7 +9,7 @@ use traffloat::types::{Position, Vector};
 
 #[derive(Debug)]
 pub enum MouseEvent {
-    Move { x: f64, y: f64, dx: f64, dy: f64 },
+    Move { x: f64, y: f64 },
 }
 
 /// The object pointed by the cursor
@@ -51,7 +51,7 @@ fn input(
 ) {
     for event in chan.read(reader) {
         match event {
-            MouseEvent::Move { x, y, .. } => {
+            MouseEvent::Move { x, y } => {
                 *current_cursor = Some((*x, *y));
             }
         }

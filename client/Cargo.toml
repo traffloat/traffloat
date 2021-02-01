@@ -45,4 +45,6 @@ features = [
 	"HtmlImageElement",
 	"ImageBitmap",
 	"Performance",
+	"Touch",
+	"TouchList",
 ]

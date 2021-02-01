@@ -102,7 +102,7 @@ impl Game {
         }
     }
 
-    fn on_mouse(&mut self, x: i32, y: i32, dx: i32, dy: i32) {
+    fn on_mouse_move(&mut self, x: i32, y: i32) {
         let mut channel = self
             .legion
             .resources
@@ -116,10 +116,8 @@ impl Game {
 
         let x = (x as f64) / (canvas.width() as f64);
         let y = (y as f64) / (canvas.height() as f64);
-        let dx = (dx as f64) / (canvas.width() as f64);
-        let dy = (dy as f64) / (canvas.height() as f64);
 
-        channel.single_write(input::mouse::MouseEvent::Move { x, y, dx, dy });
+        channel.single_write(input::mouse::MouseEvent::Move { x, y });
     }
 
     fn on_mouse_click(&mut self, button: i16, down: bool) {
@@ -194,14 +192,24 @@ impl Component for Game {
             Msg::Resize(dim) => self.on_resize(dim),
             Msg::KeyDown(event) => self.on_key(&event.code(), true),
             Msg::KeyUp(event) => self.on_key(&event.code(), false),
-            Msg::MouseMove(event) => self.on_mouse(
-                event.client_x(),
-                event.client_y(),
-                event.movement_x(),
-                event.movement_y(),
-            ),
+            Msg::MouseMove(event) => self.on_mouse_move(event.client_x(), event.client_y()),
             Msg::MouseDown(event) => self.on_mouse_click(event.button(), true),
             Msg::MouseUp(event) => self.on_mouse_click(event.button(), false),
+            Msg::TouchMove(event) => {
+                if let Some(touch) = event.target_touches().item(0) {
+                    self.on_mouse_move(touch.client_x(), touch.client_y());
+                }
+            }
+            Msg::TouchDown(event) => {
+                if event.target_touches().length() == 1 {
+                    self.on_mouse_click(0, true)
+                }
+            }
+            Msg::TouchUp(event) => {
+                if event.target_touches().length() == 0 {
+                    self.on_mouse_click(0, false)
+                }
+            }
         }
         false
     }
@@ -218,6 +226,9 @@ impl Component for Game {
                     onmousemove=self.link.callback(Msg::MouseMove)
                     onmousedown=self.link.callback(Msg::MouseDown)
                     onmouseup=self.link.callback(Msg::MouseUp)
+                    ontouchmove=self.link.callback(Msg::TouchMove)
+                    ontouchstart=self.link.callback(Msg::TouchDown)
+                    ontouchend=self.link.callback(Msg::TouchUp)
                     style="width: 100vw; height: 100vh;"/>
             </div>
         }
@@ -238,6 +249,9 @@ pub enum Msg {
     MouseMove(MouseEvent),
     MouseDown(MouseEvent),
     MouseUp(MouseEvent),
+    TouchMove(TouchEvent),
+    TouchDown(TouchEvent),
+    TouchUp(TouchEvent),
 }
 
 #[derive(Clone, Properties)]
