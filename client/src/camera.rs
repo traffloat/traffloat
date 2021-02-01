@@ -1,6 +1,8 @@
 use crate::{config, input, render};
 use traffloat::types::{Clock, Matrix, Point, Position, Vector};
 
+const DRAG_DEADZONE: u32 = 5;
+
 #[derive(Debug)]
 pub struct Camera {
     /// Center position of the camera
@@ -82,6 +84,7 @@ fn camera(
     #[resource] cursor_position: &input::mouse::CursorPosition,
     #[resource] dim: &render::Dimension,
     #[state] drag_start: &mut Option<(Position, (f64, f64))>,
+    #[state] drag_deadzone_count: &mut u32,
 ) {
     if actions[input::keyboard::Action::Left] {
         camera.position -=
@@ -108,23 +111,31 @@ fn camera(
     }
 
     if actions[input::keyboard::Action::LeftClick] {
-        if let Err((x, mut y)) = cursor_position.entity {
-            match *drag_start {
-                Some((pos, (start_x, start_y))) => {
-                    let dx = (x - start_x) * camera.render_height * dim.aspect();
-                    let dy = -(y - start_y) * camera.render_height;
+        if cursor_position.pos.is_some() {
+            *drag_deadzone_count = drag_deadzone_count.saturating_sub(1);
+            if let Err((x, y)) = cursor_position.entity {
+                match *drag_start {
+                    Some((pos, (start_x, start_y))) if *drag_deadzone_count == 0 => {
+                        let dx = (x - start_x) * camera.render_height * dim.aspect();
+                        let dy = -(y - start_y) * camera.render_height;
 
-                    camera.position = pos - Vector::new(dx, dy);
+                        camera.position = pos - Vector::new(dx, dy);
+                    }
+                    _ => {
+                        *drag_start = Some((camera.position, (x, y)));
+                    }
                 }
-                None => {
-                    *drag_start = Some((camera.position, (x, y)));
-                }
+            } else {
+                *drag_start = None;
+                *drag_deadzone_count = DRAG_DEADZONE;
             }
         } else {
             *drag_start = None;
+                *drag_deadzone_count = DRAG_DEADZONE;
         }
     } else {
         *drag_start = None;
+        *drag_deadzone_count = DRAG_DEADZONE;
     }
 }
 
@@ -134,5 +145,5 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             position: Position::new(0., 0.),
             render_height: 20.,
         })
-        .system(camera_system(None))
+        .system(camera_system(None, DRAG_DEADZONE))
 }

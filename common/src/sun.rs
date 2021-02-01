@@ -45,6 +45,7 @@ pub struct LightStats {
 #[read_component(Shape)]
 fn shadow_cast(
     world: &mut legion::world::SubWorld,
+    #[state] first: &mut bool,
     #[state] node_add_sub: &mut shrev::ReaderId<NodeAddEvent>,
     #[resource] node_add_chan: &shrev::EventChannel<NodeAddEvent>,
     #[state] node_post_remove_sub: &mut shrev::ReaderId<PostNodeRemoveEvent>,
@@ -55,9 +56,10 @@ fn shadow_cast(
     let has_change = node_add_chan.read(node_add_sub).count() > 0
         && node_post_remove_chan.read(node_post_remove_sub).count() > 0;
 
-    if !has_change {
+    if !has_change && !*first {
         return;
     }
+    *first = false;
 
     struct Marker<'t> {
         id: usize,
@@ -159,6 +161,7 @@ pub fn setup_ecs(mut setup: SetupEcs) -> SetupEcs {
         .resource(Sun::default())
         .system(move_sun_system())
         .system(shadow_cast_system(
+                true,
             node_add_event_sub,
             node_remove_event_sub,
         ))
