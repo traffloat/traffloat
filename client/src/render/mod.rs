@@ -15,7 +15,6 @@ pub use comm::*;
 mod fps;
 
 #[legion::system]
-#[allow(clippy::indexing_slicing)]
 #[read_component(Renderable)]
 #[read_component(Position)]
 #[read_component(Shape)]

@@ -161,7 +161,7 @@ pub fn setup_ecs(mut setup: SetupEcs) -> SetupEcs {
         .resource(Sun::default())
         .system(move_sun_system())
         .system(shadow_cast_system(
-                true,
+            true,
             node_add_event_sub,
             node_remove_event_sub,
         ))

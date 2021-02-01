@@ -31,13 +31,10 @@ pub enum Unit {
 
 impl Unit {
     /// Checks whether the given point is within this unit shape
-    #[allow(clippy::indexing_slicing)]
     pub fn contains(&self, pos: Point) -> bool {
-        let x = pos[0];
-        let y = pos[1];
         match self {
-            Self::Square => (0. ..=1.).contains(&x) && (0. ..=1.).contains(&y),
-            Self::Circle => x * x + y * y <= 1.,
+            Self::Square => (0. ..=1.).contains(&pos.x) && (0. ..=1.).contains(&pos.y),
+            Self::Circle => pos.x.powi(2) + pos.y.powi(2) <= 1.,
         }
     }
 
@@ -65,17 +62,14 @@ impl Unit {
                     .iter()
                     .flat_map(|&x| [0_f64, 1.].iter().map(move |&y| Point::new(x, y)))
                     .map(|point| transform.transform_point(&point))
-                    .map(|point| {
-                        #[allow(clippy::indexing_slicing)]
-                        {
-                            (point[0], point[1])
-                        }
-                    })
-                    .fold(None, |opt, (x, y)| match opt {
-                        Some((x0, x1, y0, y1)) => {
-                            Some((fmin(x0, x), fmax(x1, x), fmin(y0, y), fmax(y1, y)))
-                        }
-                        None => Some((x, x, y, y)),
+                    .fold(None, |opt, pt| match opt {
+                        Some((x0, x1, y0, y1)) => Some((
+                            fmin(x0, pt.x),
+                            fmax(x1, pt.x),
+                            fmin(y0, pt.y),
+                            fmax(y1, pt.y),
+                        )),
+                        None => Some((pt.x, pt.x, pt.y, pt.y)),
                     })
                     .expect("nonempty iterator");
                 (Point::new(x0, y0), Point::new(x1, y1))

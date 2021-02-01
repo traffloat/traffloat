@@ -22,14 +22,13 @@ impl Position {
     }
 
     /// The X coordinate of the position
-    #[allow(clippy::indexing_slicing)]
     pub fn x(self) -> f64 {
-        self.0[0]
+        self.0.x
     }
     /// The Y coordinate of the position
     #[allow(clippy::indexing_slicing)]
     pub fn y(self) -> f64 {
-        self.0[1]
+        self.0.y
     }
 
     /// Returns the vector from the origin to the position

@@ -63,12 +63,12 @@ impl KeyEvent {
 }
 
 #[legion::system]
-#[allow(clippy::indexing_slicing)]
 fn input(
     #[state] reader: &mut shrev::ReaderId<KeyEvent>,
     #[resource] key_set: &mut ActionSet,
     #[resource] chan: &mut shrev::EventChannel<KeyEvent>,
 ) {
+    #[allow(clippy::indexing_slicing)]
     for event in chan.read(reader) {
         key_set[event.code] = event.down;
     }

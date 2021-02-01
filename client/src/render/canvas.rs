@@ -67,16 +67,15 @@ impl Canvas {
             .expect("Error writing text");
     }
 
-    #[allow(clippy::indexing_slicing)]
     fn set_transform(&self, matrix: Matrix) {
         self.context
             .set_transform(
-                matrix[(0, 0)],
-                matrix[(1, 0)],
-                matrix[(0, 1)],
-                matrix[(1, 1)],
-                matrix[(0, 2)],
-                matrix[(1, 2)],
+                *matrix.index((0, 0)),
+                *matrix.index((1, 0)),
+                *matrix.index((0, 1)),
+                *matrix.index((1, 1)),
+                *matrix.index((0, 2)),
+                *matrix.index((1, 2)),
             )
             .expect("Invalid transformation matrix used");
     }
