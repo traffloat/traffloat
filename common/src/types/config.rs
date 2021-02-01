@@ -1,15 +1,15 @@
-//! A configuration is the special rules defined by the game host in a world.
-//!
-//! For example, each texture is a configuration, and each liquid type is a configuration.
-//!
-//! Configurations are stored as resources in the Legion.
-//! They are referenced using IDs.
-
 use std::cmp;
 use std::convert::TryFrom;
 use std::marker::PhantomData;
 
 /// A marker trait for configuration types
+///
+/// A configuration is the special rules defined by the game host in a world.
+///
+/// For example, each texture is a configuration, and each liquid type is a configuration.
+///
+/// Configurations are stored as resources in the Legion.
+/// They are referenced using IDs.
 pub trait Config: std::any::Any + 'static + Send + Sync + Sized {}
 
 /// The ID of a mostly-fixed set of metadata

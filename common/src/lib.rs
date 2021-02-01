@@ -27,13 +27,15 @@
         clippy::indexing_slicing,
     )
 )]
+#![feature(iterator_fold_self, map_first_last)]
 
 #[macro_use]
 mod macros;
 
-mod graph;
+pub mod graph;
 pub mod proto;
 pub mod shape;
+pub mod sun;
 pub mod types;
 mod util;
 pub use util::*;
@@ -41,6 +43,8 @@ pub use util::*;
 /// The standard setup parameters
 #[derive(Default)]
 pub struct SetupEcs {
+    /// Whether to enable server-only systems
+    pub server: bool,
     /// The legion::Scheduler builder
     pub builder: legion::systems::Builder,
     /// The legion world storing entities and components
@@ -129,5 +133,9 @@ impl Legion {
 
 /// Initializes common modules.
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.uses(types::setup_ecs).uses(shape::setup_ecs)
+    setup
+        .uses(types::setup_ecs)
+        .uses(shape::setup_ecs)
+        .uses(graph::setup_ecs)
+        .uses(sun::setup_ecs)
 }

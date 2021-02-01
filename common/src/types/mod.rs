@@ -10,8 +10,10 @@ mod space;
 pub use space::*;
 mod time;
 pub use time::{Clock, Instant, Rate, Time};
+mod scalar;
+pub use scalar::ScalarConfig;
 
 /// Initializes types
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.uses(time::setup_ecs)
+    setup.uses(time::setup_ecs).uses(scalar::setup_ecs)
 }
