@@ -121,6 +121,17 @@ impl Game {
 
         channel.single_write(input::mouse::MouseEvent::Move { x, y, dx, dy });
     }
+
+    fn on_mouse_click(&mut self, button: i16, down: bool) {
+        if let Some(event) = input::keyboard::KeyEvent::new_mouse(button, down) {
+            let mut channel = self
+                .legion
+                .resources
+                .get_mut::<shrev::EventChannel<input::keyboard::KeyEvent>>()
+                .expect("EventChannel<KeyEvent> uninitialized");
+            channel.single_write(event);
+        }
+    }
 }
 
 fn body() -> web_sys::HtmlElement {
@@ -189,6 +200,8 @@ impl Component for Game {
                 event.movement_x(),
                 event.movement_y(),
             ),
+            Msg::MouseDown(event) => self.on_mouse_click(event.button(), true),
+            Msg::MouseUp(event) => self.on_mouse_click(event.button(), false),
         }
         false
     }
@@ -203,6 +216,8 @@ impl Component for Game {
                 <canvas
                     ref=self.canvas_ref.clone()
                     onmousemove=self.link.callback(Msg::MouseMove)
+                    onmousedown=self.link.callback(Msg::MouseDown)
+                    onmouseup=self.link.callback(Msg::MouseUp)
                     style="width: 100vw; height: 100vh;"/>
             </div>
         }
@@ -221,6 +236,8 @@ pub enum Msg {
     KeyDown(KeyboardEvent),
     KeyUp(KeyboardEvent),
     MouseMove(MouseEvent),
+    MouseDown(MouseEvent),
+    MouseUp(MouseEvent),
 }
 
 #[derive(Clone, Properties)]

@@ -4,7 +4,7 @@ use traffloat::types::{Clock, Matrix, Point, Position, Vector};
 #[derive(Debug)]
 pub struct Camera {
     /// Center position of the camera
-    pub position: Vector,
+    pub position: Position,
     /// The screen height rendered
     pub render_height: f64,
 }
@@ -18,7 +18,10 @@ impl Camera {
         let render_width = self.render_height * aspect;
 
         let semidiagonal = Vector::new(render_width, self.render_height) / 2.;
-        (self.position - semidiagonal, self.position + semidiagonal)
+        (
+            self.position.vector() - semidiagonal,
+            self.position.vector() + semidiagonal,
+        )
     }
 
     /// Projects physical coordinates to canvas coordinates
@@ -32,7 +35,7 @@ impl Camera {
         let mut ret = Matrix::identity();
 
         // translate viewport center as origin
-        ret.append_translation_mut(&-self.position);
+        ret.append_translation_mut(&-self.position.vector());
 
         // scale from viewport size to canvas size
         let scaling = canvas.component_div(&viewport_size);
@@ -61,7 +64,7 @@ impl Camera {
             // scale from unit size to viewport size
             .append_nonuniform_scaling(&viewport_size)
             // translate origin to viewport center
-            .append_translation(&self.position);
+            .append_translation(&self.position.vector());
 
         #[allow(clippy::indexing_slicing)]
         {
@@ -74,8 +77,11 @@ impl Camera {
 #[allow(clippy::indexing_slicing)]
 fn camera(
     #[resource] camera: &mut Camera,
-    #[resource] actions: &mut input::keyboard::ActionSet,
-    #[resource] clock: &mut Clock,
+    #[resource] actions: &input::keyboard::ActionSet,
+    #[resource] clock: &Clock,
+    #[resource] cursor_position: &input::mouse::CursorPosition,
+    #[resource] dim: &render::Dimension,
+    #[state] drag_start: &mut Option<(Position, (f64, f64))>,
 ) {
     if actions[input::keyboard::Action::Left] {
         camera.position -=
@@ -100,13 +106,34 @@ fn camera(
     if actions[input::keyboard::Action::ZoomOut] {
         camera.render_height *= config::ZOOM_RATE.powi(clock.delta.value() as i32);
     }
+
+    if actions[input::keyboard::Action::LeftClick] {
+        if let Err((x, mut y)) = cursor_position.entity {
+            y = 1. - y;
+            match *drag_start {
+                Some((pos, (start_x, start_y))) => {
+                    let dx = (x - start_x) * camera.render_height * dim.aspect();
+                    let dy = (y - start_y) * camera.render_height;
+
+                    camera.position = pos - Vector::new(dx, dy);
+                }
+                None => {
+                    *drag_start = Some((camera.position, (x, y)));
+                }
+            }
+        } else {
+            *drag_start = None;
+        }
+    } else {
+        *drag_start = None;
+    }
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     setup
         .resource(Camera {
-            position: Vector::new(0., 0.),
+            position: Position::new(0., 0.),
             render_height: 20.,
         })
-        .system(camera_system())
+        .system(camera_system(None))
 }

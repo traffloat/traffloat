@@ -71,7 +71,8 @@ pub fn render(
     canvas.note(
         format!(
             "Position: ({:.1}, {:.1})",
-            camera.position[0], camera.position[1]
+            camera.position.x(),
+            camera.position.y()
         ),
         (10, 40),
         [1., 1., 1., 1.],

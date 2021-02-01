@@ -13,12 +13,22 @@ pub enum MouseEvent {
 }
 
 /// The object pointed by the cursor
-#[derive(Default)]
 pub struct CursorPosition {
     /// The pointed position, or None if MouseEvent was never fired
     pub pos: Option<Position>,
-    /// The pointed entity, or None if mouse is not pointing to a Clickable
-    pub entity: Option<Entity>,
+    /// The pointed entity, or the canvas position if mouse is not pointing to a Clickable
+    ///
+    /// This value is invalid if `pos` is None.
+    pub entity: Result<Entity, (f64, f64)>,
+}
+
+impl Default for CursorPosition {
+    fn default() -> Self {
+        Self {
+            pos: None,
+            entity: Err((0., 0.)),
+        }
+    }
 }
 
 /// Marker component for clickable entities
@@ -54,7 +64,7 @@ fn input(
         let real_pos = camera.image_unit_to_real(canvas_pos, dim.aspect());
         cursor.pos = Some(real_pos);
 
-        cursor.entity = None;
+        cursor.entity = Err((x, y));
         comm.canvas_cursor_type.set("initial");
         for (entity, &position, shape, _) in
             <(Entity, &Position, &Shape, &Clickable)>::query().iter(world)
@@ -65,7 +75,7 @@ fn input(
                 .expect("Transformation matrix is singular")
                 .transform_point(&real_pos.0);
             if shape.unit.contains(point) {
-                cursor.entity = Some(*entity);
+                cursor.entity = Ok(*entity);
                 comm.canvas_cursor_type.set("pointer");
                 break;
             }

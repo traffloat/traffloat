@@ -18,6 +18,9 @@ pub enum Action {
     Down,
     ZoomIn,
     ZoomOut,
+    LeftClick,
+    MiddleClick,
+    RightClick,
 }
 
 impl Action {
@@ -32,12 +35,28 @@ impl Action {
             _ => return None,
         })
     }
+
+    fn from_mouse(button: i16) -> Option<Self> {
+        Some(match button {
+            0 => Self::LeftClick,
+            1 => Self::MiddleClick,
+            2 => Self::RightClick,
+            _ => return None,
+        })
+    }
 }
 
 impl KeyEvent {
     pub fn new(code: &str, down: bool) -> Option<Self> {
         Some(Self {
             code: Action::from_code(code)?,
+            down,
+        })
+    }
+
+    pub fn new_mouse(button: i16, down: bool) -> Option<Self> {
+        Some(Self {
+            code: Action::from_mouse(button)?,
             down,
         })
     }

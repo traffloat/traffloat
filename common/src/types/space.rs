@@ -1,3 +1,5 @@
+use std::ops::{Add, AddAssign, Sub, SubAssign};
+
 /// Standard vector type
 pub type Vector = nalgebra::Vector2<f64>;
 
@@ -38,5 +40,38 @@ impl Position {
     /// Returns the underlying point
     pub fn value(&self) -> Point {
         self.0
+    }
+}
+
+impl Sub<Position> for Position {
+    type Output = Vector;
+
+    fn sub(self, other: Self) -> Self::Output {
+        Vector::new(self.x() - other.x(), self.y() - other.y())
+    }
+}
+
+impl Add<Vector> for Position {
+    type Output = Position;
+
+    fn add(self, other: Vector) -> Self::Output {
+        Position::new(self.x() + other.x, self.y() + other.y)
+    }
+}
+impl AddAssign<Vector> for Position {
+    fn add_assign(&mut self, other: Vector) {
+        *self = *self + other;
+    }
+}
+impl Sub<Vector> for Position {
+    type Output = Position;
+
+    fn sub(self, other: Vector) -> Self::Output {
+        Position::new(self.x() - other.x, self.y() - other.y)
+    }
+}
+impl SubAssign<Vector> for Position {
+    fn sub_assign(&mut self, other: Vector) {
+        *self = *self - other;
     }
 }
