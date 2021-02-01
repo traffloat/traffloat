@@ -8,7 +8,7 @@ use std::f64::consts::PI;
 use legion::Entity;
 
 use crate::graph::*;
-use crate::shape::{Shape};
+use crate::shape::Shape;
 use crate::types::{Clock, Position, ScalarConfig};
 use crate::SetupEcs;
 
@@ -158,5 +158,8 @@ pub fn setup_ecs(mut setup: SetupEcs) -> SetupEcs {
     setup
         .resource(Sun::default())
         .system(move_sun_system())
-        .system(shadow_cast_system(node_add_event_sub, node_remove_event_sub))
+        .system(shadow_cast_system(
+            node_add_event_sub,
+            node_remove_event_sub,
+        ))
 }
