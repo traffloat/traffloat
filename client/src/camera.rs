@@ -109,11 +109,10 @@ fn camera(
 
     if actions[input::keyboard::Action::LeftClick] {
         if let Err((x, mut y)) = cursor_position.entity {
-            y = 1. - y;
             match *drag_start {
                 Some((pos, (start_x, start_y))) => {
                     let dx = (x - start_x) * camera.render_height * dim.aspect();
-                    let dy = (y - start_y) * camera.render_height;
+                    let dy = -(y - start_y) * camera.render_height;
 
                     camera.position = pos - Vector::new(dx, dy);
                 }
