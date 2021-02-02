@@ -40,6 +40,7 @@ yew = {version = "0.17.4", default-features = false, features = ["services", "we
 [dependencies.web-sys]
 version = "0.3.47"
 features = [
+	"CanvasGradient",
 	"CanvasRenderingContext2d",
 	"CssStyleDeclaration",
 	"HtmlCanvasElement",

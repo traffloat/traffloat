@@ -77,3 +77,24 @@ impl<T: JsCast> ReifiedPromise<T> {
         Ok(self.known.get().expect("Just initialized").as_ref().ok())
     }
 }
+
+pub fn fmax<T: PartialOrd>(a: T, b: T) -> T {
+    if a > b {
+        a
+    } else {
+        b
+    }
+}
+
+pub fn fmin<T: PartialOrd>(a: T, b: T) -> T {
+    if a < b {
+        a
+    } else {
+        b
+    }
+}
+
+/// Linear interpolation from a to b, with ratio=0 as a and ratio=1 as b
+pub fn lerp(a: f64, b: f64, ratio: f64) -> f64 {
+    a * (1. - ratio) + b * ratio
+}

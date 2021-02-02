@@ -25,6 +25,7 @@ pub struct Game {
 
 impl Game {
     fn simulate(&mut self) {
+        #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
         {
             let mut clock = self
                 .legion
@@ -187,7 +188,7 @@ impl Component for Game {
                 link.callback(Msg::RenderFrame),
             ),
             _simulation_task: interval::IntervalService::spawn(
-                Duration::from_millis(10),
+                Duration::from_millis(15),
                 link.callback(Msg::SimulationFrame),
             ),
             _keyboard_task: keyboard_task,

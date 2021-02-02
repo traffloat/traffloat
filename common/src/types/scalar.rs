@@ -13,7 +13,7 @@ pub struct ScalarConfig {
 impl Default for ScalarConfig {
     fn default() -> Self {
         Self {
-            sun_speed: Rate(PI * 2. / 300. / 100.), // 5 minutes = 1 year
+            sun_speed: Rate(PI * 2. / 300. / 10.), // 5 minutes = 1 year
         }
     }
 }

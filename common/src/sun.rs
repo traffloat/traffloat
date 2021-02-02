@@ -26,6 +26,7 @@ fn move_sun(
     #[resource] config: &ScalarConfig,
 ) {
     sun.yaw += config.sun_speed * clock.delta;
+    sun.yaw %= PI * 2.;
 }
 
 /// Number of partitions to compute shadow casting for
@@ -59,6 +60,7 @@ fn shadow_cast(
     }
     *first = false;
 
+    #[derive(Debug)]
     struct Marker<'t> {
         id: usize,
         x: f64,
@@ -93,8 +95,8 @@ fn shadow_cast(
         let marker_list = {
             let mut marker_list = Vec::new();
             for (&entity, &pos, shape, light) in query.iter_mut(&mut *world) {
-                let transform = shape.transform(pos);
-                nalgebra::Rotation2::<f64>::new(-angle);
+                let mut transform = shape.transform(pos);
+                transform = nalgebra::Rotation2::<f64>::new(-angle).to_homogeneous() * transform;
                 let (min, max) = shape.unit.bb_under(transform);
 
                 let brightness = light
@@ -148,10 +150,6 @@ fn shadow_cast(
                 start = Some(marker.y);
             }
         };
-
-        // for marker in &marker_list {
-        // log::debug!("{:?} {:?}", marker.entity, &marker.start);
-        // }
     }
 }
 

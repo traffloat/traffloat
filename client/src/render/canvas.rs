@@ -29,7 +29,11 @@ impl Canvas {
         self.context
             .reset_transform()
             .expect("Failed to reset canvas transformation");
-        self.rect((0, 0), (self.dim.width, self.dim.height), color);
+        self.rect(
+            (0., 0.),
+            (self.dim.width as f64, self.dim.height as f64),
+            color,
+        );
     }
 
     fn color<T: From<String>>(rgba: [f64; 4]) -> T {
@@ -43,14 +47,10 @@ impl Canvas {
         .into()
     }
 
-    pub fn rect(&self, start: (u32, u32), end: (u32, u32), color: [f64; 4]) {
+    pub fn rect(&self, start: (f64, f64), end: (f64, f64), color: [f64; 4]) {
         self.context.set_fill_style(&Self::color(color));
-        self.context.fill_rect(
-            start.0 as f64,
-            start.1 as f64,
-            (end.0 - start.0) as f64,
-            (end.1 - start.1) as f64,
-        );
+        self.context
+            .fill_rect(start.0, start.1, end.0 - start.0, end.1 - start.1);
     }
 
     /// Writes small print on the canvas
