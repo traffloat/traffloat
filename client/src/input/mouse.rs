@@ -7,9 +7,18 @@ use crate::render;
 use traffloat::shape::Shape;
 use traffloat::types::{Position, Vector};
 
+/// Mouse motion event
+///
+/// Mouse clicking events are dispatched as key events instead.
 #[derive(Debug)]
 pub enum MouseEvent {
     Move { x: f64, y: f64 },
+}
+
+/// Mouse scrolling event
+#[derive(Debug)]
+pub struct WheelEvent {
+    pub delta: f64,
 }
 
 /// The object pointed by the cursor

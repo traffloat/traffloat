@@ -133,6 +133,15 @@ impl Game {
             channel.single_write(event);
         }
     }
+
+    fn on_wheel(&mut self, delta: f64) {
+        let mut channel = self
+            .legion
+            .resources
+            .get_mut::<shrev::EventChannel<input::mouse::WheelEvent>>()
+            .expect("EventChannel<WheelEvent> uninitialized");
+        channel.single_write(input::mouse::WheelEvent{delta});
+    }
 }
 
 fn body() -> web_sys::HtmlElement {
@@ -199,6 +208,7 @@ impl Component for Game {
             Msg::MouseMove(event) => self.on_mouse_move(event.client_x(), event.client_y()),
             Msg::MouseDown(event) => self.on_mouse_click(event.button(), true),
             Msg::MouseUp(event) => self.on_mouse_click(event.button(), false),
+            Msg::Wheel(event) => self.on_wheel(event.delta_y()),
             Msg::TouchMove(event) => {
                 if let Some(touch) = event.target_touches().item(0) {
                     self.on_mouse_move(touch.client_x(), touch.client_y());
@@ -230,6 +240,7 @@ impl Component for Game {
                     onmousemove=self.link.callback(Msg::MouseMove)
                     onmousedown=self.link.callback(Msg::MouseDown)
                     onmouseup=self.link.callback(Msg::MouseUp)
+                    onwheel=self.link.callback(Msg::Wheel)
                     ontouchmove=self.link.callback(Msg::TouchMove)
                     ontouchstart=self.link.callback(Msg::TouchDown)
                     ontouchend=self.link.callback(Msg::TouchUp)
@@ -253,6 +264,7 @@ pub enum Msg {
     MouseMove(MouseEvent),
     MouseDown(MouseEvent),
     MouseUp(MouseEvent),
+    Wheel(WheelEvent),
     TouchMove(TouchEvent),
     TouchDown(TouchEvent),
     TouchUp(TouchEvent),

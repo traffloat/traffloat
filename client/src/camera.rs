@@ -77,6 +77,7 @@ fn camera(
     #[resource] clock: &Clock,
     #[resource] cursor_position: &input::mouse::CursorPosition,
     #[resource] dim: &render::Dimension,
+    #[subscriber] wheel_events: impl Iterator<Item = input::mouse::WheelEvent>,
     #[state(None)] drag_start: &mut Option<(Position, (f64, f64))>,
     #[state(DRAG_DEADZONE)] drag_deadzone_count: &mut u32,
 ) {
@@ -130,6 +131,14 @@ fn camera(
     } else {
         *drag_start = None;
         *drag_deadzone_count = DRAG_DEADZONE;
+    }
+
+    for wheel in wheel_events {
+        if wheel.delta > 0. {
+            camera.render_height *= config::SCROLL_RATE;
+        } else {
+            camera.render_height /= config::SCROLL_RATE;
+        }
     }
 }
 
