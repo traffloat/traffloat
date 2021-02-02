@@ -32,6 +32,7 @@ sha2 = "0.9.3"
 shrev = "1.1.1"
 strum = {version = "0.20.0", features = ["derive"]}
 traffloat-common = {version = "0.2.0", path = "../common"}
+traffloat-codegen = {version = "0.2.0", path = "../codegen-types", features = ["web-sys"]}
 wasm-bindgen = {version = "0.2.69"}
 wasm-logger = "0.2.0"
 yew = {version = "0.17.4", default-features = false, features = ["services", "web_sys"]}

@@ -1,17 +1,19 @@
+#![feature(drain_filter)]
+
 extern crate proc_macro;
 
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{format_ident, quote, ToTokens};
 use syn::Result;
 
 #[proc_macro_derive(Gen, attributes(max_size, from_client_only, from_server_only))]
-pub fn derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    imp(input.into())
+pub fn gen_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    gen_imp(input.into())
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
 
-fn imp(input: TokenStream) -> Result<TokenStream> {
+fn gen_imp(input: TokenStream) -> Result<TokenStream> {
     let input = syn::parse2::<syn::DeriveInput>(input)?;
 
     let has_attr = |str: &str| input.attrs.iter().any(|attr| attr.path.is_ident(str));
@@ -210,6 +212,214 @@ fn imp(input: TokenStream) -> Result<TokenStream> {
         }
         _ => return Err(syn::Error::new_spanned(input, "unions unsupported")),
     })
+}
+
+#[proc_macro_attribute]
+pub fn system(
+    attr: proc_macro::TokenStream,
+    input: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    system_imp(attr.into(), input.into())
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
+fn system_imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStream> {
+    let input = syn::parse2::<syn::ItemFn>(input)?;
+    let name = &input.sig.ident;
+    let body = &input.block;
+
+    let mut attrs: Vec<_> = input.attrs.iter().collect();
+    let thread_local = attrs
+        .drain_filter(|attr| attr.path.is_ident("thread_local"))
+        .count()
+        > 0;
+    let setup_method = if thread_local {
+        quote!(system_local)
+    } else {
+        quote!(system)
+    };
+
+    let system_name = format_ident!("{}_system", name);
+    let setup_name = format_ident!("{}_setup", name);
+
+    let mut out_args = Vec::new();
+    let mut state_values = Vec::new();
+    let mut assigns = Vec::new();
+    let mut var_adapters = Vec::new();
+
+    let mut perf_name = None;
+
+    for arg in &input.sig.inputs {
+        let syn::PatType {
+            pat,
+            ty,
+            attrs: arg_attrs,
+            ..
+        } = match arg {
+            syn::FnArg::Receiver(recv) => {
+                return Err(syn::Error::new_spanned(recv, "receiver not allowed"))
+            }
+            syn::FnArg::Typed(typed) => typed,
+        };
+
+        let mut arg_attrs: Vec<_> = arg_attrs.iter().collect();
+
+        if arg_attrs.iter().any(|attr| attr.path.is_ident("resource")) {
+            if let syn::Type::Reference(ty) = &**ty {
+                if let syn::Type::Path(path) = &*ty.elem {
+                    if path
+                        .path
+                        .segments
+                        .iter()
+                        .map(|segment| &segment.ident)
+                        .collect::<Vec<_>>()
+                        == ["codegen", "Perf"]
+                    {
+                        perf_name = Some(quote!(#pat));
+                    }
+                }
+            }
+        }
+
+        if let Some(attr) = arg_attrs
+            .drain_filter(|attr| attr.path.is_ident("state"))
+            .next()
+        {
+            let expr = attr.parse_args::<syn::Expr>()?;
+            state_values.push(quote!(#expr));
+            out_args.push((quote!(#[state]), quote!(#pat), quote!(#ty)));
+            continue;
+        }
+
+        if arg_attrs
+            .drain_filter(|attr| attr.path.is_ident("subscriber"))
+            .next()
+            .is_some()
+        {
+            let event = match &**ty {
+                syn::Type::ImplTrait(it) if it.bounds.len() == 1 => &it.bounds[0],
+                span => {
+                    return Err(syn::Error::new_spanned(
+                        span,
+                        "subscriber must have type `impl Iterator<Item = EventType>`",
+                    ))
+                }
+            };
+            let event = match event {
+                syn::TypeParamBound::Trait(tb) => {
+                    &tb.path.segments.last().expect("empty path").arguments
+                }
+                span => {
+                    return Err(syn::Error::new_spanned(
+                        span,
+                        "subscriber must have type `impl Iterator<Item = EventType>`",
+                    ))
+                }
+            };
+            let event = match event {
+                syn::PathArguments::AngleBracketed(ab) => ab.args.first().expect("empty <>"),
+                span => {
+                    return Err(syn::Error::new_spanned(
+                        span,
+                        "subscriber must have type `impl Iterator<Item = EventType>`",
+                    ))
+                }
+            };
+            let event = match event {
+                syn::GenericArgument::Binding(bind) => bind,
+                span => {
+                    return Err(syn::Error::new_spanned(
+                        span,
+                        "subscriber must have type `impl Iterator<Item = EventType>`",
+                    ))
+                }
+            };
+            if event.ident != "Item" {
+                return Err(syn::Error::new_spanned(
+                    event,
+                    "subscriber must have type `impl Iterator<Item = EventType>`",
+                ));
+            }
+            let event = &event.ty;
+
+            let pat = match &**pat {
+                syn::Pat::Ident(ident) => &ident.ident,
+                span => {
+                    return Err(syn::Error::new_spanned(
+                        span,
+                        "subscriber must have simple variable name",
+                    ))
+                }
+            };
+            let reader_var_name = format_ident!("__reader_id_for_{}", &pat);
+            let channel_var_name = format_ident!("__channel_for_{}", &pat);
+            out_args.push((
+                quote!(#[state]),
+                quote!(#reader_var_name),
+                quote!(&mut ::shrev::ReaderId<#event>),
+            ));
+            out_args.push((
+                quote!(#[resource]),
+                quote!(#channel_var_name),
+                quote!(&::shrev::EventChannel<#event>),
+            ));
+            state_values.push(quote!(#reader_var_name));
+            assigns.push(quote! {
+                let #reader_var_name = setup.subscribe::<#event>();
+            });
+            var_adapters.push(quote! {
+                let #pat = #channel_var_name.read(#reader_var_name);
+            });
+            continue;
+        }
+
+        out_args.push((quote!(#(#arg_attrs)*), quote!(#pat), quote!(#ty)));
+    }
+
+    let perf_name = match perf_name {
+        Some(name) => name,
+        None => {
+            out_args.push((
+                quote!(#[resource]),
+                quote!(__traffloat_codegen_perf),
+                quote!(&::codegen::Perf),
+            ));
+            quote!(__traffloat_codegen_perf)
+        }
+    };
+
+    let out_arg_attrs: Vec<_> = out_args.iter().map(|tuple| &tuple.0).collect();
+    let out_arg_names: Vec<_> = out_args.iter().map(|tuple| &tuple.1).collect();
+    let out_arg_types: Vec<_> = out_args.iter().map(|tuple| &tuple.2).collect();
+
+    let output = quote! {
+        #[::legion::system]
+        #(#attrs)*
+        fn #name(
+            #(#out_arg_attrs #out_arg_names: #out_arg_types),*
+        ) {
+            fn imp(#(#out_arg_names: #out_arg_types),*) {
+                #(#var_adapters)*
+                #body
+            }
+
+            let __traffloat_codegen_perf_start = ::codegen::hrtime();
+            imp(#(#out_arg_names),*);
+            let __traffloat_codegen_perf_end = ::codegen::hrtime();
+            #perf_name.push(
+                concat!(module_path!(), "::", stringify!(#name)),
+                __traffloat_codegen_perf_end - __traffloat_codegen_perf_start,
+            )
+        }
+
+        fn #setup_name(mut setup: ::codegen::SetupEcs) -> ::codegen::SetupEcs {
+            #(#assigns)*
+            setup
+                .#setup_method(#system_name(#(#state_values),*))
+        }
+    };
+    Ok(output)
 }
 
 fn hash(name: &syn::Ident) -> u128 {

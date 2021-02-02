@@ -1,7 +1,7 @@
 use crate::camera::Camera;
 use crate::input;
-use traffloat::shape::{self, Shape, Texture};
-use traffloat::types::{ConfigStore, Position, Vector};
+use traffloat::shape::{Shape, Texture};
+use traffloat::types::{ConfigStore, Position};
 
 mod canvas;
 pub use canvas::*;
@@ -14,20 +14,22 @@ pub use comm::*;
 
 mod fps;
 
-#[legion::system]
+#[codegen::system]
 #[read_component(Renderable)]
 #[read_component(Position)]
 #[read_component(Shape)]
 #[allow(clippy::too_many_arguments)]
+#[thread_local]
 pub fn render(
     world: &legion::world::SubWorld,
     #[resource] comm: &mut Comm,
-    #[state] image_store: &mut ImageStore,
-    #[state] render_fps: &mut fps::Counter,
-    #[state] simul_fps: &mut fps::Counter,
+    #[state(Default::default())] image_store: &mut ImageStore,
+    #[state(Default::default())] render_fps: &mut fps::Counter,
+    #[state(Default::default())] simul_fps: &mut fps::Counter,
     #[resource] camera: &mut Camera,
     #[resource] textures: &ConfigStore<Texture>,
     #[resource] cursor: &input::mouse::CursorPosition,
+    #[resource] perf_read: &mut codegen::Perf,
 ) {
     use legion::IntoQuery;
 
@@ -47,6 +49,8 @@ pub fn render(
         [0., 0., 0., 1.],
     );
 
+    // TODO render sun
+
     let projection = camera.projection(canvas.dim);
 
     for (&position, shape, _) in <(&Position, &Shape, &Renderable)>::query().iter(world) {
@@ -57,62 +61,50 @@ pub fn render(
         canvas.draw_image(image, projection * unit_to_real);
     }
 
-    canvas.note(
+    let mut y = 20;
+    let mut messages = vec![
         format!(
-            "FPS: graphics {}, physics {}, cycle time {} \u{03bc}s",
+            "FPS: graphics {}, physics {}, cycle time {:.2} \u{03bc}s",
             render_fps,
             simul_fps,
             comm.perf.average_exec_us()
         ),
-        (10, 20),
-        [1., 1., 1., 1.],
-    );
-    canvas.note(
         format!(
             "Position: ({:.1}, {:.1})",
             camera.position.x(),
             camera.position.y()
         ),
-        (10, 40),
-        [1., 1., 1., 1.],
-    );
+    ];
+
+    #[allow(clippy::cast_precision_loss)]
+    for (sys, stats) in perf_read.map.get_mut().expect("Poisoned Perf") {
+        let deque = stats.get_mut().expect("Poisoned Perf");
+        let avg = deque.iter().map(|&t| t as f64).sum::<f64>() / (deque.len() as f64);
+        let sd = (deque.iter().map(|&t| (t as f64 - avg).powi(2)).sum::<f64>()
+            / (deque.len() as f64))
+            .sqrt();
+        messages.push(format!(
+            "Cycle time for system {}: {:.2} \u{03bc}s (\u{00b1} {:.4} \u{03bc}s)",
+            sys, avg, sd
+        ));
+    }
+
     if let Some(pos) = cursor.pos.as_ref() {
         let entity = cursor.entity.as_ref();
-        canvas.note(
-            format!(
-                "Cursor position: ({:.1}, {:.1}) ({:?})",
-                pos.x(),
-                pos.y(),
-                entity
-            ),
-            (10, 60),
-            [1., 1., 1., 1.],
-        );
+        messages.push(format!(
+            "Cursor position: ({:.1}, {:.1}) ({:?})",
+            pos.x(),
+            pos.y(),
+            entity
+        ));
+    }
+
+    for message in messages {
+        canvas.note(message, (10, y), [1., 1., 1., 1.]);
+        y += 15;
     }
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    let id = {
-        let mut t = setup.resources.get_mut::<ConfigStore<Texture>>().expect("");
-        t.add(Texture {
-            url: String::from("SOF3.png"),
-        })
-    };
-    setup
-        .system_local(render_system(
-            ImageStore::default(),
-            fps::Counter::default(),
-            fps::Counter::default(),
-        ))
-        .entity((
-            Renderable,
-            input::mouse::Clickable,
-            Position::new(1., 2.),
-            Shape {
-                unit: shape::Unit::Square,
-                matrix: traffloat::types::Matrix::identity()
-                    .append_translation(&Vector::new(-0.5, -0.5)),
-                texture: id,
-            },
-        ))
+    setup.uses(render_setup)
 }

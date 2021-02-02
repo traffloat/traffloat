@@ -62,21 +62,17 @@ impl KeyEvent {
     }
 }
 
-#[legion::system]
+#[codegen::system]
 fn input(
-    #[state] reader: &mut shrev::ReaderId<KeyEvent>,
+    #[subscriber] key_events: impl Iterator<Item = KeyEvent>,
     #[resource] key_set: &mut ActionSet,
-    #[resource] chan: &mut shrev::EventChannel<KeyEvent>,
 ) {
     #[allow(clippy::indexing_slicing)]
-    for event in chan.read(reader) {
+    for event in key_events {
         key_set[event.code] = event.down;
     }
 }
 
-pub fn setup_ecs(mut setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    let reader = setup.subscribe::<KeyEvent>();
-    setup
-        .resource(ActionSet::default())
-        .system(input_system(reader))
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    setup.resource(ActionSet::default()).uses(input_setup)
 }

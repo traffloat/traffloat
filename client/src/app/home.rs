@@ -45,7 +45,7 @@ impl Component for Home {
 
     fn view(&self) -> Html {
         html! {
-            <div>
+            <div style="margin: 0 auto; max-width: 720px;">
                 <h1>{ "Traffloat" }</h1>
 
                 <div>

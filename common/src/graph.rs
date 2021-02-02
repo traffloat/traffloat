@@ -66,12 +66,11 @@ impl Graph {
     }
 }
 
-#[legion::system]
+#[codegen::system]
 fn delete_nodes(
     cmd_buf: &mut legion::systems::CommandBuffer,
     #[resource] graph: &mut Graph,
-    #[state] node_remove_sub: &mut shrev::ReaderId<NodeRemoveEvent>,
-    #[resource] node_remove_chan: &shrev::EventChannel<NodeRemoveEvent>,
+    #[subscriber] node_removals: impl Iterator<Item = NodeRemoveEvent>,
     #[resource] post_node_remove_pub: &mut shrev::EventChannel<PostNodeRemoveEvent>,
 ) {
     for &node in &graph.node_deletion_queue {
@@ -88,15 +87,12 @@ fn delete_nodes(
     }
 
     // queue deletion requests for the next event loop
-    for removal in node_remove_chan.read(node_remove_sub) {
+    for removal in node_removals {
         graph.node_deletion_queue.push(removal.node);
     }
 }
 
 /// Initializes ECS
-pub fn setup_ecs(mut setup: SetupEcs) -> SetupEcs {
-    let node_event_sub = setup.subscribe::<NodeRemoveEvent>();
-    setup
-        .resource(Graph::default())
-        .system(delete_nodes_system(node_event_sub))
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
+    setup.resource(Graph::default()).uses(delete_nodes_setup)
 }

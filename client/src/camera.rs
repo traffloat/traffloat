@@ -69,16 +69,16 @@ impl Camera {
     }
 }
 
-#[legion::system]
-#[allow(clippy::indexing_slicing)]
+#[codegen::system]
+#[allow(clippy::indexing_slicing, clippy::too_many_arguments)]
 fn camera(
     #[resource] camera: &mut Camera,
     #[resource] actions: &input::keyboard::ActionSet,
     #[resource] clock: &Clock,
     #[resource] cursor_position: &input::mouse::CursorPosition,
     #[resource] dim: &render::Dimension,
-    #[state] drag_start: &mut Option<(Position, (f64, f64))>,
-    #[state] drag_deadzone_count: &mut u32,
+    #[state(None)] drag_start: &mut Option<(Position, (f64, f64))>,
+    #[state(DRAG_DEADZONE)] drag_deadzone_count: &mut u32,
 ) {
     if actions[input::keyboard::Action::Left] {
         camera.position -=
@@ -139,5 +139,5 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             position: Position::new(0., 0.),
             render_height: 20.,
         })
-        .system(camera_system(None, DRAG_DEADZONE))
+        .uses(camera_setup)
 }

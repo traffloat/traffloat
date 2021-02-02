@@ -63,6 +63,9 @@ impl Canvas {
         self.context.set_fill_style(&Self::color(color));
         self.context.set_font("12px sans-serif");
         self.context
+            .stroke_text(text.as_ref(), pos.0 as f64, pos.1 as f64)
+            .expect("Error writing text");
+        self.context
             .fill_text(text.as_ref(), pos.0 as f64, pos.1 as f64)
             .expect("Error writing text");
     }

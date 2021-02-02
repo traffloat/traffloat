@@ -19,7 +19,7 @@ pub struct Sun {
     pub yaw: f64,
 }
 
-#[legion::system]
+#[codegen::system]
 fn move_sun(
     #[resource] sun: &mut Sun,
     #[resource] clock: &Clock,
@@ -28,10 +28,11 @@ fn move_sun(
     sun.yaw += config.sun_speed * clock.delta;
 }
 
-/// Number of partitions to compute raytracing for
+/// Number of partitions to compute shadow casting for
 pub const MONTH_COUNT: usize = 12;
 
 /// A component storing the lighting data for a node.
+#[derive(Debug, Default)]
 pub struct LightStats {
     /// The brightness values in each partition.
     ///
@@ -39,22 +40,19 @@ pub struct LightStats {
     pub brightness: [f64; MONTH_COUNT],
 }
 
-#[legion::system]
+#[codegen::system]
 #[write_component(LightStats)]
 #[read_component(Position)]
 #[read_component(Shape)]
 fn shadow_cast(
     world: &mut legion::world::SubWorld,
-    #[state] first: &mut bool,
-    #[state] node_add_sub: &mut shrev::ReaderId<NodeAddEvent>,
-    #[resource] node_add_chan: &shrev::EventChannel<NodeAddEvent>,
-    #[state] node_post_remove_sub: &mut shrev::ReaderId<PostNodeRemoveEvent>,
-    #[resource] node_post_remove_chan: &shrev::EventChannel<PostNodeRemoveEvent>,
+    #[state(true)] first: &mut bool,
+    #[subscriber] node_additions: impl Iterator<Item = NodeAddEvent>,
+    #[subscriber] node_post_removals: impl Iterator<Item = PostNodeRemoveEvent>,
 ) {
     // we must drain the whole iterator even though we just want to know if there is at least one
     // item!
-    let has_change = node_add_chan.read(node_add_sub).count() > 0
-        && node_post_remove_chan.read(node_post_remove_sub).count() > 0;
+    let has_change = node_additions.count() > 0 && node_post_removals.count() > 0;
 
     if !has_change && !*first {
         return;
@@ -150,19 +148,17 @@ fn shadow_cast(
                 start = Some(marker.y);
             }
         };
+
+        // for marker in &marker_list {
+        // log::debug!("{:?} {:?}", marker.entity, &marker.start);
+        // }
     }
 }
 
 /// Initializes ECS
-pub fn setup_ecs(mut setup: SetupEcs) -> SetupEcs {
-    let node_add_event_sub = setup.subscribe::<NodeAddEvent>();
-    let node_remove_event_sub = setup.subscribe::<PostNodeRemoveEvent>();
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
     setup
         .resource(Sun::default())
-        .system(move_sun_system())
-        .system(shadow_cast_system(
-            true,
-            node_add_event_sub,
-            node_remove_event_sub,
-        ))
+        .uses(move_sun_setup)
+        .uses(shadow_cast_setup)
 }

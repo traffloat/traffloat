@@ -34,22 +34,22 @@ impl Default for CursorPosition {
 /// Marker component for clickable entities
 pub struct Clickable;
 
-#[legion::system]
+#[codegen::system]
 #[allow(clippy::too_many_arguments)]
 #[read_component(Shape)]
 #[read_component(Position)]
 #[read_component(Clickable)]
+#[thread_local]
 fn input(
     world: &mut legion::world::SubWorld,
-    #[state] reader: &mut shrev::ReaderId<MouseEvent>,
-    #[state] current_cursor: &mut Option<(f64, f64)>,
+    #[subscriber] mouse_events: impl Iterator<Item = MouseEvent>,
+    #[state(None)] current_cursor: &mut Option<(f64, f64)>,
     #[resource] camera: &Camera,
-    #[resource] chan: &shrev::EventChannel<MouseEvent>,
     #[resource] cursor: &mut CursorPosition,
     #[resource] dim: &render::Dimension,
     #[resource] comm: &render::Comm,
 ) {
-    for event in chan.read(reader) {
+    for event in mouse_events {
         match event {
             MouseEvent::Move { x, y } => {
                 *current_cursor = Some((*x, *y));
@@ -83,9 +83,6 @@ fn input(
     }
 }
 
-pub fn setup_ecs(mut setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    let reader = setup.subscribe::<MouseEvent>();
-    setup
-        .resource(CursorPosition::default())
-        .system_local(input_system(reader, None))
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    setup.resource(CursorPosition::default()).uses(input_setup)
 }

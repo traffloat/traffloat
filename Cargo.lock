@@ -962,6 +962,7 @@ dependencies = [
  "sha2",
  "shrev",
  "strum",
+ "traffloat-codegen",
  "traffloat-common",
  "wasm-bindgen",
  "wasm-logger",
@@ -971,6 +972,18 @@ dependencies = [
 
 [[package]]
 name = "traffloat-codegen"
+version = "0.2.0"
+dependencies = [
+ "lazy_static",
+ "legion",
+ "log",
+ "shrev",
+ "traffloat-codegen-raw",
+ "web-sys",
+]
+
+[[package]]
+name = "traffloat-codegen-raw"
 version = "0.2.0"
 dependencies = [
  "crc64fast",
