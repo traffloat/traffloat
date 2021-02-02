@@ -2,7 +2,7 @@ use crate::camera::Camera;
 use crate::input;
 use traffloat::shape::{Shape, Texture};
 use traffloat::sun::LightStats;
-use traffloat::types::{ConfigStore, Position, Clock};
+use traffloat::types::{Clock, ConfigStore, Position};
 
 mod canvas;
 pub use canvas::*;
@@ -73,11 +73,7 @@ pub fn render(
             simul_fps,
             comm.perf.average_exec_us(),
         ),
-        format!(
-            "Time: {:?} (Sun: {:.3})",
-            clock.now,
-            sun.yaw,
-        ),
+        format!("Time: {:?} (Sun: {:.3})", clock.now, sun.yaw,),
         format!(
             "Position: ({:.1}, {:.1}); Zoom height: {}",
             camera.position.x(),

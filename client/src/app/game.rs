@@ -7,7 +7,7 @@ use super::GameArgs;
 use crate::input;
 use crate::render;
 use crate::util;
-use traffloat::types::{Clock, Time, Instant};
+use traffloat::types::{Clock, Instant, Time};
 use traffloat::SetupEcs;
 
 pub struct Game {
