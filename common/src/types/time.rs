@@ -54,6 +54,14 @@ impl Sub<Time> for Instant {
     }
 }
 
+impl Sub<Instant> for Instant {
+    type Output = Time;
+
+    fn sub(self, other: Self) -> Time {
+        self.0 - other.0
+    }
+}
+
 impl SubAssign<Time> for Instant {
     fn sub_assign(&mut self, other: Time) {
         self.0 -= other;
@@ -74,6 +82,12 @@ impl Clock {
     pub fn inc_time(&mut self, time: Time) {
         self.now += time;
         self.delta = time;
+    }
+
+    /// Sets the time to the specified instant.
+    pub fn set_time(&mut self, now: Instant) {
+        self.delta = now - self.now;
+        self.now = now;
     }
 }
 

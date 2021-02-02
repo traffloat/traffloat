@@ -1,7 +1,8 @@
 use crate::camera::Camera;
 use crate::input;
 use traffloat::shape::{Shape, Texture};
-use traffloat::types::{ConfigStore, Position};
+use traffloat::sun::LightStats;
+use traffloat::types::{ConfigStore, Position, Clock};
 
 mod canvas;
 pub use canvas::*;
@@ -18,6 +19,7 @@ mod fps;
 #[read_component(Renderable)]
 #[read_component(Position)]
 #[read_component(Shape)]
+#[read_component(LightStats)]
 #[allow(clippy::too_many_arguments)]
 #[thread_local]
 pub fn render(
@@ -26,7 +28,9 @@ pub fn render(
     #[state(Default::default())] image_store: &mut ImageStore,
     #[state(Default::default())] render_fps: &mut fps::Counter,
     #[state(Default::default())] simul_fps: &mut fps::Counter,
-    #[resource] camera: &mut Camera,
+    #[resource] camera: &Camera,
+    #[resource] clock: &Clock,
+    #[resource] sun: &traffloat::sun::Sun,
     #[resource] textures: &ConfigStore<Texture>,
     #[resource] cursor: &input::mouse::CursorPosition,
     #[resource] perf_read: &mut codegen::Perf,
@@ -49,7 +53,7 @@ pub fn render(
         [0., 0., 0., 1.],
     );
 
-    // TODO render sun
+    // TODO render sun and stars
 
     let projection = camera.projection(canvas.dim);
 
@@ -67,12 +71,18 @@ pub fn render(
             "FPS: graphics {}, physics {}, cycle time {:.2} \u{03bc}s",
             render_fps,
             simul_fps,
-            comm.perf.average_exec_us()
+            comm.perf.average_exec_us(),
         ),
         format!(
-            "Position: ({:.1}, {:.1})",
+            "Time: {:?} (Sun: {:.3})",
+            clock.now,
+            sun.yaw,
+        ),
+        format!(
+            "Position: ({:.1}, {:.1}); Zoom height: {}",
             camera.position.x(),
-            camera.position.y()
+            camera.position.y(),
+            camera.render_height,
         ),
     ];
 
@@ -95,7 +105,7 @@ pub fn render(
             "Cursor position: ({:.1}, {:.1}) ({:?})",
             pos.x(),
             pos.y(),
-            entity
+            entity,
         ));
     }
 

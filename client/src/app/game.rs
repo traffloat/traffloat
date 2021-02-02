@@ -7,7 +7,7 @@ use super::GameArgs;
 use crate::input;
 use crate::render;
 use crate::util;
-use traffloat::types::{Clock, Time};
+use traffloat::types::{Clock, Time, Instant};
 use traffloat::SetupEcs;
 
 pub struct Game {
@@ -20,6 +20,7 @@ pub struct Game {
     _keyboard_task: [kb_srv::KeyListenerHandle; 2],
     render_comm: render::Comm,
     canvas_ref: NodeRef,
+    clock_epoch: u64,
 }
 
 impl Game {
@@ -30,7 +31,9 @@ impl Game {
                 .resources
                 .get_mut::<Clock>()
                 .expect("Clock was uninitialized");
-            clock.inc_time(Time(1));
+
+            let delta = (util::high_res_time() - self.clock_epoch) as f64 / 10000.;
+            clock.set_time(Instant(Time(delta as u32)));
         }
 
         let time = util::measure(|| self.legion.run());
@@ -181,6 +184,7 @@ impl Component for Game {
             _keyboard_task: keyboard_task,
             render_comm,
             canvas_ref: NodeRef::default(),
+            clock_epoch: util::high_res_time(),
             link,
         }
     }

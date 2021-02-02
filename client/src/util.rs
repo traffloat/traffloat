@@ -6,7 +6,7 @@ use once_cell::unsync::OnceCell;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-/// Retrieves the real system time
+/// Retrieves the time rom the system monotonic clock up to microsecond precision
 pub fn high_res_time() -> u64 {
     let window = web_sys::window().expect("Window uninitialized");
     let perf = window
