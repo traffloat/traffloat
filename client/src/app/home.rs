@@ -48,6 +48,13 @@ impl Component for Home {
             <div style="margin: 0 auto; max-width: 720px;">
                 <h1>{ "Traffloat" }</h1>
 
+                { for self.props.error.as_ref().map(|error| html! {
+                    <div>
+                        { "Error: " }
+                        <span>{ error }</span>
+                    </div>
+                }) }
+
                 <div>
                     <ul>
                         <li
@@ -96,6 +103,7 @@ pub enum Msg {
 #[derive(Clone, Properties)]
 pub struct Props {
     pub start_single_hook: Callback<SpGameArgs>,
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

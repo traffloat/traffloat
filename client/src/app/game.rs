@@ -140,7 +140,7 @@ impl Game {
             .resources
             .get_mut::<shrev::EventChannel<input::mouse::WheelEvent>>()
             .expect("EventChannel<WheelEvent> uninitialized");
-        channel.single_write(input::mouse::WheelEvent{delta});
+        channel.single_write(input::mouse::WheelEvent { delta });
     }
 }
 
@@ -273,5 +273,5 @@ pub enum Msg {
 #[derive(Clone, Properties)]
 pub struct Props {
     pub args: GameArgs,
-    pub error_hook: Callback<String>,
+    pub error_hook: Callback<Option<String>>,
 }

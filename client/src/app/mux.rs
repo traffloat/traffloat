@@ -16,7 +16,7 @@ impl Component for Mux {
         Self {
             props,
             link,
-            state: State::Home,
+            state: State::Home { error: None },
         }
     }
 
@@ -26,7 +26,10 @@ impl Component for Mux {
                 self.state = State::Game(GameArgs::Sp(args));
                 true
             }
-            Msg::Error(error) => todo!(),
+            Msg::EndGame(error) => {
+                self.state = State::Home { error };
+                true
+            }
         }
     }
 
@@ -36,11 +39,11 @@ impl Component for Mux {
 
     fn view(&self) -> Html {
         match &self.state {
-            State::Home => html! {
-                <home::Home start_single_hook=self.link.callback(Msg::StartSingle) />
+            State::Home { error } => html! {
+                <home::Home start_single_hook=self.link.callback(Msg::StartSingle) error=error />
             },
             State::Game(args) => html! {
-                <game::Game args=args error_hook=self.link.callback(Msg::Error) />
+                <game::Game args=args error_hook=self.link.callback(Msg::EndGame) />
             },
         }
     }
@@ -48,11 +51,11 @@ impl Component for Mux {
 
 pub enum Msg {
     StartSingle(SpGameArgs),
-    Error(String),
+    EndGame(Option<String>),
 }
 type Props = ();
 
 enum State {
-    Home,
+    Home { error: Option<String> },
     Game(GameArgs),
 }
