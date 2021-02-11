@@ -6,7 +6,7 @@ use crate::proto::{BinRead, BinWrite, ProtoType};
 use crate::SetupEcs;
 
 ratio_def::units! {
-    /// Internal trait jjust because declarative macros are stupid.
+    /// Internal trait just because declarative macros are stupid.
     _TimeTrait(Clone + Copy);
 
     #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, codegen::Gen)] u32:

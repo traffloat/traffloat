@@ -1,18 +1,25 @@
 //! Shape and appearance of an object
 
+use derive_new::new;
+use typed_builder::TypedBuilder;
+
 use crate::config::{self, Config};
 use crate::space::{Matrix, Point, Position};
 use crate::SetupEcs;
 
 /// Describes the shape and appearance of an object
+#[derive(TypedBuilder, getset::CopyGetters)]
 pub struct Shape {
+    #[getset(get_copy = "pub")]
     /// Unit shape variant
-    pub unit: Unit,
+    unit: Unit,
     /// The transformation matrix from the unit square to this shape centered at the
     /// origin
-    pub matrix: Matrix,
+    #[getset(get_copy = "pub")]
+    matrix: Matrix,
     /// The texture for rendering the shape
-    pub texture: config::Id<Texture>,
+    #[getset(get_copy = "pub")]
+    texture: config::Id<Texture>,
 }
 
 impl Shape {
@@ -23,6 +30,7 @@ impl Shape {
 }
 
 /// A unit shape variant
+#[derive(Debug, Clone, Copy)]
 pub enum Unit {
     /// A unit cube `[0, 1]^3`
     Cube,
@@ -73,10 +81,11 @@ impl Unit {
 }
 
 /// The texture of a rendered object
-#[derive(Debug)]
+#[derive(Debug, new, getset::Getters)]
 pub struct Texture {
     /// A URL compatible with `<img src>`
-    pub url: String,
+    #[getset(get = "pub")]
+    url: String,
 }
 
 impl Config for Texture {}

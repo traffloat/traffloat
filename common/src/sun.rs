@@ -43,12 +43,13 @@ fn move_sun(
 pub const MONTH_COUNT: usize = 12;
 
 /// A component storing the lighting data for a node.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, getset::Getters)]
 pub struct LightStats {
     /// The brightness values in each partition.
     ///
     /// The brightness value is the length receiving sunlight.
-    pub brightness: [f64; MONTH_COUNT],
+    #[getset(get = "pub")]
+    brightness: [f64; MONTH_COUNT],
 }
 
 #[codegen::system]

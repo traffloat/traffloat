@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 
+use derive_new::new;
 use legion::Entity;
 
 use crate::SetupEcs;
@@ -14,42 +15,54 @@ pub struct NodeId {
 }
 
 /// Identifies an edge
-#[derive(Debug, Clone, Copy, PartialEq, Eq, codegen::Gen)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, codegen::Gen, new, getset::CopyGetters)]
 pub struct EdgeId {
     /// The "source" node
-    pub from: NodeId,
+    #[getset(get_copy = "pub")]
+    from: NodeId,
     /// The "dest" node
-    pub to: NodeId,
+    #[getset(get_copy = "pub")]
+    to: NodeId,
 }
 
 /// Indicates that a node is added
+#[derive(Debug, new, getset::CopyGetters)]
 pub struct NodeAddEvent {
     /// The added node
-    pub node: NodeId,
+    #[getset(get_copy = "pub")]
+    node: NodeId,
 }
 
 /// Indicates that a node is flagged for removal
+#[derive(Debug, new, getset::CopyGetters)]
 pub struct NodeRemoveEvent {
     /// The added node
-    pub node: NodeId,
+    #[getset(get_copy = "pub")]
+    node: NodeId,
 }
 
 /// Indicates that nodes have been removed
+#[derive(Debug, new, getset::CopyGetters)]
 pub struct PostNodeRemoveEvent {
     /// Number of nodes removed
-    pub count: NonZeroUsize,
+    #[getset(get_copy = "pub")]
+    count: NonZeroUsize,
 }
 
 /// Indicates that an edge is added
+#[derive(Debug, new, getset::CopyGetters)]
 pub struct EdgeAddEvent {
     /// The added node
-    pub edge: EdgeId,
+    #[getset(get_copy = "pub")]
+    edge: EdgeId,
 }
 
 /// Indicates that an edge is flagged for removal
+#[derive(Debug, new, getset::CopyGetters)]
 pub struct EdgeRemoveEvent {
     /// The added node
-    pub edge: EdgeId,
+    #[getset(get_copy = "pub")]
+    edge: EdgeId,
 }
 
 /// Tracks the nodes and edges in the world

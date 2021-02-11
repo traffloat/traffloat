@@ -25,7 +25,7 @@ fn create_bitmap(texture: &Texture) -> MaybeBitmap {
         fn create_bitmap(url: &str) -> JsValue;
     }
 
-    let promise = create_bitmap(texture.url.as_str());
+    let promise = create_bitmap(texture.url());
     let promise = ReifiedPromise::new(promise, ());
     MaybeBitmap { promise }
 }

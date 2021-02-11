@@ -70,42 +70,40 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             .resources
             .get_mut::<config::Store<Texture>>()
             .expect("");
-        t.add(Texture {
-            url: String::from("SOF3.png"),
-        })
+        t.add(Texture::new(String::from("SOF3.png")))
     };
     setup
         .entity((
             render::Renderable,
             input::mouse::Clickable,
             Position::new(1., 2., 3.),
-            Shape {
-                unit: shape::Unit::Cube,
-                matrix: Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)),
-                texture: id,
-            },
+            Shape::builder()
+                .unit(shape::Unit::Cube)
+                .matrix(Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)))
+                .texture(id)
+                .build(),
             traffloat::sun::LightStats::default(),
         ))
         .entity((
             render::Renderable,
             input::mouse::Clickable,
             Position::new(1., -2., 3.),
-            Shape {
-                unit: shape::Unit::Cube,
-                matrix: Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)),
-                texture: id,
-            },
+            Shape::builder()
+                .unit(shape::Unit::Cube)
+                .matrix(Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)))
+                .texture(id)
+                .build(),
             traffloat::sun::LightStats::default(),
         ))
         .entity((
             render::Renderable,
             input::mouse::Clickable,
             Position::new(-2., 0., 3.),
-            Shape {
-                unit: shape::Unit::Cube,
-                matrix: Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)),
-                texture: id,
-            },
+            Shape::builder()
+                .unit(shape::Unit::Cube)
+                .matrix(Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)))
+                .texture(id)
+                .build(),
             traffloat::sun::LightStats::default(),
         ))
 }

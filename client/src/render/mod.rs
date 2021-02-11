@@ -65,13 +65,13 @@ pub fn render(
         // projection matrix transforms real coordinates to canvas
 
         let unit_to_real = shape.transform(position);
-        let image = image_store.fetch(shape.texture, shape.texture.get(textures));
+        let image = image_store.fetch(shape.texture(), shape.texture().get(textures));
 
         let base_month = sun.yaw() / PI / 2. * MONTH_COUNT as f64;
         #[allow(clippy::indexing_slicing)]
         let brightness = {
-            let brightness_prev = light.brightness[base_month.floor() as usize % MONTH_COUNT];
-            let brightness_next = light.brightness[base_month.ceil() as usize % MONTH_COUNT];
+            let brightness_prev = light.brightness()[base_month.floor() as usize % MONTH_COUNT];
+            let brightness_next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
             util::lerp(brightness_prev, brightness_next, base_month.fract())
         };
 

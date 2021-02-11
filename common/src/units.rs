@@ -1,6 +1,6 @@
 //! Defines common units
 
-use crate::proto::{self, BinRead, BinWrite, ProtoType};
+use crate::proto::{BinRead, BinWrite, ProtoType};
 
 ratio_def::units! {
     /// A common unit type
