@@ -74,11 +74,11 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
         .entity((
             render::Renderable,
             input::mouse::Clickable,
-            Position::new(1., 2.),
+            Position::new(1., 2., 3.),
             Shape {
-                unit: shape::Unit::Square,
+                unit: shape::Unit::Cube,
                 matrix: traffloat::types::Matrix::identity()
-                    .append_translation(&Vector::new(-0.5, -0.5)),
+                    .append_translation(&Vector::new(-0.5, -0.5, -0.5)),
                 texture: id,
             },
             traffloat::sun::LightStats::default(),
@@ -86,11 +86,11 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
         .entity((
             render::Renderable,
             input::mouse::Clickable,
-            Position::new(1., -2.),
+            Position::new(1., -2., 3.),
             Shape {
-                unit: shape::Unit::Square,
+                unit: shape::Unit::Cube,
                 matrix: traffloat::types::Matrix::identity()
-                    .append_translation(&Vector::new(-0.5, -0.5)),
+                    .append_translation(&Vector::new(-0.5, -0.5, -0.5)),
                 texture: id,
             },
             traffloat::sun::LightStats::default(),
@@ -98,11 +98,11 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
         .entity((
             render::Renderable,
             input::mouse::Clickable,
-            Position::new(-2., 0.),
+            Position::new(-2., 0., 3.),
             Shape {
-                unit: shape::Unit::Square,
+                unit: shape::Unit::Cube,
                 matrix: traffloat::types::Matrix::identity()
-                    .append_translation(&Vector::new(-0.5, -0.5)),
+                    .append_translation(&Vector::new(-0.5, -0.5, -0.5)),
                 texture: id,
             },
             traffloat::sun::LightStats::default(),

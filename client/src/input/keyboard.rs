@@ -16,6 +16,8 @@ pub enum Action {
     Right,
     Up,
     Down,
+    Forward,
+    Backward,
     ZoomIn,
     ZoomOut,
     LeftClick,

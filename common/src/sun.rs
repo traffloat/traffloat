@@ -9,14 +9,22 @@ use legion::Entity;
 
 use crate::graph::*;
 use crate::shape::Shape;
-use crate::types::{Clock, Position, ScalarConfig};
+use crate::types::{Clock, Position, ScalarConfig, Vector};
 use crate::SetupEcs;
 
 /// The position of the sun
-#[derive(Default)]
+#[derive(Default, getset::CopyGetters)]
 pub struct Sun {
     /// Orientation of the sun, in radians from +x towards +y
-    pub yaw: f64,
+    #[getset(get_copy = "pub")]
+    yaw: f64,
+}
+
+impl Sun {
+    /// Direction vector
+    pub fn direction(&self) -> Vector {
+        Vector::new(self.yaw().cos(), self.yaw().sin(), 0.)
+    }
 }
 
 #[codegen::system]
@@ -86,70 +94,7 @@ fn shadow_cast(
     }
 
     for month in 0..MONTH_COUNT {
-        use legion::IntoQuery;
-
-        #[allow(clippy::cast_precision_loss)]
-        let angle = PI * 2. / (MONTH_COUNT as f64) * (month as f64);
-
-        let mut query = <(Entity, &Position, &Shape, &mut LightStats)>::query();
-        let marker_list = {
-            let mut marker_list = Vec::new();
-            for (&entity, &pos, shape, light) in query.iter_mut(&mut *world) {
-                let mut transform = shape.transform(pos);
-                transform = nalgebra::Rotation2::<f64>::new(-angle).to_homogeneous() * transform;
-                let (min, max) = shape.unit.bb_under(transform);
-
-                let brightness = light
-                    .brightness
-                    .get_mut(month)
-                    .expect("month is in iterator range");
-
-                // take x max for all, y start and y end
-                marker_list.push(Marker {
-                    id: marker_list.len(),
-                    x: max.x,
-                    y: min.y,
-                    start: Some(RefCell::new(brightness)),
-                    entity,
-                });
-                marker_list.push(Marker {
-                    id: marker_list.len(),
-                    x: max.x,
-                    y: max.y,
-                    start: None,
-                    entity,
-                });
-            }
-
-            marker_list
-                .sort_unstable_by(|a, b| a.y.partial_cmp(&b.y).expect("infinite bounding box"));
-
-            marker_list
-        };
-
-        {
-            #[allow(clippy::mutable_key_type)] // the RefCell<&mut f64> is not used for hashing
-            let mut active_layers = BTreeSet::<&Marker<'_>>::new();
-            let mut start = None;
-            for marker in &marker_list {
-                if let Some(start) = start {
-                    if let Some(max) = active_layers.last() {
-                        let brightness =
-                            max.start.as_ref().expect("Only start markers are inserted");
-                        let mut brightness = brightness.borrow_mut();
-                        **brightness += marker.y - start;
-                    }
-                }
-
-                if marker.start.is_some() {
-                    active_layers.insert(marker);
-                } else {
-                    active_layers.remove(marker);
-                }
-
-                start = Some(marker.y);
-            }
-        };
+        todo!("rewrite")
     }
 }
 
