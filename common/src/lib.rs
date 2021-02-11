@@ -32,11 +32,15 @@
 #[macro_use]
 mod macros;
 
+pub mod config;
+pub use config::Config;
 pub mod graph;
 pub mod proto;
 pub mod shape;
+pub mod space;
 pub mod sun;
-pub mod types;
+pub mod time;
+pub mod units;
 mod util;
 pub use util::*;
 
@@ -46,7 +50,8 @@ pub use codegen::{Legion, SetupEcs};
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
     setup
         .resource(codegen::Perf::default())
-        .uses(types::setup_ecs)
+        .uses(config::setup_ecs)
+        .uses(time::setup_ecs)
         .uses(shape::setup_ecs)
         .uses(graph::setup_ecs)
         .uses(sun::setup_ecs)

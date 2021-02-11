@@ -3,9 +3,11 @@ use std::f64::consts::PI;
 use crate::camera::Camera;
 use crate::input;
 use crate::util;
+use traffloat::config;
 use traffloat::shape::{Shape, Texture};
+use traffloat::space::{Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
-use traffloat::types::{Clock, ConfigStore, Position, Vector};
+use traffloat::time;
 
 mod canvas;
 pub use canvas::*;
@@ -32,9 +34,9 @@ pub fn render(
     #[state(Default::default())] render_fps: &mut fps::Counter,
     #[state(Default::default())] simul_fps: &mut fps::Counter,
     #[resource] camera: &Camera,
-    #[resource] clock: &Clock,
+    #[resource] clock: &time::Clock,
     #[resource] sun: &Sun,
-    #[resource] textures: &ConfigStore<Texture>,
+    #[resource] textures: &config::Store<Texture>,
     #[resource] cursor: &input::mouse::CursorPosition,
     #[resource] perf_read: &mut codegen::Perf,
 ) {

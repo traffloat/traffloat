@@ -31,11 +31,11 @@ use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 mod app;
-mod camera;
-mod config;
-mod input;
-mod render;
-mod util;
+pub mod camera;
+pub mod config;
+pub mod input;
+pub mod render;
+pub mod util;
 
 #[wasm_bindgen(start)]
 pub fn run_app() {
@@ -61,11 +61,15 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
         .uses(render::setup_ecs);
 
     use traffloat::{
+        config,
         shape::{self, Shape, Texture},
-        types::{ConfigStore, Position, Vector},
+        space::{Matrix, Position, Vector},
     };
     let id = {
-        let mut t = setup.resources.get_mut::<ConfigStore<Texture>>().expect("");
+        let mut t = setup
+            .resources
+            .get_mut::<config::Store<Texture>>()
+            .expect("");
         t.add(Texture {
             url: String::from("SOF3.png"),
         })
@@ -77,8 +81,7 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             Position::new(1., 2., 3.),
             Shape {
                 unit: shape::Unit::Cube,
-                matrix: traffloat::types::Matrix::identity()
-                    .append_translation(&Vector::new(-0.5, -0.5, -0.5)),
+                matrix: Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)),
                 texture: id,
             },
             traffloat::sun::LightStats::default(),
@@ -89,8 +92,7 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             Position::new(1., -2., 3.),
             Shape {
                 unit: shape::Unit::Cube,
-                matrix: traffloat::types::Matrix::identity()
-                    .append_translation(&Vector::new(-0.5, -0.5, -0.5)),
+                matrix: Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)),
                 texture: id,
             },
             traffloat::sun::LightStats::default(),
@@ -101,8 +103,7 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             Position::new(-2., 0., 3.),
             Shape {
                 unit: shape::Unit::Cube,
-                matrix: traffloat::types::Matrix::identity()
-                    .append_translation(&Vector::new(-0.5, -0.5, -0.5)),
+                matrix: Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)),
                 texture: id,
             },
             traffloat::sun::LightStats::default(),

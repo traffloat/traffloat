@@ -5,7 +5,7 @@ use legion::Entity;
 use crate::camera::Camera;
 use crate::render;
 use traffloat::shape::Shape;
-use traffloat::types::{Position, Vector};
+use traffloat::space::{Position, Vector};
 
 /// Mouse motion event
 ///

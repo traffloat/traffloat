@@ -2,7 +2,8 @@ use std::f64::consts::PI;
 use std::sync::Mutex;
 
 use crate::{config, input, render};
-use traffloat::types::{Clock, Matrix, Point, Position, Vector};
+use traffloat::space::{Matrix, Point, Position, Vector};
+use traffloat::time;
 
 const DRAG_DEADZONE: u32 = 5;
 
@@ -140,7 +141,7 @@ impl Camera {
 fn camera(
     #[resource] camera: &mut Camera,
     #[resource] actions: &input::keyboard::ActionSet,
-    #[resource] clock: &Clock,
+    #[resource] clock: &time::Clock,
     #[resource] cursor_position: &input::mouse::CursorPosition,
     #[resource] dim: &render::Dimension,
     #[subscriber] wheel_events: impl Iterator<Item = input::mouse::WheelEvent>,

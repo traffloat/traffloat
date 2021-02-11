@@ -1,16 +1,16 @@
 use std::collections::BTreeMap;
 
 use crate::util::ReifiedPromise;
+use traffloat::config;
 use traffloat::shape::Texture;
-use traffloat::types::Id;
 
 #[derive(Default)]
 pub struct ImageStore {
-    images: BTreeMap<Id<Texture>, MaybeBitmap>,
+    images: BTreeMap<config::Id<Texture>, MaybeBitmap>,
 }
 
 impl ImageStore {
-    pub fn fetch(&mut self, id: Id<Texture>, texture: &Texture) -> &MaybeBitmap {
+    pub fn fetch(&mut self, id: config::Id<Texture>, texture: &Texture) -> &MaybeBitmap {
         self.images
             .entry(id)
             .or_insert_with(|| create_bitmap(texture))

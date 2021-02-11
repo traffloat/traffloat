@@ -1,3 +1,5 @@
+//! Spatial units
+
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 /// Standard vector type

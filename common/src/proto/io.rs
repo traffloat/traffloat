@@ -343,7 +343,7 @@ array!(1024);
 array!(2048);
 array!(4096);
 
-impl ProtoType for crate::types::Vector {
+impl ProtoType for crate::space::Vector {
     const CHECKSUM: u128 = {
         #[derive(codegen::Gen)]
         struct _Vector([f64; 3]);
@@ -351,14 +351,14 @@ impl ProtoType for crate::types::Vector {
     };
 }
 
-impl BinRead for crate::types::Vector {
+impl BinRead for crate::space::Vector {
     fn read(buf: &mut &[u8]) -> Result<Self> {
         let inner = <[f64; 3]>::read(buf)?;
         Ok(Self::from_column_slice(&inner[..]))
     }
 }
 
-impl BinWrite for crate::types::Vector {
+impl BinWrite for crate::space::Vector {
     fn write(&self, vec: &mut Vec<u8>) {
         let slice = self.as_slice();
         let array: [f64; 3] = slice.try_into().expect("Vector has exactly 3 elements");
@@ -366,7 +366,7 @@ impl BinWrite for crate::types::Vector {
     }
 }
 
-impl ProtoType for crate::types::Matrix {
+impl ProtoType for crate::space::Matrix {
     const CHECKSUM: u128 = {
         #[derive(codegen::Gen)]
         struct _Matrix([f64; 16]);
@@ -374,14 +374,14 @@ impl ProtoType for crate::types::Matrix {
     };
 }
 
-impl BinRead for crate::types::Matrix {
+impl BinRead for crate::space::Matrix {
     fn read(buf: &mut &[u8]) -> Result<Self> {
         let inner = <[f64; 16]>::read(buf)?;
         Ok(Self::from_column_slice(&inner[..]))
     }
 }
 
-impl BinWrite for crate::types::Matrix {
+impl BinWrite for crate::space::Matrix {
     fn write(&self, vec: &mut Vec<u8>) {
         let slice = self.as_slice();
         let array: [f64; 16] = slice.try_into().expect("Matrix has exactly 16 elements");

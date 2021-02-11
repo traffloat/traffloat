@@ -1,15 +1,19 @@
+//! A configuration is the special rules defined by the game host in a world.
+//!
+//! For example, each texture is a configuration, and each liquid type is a configuration.
+//!
+//! Configurations are stored as resources in the Legion.
+//! They are referenced using IDs.
+
 use std::cmp;
 use std::convert::TryFrom;
+use std::f64::consts::PI;
 use std::marker::PhantomData;
 
+use super::time;
+use crate::SetupEcs;
+
 /// A marker trait for configuration types
-///
-/// A configuration is the special rules defined by the game host in a world.
-///
-/// For example, each texture is a configuration, and each liquid type is a configuration.
-///
-/// Configurations are stored as resources in the Legion.
-/// They are referenced using IDs.
 pub trait Config: std::any::Any + 'static + Send + Sync + Sized {}
 
 /// The ID of a mostly-fixed set of metadata
@@ -21,12 +25,12 @@ pub struct Id<T: Config> {
 
 impl<T: Config> Id<T> {
     /// Gets the configuration represented by this ID
-    pub fn get(self, store: &ConfigStore<T>) -> &T {
+    pub fn get(self, store: &Store<T>) -> &T {
         store.get(self)
     }
 
     /// Creates an ID, checking whether it is actually in the store
-    pub fn new(value: u32, store: &ConfigStore<T>) -> Option<Self> {
+    pub fn new(value: u32, store: &Store<T>) -> Option<Self> {
         if !store.exists(value) {
             return None;
         }
@@ -72,17 +76,17 @@ impl<T: Config> Ord for Id<T> {
 
 /// A storage for a configuration type
 #[derive(Debug)]
-pub struct ConfigStore<T: Config> {
+pub struct Store<T: Config> {
     values: Vec<Option<T>>,
 }
 
-impl<T: Config> Default for ConfigStore<T> {
+impl<T: Config> Default for Store<T> {
     fn default() -> Self {
         Self { values: Vec::new() }
     }
 }
 
-impl<T: Config> ConfigStore<T> {
+impl<T: Config> Store<T> {
     /// Check shwether a configuration ID is valid
     pub fn exists(&self, id: u32) -> bool {
         (id as usize) < self.values.len()
@@ -114,4 +118,24 @@ impl<T: Config> ConfigStore<T> {
             .get_mut(id.value as usize)
             .expect("just resized") = Some(value);
     }
+}
+
+/// Scalar configuration values
+#[derive(codegen::Gen)]
+pub struct Scalar {
+    /// The angle the sun moves per tick
+    pub sun_speed: time::Rate<f64>,
+}
+
+impl Default for Scalar {
+    fn default() -> Self {
+        Self {
+            sun_speed: time::Rate(PI * 2. / 300. / 10.), // 5 minutes = 1 year
+        }
+    }
+}
+
+/// Initializes ECS
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
+    setup.resource(Scalar::default())
 }

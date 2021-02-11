@@ -1,3 +1,5 @@
+//! Defines common units
+
 use crate::proto::{self, BinRead, BinWrite, ProtoType};
 
 ratio_def::units! {

@@ -1,4 +1,4 @@
-use traffloat::types::{Matrix, Vector};
+use traffloat::space::{Matrix, Vector};
 
 /// The dimension of a canvas
 #[derive(Debug, Clone, Copy)]

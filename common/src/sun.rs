@@ -7,9 +7,11 @@ use std::f64::consts::PI;
 
 use legion::Entity;
 
+use crate::config;
 use crate::graph::*;
 use crate::shape::Shape;
-use crate::types::{Clock, Position, ScalarConfig, Vector};
+use crate::space::{Position, Vector};
+use crate::time;
 use crate::SetupEcs;
 
 /// The position of the sun
@@ -30,8 +32,8 @@ impl Sun {
 #[codegen::system]
 fn move_sun(
     #[resource] sun: &mut Sun,
-    #[resource] clock: &Clock,
-    #[resource] config: &ScalarConfig,
+    #[resource] clock: &time::Clock,
+    #[resource] config: &config::Scalar,
 ) {
     sun.yaw += config.sun_speed * clock.delta;
     sun.yaw %= PI * 2.;

@@ -1,6 +1,7 @@
 //! Shape and appearance of an object
 
-use crate::types::{Config, ConfigStore, Id, Matrix, Point, Position};
+use crate::config::{self, Config};
+use crate::space::{Matrix, Point, Position};
 use crate::SetupEcs;
 
 /// Describes the shape and appearance of an object
@@ -11,7 +12,7 @@ pub struct Shape {
     /// origin
     pub matrix: Matrix,
     /// The texture for rendering the shape
-    pub texture: Id<Texture>,
+    pub texture: config::Id<Texture>,
 }
 
 impl Shape {
@@ -82,5 +83,5 @@ impl Config for Texture {}
 
 /// Initializes systems
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.resource(ConfigStore::<Texture>::default())
+    setup.resource(config::Store::<Texture>::default())
 }
