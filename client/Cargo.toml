@@ -17,6 +17,7 @@ console_error_panic_hook = "0.1.6"
 derive-new = "0.5.8"
 enum-map = "0.6.4"
 getrandom = {version = "0.2.2", features = ["js"]}
+getset = "0.1.1"
 hex = "0.4.2"
 js-sys = "0.3.47"
 lazy_static = "1.4.0"
@@ -31,8 +32,9 @@ serde = {version = "1.0.123", features = ["derive"]}
 sha2 = "0.9.3"
 shrev = "1.1.1"
 strum = {version = "0.20.0", features = ["derive"]}
-traffloat-common = {version = "0.2.0", path = "../common"}
 traffloat-codegen = {version = "0.2.0", path = "../codegen-types", features = ["web-sys"]}
+traffloat-common = {version = "0.2.0", path = "../common"}
+typed-builder = "0.9.0"
 wasm-bindgen = {version = "0.2.69"}
 wasm-logger = "0.2.0"
 yew = {version = "0.17.4", default-features = false, features = ["services", "web_sys"]}
@@ -49,4 +51,5 @@ features = [
 	"Performance",
 	"Touch",
 	"TouchList",
+	"WebGlRenderingContext",
 ]

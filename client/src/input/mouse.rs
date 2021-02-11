@@ -41,7 +41,7 @@ impl Default for CursorPosition {
 }
 
 /// Marker component for clickable entities
-pub struct Clickable;
+pub struct Clickable(pub bool);
 
 #[codegen::system]
 #[allow(clippy::too_many_arguments)]
@@ -66,18 +66,21 @@ fn input(
         }
     }
 
-    if let Some((x, y)) = *current_cursor {
+    if let Some((mut x, mut y)) = *current_cursor {
         use legion::IntoQuery;
 
-        let canvas_pos = Vector::new(x, y);
-        let real_pos = camera.image_unit_to_real(canvas_pos, dim.aspect());
-        cursor.pos = Some(real_pos);
+        x /= dim.width as f64;
+        y /= dim.height as f64;
 
+        /*
+        TODO
         cursor.entity = Err((x, y));
         comm.canvas_cursor_type.set("initial");
-        for (entity, &position, shape, _) in
+        for (entity, &position, shape, clickable) in
             <(Entity, &Position, &Shape, &Clickable)>::query().iter(world)
         {
+            if !clickable.0 { continue; }
+
             let point = shape
                 .transform(position)
                 .try_inverse()
@@ -89,6 +92,7 @@ fn input(
                 break;
             }
         }
+        */
     }
 }
 

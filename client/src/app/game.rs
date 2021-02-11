@@ -19,7 +19,9 @@ pub struct Game {
     _simulation_task: interval::IntervalTask,
     _keyboard_task: [kb_srv::KeyListenerHandle; 2],
     render_comm: render::Comm,
-    canvas_ref: NodeRef,
+    bg_canvas_ref: NodeRef,
+    scene_canvas_ref: NodeRef,
+    ui_canvas_ref: NodeRef,
     clock_epoch: u64,
 }
 
@@ -42,11 +44,21 @@ impl Game {
     }
 
     fn request_render(&mut self) {
-        self.render_comm.flag.cell.replace(self.canvas_context());
+        if let Some((canvas, dim)) = self.canvas_context() {
+            self.render_comm.flag.cell.replace(Some(canvas));
+            let dim_ref = &mut *self
+                .legion
+                .resources
+                .get_mut::<render::Dimension>()
+                .expect("Uninitialized Dimension resource");
+            *dim_ref = dim;
+        } else {
+            self.render_comm.flag.cell.replace(None);
+        }
         self.render_task = render_srv::RenderService::request_animation_frame(
             self.link.callback(Msg::RenderFrame),
         );
-        if let Some(canvas) = self.canvas_ref.cast::<web_sys::HtmlElement>() {
+        if let Some(canvas) = self.ui_canvas_ref.cast::<web_sys::HtmlElement>() {
             canvas
                 .style()
                 .set_property("cursor", self.render_comm.canvas_cursor_type.get())
@@ -54,22 +66,34 @@ impl Game {
         }
     }
 
-    fn canvas_context(&self) -> Option<render::Canvas> {
+    fn canvas_context(&self) -> Option<(render::Canvas, render::Dimension)> {
         use wasm_bindgen::JsCast;
 
-        let canvas = self.canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
-        let width = canvas.width();
-        let height = canvas.height();
+        let bg_canvas = self.bg_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
+        let scene_canvas = self.scene_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
+        let ui_canvas = self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
+        let width = ui_canvas.width();
+        let height = ui_canvas.height();
 
-        let context = canvas
+        let bg_context = bg_canvas
+            .get_context("webgl")
+            .expect("Failed to load WebGL canvas")?
+            .dyn_into()
+            .expect("Failed to load WebGL canvas");
+        let scene_context = scene_canvas
+            .get_context("webgl")
+            .expect("Failed to load WebGL canvas")?
+            .dyn_into()
+            .expect("Failed to load WebGL canvas");
+        let ui_context = ui_canvas
             .get_context("2d")
             .expect("Failed to load 2D canvas")?
             .dyn_into()
             .expect("Failed to load 2D canvas");
-        Some(render::Canvas {
-            context,
-            dim: render::Dimension { width, height },
-        })
+        Some((
+            render::Canvas::new(bg_context, scene_context, ui_context),
+            render::Dimension { width, height },
+        ))
     }
 
     fn on_resize(&mut self, dim: resize::WindowDimensions) {
@@ -85,12 +109,18 @@ impl Game {
             };
         }
 
-        let canvas = match self.canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
-            Some(canvas) => canvas,
-            None => return,
-        };
-        canvas.set_width(dim.width as u32);
-        canvas.set_height(dim.height as u32);
+        for node_ref in &[
+            &self.bg_canvas_ref,
+            &self.scene_canvas_ref,
+            &self.ui_canvas_ref,
+        ] {
+            let canvas = match node_ref.cast::<web_sys::HtmlCanvasElement>() {
+                Some(canvas) => canvas,
+                None => return,
+            };
+            canvas.set_width(dim.width as u32);
+            canvas.set_height(dim.height as u32);
+        }
 
         self.request_render();
     }
@@ -113,7 +143,7 @@ impl Game {
             .get_mut::<shrev::EventChannel<input::mouse::MouseEvent>>()
             .expect("EventChannel<MouseEvent> uninitialized");
 
-        let canvas = match self.canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
+        let canvas = match self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
             Some(canvas) => canvas,
             None => return,
         };
@@ -193,7 +223,9 @@ impl Component for Game {
             ),
             _keyboard_task: keyboard_task,
             render_comm,
-            canvas_ref: NodeRef::default(),
+            bg_canvas_ref: NodeRef::default(),
+            scene_canvas_ref: NodeRef::default(),
+            ui_canvas_ref: NodeRef::default(),
             clock_epoch: util::high_res_time(),
             link,
         }
@@ -237,7 +269,15 @@ impl Component for Game {
         html! {
             <div style="margin: 0;">
                 <canvas
-                    ref=self.canvas_ref.clone()
+                    ref=self.bg_canvas_ref.clone()
+                    style="width: 100vw; height: 100vh; z-index = 1; position: absolute; x: 0; y: 0;"
+                    />
+                <canvas
+                    ref=self.scene_canvas_ref.clone()
+                    style="width: 100vw; height: 100vh; z-index = 2; position: absolute; x: 0; y: 0;"
+                    />
+                <canvas
+                    ref=self.ui_canvas_ref.clone()
                     onmousemove=self.link.callback(Msg::MouseMove)
                     onmousedown=self.link.callback(Msg::MouseDown)
                     onmouseup=self.link.callback(Msg::MouseUp)
@@ -245,7 +285,8 @@ impl Component for Game {
                     ontouchmove=self.link.callback(Msg::TouchMove)
                     ontouchstart=self.link.callback(Msg::TouchDown)
                     ontouchend=self.link.callback(Msg::TouchUp)
-                    style="width: 100vw; height: 100vh;"/>
+                    style="width: 100vw; height: 100vh; z-index = 3; position: absolute; x: 0; y: 0;"
+                    />
             </div>
         }
     }
