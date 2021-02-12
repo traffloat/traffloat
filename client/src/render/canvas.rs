@@ -1,4 +1,4 @@
-use web_sys::{WebGlRenderingContext, CanvasRenderingContext2d};
+use web_sys::{CanvasRenderingContext2d, WebGlRenderingContext};
 
 use traffloat::space::{Matrix, Vector};
 
@@ -30,7 +30,6 @@ impl Canvas {
         scene: WebGlRenderingContext,
         ui: CanvasRenderingContext2d,
     ) -> Self {
-
         Self {
             bg,
             scene,
@@ -42,9 +41,11 @@ impl Canvas {
     pub fn new_frame(&mut self, dim: &Dimension) {
         self.scene.clear_color(0., 0., 0., 0.);
 
-        self.ui.reset_transform()
+        self.ui
+            .reset_transform()
             .expect("CanvasRenderingContext2d.resetTransform() threw");
-        self.ui.clear_rect(0., 0., dim.width as f64, dim.height as f64);
+        self.ui
+            .clear_rect(0., 0., dim.width as f64, dim.height as f64);
         self.ui.set_stroke_style(&"black".into());
         self.ui.set_fill_style(&"white".into());
         self.ui.set_font("12px sans-serif");
