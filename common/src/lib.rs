@@ -27,7 +27,7 @@
         clippy::indexing_slicing,
     )
 )]
-#![feature(iterator_fold_self, map_first_last)]
+#![feature(map_first_last)]
 
 #[macro_use]
 mod macros;

@@ -58,20 +58,6 @@ impl Unit {
     pub fn bb_under(&self, transform: Matrix) -> (Point, Point) {
         use nalgebra::dimension as dim;
 
-        fn fmax(a: f64, b: f64) -> f64 {
-            if a > b {
-                a
-            } else {
-                b
-            }
-        }
-        fn fmin(a: f64, b: f64) -> f64 {
-            if a < b {
-                a
-            } else {
-                b
-            }
-        }
         match self {
             Self::Cube => {
                 type Storage = nalgebra::storage::Owned<f64, dim::U4, dim::U8>;

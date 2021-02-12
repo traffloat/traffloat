@@ -36,6 +36,7 @@ pub fn render(
     #[resource] camera: &Camera,
     #[resource] clock: &time::Clock,
     #[resource] sun: &Sun,
+    #[resource] dim: &Dimension,
     #[resource] textures: &config::Store<Texture>,
     #[resource] cursor: &input::mouse::CursorPosition,
     #[resource] perf_read: &mut codegen::Perf,
@@ -51,9 +52,8 @@ pub fn render(
 
     let render_fps = render_fps.add_frame();
 
-    canvas.new_frame();
+    canvas.new_frame(dim);
     canvas.draw_bg(0., 0., 0.);
-    // TODO draw stars
     // TODO draw sun
 
     let projection = camera.projection();

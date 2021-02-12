@@ -1,3 +1,5 @@
+use web_sys::{WebGlRenderingContext, CanvasRenderingContext2d};
+
 use traffloat::space::{Matrix, Vector};
 
 /// The dimension of a canvas
@@ -24,15 +26,11 @@ pub struct Canvas {
 
 impl Canvas {
     pub fn new(
-        bg: web_sys::WebGlRenderingContext,
-        scene: web_sys::WebGlRenderingContext,
-        ui: web_sys::CanvasRenderingContext2d,
+        bg: WebGlRenderingContext,
+        scene: WebGlRenderingContext,
+        ui: CanvasRenderingContext2d,
     ) -> Self {
-        ui.reset_transform()
-            .expect("CanvasRenderingContext2d.resetTransform() threw");
-        ui.set_stroke_style(&"black".into());
-        ui.set_fill_style(&"white".into());
-        ui.set_font("12px sans-serif");
+
         Self {
             bg,
             scene,
@@ -41,8 +39,16 @@ impl Canvas {
         }
     }
 
-    pub fn new_frame(&mut self) {
+    pub fn new_frame(&mut self, dim: &Dimension) {
         self.scene.clear_color(0., 0., 0., 0.);
+
+        self.ui.reset_transform()
+            .expect("CanvasRenderingContext2d.resetTransform() threw");
+        self.ui.clear_rect(0., 0., dim.width as f64, dim.height as f64);
+        self.ui.set_stroke_style(&"black".into());
+        self.ui.set_fill_style(&"white".into());
+        self.ui.set_font("12px sans-serif");
+
         self.debug_count = 0;
     }
 
@@ -53,10 +59,18 @@ impl Canvas {
         self.ui
             .fill_text(line.as_ref(), 10., 20. + (self.debug_count as f64) * 15.)
             .expect("Failed to draw debug text");
+
+        self.debug_count += 1;
     }
 
     pub fn draw_bg(&self, yaw: f64, pitch: f64, roll: f64) {
-        // TODO
+        self.bg.clear_color(0., 0., 0., 1.);
+        self.bg.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+
+        self.scene.clear_color(0., 0., 0., 0.);
+        self.scene.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+
+        // TODO draw stars
     }
 }
 

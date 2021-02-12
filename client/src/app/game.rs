@@ -90,9 +90,10 @@ impl Game {
             .expect("Failed to load 2D canvas")?
             .dyn_into()
             .expect("Failed to load 2D canvas");
+        let dim = render::Dimension { width, height };
         Some((
             render::Canvas::new(bg_context, scene_context, ui_context),
-            render::Dimension { width, height },
+            dim,
         ))
     }
 

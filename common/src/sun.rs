@@ -1,11 +1,9 @@
 //! Calculates the sunlight level of each building
 
-use std::cell::{RefCell, RefMut};
-use std::cmp;
-use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
+use std::cell::RefCell;
+use std::collections::{btree_map::Entry, BTreeMap};
 use std::f64::consts::PI;
 
-use legion::Entity;
 use smallvec::SmallVec;
 
 use crate::config;
@@ -73,6 +71,7 @@ fn shadow_cast(
     }
     *first = false;
 
+    #[allow(clippy::indexing_slicing)]
     for month in 0..MONTH_COUNT {
         use legion::IntoQuery;
         let mut query = <(&mut LightStats, &Position, &Shape)>::query();
@@ -88,7 +87,8 @@ fn shadow_cast(
 
         for (stats, &position, shape) in query.iter_mut(world) {
             // Sun rotates from +x towards +y, normal to +z
-            let yaw = PI * 2. / (MONTH_COUNT as f64) * (month as f64);
+            #[allow(clippy::cast_precision_loss)] // month can fit in a byte
+            let yaw = { PI * 2. / (MONTH_COUNT as f64) * (month as f64) };
 
             // rot is the rotation matrix from the real coordinates to the time when yaw=0
             let rot = nalgebra::Rotation3::from_axis_angle(&Vector::z_axis(), -yaw)
