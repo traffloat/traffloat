@@ -1,6 +1,5 @@
 //! Calculates the sunlight level of each building
 
-use std::cell::RefCell;
 use std::collections::{btree_map::Entry, BTreeMap};
 use std::f64::consts::PI;
 
@@ -77,7 +76,7 @@ fn shadow_cast(
         let mut query = <(&mut LightStats, &Position, &Shape)>::query();
 
         struct Marker<'t> {
-            light: RefCell<&'t mut f64>,
+            light: &'t mut f64,
             min: [Finite; 2],
             max: [Finite; 2],
             priority: Finite,
@@ -103,7 +102,6 @@ fn shadow_cast(
                 .get_mut(month)
                 .expect("month < MONTH_COUNT");
             *light = 0.;
-            let light = RefCell::new(light);
 
             let marker = Marker {
                 light,
@@ -167,8 +165,8 @@ fn shadow_cast(
             let len0 = cuts[0][i + 1].value() - cuts[0][i].value();
             let len1 = cuts[1][j + 1].value() - cuts[1][j].value();
             let area = len0 * len1;
-            let mut light = markers[marker_index].light.borrow_mut();
-            **light += area;
+            let light = &mut *markers[marker_index].light;
+            *light += area;
         }
     }
 }
