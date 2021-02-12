@@ -79,7 +79,7 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             Position::new(1., 2., 3.),
             Shape::builder()
                 .unit(shape::Unit::Cube)
-                .matrix(Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)))
+                .matrix(Matrix::identity())
                 .texture(id)
                 .build(),
             traffloat::sun::LightStats::default(),
@@ -90,7 +90,7 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             Position::new(1., -2., 3.),
             Shape::builder()
                 .unit(shape::Unit::Cube)
-                .matrix(Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)))
+                .matrix(Matrix::identity())
                 .texture(id)
                 .build(),
             traffloat::sun::LightStats::default(),
@@ -101,7 +101,7 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             Position::new(-2., 0., 3.),
             Shape::builder()
                 .unit(shape::Unit::Cube)
-                .matrix(Matrix::identity().append_translation(&Vector::new(-0.5, -0.5, -0.5)))
+                .matrix(Matrix::identity())
                 .texture(id)
                 .build(),
             traffloat::sun::LightStats::default(),
