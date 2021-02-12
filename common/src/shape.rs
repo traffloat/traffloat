@@ -143,8 +143,8 @@ impl Unit {
 
 #[cfg(test)]
 mod tests {
-    use crate::space::{Matrix, Vector};
     use super::Unit;
+    use crate::space::{Matrix, Vector};
 
     #[test]
     pub fn sphere_bb() {
@@ -156,31 +156,42 @@ mod tests {
                 if delta > 1e-10 {
                     panic!("{} != {}", a, b);
                 }
-            }
+            };
         }
         macro_rules! assert_bb {
             ($trans:expr, ($x0:expr, $y0:expr, $z0:expr)..($x1:expr, $y1:expr, $z1:expr)) => {{
                 // type coercion
-                fn trans() -> impl FnOnce(Matrix) -> Matrix { $trans }
+                fn trans() -> impl FnOnce(Matrix) -> Matrix {
+                    $trans
+                }
                 let trans = trans();
                 let mut m = Matrix::identity();
                 m = trans(m);
                 let bb = Unit::Sphere.bb_under(m);
                 assert_pt!(bb.0, ($x0, $y0, $z0));
                 assert_pt!(bb.1, ($x1, $y1, $z1));
-            }}
+            }};
         }
 
         assert_bb!(|m| m, (-1., -1., -1.)..(1., 1., 1.));
-        assert_bb!(|m| m.append_translation(&Vector::new(0.5, 0.5, 0.5)), (-0.5, -0.5, -0.5)..(1.5, 1.5, 1.5));
-        assert_bb!(|m| m.append_nonuniform_scaling(&Vector::new(0.5, 2., 5.)), (-0.5, -2., -5.)..(0.5, 2., 5.));
+        assert_bb!(
+            |m| m.append_translation(&Vector::new(0.5, 0.5, 0.5)),
+            (-0.5, -0.5, -0.5)..(1.5, 1.5, 1.5)
+        );
+        assert_bb!(
+            |m| m.append_nonuniform_scaling(&Vector::new(0.5, 2., 5.)),
+            (-0.5, -2., -5.)..(0.5, 2., 5.)
+        );
 
         {
-            assert_bb!(|m| {
-                use std::f64::consts::PI;
-                let rot = nalgebra::Rotation3::from_axis_angle(&Vector::x_axis(), PI / 2.);
-                rot.matrix().to_homogeneous() * m.append_translation(&Vector::new(1., 1., 1.))
-            }, (0., -2., 0.)..(2., 0., 2.));
+            assert_bb!(
+                |m| {
+                    use std::f64::consts::PI;
+                    let rot = nalgebra::Rotation3::from_axis_angle(&Vector::x_axis(), PI / 2.);
+                    rot.matrix().to_homogeneous() * m.append_translation(&Vector::new(1., 1., 1.))
+                },
+                (0., -2., 0.)..(2., 0., 2.)
+            );
         }
     }
 }

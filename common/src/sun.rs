@@ -1,17 +1,19 @@
 //! Calculates the sunlight level of each building
 
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::cmp;
-use std::collections::BTreeSet;
+use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 use std::f64::consts::PI;
 
 use legion::Entity;
+use smallvec::SmallVec;
 
 use crate::config;
 use crate::graph::*;
 use crate::shape::Shape;
 use crate::space::{Position, Vector};
 use crate::time;
+use crate::util::Finite;
 use crate::SetupEcs;
 
 /// The position of the sun
@@ -23,7 +25,7 @@ pub struct Sun {
 }
 
 impl Sun {
-    /// Direction vector
+    /// Direction vector from any opaque object to the sun.
     pub fn direction(&self) -> Vector {
         Vector::new(self.yaw().cos(), self.yaw().sin(), 0.)
     }
@@ -45,9 +47,9 @@ pub const MONTH_COUNT: usize = 12;
 /// A component storing the lighting data for a node.
 #[derive(Debug, Default, getset::Getters)]
 pub struct LightStats {
-    /// The brightness values in each partition.
+    /// The brightness values in each month.
     ///
-    /// The brightness value is the length receiving sunlight.
+    /// The brightness value is the area receiving sunlight.
     #[getset(get = "pub")]
     brightness: [f64; MONTH_COUNT],
 }
@@ -71,33 +73,103 @@ fn shadow_cast(
     }
     *first = false;
 
-    #[derive(Debug)]
-    struct Marker<'t> {
-        id: usize,
-        x: f64,
-        y: f64,
-        start: Option<RefCell<&'t mut f64>>,
-        entity: Entity,
-    }
-    impl<'t> PartialEq for Marker<'t> {
-        fn eq(&self, other: &Self) -> bool {
-            self.id == other.id
-        }
-    }
-    impl<'t> Eq for Marker<'t> {}
-    impl<'t> PartialOrd for Marker<'t> {
-        fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-            self.x.partial_cmp(&other.x)
-        }
-    }
-    impl<'t> Ord for Marker<'t> {
-        fn cmp(&self, other: &Self) -> cmp::Ordering {
-            self.partial_cmp(other).expect("infinite x")
-        }
-    }
-
     for month in 0..MONTH_COUNT {
-        todo!("rewrite")
+        use legion::IntoQuery;
+        let mut query = <(&mut LightStats, &Position, &Shape)>::query();
+
+        struct Marker<'t> {
+            light: RefCell<&'t mut f64>,
+            min: [Finite; 2],
+            max: [Finite; 2],
+            priority: Finite,
+        }
+
+        let mut markers = Vec::new();
+
+        for (stats, &position, shape) in query.iter_mut(world) {
+            // Sun rotates from +x towards +y, normal to +z
+            let yaw = PI * 2. / (MONTH_COUNT as f64) * (month as f64);
+
+            // rot is the rotation matrix from the real coordinates to the time when yaw=0
+            let rot = nalgebra::Rotation3::from_axis_angle(&Vector::z_axis(), -yaw)
+                .matrix()
+                .to_homogeneous();
+            let trans = shape.transform(position);
+            let (min, max) = shape.unit().bb_under(rot * trans);
+
+            let priority = Finite::new(max.x);
+            let light = stats
+                .brightness
+                .get_mut(month)
+                .expect("month < MONTH_COUNT");
+            *light = 0.;
+            let light = RefCell::new(light);
+
+            let marker = Marker {
+                light,
+                min: [Finite::new(min.y), Finite::new(min.z)],
+                max: [Finite::new(max.y), Finite::new(max.z)],
+                priority,
+            };
+            markers.push(marker);
+        }
+
+        let cuts: SmallVec<[Vec<Finite>; 2]> = (0_usize..2)
+            .map(|axis| {
+                let mut vec: Vec<_> = markers
+                    .iter()
+                    .map(|marker| marker.min[axis])
+                    .chain(markers.iter().map(|marker| marker.max[axis]))
+                    .collect();
+                vec.sort_unstable();
+                vec
+            })
+            .collect();
+
+        // If grids[(i, j)] == k, markers[k] is the highest marker in the grid
+        // from (cuts[0][i], cuts[1][j]) to (cuts[0][i + 1], cuts[1][j + 1])
+        let mut grids = BTreeMap::<(usize, usize), usize>::new();
+        for (marker_index, marker) in markers.iter().enumerate() {
+            let min_grid_index: SmallVec<[usize; 2]> = (0_usize..2)
+                .map(|axis| {
+                    cuts[axis]
+                        .binary_search(&marker.min[axis])
+                        .expect("Cut was inserted to Vec")
+                })
+                .collect();
+            let max_grid_index: SmallVec<[usize; 2]> = (0_usize..2)
+                .map(|axis| {
+                    cuts[axis]
+                        .binary_search(&marker.max[axis])
+                        .expect("Cut was inserted to Vec")
+                })
+                .collect();
+
+            for i in min_grid_index[0]..max_grid_index[0] {
+                for j in min_grid_index[1]..max_grid_index[1] {
+                    let key = (i, j);
+                    match grids.entry(key) {
+                        Entry::Vacant(entry) => {
+                            entry.insert(marker_index);
+                        }
+                        Entry::Occupied(mut entry) => {
+                            if markers[*entry.get()].priority < marker.priority {
+                                entry.insert(marker_index);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        log::debug!("Split objects into {} grids", grids.len());
+
+        for ((i, j), marker_index) in grids {
+            let len0 = cuts[0][i + 1].value() - cuts[0][i].value();
+            let len1 = cuts[1][j + 1].value() - cuts[1][j].value();
+            let area = len0 * len1;
+            let mut light = markers[marker_index].light.borrow_mut();
+            **light += area;
+        }
     }
 }
 
