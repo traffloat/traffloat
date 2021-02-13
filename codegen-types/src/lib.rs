@@ -103,6 +103,7 @@ pub struct Perf {
 const MAX_FRAMES: usize = 100;
 
 impl Perf {
+    /// Update a timer
     pub fn push(&self, name: &'static str, value: i64) {
         loop {
             {

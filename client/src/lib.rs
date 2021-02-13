@@ -54,6 +54,8 @@ pub fn run_app() {
 }
 
 fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    use traffloat::space::{Matrix, Position};
+
     let setup = setup
         .uses(traffloat::setup_ecs)
         .uses(input::setup_ecs)
@@ -63,7 +65,6 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     use traffloat::{
         config,
         shape::{self, Shape, Texture},
-        space::{Matrix, Position, Vector},
     };
     let id = {
         let mut t = setup

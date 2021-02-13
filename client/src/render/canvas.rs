@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use web_sys::{CanvasRenderingContext2d, WebGlRenderingContext};
 
 use traffloat::space::{Matrix, Vector};
@@ -16,26 +19,28 @@ impl Dimension {
     }
 }
 
+pub type Canvas = Rc<RefCell<CanvasStruct>>;
+
 /// Information for a canvas
-pub struct Canvas {
+pub struct CanvasStruct {
     pub bg: web_sys::WebGlRenderingContext,
     pub scene: web_sys::WebGlRenderingContext,
     pub ui: web_sys::CanvasRenderingContext2d,
     debug_count: u32,
 }
 
-impl Canvas {
+impl CanvasStruct {
     pub fn new(
         bg: WebGlRenderingContext,
         scene: WebGlRenderingContext,
         ui: CanvasRenderingContext2d,
-    ) -> Self {
-        Self {
+    ) -> Canvas {
+        Rc::new(RefCell::new(Self {
             bg,
             scene,
             ui,
             debug_count: 0,
-        }
+        }))
     }
 
     pub fn new_frame(&mut self, dim: &Dimension) {

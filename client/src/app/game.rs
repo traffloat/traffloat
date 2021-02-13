@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::time::Duration;
 
 use yew::prelude::*;
@@ -22,6 +23,7 @@ pub struct Game {
     bg_canvas_ref: NodeRef,
     scene_canvas_ref: NodeRef,
     ui_canvas_ref: NodeRef,
+    canvas_cache: Option<(render::Canvas, render::Dimension)>,
     clock_epoch: u64,
 }
 
@@ -45,6 +47,9 @@ impl Game {
 
     fn request_render(&mut self) {
         if let Some((canvas, dim)) = self.canvas_context() {
+            let canvas = Rc::clone(&canvas);
+            let dim = *dim;
+
             self.render_comm.flag.cell.replace(Some(canvas));
             let dim_ref = &mut *self
                 .legion
@@ -66,35 +71,40 @@ impl Game {
         }
     }
 
-    fn canvas_context(&self) -> Option<(render::Canvas, render::Dimension)> {
+    fn canvas_context(&mut self) -> Option<&(render::Canvas, render::Dimension)> {
         use wasm_bindgen::JsCast;
 
-        let bg_canvas = self.bg_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
-        let scene_canvas = self.scene_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
-        let ui_canvas = self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
-        let width = ui_canvas.width();
-        let height = ui_canvas.height();
+        if self.canvas_cache.is_none() {
+            let bg_canvas = self.bg_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
+            let scene_canvas = self.scene_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
+            let ui_canvas = self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
+            let width = ui_canvas.width();
+            let height = ui_canvas.height();
 
-        let bg_context = bg_canvas
-            .get_context("webgl")
-            .expect("Failed to load WebGL canvas")?
-            .dyn_into()
-            .expect("Failed to load WebGL canvas");
-        let scene_context = scene_canvas
-            .get_context("webgl")
-            .expect("Failed to load WebGL canvas")?
-            .dyn_into()
-            .expect("Failed to load WebGL canvas");
-        let ui_context = ui_canvas
-            .get_context("2d")
-            .expect("Failed to load 2D canvas")?
-            .dyn_into()
-            .expect("Failed to load 2D canvas");
-        let dim = render::Dimension { width, height };
-        Some((
-            render::Canvas::new(bg_context, scene_context, ui_context),
-            dim,
-        ))
+            let bg_context = bg_canvas
+                .get_context("webgl")
+                .expect("Failed to load WebGL canvas")?
+                .dyn_into()
+                .expect("Failed to load WebGL canvas");
+            let scene_context = scene_canvas
+                .get_context("webgl")
+                .expect("Failed to load WebGL canvas")?
+                .dyn_into()
+                .expect("Failed to load WebGL canvas");
+            let ui_context = ui_canvas
+                .get_context("2d")
+                .expect("Failed to load 2D canvas")?
+                .dyn_into()
+                .expect("Failed to load 2D canvas");
+            let dim = render::Dimension { width, height };
+
+            self.canvas_cache = Some((
+                render::CanvasStruct::new(bg_context, scene_context, ui_context),
+                dim,
+            ));
+        }
+
+        self.canvas_cache.as_ref()
     }
 
     fn on_resize(&mut self, dim: resize::WindowDimensions) {
@@ -227,6 +237,7 @@ impl Component for Game {
             bg_canvas_ref: NodeRef::default(),
             scene_canvas_ref: NodeRef::default(),
             ui_canvas_ref: NodeRef::default(),
+            canvas_cache: None,
             clock_epoch: util::high_res_time(),
             link,
         }
