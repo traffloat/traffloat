@@ -279,7 +279,7 @@ impl Component for Game {
 
     fn view(&self) -> Html {
         html! {
-            <div style="margin: 0;">
+            <div style="margin: 0; background-color: black;">
                 <canvas
                     ref=self.bg_canvas_ref.clone()
                     style="width: 100vw; height: 100vh; z-index = 1; position: absolute; x: 0; y: 0;"

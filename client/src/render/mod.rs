@@ -6,7 +6,7 @@ use crate::util::lerp;
 use codegen::hrtime;
 use traffloat::config;
 use traffloat::shape::{Shape, Texture};
-use traffloat::space::{Position, Vector};
+use traffloat::space::{Matrix, Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 use traffloat::time;
 
@@ -63,7 +63,7 @@ pub fn render(
         let perf_start = hrtime();
         {
             canvas.new_frame(dim);
-            canvas.draw_bg(0., 0., 0.);
+            canvas.draw_bg(Matrix::identity(), dim.aspect() as f32);
             // TODO draw sun
         }
         perf_read.push(
@@ -152,8 +152,6 @@ pub fn render(
             hrtime() - perf_start,
         );
     }
-
-    panic!("Test")
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {

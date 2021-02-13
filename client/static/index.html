@@ -19,7 +19,7 @@
 	</head>
 	<body>
 		<script src="index.js"></script>
-		<div>
+		<div id="noscript">
 			The game module is loading.
 			<br/>
 			Enable JavaScript to play this game.
@@ -28,5 +28,8 @@
 			it may be because your browser does not support WebAssembly.
 			Please use an updated browser. Firefox is recommended.
 		</div>
+		<script>
+			document.getElementById("noscript").style.display = "none"
+		</script>
 	</body>
 </html>

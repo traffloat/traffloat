@@ -50,7 +50,9 @@ features = [
 	"Performance",
 	"Touch",
 	"TouchList",
+	"WebGlBuffer",
 	"WebGlProgram",
 	"WebGlRenderingContext",
 	"WebGlShader",
+	"WebGlUniformLocation",
 ]
