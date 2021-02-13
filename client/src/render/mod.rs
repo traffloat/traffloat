@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use crate::camera::Camera;
 use crate::input;
-use crate::util;
+use crate::util::lerp;
 use codegen::hrtime;
 use traffloat::config;
 use traffloat::shape::{Shape, Texture};
@@ -12,14 +12,19 @@ use traffloat::time;
 
 mod canvas;
 pub use canvas::*;
-mod able;
-pub use able::*;
-mod image;
-pub use image::*;
 mod comm;
 pub use comm::*;
+mod image;
+pub use image::*;
 
-mod fps;
+mod bg;
+mod scene;
+mod ui;
+
+pub use scene::Renderable;
+
+mod util;
+use util::*;
 
 #[codegen::system]
 #[read_component(Renderable)]
@@ -32,8 +37,8 @@ pub fn render(
     world: &legion::world::SubWorld,
     #[resource] comm: &mut Comm,
     #[state(Default::default())] image_store: &mut ImageStore,
-    #[state(Default::default())] render_fps: &mut fps::Counter,
-    #[state(Default::default())] simul_fps: &mut fps::Counter,
+    #[state(Default::default())] render_fps: &mut ui::fps::Counter,
+    #[state(Default::default())] simul_fps: &mut ui::fps::Counter,
     #[resource] camera: &Camera,
     #[resource] clock: &time::Clock,
     #[resource] sun: &Sun,
@@ -88,7 +93,7 @@ pub fn render(
                         light.brightness()[base_month.floor() as usize % MONTH_COUNT];
                     let brightness_next =
                         light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
-                    util::lerp(brightness_prev, brightness_next, base_month.fract())
+                    lerp(brightness_prev, brightness_next, base_month.fract())
                 };
 
                 // TODO draw image on projection * unit_to_real with lighting = brightness
@@ -147,6 +152,8 @@ pub fn render(
             hrtime() - perf_start,
         );
     }
+
+    panic!("Test")
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {

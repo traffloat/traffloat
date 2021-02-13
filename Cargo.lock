@@ -982,7 +982,6 @@ name = "traffloat-client"
 version = "0.2.0"
 dependencies = [
  "anyhow",
- "console_error_panic_hook",
  "derive-new",
  "enum-map",
  "getrandom 0.2.2",

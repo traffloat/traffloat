@@ -28,9 +28,18 @@ pub fn measure(closure: impl FnOnce()) -> u64 {
 
 #[wasm_bindgen(module = "/js/reified.js")]
 extern "C" {
-    fn reify_promise(value: JsValue) -> JsValue;
-    fn reified_state(value: JsValue) -> u8;
-    fn reified_value(value: JsValue) -> JsValue;
+    unsafe fn reify_promise(value: JsValue) -> JsValue;
+    unsafe fn reified_state(value: JsValue) -> u8;
+    unsafe fn reified_value(value: JsValue) -> JsValue;
+}
+
+#[wasm_bindgen(module = "/js/error.js")]
+extern "C" {
+    unsafe fn handle_error(value: JsValue);
+}
+
+pub fn error_handler(value: &str) {
+    handle_error(value.into());
 }
 
 pub struct ReifiedPromise<T> {

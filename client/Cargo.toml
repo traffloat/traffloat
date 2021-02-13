@@ -13,7 +13,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1.0.38"
-console_error_panic_hook = "0.1.6"
 derive-new = "0.5.8"
 enum-map = "0.6.4"
 getrandom = {version = "0.2.2", features = ["js"]}
@@ -51,5 +50,7 @@ features = [
 	"Performance",
 	"Touch",
 	"TouchList",
+	"WebGlProgram",
 	"WebGlRenderingContext",
+	"WebGlShader",
 ]
