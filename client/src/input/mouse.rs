@@ -1,7 +1,11 @@
 //! Keyboard input handler
 
+use std::ops::Sub;
+
+use enum_map::EnumMap;
 use legion::Entity;
 
+use super::keyboard;
 use crate::camera::Camera;
 use crate::render;
 use traffloat::shape::Shape;
@@ -21,81 +25,130 @@ pub struct WheelEvent {
     pub delta: f64,
 }
 
-/// The object pointed by the cursor
-pub struct CursorPosition {
-    /// The pointed position, or None if MouseEvent was never fired
-    pub pos: Option<Position>,
-    /// The pointed entity, or the canvas position if mouse is not pointing to a Clickable
-    ///
-    /// This value is invalid if `pos` is None.
-    pub entity: Result<Entity, (f64, f64)>,
+/// The screen position of the cursor, scaled to the [0, 1]^2 square.
+///
+/// (0, 0) is the lower left corner of the screen.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct CursorPosition(pub Option<ScreenPosition>);
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ScreenPosition {
+    pub x: f64,
+    pub y: f64,
 }
 
-impl Default for CursorPosition {
-    fn default() -> Self {
-        Self {
-            pos: None,
-            entity: Err((0., 0.)),
-        }
+impl Sub<ScreenPosition> for ScreenPosition {
+    type Output = (f64, f64);
+
+    fn sub(self, other: Self) -> Self::Output {
+        (
+            self.x - other.x,
+            self.y - other.y,
+        )
     }
 }
 
 /// Marker component for clickable entities
 pub struct Clickable(pub bool);
 
+#[derive(Debug, Clone, Copy)]
+enum DragState {
+    None,
+    Drag {
+        start: ScreenPosition,
+        last: ScreenPosition,
+    },
+}
+
+impl Default for DragState {
+    fn default() -> Self {
+        DragState::None
+    }
+}
+
+pub enum DragEvent {
+    Start {
+        action: keyboard::Action,
+        position: ScreenPosition,
+    },
+    Move {
+        action: keyboard::Action,
+        start: ScreenPosition,
+        prev: ScreenPosition,
+        now: ScreenPosition,
+    },
+    End {
+        action: keyboard::Action,
+        start: ScreenPosition,
+        end: ScreenPosition,
+    },
+}
+
 #[codegen::system]
 #[allow(clippy::too_many_arguments)]
-#[read_component(Shape)]
-#[read_component(Position)]
-#[read_component(Clickable)]
 #[thread_local]
 fn input(
-    world: &mut legion::world::SubWorld,
-    #[subscriber] mouse_events: impl Iterator<Item = MouseEvent>,
-    #[state(None)] current_cursor: &mut Option<(f64, f64)>,
-    #[resource] camera: &Camera,
-    #[resource] cursor: &mut CursorPosition,
-    #[resource] dim: &render::Dimension,
-    #[resource] comm: &render::Comm,
+    #[resource] cursor: &ScreenPosition,
+    #[resource] actions: &keyboard::ActionSet,
+    #[resource] drag_events: &mut shrev::EventChannel<DragEvent>,
+    #[state(Default::default())] drag_states: &mut EnumMap<keyboard::Action, DragState>,
 ) {
-    for event in mouse_events {
-        match event {
-            MouseEvent::Move { x, y } => {
-                *current_cursor = Some((*x, *y));
+    #[allow(clippy::indexing_slicing)]
+    for &action in &[
+        keyboard::Action::LeftClick,
+        keyboard::Action::MiddleClick,
+        keyboard::Action::RightClick,
+    ] {
+        let state = &mut drag_states[action];
+
+        match (*state, actions[action]) {
+            (DragState::None, false) => {} // never dragging
+            (DragState::None, true) => {
+                // start dragging
+                *state = DragState::Drag {
+                    start: *cursor,
+                    last: *cursor,
+                };
+                drag_events.single_write(DragEvent::Start {
+                    action,
+                    position: *cursor,
+                });
+            }
+            (DragState::Drag { start, last }, true) => {
+                // continue dragging
+                *state = DragState::Drag {
+                    start,
+                    last: *cursor,
+                };
+                drag_events.single_write(DragEvent::Move {
+                    action,
+                    start,
+                    prev: last,
+                    now: *cursor,
+                });
+            }
+            (DragState::Drag { start, last }, false) => {
+                // stop dragging
+                *state = DragState::None;
+                drag_events.single_write(DragEvent::Move {
+                    action,
+                    start,
+                    prev: last,
+                    now: *cursor,
+                });
+                drag_events.single_write(DragEvent::End {
+                    action,
+                    start,
+                    end: *cursor,
+                });
             }
         }
-    }
-
-    if let Some((mut x, mut y)) = *current_cursor {
-        use legion::IntoQuery;
-
-        x /= dim.width as f64;
-        y /= dim.height as f64;
-
-        /*
-        TODO
-        cursor.entity = Err((x, y));
-        comm.canvas_cursor_type.set("initial");
-        for (entity, &position, shape, clickable) in
-            <(Entity, &Position, &Shape, &Clickable)>::query().iter(world)
-        {
-            if !clickable.0 { continue; }
-
-            let point = shape
-                .transform(position)
-                .try_inverse()
-                .expect("Transformation matrix is singular")
-                .transform_point(&real_pos.0);
-            if shape.unit.contains(point) {
-                cursor.entity = Ok(*entity);
-                comm.canvas_cursor_type.set("pointer");
-                break;
-            }
-        }
-        */
     }
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.resource(CursorPosition::default()).uses(input_setup)
+    setup
+        .publish::<DragEvent>()
+        .resource(CursorPosition::default())
+        .uses(input_setup)
 }

@@ -2,7 +2,12 @@
 
 use enum_map::EnumMap;
 
+/// The set of currently active actions
 pub type ActionSet = EnumMap<Action, bool>;
+
+/// The ActionSet in the last tick
+#[derive(Default)]
+pub struct PrevActionSet(pub ActionSet);
 
 #[derive(Debug)]
 pub struct KeyEvent {
@@ -68,7 +73,10 @@ impl KeyEvent {
 fn input(
     #[subscriber] key_events: impl Iterator<Item = KeyEvent>,
     #[resource] key_set: &mut ActionSet,
+    #[resource] prev_key_set: &mut PrevActionSet,
 ) {
+    prev_key_set.0 = key_set.clone();
+
     #[allow(clippy::indexing_slicing)]
     for event in key_events {
         key_set[event.code] = event.down;
@@ -76,5 +84,8 @@ fn input(
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.resource(ActionSet::default()).uses(input_setup)
+    setup
+        .resource(ActionSet::default())
+        .resource(PrevActionSet::default())
+        .uses(input_setup)
 }

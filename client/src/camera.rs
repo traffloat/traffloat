@@ -1,11 +1,12 @@
 use std::f64::consts::PI;
 use std::sync::Mutex;
 
+use legion::Entity;
+
 use crate::{config, input, render};
+use traffloat::shape::Shape;
 use traffloat::space::{Matrix, Point, Position, Vector};
 use traffloat::time;
-
-const DRAG_DEADZONE: u32 = 5;
 
 mod unsafe_proj {
     use super::*;
@@ -136,17 +137,26 @@ impl Camera {
     }
 }
 
+#[derive(getset::CopyGetters, Default)]
+pub struct CursorTarget {
+    /// The line segment from the closest point to the furthest point
+    #[getset(get_copy = "pub")]
+    segment: Option<(Position, Position)>,
+
+    /// The entity pointed by the mouse
+    #[getset(get_copy = "pub")]
+    entity: Option<Entity>,
+}
+
 #[codegen::system]
 #[allow(clippy::indexing_slicing, clippy::too_many_arguments)]
 fn camera(
     #[resource] camera: &mut Camera,
     #[resource] actions: &input::keyboard::ActionSet,
     #[resource] clock: &time::Clock,
-    #[resource] cursor_position: &input::mouse::CursorPosition,
     #[resource] dim: &render::Dimension,
     #[subscriber] wheel_events: impl Iterator<Item = input::mouse::WheelEvent>,
-    #[state(None)] drag_start: &mut Option<(Position, (f64, f64))>,
-    #[state(DRAG_DEADZONE)] drag_deadzone_count: &mut u32,
+    #[subscriber] drag_events: impl Iterator<Item = input::mouse::DragEvent>,
 ) {
     let dt = clock.delta.value() as f64;
 
@@ -195,6 +205,56 @@ fn camera(
     if camera.aspect() != dim.aspect() {
         camera.set_aspect(dim.aspect());
     }
+
+    for event in drag_events {
+        let (action, prev, now) = match event {
+            input::mouse::DragEvent::Move { action, prev, now, .. } => (action, prev, now),
+            _ => continue,
+        };
+
+        let delta = *now - *prev;
+        match action {
+            input::keyboard::Action::LeftClick => {
+                // TODO rotation
+            }
+            input::keyboard::Action::RightClick => {
+                // TODO motion
+            }
+            _ => {} // unused
+        }
+    }
+}
+
+#[codegen::system]
+#[read_component(Shape)]
+#[read_component(Position)]
+#[read_component(input::mouse::Clickable)]
+fn locate_cursor(
+    world: &mut legion::world::SubWorld,
+    #[resource] cursor: &input::mouse::CursorPosition,
+    #[resource] target: &mut CursorTarget,
+) {
+    /*
+    TODO
+    cursor.entity = Err((x, y));
+    comm.canvas_cursor_type.set("initial");
+    for (entity, &position, shape, clickable) in
+        <(Entity, &Position, &Shape, &Clickable)>::query().iter(world)
+    {
+        if !clickable.0 { continue; }
+
+        let point = shape
+            .transform(position)
+            .try_inverse()
+            .expect("Transformation matrix is singular")
+            .transform_point(&real_pos.0);
+        if shape.unit.contains(point) {
+            cursor.entity = Ok(*entity);
+            comm.canvas_cursor_type.set("pointer");
+            break;
+        }
+    }
+    */
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
@@ -209,5 +269,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
                 .fovy(PI / 4.)
                 .build(),
         )
+        .resource(CursorTarget::default())
         .uses(camera_setup)
+        .uses(locate_cursor_setup)
 }

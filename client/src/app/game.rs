@@ -148,12 +148,6 @@ impl Game {
     }
 
     fn on_mouse_move(&mut self, x: i32, y: i32) {
-        let mut channel = self
-            .legion
-            .resources
-            .get_mut::<shrev::EventChannel<input::mouse::MouseEvent>>()
-            .expect("EventChannel<MouseEvent> uninitialized");
-
         let canvas = match self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
             Some(canvas) => canvas,
             None => return,
@@ -162,7 +156,12 @@ impl Game {
         let x = (x as f64) / (canvas.width() as f64);
         let y = (y as f64) / (canvas.height() as f64);
 
-        channel.single_write(input::mouse::MouseEvent::Move { x, y });
+        let mut pos = self
+            .legion
+            .resources
+            .get_mut::<input::mouse::CursorPosition>()
+            .expect("CursorPosition is uninitialized");
+        pos.0 = Some(input::mouse::ScreenPosition { x, y });
     }
 
     fn on_mouse_click(&mut self, button: i16, down: bool) {

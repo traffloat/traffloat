@@ -44,7 +44,6 @@ pub fn render(
     #[resource] sun: &Sun,
     #[resource] dim: &Dimension,
     #[resource] textures: &config::Store<Texture>,
-    #[resource] cursor: &input::mouse::CursorPosition,
     #[resource] perf_read: &mut codegen::Perf,
 ) {
     use legion::IntoQuery;
@@ -146,7 +145,7 @@ pub fn render(
                 ));
             }
 
-            if let Some(pos) = cursor.pos.as_ref() {
+            /*if let Some(pos) = cursor.pos.as_ref() {
                 let entity = cursor.entity.as_ref();
                 canvas.write_debug(format!(
                     "Cursor position: ({:.1}, {:.1}) ({:?})",
@@ -154,7 +153,7 @@ pub fn render(
                     pos.y(),
                     entity,
                 ));
-            }
+            }*/
         }
         perf_read.push(
             concat!(module_path!(), "::render::ui"),
