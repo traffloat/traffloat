@@ -63,7 +63,16 @@ pub fn render(
         let perf_start = hrtime();
         {
             canvas.new_frame(dim);
-            canvas.draw_bg(Matrix::identity(), dim.aspect() as f32);
+
+            let rot = match nalgebra::Rotation3::rotation_between(
+                &(camera.rotation().transform_vector(&Vector::new(0., 0., 1.))),
+                &sun.direction(),
+            ) {
+                Some(rot) => rot.matrix().to_homogeneous(),
+                None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
+            };
+            canvas.draw_bg(rot, dim.aspect() as f32);
+
             // TODO draw sun
         }
         perf_read.push(
