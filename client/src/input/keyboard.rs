@@ -3,7 +3,8 @@
 use enum_map::EnumMap;
 
 /// The set of currently active actions
-pub type ActionSet = EnumMap<Action, bool>;
+#[derive(Clone, Default, derive_more::Index, derive_more::IndexMut)]
+pub struct ActionSet(pub EnumMap<Action, bool>);
 
 /// The ActionSet in the last tick
 #[derive(Default)]
@@ -84,8 +85,5 @@ fn input(
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup
-        .resource(ActionSet::default())
-        .resource(PrevActionSet::default())
-        .uses(input_setup)
+    setup.uses(input_setup)
 }

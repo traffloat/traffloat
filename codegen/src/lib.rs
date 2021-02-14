@@ -265,7 +265,8 @@ fn system_imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStre
 
         let mut arg_attrs: Vec<_> = arg_attrs.iter().collect();
 
-        if arg_attrs.iter().any(|attr| attr.path.is_ident("resource")) {
+        if let Some(attr) = arg_attrs.iter().find(|attr| attr.path.is_ident("resource")) {
+            let mut is_perf = false;
             if let syn::Type::Reference(ty) = &**ty {
                 if let syn::Type::Path(path) = &*ty.elem {
                     if path
@@ -276,7 +277,29 @@ fn system_imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStre
                         .collect::<Vec<_>>()
                         == ["codegen", "Perf"]
                     {
-                        perf_name = Some(quote!(#pat));
+                        is_perf = true;
+                    }
+                }
+            }
+            if is_perf {
+                perf_name = Some(quote!(#pat));
+            } else {
+                let mut no_init = false;
+                let args = attr.parse_meta()?;
+                if let syn::Meta::List(list) = &args {
+                    for arg in &list.nested {
+                        if let syn::NestedMeta::Meta(meta) = arg {
+                            no_init =
+                                matches!(meta, syn::Meta::Path(path) if path.is_ident("no_init"));
+                        }
+                    }
+                }
+                if !no_init {
+                    if let syn::Type::Reference(ty) = &**ty {
+                        let elem = &*ty.elem;
+                        assigns.push(quote! {
+                                setup = setup.resource(<#elem>::default());
+                        });
                     }
                 }
             }

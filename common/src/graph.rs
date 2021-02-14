@@ -107,5 +107,5 @@ fn delete_nodes(
 
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.resource(Graph::default()).uses(delete_nodes_setup)
+    setup.uses(delete_nodes_setup)
 }

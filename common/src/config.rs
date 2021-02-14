@@ -75,6 +75,8 @@ impl<T: Config> Ord for Id<T> {
 }
 
 /// A storage for a configuration type
+///
+/// Each `T: Config` is going to be a separate resource.
 #[derive(Debug)]
 pub struct Store<T: Config> {
     values: Vec<Option<T>>,
@@ -137,5 +139,5 @@ impl Default for Scalar {
 
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.resource(Scalar::default())
+    setup
 }

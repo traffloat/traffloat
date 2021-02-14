@@ -41,10 +41,7 @@ impl Sub<ScreenPosition> for ScreenPosition {
     type Output = (f64, f64);
 
     fn sub(self, other: Self) -> Self::Output {
-        (
-            self.x - other.x,
-            self.y - other.y,
-        )
+        (self.x - other.x, self.y - other.y)
     }
 }
 
@@ -147,8 +144,5 @@ fn input(
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup
-        .publish::<DragEvent>()
-        .resource(CursorPosition::default())
-        .uses(input_setup)
+    setup.publish::<DragEvent>().uses(input_setup)
 }

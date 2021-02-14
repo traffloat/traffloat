@@ -49,7 +49,7 @@ impl SetupEcs {
 
     /// Add a resource
     pub fn resource(mut self, res: impl legion::systems::Resource) -> Self {
-        self.resources.insert(res);
+        let _ = self.resources.get_or_insert(res);
         self
     }
     /// Declare a published event

@@ -137,6 +137,19 @@ impl Camera {
     }
 }
 
+impl Default for Camera {
+    fn default() -> Self {
+        Camera::builder()
+            .focus(Position::new(0., 0., 0.))
+            .rotation(Matrix::identity())
+            .aspect(1.)
+            .zoom(0.)
+            .distance(100.)
+            .fovy(PI / 4.)
+            .build()
+    }
+}
+
 #[derive(getset::CopyGetters, Default)]
 pub struct CursorTarget {
     /// The line segment from the closest point to the furthest point
@@ -154,7 +167,7 @@ fn camera(
     #[resource] camera: &mut Camera,
     #[resource] actions: &input::keyboard::ActionSet,
     #[resource] clock: &time::Clock,
-    #[resource] dim: &render::Dimension,
+    #[resource(no_init)] dim: &render::Dimension,
     #[subscriber] wheel_events: impl Iterator<Item = input::mouse::WheelEvent>,
     #[subscriber] drag_events: impl Iterator<Item = input::mouse::DragEvent>,
 ) {
@@ -208,7 +221,9 @@ fn camera(
 
     for event in drag_events {
         let (action, prev, now) = match event {
-            input::mouse::DragEvent::Move { action, prev, now, .. } => (action, prev, now),
+            input::mouse::DragEvent::Move {
+                action, prev, now, ..
+            } => (action, prev, now),
             _ => continue,
         };
 
@@ -258,18 +273,5 @@ fn locate_cursor(
 }
 
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup
-        .resource(
-            Camera::builder()
-                .focus(Position::new(0., 0., 0.))
-                .rotation(Matrix::identity())
-                .aspect(1.)
-                .zoom(0.)
-                .distance(100.)
-                .fovy(PI / 4.)
-                .build(),
-        )
-        .resource(CursorTarget::default())
-        .uses(camera_setup)
-        .uses(locate_cursor_setup)
+    setup.uses(camera_setup).uses(locate_cursor_setup)
 }

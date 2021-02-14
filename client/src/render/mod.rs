@@ -42,7 +42,7 @@ pub fn render(
     #[resource] camera: &Camera,
     #[resource] clock: &time::Clock,
     #[resource] sun: &Sun,
-    #[resource] dim: &Dimension,
+    #[resource(no_init)] dim: &Dimension,
     #[resource] textures: &config::Store<Texture>,
     #[resource] perf_read: &mut codegen::Perf,
 ) {

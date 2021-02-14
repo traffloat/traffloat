@@ -72,7 +72,7 @@ impl SubAssign<Time> for Instant {
 #[derive(Debug, Default)]
 pub struct Clock {
     /// The current time
-    pub now: Instant,
+    pub now: Instant, // TODO multiplayer calibration
     /// Time since the last frame
     pub delta: Time,
 }
@@ -108,8 +108,5 @@ impl<T: ProtoType + BinRead + BinWrite + Mul<f64, Output = T>> std::ops::Mul<Tim
 
 /// Initializes the time module.
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.resource(Clock {
-        now: Instant::default(), // TODO multiplayer calibration
-        delta: Time::default(),
-    })
+    setup
 }

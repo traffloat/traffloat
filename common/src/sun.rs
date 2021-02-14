@@ -173,8 +173,5 @@ fn shadow_cast(
 
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup
-        .resource(Sun::default())
-        .uses(move_sun_setup)
-        .uses(shadow_cast_setup)
+    setup.uses(move_sun_setup).uses(shadow_cast_setup)
 }

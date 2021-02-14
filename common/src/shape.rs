@@ -194,5 +194,5 @@ impl Config for Texture {}
 
 /// Initializes systems
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.resource(config::Store::<Texture>::default())
+    setup
 }
