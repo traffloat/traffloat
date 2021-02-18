@@ -193,8 +193,6 @@ fn camera(
         move_direction += Vector::new(0., 0., config::WASD_VELOCITY * dt);
     }
     if move_direction != Vector::new(0., 0., 0.) {
-        use nalgebra::dimension;
-
         let dp = camera.rotation().transform_vector(&move_direction);
         camera.set_focus(camera.focus() + dp);
     }
@@ -245,7 +243,7 @@ fn camera(
 #[read_component(Position)]
 #[read_component(input::mouse::Clickable)]
 fn locate_cursor(
-    world: &mut legion::world::SubWorld,
+    world: &legion::world::SubWorld,
     #[resource] cursor: &input::mouse::CursorPosition,
     #[resource] target: &mut CursorTarget,
 ) {

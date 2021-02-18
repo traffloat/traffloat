@@ -3,13 +3,8 @@
 use std::ops::Sub;
 
 use enum_map::EnumMap;
-use legion::Entity;
 
 use super::keyboard;
-use crate::camera::Camera;
-use crate::render;
-use traffloat::shape::Shape;
-use traffloat::space::{Position, Vector};
 
 /// Mouse motion event
 ///

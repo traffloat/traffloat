@@ -34,6 +34,7 @@ shrev = "1.1.1"
 strum = {version = "0.20.0", features = ["derive"]}
 traffloat-codegen = {version = "0.2.0", path = "../codegen-types", features = ["web-sys"]}
 traffloat-common = {version = "0.2.0", path = "../common"}
+traffloat-safety = {version = "0.2.0", path = "../safety"}
 typed-builder = "0.9.0"
 wasm-bindgen = {version = "0.2.69"}
 wasm-logger = "0.2.0"

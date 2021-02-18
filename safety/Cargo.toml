@@ -1,0 +1,12 @@
+[package]
+name = "traffloat-safety"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.2.0"
+edition = "2018"
+repository = "https://github.com/SOF3/traffloat"
+homepage = "https://github.com/SOF3/traffloat"
+description = "Safety wrappers"
+license = "AGPL-3.0"
+
+[lib]
+name = "safety"

@@ -22,5 +22,6 @@ ratio-def = "0.3.1"
 shrev = "1.1.1"
 smallvec = "1.6.1"
 traffloat-codegen = {version = "0.2.0", path = "../codegen-types"}
+traffloat-safety = {version = "0.2.0", path = "../safety"}
 typed-builder = "0.9.0"
 yew = {version = "0.17.4", optional = true, default-features = false}

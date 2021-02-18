@@ -1,9 +1,9 @@
 use std::f64::consts::PI;
 
 use crate::camera::Camera;
-use crate::input;
 use crate::util::lerp;
 use codegen::hrtime;
+use safety::Safety;
 use traffloat::config;
 use traffloat::shape::{Shape, Texture};
 use traffloat::space::{Matrix, Position, Vector};
@@ -24,7 +24,6 @@ mod ui;
 pub use scene::Renderable;
 
 mod util;
-use util::*;
 
 #[codegen::system]
 #[read_component(Renderable)]
@@ -70,7 +69,7 @@ pub fn render(
                 Some(rot) => rot.matrix().to_homogeneous(),
                 None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
             };
-            canvas.draw_bg(rot, dim.aspect() as f32);
+            canvas.draw_bg(rot, dim.aspect().lossy_trunc());
         }
         perf_read.push(
             concat!(module_path!(), "::render::bg"),

@@ -1,5 +1,6 @@
 [workspace]
 members = [
+	"safety",
 	"codegen",
 	"codegen-types",
 	"common",

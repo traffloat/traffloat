@@ -21,7 +21,6 @@ impl Time {
     /// Converts the time span to number of seconds.
     ///
     /// This value is not precise and shall not be used for critical logic.
-    #[allow(clippy::cast_precision_loss)]
     pub fn as_secs(self) -> f64 {
         self.value() as f64 * 0.01
     }
@@ -100,9 +99,8 @@ pub struct Rate<T: ProtoType + BinRead + BinWrite>(pub T);
 impl<T: ProtoType + BinRead + BinWrite + Mul<f64, Output = T>> std::ops::Mul<Time> for Rate<T> {
     type Output = T;
 
-    #[allow(clippy::cast_precision_loss)]
     fn mul(self, time: Time) -> T {
-        self.0 * (time.0 as f64)
+        self.0 * (time.value() as f64)
     }
 }
 

@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use web_sys::{CanvasRenderingContext2d, WebGlRenderingContext};
 
-use traffloat::space::{Matrix, Vector};
+use traffloat::space::Matrix;
 
 /// The dimension of a canvas
 #[derive(Debug, Clone, Copy)]

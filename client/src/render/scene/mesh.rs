@@ -1,5 +1,4 @@
 use typed_builder::TypedBuilder;
-use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use crate::render::util;
 

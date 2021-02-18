@@ -12,6 +12,7 @@ use crate::space::{Position, Vector};
 use crate::time;
 use crate::util::Finite;
 use crate::SetupEcs;
+use safety::Safety;
 
 /// The position of the sun
 #[derive(Default, getset::CopyGetters)]
@@ -86,8 +87,7 @@ fn shadow_cast(
 
         for (stats, &position, shape) in query.iter_mut(world) {
             // Sun rotates from +x towards +y, normal to +z
-            #[allow(clippy::cast_precision_loss)] // month can fit in a byte
-            let yaw = { PI * 2. / (MONTH_COUNT as f64) * (month as f64) };
+            let yaw: f64 = PI * 2. / MONTH_COUNT.small_float::<f64>() * month.small_float::<f64>();
 
             // rot is the rotation matrix from the real coordinates to the time when yaw=0
             let rot = nalgebra::Rotation3::from_axis_angle(&Vector::z_axis(), -yaw)

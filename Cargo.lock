@@ -1014,6 +1014,7 @@ dependencies = [
  "strum",
  "traffloat-codegen",
  "traffloat-common",
+ "traffloat-safety",
  "typed-builder",
  "wasm-bindgen",
  "wasm-logger",
@@ -1057,9 +1058,14 @@ dependencies = [
  "shrev",
  "smallvec",
  "traffloat-codegen",
+ "traffloat-safety",
  "typed-builder",
  "yew",
 ]
+
+[[package]]
+name = "traffloat-safety"
+version = "0.2.0"
 
 [[package]]
 name = "typed-builder"

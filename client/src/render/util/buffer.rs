@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use web_sys::{WebGlBuffer, WebGlProgram, WebGlRenderingContext};
 
 pub struct FloatBuffer {
@@ -62,7 +64,7 @@ impl IndexBuffer {
         Self {
             buffer,
             component_size,
-            len: data.len() as i32,
+            len: data.len().try_into().expect("Buffer is too large"),
         }
     }
 

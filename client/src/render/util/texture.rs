@@ -1,9 +1,8 @@
 use std::cell;
 use std::rc::Rc;
 
-use web_sys::{WebGlRenderingContext, WebGlTexture, ImageBitmap, WebGlUniformLocation};
+use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture, WebGlUniformLocation};
 
-use traffloat::config;
 use crate::render::MaybeBitmap;
 
 /// A 2D WebGL texture
@@ -31,22 +30,23 @@ impl Texture {
         let texture = gl.create_texture().expect("Failed to create WebGL texture");
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&texture));
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
-            WebGlRenderingContext::TEXTURE_2D, // target
-            0, // level
-            WebGlRenderingContext::ALPHA as i32, // internalFormat
-            1, // width
-            1, // height
-            0, // border
-            WebGlRenderingContext::ALPHA, // format
+            WebGlRenderingContext::TEXTURE_2D,    // target
+            0,                                    // level
+            WebGlRenderingContext::ALPHA as i32,  // internalFormat
+            1,                                    // width
+            1,                                    // height
+            0,                                    // border
+            WebGlRenderingContext::ALPHA,         // format
             WebGlRenderingContext::UNSIGNED_BYTE, // type
             Some(b"\0"),
-        ).expect("Failed to initialize to WebGL texture");
+        )
+        .expect("Failed to initialize to WebGL texture");
 
         Self {
             cell: cell::RefCell::new(MaybeTexture::Pending(PendingTexture {
                 bitmap,
                 texture: Some(texture),
-            }))
+            })),
         }
     }
 
@@ -57,13 +57,14 @@ impl Texture {
         fn init_texture(gl: &WebGlRenderingContext, ib: &ImageBitmap, texture: &WebGlTexture) {
             gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(texture));
             gl.tex_image_2d_with_u32_and_u32_and_image_bitmap(
-                WebGlRenderingContext::TEXTURE_2D, // target,
-                0, // level
-                WebGlRenderingContext::RGBA as i32, // internalformat
-                WebGlRenderingContext::RGBA, // format
+                WebGlRenderingContext::TEXTURE_2D,    // target,
+                0,                                    // level
+                WebGlRenderingContext::RGBA as i32,   // internalformat
+                WebGlRenderingContext::RGBA,          // format
                 WebGlRenderingContext::UNSIGNED_BYTE, // type
-                ib, // pixels
-            ).expect("Failed to assign WebGL texture");
+                ib,                                   // pixels
+            )
+            .expect("Failed to assign WebGL texture");
             gl.generate_mipmap(WebGlRenderingContext::TEXTURE_2D);
         }
 

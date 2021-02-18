@@ -12,7 +12,8 @@ pub struct ImageStore {
 
 impl ImageStore {
     pub fn fetch(&mut self, id: config::Id<Texture>, texture: &Texture) -> Rc<MaybeBitmap> {
-        let rc = self.images
+        let rc = self
+            .images
             .entry(id)
             .or_insert_with(|| Rc::new(create_bitmap(texture)));
         Rc::clone(rc)

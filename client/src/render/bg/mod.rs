@@ -1,6 +1,7 @@
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::util::{self, WebglExt};
+use safety::Safety;
 use traffloat::space::Matrix;
 
 pub fn setup(gl: WebGlRenderingContext) -> Setup {
@@ -62,12 +63,8 @@ impl Setup {
 
     pub fn draw_sun(&self, rot: Matrix, aspect: f32) {
         self.gl.use_program(Some(&self.sun_prog));
-        let rot = util::GlMatrix::from_iterator(rot.iter().map(|&f| f as f32));
-        self.gl.set_uniform(
-            &self.sun_prog,
-            "u_sun_mat",
-            util::GlMatrix::from_iterator(rot.iter().map(|&f| f as f32)),
-        );
+        let rot = util::GlMatrix::from_iterator(rot.iter().map(|&f| f.lossy_trunc()));
+        self.gl.set_uniform(&self.sun_prog, "u_sun_mat", rot);
         self.gl.set_uniform(
             &self.sun_prog,
             "u_color",

@@ -8,6 +8,7 @@ use super::GameArgs;
 use crate::input;
 use crate::render;
 use crate::util;
+use safety::Safety;
 use traffloat::time::{Clock, Instant, Time};
 use traffloat::SetupEcs;
 
@@ -29,7 +30,6 @@ pub struct Game {
 
 impl Game {
     fn simulate(&mut self) {
-        #[allow(clippy::cast_precision_loss, clippy::cast_possible_truncation)]
         {
             let mut clock = self
                 .legion
@@ -37,8 +37,8 @@ impl Game {
                 .get_mut::<Clock>()
                 .expect("Clock was uninitialized");
 
-            let delta = (util::high_res_time() - self.clock_epoch) as f64 / 10000.;
-            clock.set_time(Instant(Time(delta as u32)));
+            let delta = (util::high_res_time() - self.clock_epoch).small_float() / 10000.;
+            clock.set_time(Instant(Time(delta.trunc_int())));
         }
 
         let time = util::measure(|| self.legion.run());

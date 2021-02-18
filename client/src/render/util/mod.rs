@@ -1,7 +1,3 @@
-use web_sys::{WebGlBuffer, WebGlProgram, WebGlRenderingContext, WebGlUniformLocation};
-
-use traffloat::space::{Matrix, Vector};
-
 mod types;
 pub use types::*;
 
