@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = "1.0.38"
 derive-new = "0.5.8"
-derive_more = "0.99.11"
+derive_more = {version = "0.99.11", default-features = false, features = ["index", "index_mut"]}
 enum-map = "0.6.4"
 getrandom = {version = "0.2.2", features = ["js"]}
 getset = "0.1.1"

@@ -71,8 +71,6 @@ pub fn render(
                 None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
             };
             canvas.draw_bg(rot, dim.aspect() as f32);
-
-            // TODO draw sun
         }
         perf_read.push(
             concat!(module_path!(), "::render::bg"),
@@ -105,6 +103,7 @@ pub fn render(
                 };
 
                 // TODO draw image on projection * unit_to_real with lighting = brightness
+                canvas.draw_object(projection * unit_to_real);
             }
         }
         perf_read.push(

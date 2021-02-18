@@ -185,7 +185,7 @@ mod tests {
 /// The texture of a rendered object
 #[derive(Debug, new, getset::Getters)]
 pub struct Texture {
-    /// A URL compatible with `<img src>`
+    /// A URL to an image file
     #[getset(get = "pub")]
     url: String,
 }

@@ -24,7 +24,7 @@ pub type Canvas = Rc<RefCell<CanvasStruct>>;
 /// Information for a canvas
 pub struct CanvasStruct {
     bg: super::bg::Setup,
-    scene: web_sys::WebGlRenderingContext,
+    scene: super::scene::Setup,
     ui: web_sys::CanvasRenderingContext2d,
     debug_count: u32,
 }
@@ -36,6 +36,7 @@ impl CanvasStruct {
         ui: CanvasRenderingContext2d,
     ) -> Canvas {
         let bg = super::bg::setup(bg);
+        let scene = super::scene::setup(scene);
 
         Rc::new(RefCell::new(Self {
             bg,
@@ -46,7 +47,7 @@ impl CanvasStruct {
     }
 
     pub fn new_frame(&mut self, dim: &Dimension) {
-        self.scene.clear_color(0., 0., 0., 0.);
+        self.scene.clear();
 
         self.ui
             .reset_transform()
@@ -74,10 +75,11 @@ impl CanvasStruct {
     pub fn draw_bg(&self, rot: Matrix, aspect: f32) {
         self.bg.draw_bg(rot, aspect);
 
-        self.scene.clear_color(0., 0., 0., 0.);
-        self.scene.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
-
         // TODO draw stars
+    }
+
+    pub fn draw_object(&self, proj: Matrix) {
+        self.scene.draw(proj);
     }
 }
 
