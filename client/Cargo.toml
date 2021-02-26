@@ -36,7 +36,7 @@ traffloat-codegen = {version = "0.2.0", path = "../codegen-types", features = ["
 traffloat-common = {version = "0.2.0", path = "../common"}
 traffloat-safety = {version = "0.2.0", path = "../safety"}
 typed-builder = "0.9.0"
-wasm-bindgen = {version = "0.2.69"}
+wasm-bindgen = {version = "0.2.71"}
 wasm-logger = "0.2.0"
 yew = {version = "0.17.4", default-features = false, features = ["services", "web_sys"]}
 
