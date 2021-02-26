@@ -19,7 +19,7 @@ enum-map = "0.6.4"
 getrandom = {version = "0.2.2", features = ["js"]}
 getset = "0.1.1"
 hex = "0.4.2"
-js-sys = "0.3.47"
+js-sys = "0.3.48"
 lazy_static = "1.4.0"
 legion = {version = "0.3.1", default-features = false, features = ["codegen"]}
 log = "0.4.14"
