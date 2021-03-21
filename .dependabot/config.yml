@@ -7,3 +7,10 @@ update_configs:
       - match:
           dependency_type: all
           update_type: in_range
+  - package_manager: javascript
+    directory: /client
+    update_schedule: live
+    automerged_updates:
+      - match:
+          dependency_type: all
+          update_type: in_range
