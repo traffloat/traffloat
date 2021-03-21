@@ -25,7 +25,7 @@
         clippy::indexing_slicing,
     )
 )]
-#![feature(bool_to_option, vecdeque_binary_search)]
+#![feature(vecdeque_binary_search)]
 
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
