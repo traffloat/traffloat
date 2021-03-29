@@ -19,4 +19,4 @@ shrev = "1.1.1"
 traffloat-codegen-raw = {version = "0.2.0", path = "../codegen"}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys = {version = "0.3.49", features = ["Window", "Performance"], optional = true}
+web-sys = {version = "0.3.50", features = ["Window", "Performance"], optional = true}

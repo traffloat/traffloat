@@ -41,7 +41,7 @@ wasm-logger = "0.2.0"
 yew = {version = "0.17.4", default-features = false, features = ["services", "web_sys"]}
 
 [dependencies.web-sys]
-version = "0.3.49"
+version = "0.3.50"
 features = [
 	"CanvasGradient",
 	"CanvasRenderingContext2d",
