@@ -40,7 +40,7 @@ impl Component for Mux {
     fn view(&self) -> Html {
         match &self.state {
             State::Home { error } => html! {
-                <home::Home start_single_hook=self.link.callback(Msg::StartSingle) error=error />
+                <home::Home start_single_hook=self.link.callback(Msg::StartSingle) error=error.clone() />
             },
             State::Game(args) => html! {
                 <game::Game args=args error_hook=self.link.callback(Msg::EndGame) />

@@ -9,5 +9,7 @@ pub enum GameArgs {
     Sp(SpGameArgs),
 }
 
+impl yew::html::ImplicitClone for GameArgs {}
+
 #[derive(Debug, Clone)]
 pub struct SpGameArgs {}

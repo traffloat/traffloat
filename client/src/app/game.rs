@@ -223,7 +223,7 @@ impl Component for Game {
         Self {
             props,
             legion,
-            _resize_task: resize::ResizeService::new().register(link.callback(Msg::Resize)),
+            _resize_task: resize::ResizeService::register(link.callback(Msg::Resize)),
             render_task: render_srv::RenderService::request_animation_frame(
                 link.callback(Msg::RenderFrame),
             ),
