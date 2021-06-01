@@ -31,7 +31,7 @@ rand_xoshiro = "0.6.0"
 serde = {version = "1.0.125", features = ["derive"]}
 sha2 = "0.9.3"
 shrev = "1.1.1"
-strum = {version = "0.20.0", features = ["derive"]}
+strum = {version = "0.21.0", features = ["derive"]}
 traffloat-codegen = {version = "0.2.0", path = "../codegen-types", features = ["web-sys"]}
 traffloat-common = {version = "0.2.0", path = "../common"}
 traffloat-safety = {version = "0.2.0", path = "../safety"}
