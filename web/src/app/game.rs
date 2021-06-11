@@ -44,7 +44,10 @@ impl Game {
         let time = util::measure(|| self.legion.run());
 
         {
-            let mut perf = self.legion.resources.get_mut::<comm::Perf>()
+            let mut perf = self
+                .legion
+                .resources
+                .get_mut::<comm::Perf>()
                 .expect("Perf was uninitialized");
 
             perf.push_exec_us(time);

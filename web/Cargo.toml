@@ -1,5 +1,5 @@
 [package]
-name = "traffloat-client"
+name = "traffloat-web"
 authors = ["SOFe <sofe2038@gmail.com>"]
 version = "0.2.0"
 edition = "2018"

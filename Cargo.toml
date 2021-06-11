@@ -4,7 +4,8 @@ members = [
 	"codegen",
 	"codegen-types",
 	"common",
-	"client",
+	# "web",
+	"desktop",
 ]
 
 [profile.dev]
@@ -12,11 +13,12 @@ opt-level = 3
 
 [profile.dev.package]
 traffloat-common = {opt-level = 0}
-traffloat-client = {opt-level = 0}
+# traffloat-web = {opt-level = 0}
+traffloat-desktop = {opt-level = 0}
 
 [profile.release]
 lto = true
 opt-level = 3
 
-# [profile.release.package.traffloat-client]
+# [profile.release.package.traffloat-web]
 # opt-level = "s"
