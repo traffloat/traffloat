@@ -6,7 +6,7 @@ use yew::services::{interval, keyboard as kb_srv, render as render_srv, resize};
 
 use super::GameArgs;
 use crate::input;
-use crate::render;
+use crate::render::{self, comm};
 use crate::util;
 use safety::Safety;
 use traffloat::time::{Clock, Instant, Time};
@@ -42,7 +42,13 @@ impl Game {
         }
 
         let time = util::measure(|| self.legion.run());
-        self.render_comm.perf.push_exec_us(time);
+
+        {
+            let mut perf = self.legion.resources.get_mut::<comm::Perf>()
+                .expect("Perf was uninitialized");
+
+            perf.push_exec_us(time);
+        }
     }
 
     fn request_render(&mut self) {

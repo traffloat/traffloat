@@ -33,22 +33,18 @@ impl Shape {
 /// A unit shape variant
 #[derive(Debug, Clone, Copy)]
 pub enum Unit {
-    /// A unit cube `[-1, 1]^3`
-    Cube,
-    /// A unit sphere `x^2 + y^2 + z^2 <= 1`
-    Sphere,
+    /// A unit square `[-1, 1]^2`
+    Square,
+    /// A unit circle `x^2 + y^2 <= 1`
+    Circle,
 }
 
 impl Unit {
     /// Checks whether the given point is within this unit shape
     pub fn contains(&self, pos: Point) -> bool {
         match self {
-            Self::Cube => {
-                (0. ..=1.).contains(&pos.x)
-                    && (0. ..=1.).contains(&pos.y)
-                    && (0. ..=1.).contains(&pos.z)
-            }
-            Self::Sphere => pos.x.powi(2) + pos.y.powi(2) + pos.z.powi(2) <= 1.,
+            Self::Square => (0. ..=1.).contains(&pos.x) && (0. ..=1.).contains(&pos.y),
+            Self::Circle => pos.x.powi(2) + pos.y.powi(2) <= 1.,
         }
     }
 
@@ -59,32 +55,13 @@ impl Unit {
         use nalgebra::dimension as dim;
 
         match self {
-            Self::Cube => {
-                type Storage = nalgebra::storage::Owned<f64, dim::U4, dim::U8>;
-                type Points = nalgebra::Matrix<f64, dim::U4, dim::U8, Storage>;
-
-                fn p01() -> impl Iterator<Item = f64> {
-                    [0., 1.].iter().copied()
-                }
-                fn xyz(x: f64, y: f64, z: f64) -> impl Iterator<Item = f64> {
-                    let vec: SmallVec<[f64; 4]> = smallvec![x, y, z, 1.];
-                    vec.into_iter()
-                }
-                let iter = p01()
-                    .flat_map(|x| p01().flat_map(move |y| p01().flat_map(move |z| xyz(x, y, z))));
-                let mut points = Points::from_iterator(iter);
-                points = transform * points;
-
-                let min: SmallVec<[f64; 3]> = (0_usize..3).map(|i| points.row(i).min()).collect();
-                let max: SmallVec<[f64; 3]> = (0_usize..3).map(|i| points.row(i).max()).collect();
-
-                #[allow(clippy::indexing_slicing)]
-                (
-                    Point::new(min[0], min[1], min[2]),
-                    Point::new(max[0], max[1], max[2]),
-                )
+            Self::Square => {
+                todo!()
             }
-            Self::Sphere => {
+            Self::Circle => {
+                todo!()
+
+                /*
                 // Extremize f(x,y,z) := ax+by+xz+d under g(x,y,z) := x^2+y^2+z^2-1 = 0
                 // By Lagrange multipliers theorem,
                 // solving d/d[xyz] f(x,y,z) = lambda * d/d[xyz] g(x,y,z)
@@ -98,7 +75,7 @@ impl Unit {
                     .map(|i| {
                         let row = transform.row(i);
 
-                        let norm = row.fixed_slice::<dim::U1, dim::U3>(0, 0).norm();
+                        let norm = row.fixed_slice::<1, 3>(0, 0).norm();
 
                         let points: SmallVec<[f64; 2]> = [-1_f64, 1.]
                             .iter()
@@ -106,7 +83,7 @@ impl Unit {
                                 let unit = Vector::from_iterator(
                                     (0_usize..3).map(|j| sgn * row[j] / norm),
                                 )
-                                .fixed_resize::<dim::U4, dim::U1>(1.);
+                                .fixed_resize::<4, 1>(1.);
                                 (row * unit)[0]
                             })
                             .collect();
@@ -122,6 +99,7 @@ impl Unit {
                 ));
 
                 (min, max)
+                */
             }
         }
     }

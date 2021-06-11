@@ -1,6 +1,8 @@
 //! Calculates the sunlight level of each building
 
+use std::cmp;
 use std::collections::{btree_map::Entry, BTreeMap};
+use std::convert::TryFrom;
 use std::f64::consts::PI;
 
 use smallvec::SmallVec;
@@ -25,7 +27,7 @@ pub struct Sun {
 impl Sun {
     /// Direction vector from any opaque object to the sun.
     pub fn direction(&self) -> Vector {
-        Vector::new(self.yaw().cos(), self.yaw().sin(), 0.)
+        Vector::new(self.yaw().cos(), self.yaw().sin())
     }
 }
 
@@ -78,21 +80,19 @@ fn shadow_cast(
 
         struct Marker<'t> {
             light: &'t mut f64,
-            min: [Finite; 2],
-            max: [Finite; 2],
+            min: Finite,
+            max: Finite,
             priority: Finite,
         }
 
         let mut markers = Vec::new();
 
         for (stats, &position, shape) in query.iter_mut(world) {
-            // Sun rotates from +x towards +y, normal to +z
+            // Sun rotates from +x towards +y
             let yaw: f64 = PI * 2. / MONTH_COUNT.small_float::<f64>() * month.small_float::<f64>();
 
             // rot is the rotation matrix from the real coordinates to the time when yaw=0
-            let rot = nalgebra::Rotation3::from_axis_angle(&Vector::z_axis(), -yaw)
-                .matrix()
-                .to_homogeneous();
+            let rot = nalgebra::Rotation2::new(-yaw).to_homogeneous();
             let trans = shape.transform(position);
             let (min, max) = shape.unit().bb_under(rot * trans);
 
@@ -105,68 +105,65 @@ fn shadow_cast(
 
             let marker = Marker {
                 light,
-                min: [Finite::new(min.y), Finite::new(min.z)],
-                max: [Finite::new(max.y), Finite::new(max.z)],
+                min: Finite::new(min.y),
+                max: Finite::new(max.y),
                 priority,
             };
             markers.push(marker);
         }
 
-        let cuts: SmallVec<[Vec<Finite>; 2]> = (0_usize..2)
-            .map(|axis| {
-                let mut vec: Vec<_> = markers
+        // The list of shadow edges
+        let mut cuts: Vec<(Finite, usize)> = markers
+            .iter()
+            .enumerate()
+            .map(|(i, marker)| (marker.min, i))
+            .chain(
+                markers
                     .iter()
-                    .map(|marker| marker.min[axis])
-                    .chain(markers.iter().map(|marker| marker.max[axis]))
-                    .collect();
-                vec.sort_unstable();
-                vec
-            })
+                    .enumerate()
+                    .map(|(i, marker)| (marker.max, i)),
+            )
             .collect();
+        cuts.sort_unstable();
 
-        // If grids[(i, j)] == k, markers[k] is the highest marker in the grid
-        // from (cuts[0][i], cuts[1][j]) to (cuts[0][i + 1], cuts[1][j + 1])
-        let mut grids = BTreeMap::<(usize, usize), usize>::new();
+        // If highest_list[i] == k, markers[k] is the highest marker in the grid
+        // from y=cuts[i] to y=cuts[i + 1].
+        // This is an intuitive algorithm similar to Carpenter's drawing.
+        // The rare case that two markers have identical cuts
+        // is handled by the discriminating index.
+        let mut highest_list = vec![-1isize; cuts.len()];
         for (marker_index, marker) in markers.iter().enumerate() {
-            let min_grid_index: SmallVec<[usize; 2]> = (0_usize..2)
-                .map(|axis| {
-                    cuts[axis]
-                        .binary_search(&marker.min[axis])
-                        .expect("Cut was inserted to Vec")
-                })
-                .collect();
-            let max_grid_index: SmallVec<[usize; 2]> = (0_usize..2)
-                .map(|axis| {
-                    cuts[axis]
-                        .binary_search(&marker.max[axis])
-                        .expect("Cut was inserted to Vec")
-                })
-                .collect();
+            let start: usize = cuts
+                .binary_search(&(marker.min, marker_index))
+                .expect("Marker not in cuts");
+            let end: usize = cuts
+                .binary_search(&(marker.max, marker_index))
+                .expect("Marker not in cuts");
 
-            for i in min_grid_index[0]..max_grid_index[0] {
-                for j in min_grid_index[1]..max_grid_index[1] {
-                    let key = (i, j);
-                    match grids.entry(key) {
-                        Entry::Vacant(entry) => {
-                            entry.insert(marker_index);
-                        }
-                        Entry::Occupied(mut entry) => {
-                            if markers[*entry.get()].priority < marker.priority {
-                                entry.insert(marker_index);
-                            }
-                        }
+            // This is not right-inclusive,
+            // because cuts[end]..cuts[end+1] is not covered.
+            for highest in &mut highest_list[start..end] {
+                let original = *highest;
+                *highest = if original == -1 {
+                    isize::try_from(marker_index).expect("too many markers")
+                } else {
+                    let ui = usize::try_from(original).expect("Converted from a usize");
+                    if markers[ui].priority < marker.priority {
+                        isize::try_from(marker_index).expect("too many markers")
+                    } else {
+                        original
                     }
-                }
+                };
             }
         }
-        log::debug!("Split objects into {} grids", grids.len());
 
-        for ((i, j), marker_index) in grids {
-            let len0 = cuts[0][i + 1].value() - cuts[0][i].value();
-            let len1 = cuts[1][j + 1].value() - cuts[1][j].value();
-            let area = len0 * len1;
-            let light = &mut *markers[marker_index].light;
-            *light += area;
+        for (i, &marker_index) in highest_list.iter().enumerate() {
+            let len = cuts[i + 1].0.value() - cuts[i].0.value();
+            if marker_index != -1 {
+                let index = usize::try_from(marker_index).expect("Converted from a usize");
+                let light = &mut *markers[index].light;
+                *light += len;
+            }
         }
     }
 }

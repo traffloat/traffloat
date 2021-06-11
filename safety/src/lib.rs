@@ -4,7 +4,7 @@
 
 /// Aggregate trait for all other traits in this crate
 pub trait Safety: Sized {
-    /// See `LossyTrunc`.
+    /// See [`LossyTrunc`][LossyTrunc].
     fn lossy_trunc<U>(self) -> U
     where
         Self: LossyTrunc<U>,
@@ -12,7 +12,7 @@ pub trait Safety: Sized {
         self.lossy_trunc_impl()
     }
 
-    /// See `SmallFloat`.
+    /// See [`SmallFloat`][SmallFloat].
     fn small_float<U>(self) -> U
     where
         Self: SmallFloat<U>,
@@ -20,7 +20,7 @@ pub trait Safety: Sized {
         self.small_float_impl()
     }
 
-    /// See `TruncInt`.
+    /// See [`TruncInt`][TruncInt].
     fn trunc_int<U>(self) -> U
     where
         Self: TruncInt<U>,
