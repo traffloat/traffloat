@@ -16,7 +16,7 @@ anyhow = "1.0.40"
 derive-new = "0.5.9"
 derive_more = {version = "0.99.13", default-features = false, features = ["index", "index_mut"]}
 enum-map = "1.1.0"
-getrandom = {version = "0.2.2", features = ["js"]}
+getrandom = {version = "0.2.3", features = ["js"]}
 getset = "0.1.1"
 hex = "0.4.3"
 js-sys = "0.3.49"
