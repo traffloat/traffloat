@@ -12,7 +12,7 @@ license = "AGPL-3.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-anyhow = "1.0.40"
+anyhow = "1.0.41"
 derive-new = "0.5.9"
 derive_more = {version = "0.99.13", default-features = false, features = ["index", "index_mut"]}
 enum-map = "1.1.0"
