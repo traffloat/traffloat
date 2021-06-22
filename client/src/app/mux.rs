@@ -2,6 +2,7 @@ use yew::prelude::*;
 
 use super::*;
 
+/// Wrapper component for the site.
 pub struct Mux {
     props: Props,
     link: ComponentLink<Self>,
@@ -49,8 +50,11 @@ impl Component for Mux {
     }
 }
 
+/// Switches the component state.
 pub enum Msg {
+    /// Starts a singleplayer game.
     StartSingle(SpGameArgs),
+    /// Ends a game with an optional error message.
     EndGame(Option<String>),
 }
 type Props = ();

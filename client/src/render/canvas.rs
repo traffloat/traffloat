@@ -8,7 +8,9 @@ use traffloat::space::Matrix;
 /// The dimension of a canvas
 #[derive(Debug, Clone, Copy)]
 pub struct Dimension {
+    /// Number of pixels horizontally.
     pub width: u32,
+    /// Number of pixels vertically.
     pub height: u32,
 }
 
@@ -19,9 +21,13 @@ impl Dimension {
     }
 }
 
+/// A shared reference to a canvas.
 pub type Canvas = Rc<RefCell<CanvasStruct>>;
 
-/// Information for a canvas
+/// Information for the canvas.
+///
+/// This stores three underlying canvas,
+/// namely background, scene and UI.
 pub struct CanvasStruct {
     bg: super::bg::Setup,
     scene: super::scene::Setup,
@@ -30,6 +36,7 @@ pub struct CanvasStruct {
 }
 
 impl CanvasStruct {
+    /// Instantiates the canvas wrapper.
     pub fn new(
         bg: WebGlRenderingContext,
         scene: WebGlRenderingContext,
@@ -46,6 +53,7 @@ impl CanvasStruct {
         }))
     }
 
+    /// Resets to the rendering to a new frame.
     pub fn new_frame(&mut self, dim: &Dimension) {
         self.scene.clear();
 
@@ -61,6 +69,7 @@ impl CanvasStruct {
         self.debug_count = 0;
     }
 
+    /// Appends a line of debug message.
     pub fn write_debug(&mut self, line: impl AsRef<str>) {
         self.ui
             .stroke_text(line.as_ref(), 10., 20. + (self.debug_count as f64) * 15.)
@@ -72,17 +81,21 @@ impl CanvasStruct {
         self.debug_count += 1;
     }
 
+    /// Draws the background.
     pub fn draw_bg(&self, rot: Matrix, aspect: f32) {
         self.bg.draw_bg(rot, aspect);
 
         // TODO draw stars
     }
 
+    /// Draws an object at the given transformation from shape coordinates to world coordinates.
     pub fn draw_object(&self, proj: Matrix) {
         self.scene.draw(proj);
     }
 }
 
+/// Provides an [`ImageBitmap`][web_sys::ImageBitMap].
 pub trait Image {
+    /// Converts the value into an [`ImageBitmap`][web_sys::ImageBitMap].
     fn as_bitmap(&self) -> Option<&web_sys::ImageBitmap>;
 }

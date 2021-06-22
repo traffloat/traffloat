@@ -1,16 +1,20 @@
+//! Provides a camera resource to store the view perspective of the user.
+
 use std::f64::consts::PI;
 use std::sync::Mutex;
 
 use legion::Entity;
 
-use crate::{config, input, render};
+use crate::{config, render};
 use traffloat::shape::Shape;
 use traffloat::space::{Matrix, Point, Position, Vector};
 use traffloat::time;
 
+/// Visibiilty guard to avoid inconsistent `proj` updates.
 mod unsafe_proj {
     use super::*;
 
+    /// A resource that stores the view perspective of the user.
     #[derive(Debug, getset::CopyGetters, typed_builder::TypedBuilder)]
     pub struct Camera {
         /// The point focused by the camera.
@@ -44,31 +48,42 @@ mod unsafe_proj {
     }
 
     impl Camera {
+        /// Sets the point focused by the camera.
+        ///
+        /// The `focus` point is transformed to (0.5, 0.5, `zoom/distance`) by the projection
+        /// matrix.
         pub fn set_focus(&mut self, focus: Position) {
             self.focus = focus;
             self.invalidate();
         }
 
+        /// Sets the rotation matrix of the camera.
+        ///
+        /// This transforms the real coordinates to the coordinates as seen by the user.
         pub fn set_rotation(&mut self, rotation: Matrix) {
             self.rotation = rotation;
             self.invalidate();
         }
 
+        /// Sets the aspect ratio, which is the canvas width divided by the canvas height.
         pub fn set_aspect(&mut self, aspect: f64) {
             self.aspect = aspect;
             self.invalidate();
         }
 
+        /// Sets the distance of `focus` from the camera.
         pub fn set_zoom(&mut self, zoom: f64) {
             self.zoom = zoom;
             self.invalidate();
         }
 
+        /// Sets the rendering distance of the camera.
         pub fn set_distance(&mut self, distance: f64) {
             self.distance = distance;
             self.invalidate();
         }
 
+        /// Sets the vertical Field of View in radians.
         pub fn set_fovy(&mut self, fovy: f64) {
             self.fovy = fovy;
             self.invalidate();
@@ -150,13 +165,14 @@ impl Default for Camera {
     }
 }
 
+/// A resource storing the current cursor-pointed target.
 #[derive(getset::CopyGetters, Default)]
 pub struct CursorTarget {
-    /// The line segment from the closest point to the furthest point
+    /// The line segment from the closest point to the furthest point under the cursor.
     #[getset(get_copy = "pub")]
     segment: Option<(Position, Position)>,
 
-    /// The entity pointed by the mouse
+    /// The entity pointed by the cursor.
     #[getset(get_copy = "pub")]
     entity: Option<Entity>,
 }
@@ -165,14 +181,15 @@ pub struct CursorTarget {
 #[allow(clippy::indexing_slicing, clippy::too_many_arguments)]
 fn camera(
     #[resource] camera: &mut Camera,
-    #[resource] actions: &input::keyboard::ActionSet,
+    // #[resource] actions: &input::keyboard::ActionSet,
     #[resource] clock: &time::Clock,
     #[resource(no_init)] dim: &render::Dimension,
-    #[subscriber] wheel_events: impl Iterator<Item = input::mouse::WheelEvent>,
-    #[subscriber] drag_events: impl Iterator<Item = input::mouse::DragEvent>,
+    // #[subscriber] wheel_events: impl Iterator<Item = input::mouse::WheelEvent>,
+    // #[subscriber] drag_events: impl Iterator<Item = input::mouse::DragEvent>,
 ) {
     let dt = clock.delta.value() as f64;
 
+    /*
     let mut move_direction = Vector::new(0., 0., 0.);
     if actions[input::keyboard::Action::Left] {
         move_direction += Vector::new(-config::WASD_VELOCITY * dt, 0., 0.);
@@ -203,7 +220,9 @@ fn camera(
     if actions[input::keyboard::Action::ZoomOut] {
         camera.set_zoom(camera.zoom() + config::ZOOM_VELOCITY * dt);
     }
+    */
 
+    /*
     for wheel in wheel_events {
         if wheel.delta > 0. {
             camera.set_zoom(camera.zoom() + config::SCROLL_VELOCITY);
@@ -211,12 +230,14 @@ fn camera(
             camera.set_zoom(camera.zoom() - config::SCROLL_VELOCITY);
         }
     }
+    */
 
     #[allow(clippy::float_cmp)] // we simply want to see if it *might* have changed
     if camera.aspect() != dim.aspect() {
         camera.set_aspect(dim.aspect());
     }
 
+    /*
     for event in drag_events {
         let (action, prev, now) = match event {
             input::mouse::DragEvent::Move {
@@ -236,8 +257,10 @@ fn camera(
             _ => {} // unused
         }
     }
+    */
 }
 
+/*
 #[codegen::system]
 #[read_component(Shape)]
 #[read_component(Position)]
@@ -269,7 +292,9 @@ fn locate_cursor(
     }
     */
 }
+*/
 
+/// Sets up legion ECS for this module.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(camera_setup).uses(locate_cursor_setup)
+    setup.uses(camera_setup)
 }

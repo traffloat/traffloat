@@ -1,3 +1,5 @@
+//! Miscellaneous utilities.
+
 use std::any::Any;
 use std::cell::RefCell;
 
@@ -19,6 +21,7 @@ pub fn high_res_time() -> u64 {
     }
 }
 
+/// Runs the closure and measures the time.
 pub fn measure(closure: impl FnOnce()) -> u64 {
     let start = high_res_time();
     closure();
@@ -38,16 +41,19 @@ extern "C" {
     unsafe fn handle_error(value: JsValue);
 }
 
+/// Passes the error to the JavaScript error handler.
 pub fn error_handler(value: &str) {
     handle_error(value.into());
 }
 
+/// Wraps a possibly resolved promise.
 pub struct ReifiedPromise<T> {
     unknown: RefCell<Option<(JsValue, Box<dyn Any>)>>,
     known: OnceCell<Result<T, ()>>,
 }
 
 impl<T> ReifiedPromise<T> {
+    /// Wraps a new promise value.
     pub fn new(reified: JsValue, attachments: impl Any) -> Self {
         Self {
             unknown: RefCell::new(Some((reified, Box::new(attachments)))),
@@ -57,6 +63,7 @@ impl<T> ReifiedPromise<T> {
 }
 
 impl<T: JsCast> ReifiedPromise<T> {
+    /// Retrieves the result of the promise if it has been resolved.
     pub fn resolved_or_null(&self) -> Result<Option<&T>, js_sys::Error> {
         if let Some(known) = self.known.get() {
             return Ok(known.as_ref().ok());
@@ -84,22 +91,6 @@ impl<T: JsCast> ReifiedPromise<T> {
             unreachable!("self.known.get() was None");
         }
         Ok(self.known.get().expect("Just initialized").as_ref().ok())
-    }
-}
-
-pub fn fmax<T: PartialOrd>(a: T, b: T) -> T {
-    if a > b {
-        a
-    } else {
-        b
-    }
-}
-
-pub fn fmin<T: PartialOrd>(a: T, b: T) -> T {
-    if a < b {
-        a
-    } else {
-        b
     }
 }
 

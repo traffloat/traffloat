@@ -1,3 +1,5 @@
+//! Manages client-side graphics rendering.
+
 use std::f64::consts::PI;
 
 use crate::camera::Camera;
@@ -57,6 +59,7 @@ pub fn render(
 
     let render_fps = render_fps.add_frame();
 
+    // Measure the time for rendering the background.
     {
         let perf_start = hrtime();
         {
@@ -77,6 +80,7 @@ pub fn render(
         );
     }
 
+    // Measure the time for rendering objects.
     {
         let perf_start = hrtime();
         {
@@ -111,7 +115,8 @@ pub fn render(
         );
     }
 
-    {
+    // Renders debug messages.
+    if crate::config::RENDER_DEBUG {
         let perf_start = hrtime();
         {
             canvas.write_debug(format!(
@@ -160,6 +165,7 @@ pub fn render(
     }
 }
 
+/// Sets up legion ECS for rendering.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     setup.uses(render_setup)
 }

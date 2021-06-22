@@ -1,3 +1,5 @@
+//! The webassembly client crate.
+
 #![recursion_limit = "512"]
 #![deny(
     anonymous_parameters,
@@ -16,6 +18,8 @@
         clippy::match_single_binding,
     )
 )]
+#![cfg_attr(not(debug_assertions), warn(missing_docs))]
+#![cfg_attr(doc, warn(missing_docs))]
 #![cfg_attr(
     not(debug_assertions),
     deny(
@@ -33,10 +37,10 @@ use yew::prelude::*;
 mod app;
 pub mod camera;
 pub mod config;
-pub mod input;
 pub mod render;
 pub mod util;
 
+/// Entry point.
 #[wasm_bindgen(start)]
 pub fn run_app() {
     std::panic::set_hook(Box::new(|info| {
@@ -55,12 +59,12 @@ pub fn run_app() {
     App::<app::Mux>::new().mount_to_body();
 }
 
-fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+/// Sets up legion ECS.
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     use traffloat::space::{Matrix, Position};
 
     let setup = setup
         .uses(traffloat::setup_ecs)
-        .uses(input::setup_ecs)
         .uses(camera::setup_ecs)
         .uses(render::setup_ecs);
 
@@ -78,7 +82,6 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     setup
         .entity((
             render::Renderable,
-            input::mouse::Clickable,
             Position::new(1., 2., 3.),
             Shape::builder()
                 .unit(shape::Unit::Cube)
@@ -89,7 +92,6 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
         ))
         .entity((
             render::Renderable,
-            input::mouse::Clickable,
             Position::new(1., -2., 3.),
             Shape::builder()
                 .unit(shape::Unit::Cube)
@@ -100,7 +102,6 @@ fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
         ))
         .entity((
             render::Renderable,
-            input::mouse::Clickable,
             Position::new(-2., 0., 3.),
             Shape::builder()
                 .unit(shape::Unit::Cube)

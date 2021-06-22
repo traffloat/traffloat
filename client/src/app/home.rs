@@ -2,6 +2,7 @@ use yew::prelude::*;
 
 use super::SpGameArgs;
 
+/// The homepage for selecting gamemode.
 pub struct Home {
     props: Props,
     link: ComponentLink<Self>,
@@ -94,15 +95,22 @@ impl Component for Home {
     }
 }
 
+/// Messages for updating the user interface.
 pub enum Msg {
+    /// Selects the single player mode.
     ModeSingle(MouseEvent),
+    /// Selects the multi player mode.
     ModeMulti(MouseEvent),
+    /// Starts a singleplayer game.
     StartSingle(MouseEvent),
 }
 
+/// yew properties for [`Home`][Home].
 #[derive(Clone, Properties)]
 pub struct Props {
+    /// Callback to start a singleplayer game.
     pub start_single_hook: Callback<SpGameArgs>,
+    /// Displays an error message.
     pub error: Option<String>,
 }
 

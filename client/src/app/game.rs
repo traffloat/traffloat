@@ -5,13 +5,13 @@ use yew::prelude::*;
 use yew::services::{interval, keyboard as kb_srv, render as render_srv, resize};
 
 use super::GameArgs;
-use crate::input;
 use crate::render;
 use crate::util;
 use safety::Safety;
 use traffloat::time::{Clock, Instant, Time};
 use traffloat::SetupEcs;
 
+/// HTML interface of the game page
 pub struct Game {
     props: Props,
     link: ComponentLink<Self>,
@@ -137,6 +137,8 @@ impl Game {
     }
 
     fn on_key(&mut self, code: &str, down: bool) {
+        todo!("Send the event to ECS")
+        /*
         if let Some(event) = input::keyboard::KeyEvent::new(code, down) {
             let mut channel = self
                 .legion
@@ -145,9 +147,12 @@ impl Game {
                 .expect("EventChannel<KeyEvent> uninitialized");
             channel.single_write(event);
         }
+        */
     }
 
     fn on_mouse_move(&mut self, x: i32, y: i32) {
+        todo!("Send the event to ECS")
+        /*
         let canvas = match self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
             Some(canvas) => canvas,
             None => return,
@@ -162,9 +167,12 @@ impl Game {
             .get_mut::<input::mouse::CursorPosition>()
             .expect("CursorPosition is uninitialized");
         pos.0 = Some(input::mouse::ScreenPosition { x, y });
+        */
     }
 
     fn on_mouse_click(&mut self, button: i16, down: bool) {
+        todo!("Send the event to ECS")
+        /*
         if let Some(event) = input::keyboard::KeyEvent::new_mouse(button, down) {
             let mut channel = self
                 .legion
@@ -173,15 +181,19 @@ impl Game {
                 .expect("EventChannel<KeyEvent> uninitialized");
             channel.single_write(event);
         }
+        */
     }
 
     fn on_wheel(&mut self, delta: f64) {
+        todo!("Send the event to ECS")
+        /*
         let mut channel = self
             .legion
             .resources
             .get_mut::<shrev::EventChannel<input::mouse::WheelEvent>>()
             .expect("EventChannel<WheelEvent> uninitialized");
         channel.single_write(input::mouse::WheelEvent { delta });
+        */
     }
 }
 
@@ -308,23 +320,39 @@ impl Component for Game {
     }
 }
 
+/// Events in the game page.
 pub enum Msg {
+    /// Schedule a simulation frame.
     SimulationFrame(()),
+    /// Schedule a render.
     RenderFrame(f64),
+    /// Updates the window size.
     Resize(resize::WindowDimensions),
+    /// Starts pressing a button.
     KeyDown(KeyboardEvent),
+    /// Stops pressing a button.
     KeyUp(KeyboardEvent),
+    /// Updates the mouse cursor position.
     MouseMove(MouseEvent),
+    /// Starts pressing the mouse.
     MouseDown(MouseEvent),
+    /// Stops pressing the mouse.
     MouseUp(MouseEvent),
+    /// Scrolls the wheel.
     Wheel(WheelEvent),
-    TouchMove(TouchEvent),
+    /// Starts touching the screen.
     TouchDown(TouchEvent),
+    /// Stops touching the screen.
     TouchUp(TouchEvent),
+    /// Moves the touched position of the screen.
+    TouchMove(TouchEvent),
 }
 
+/// yew properties for [`Game`][Game].
 #[derive(Clone, Properties)]
 pub struct Props {
+    /// Arguments for the game.
     pub args: GameArgs,
+    /// Error handler.
     pub error_hook: Callback<Option<String>>,
 }
