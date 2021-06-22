@@ -18,8 +18,7 @@
         clippy::match_single_binding,
     )
 )]
-#![cfg_attr(not(debug_assertions), warn(missing_docs))]
-#![cfg_attr(doc, warn(missing_docs))]
+#![cfg_attr(any(doc, not(debug_assertions)), warn(missing_docs))]
 #![cfg_attr(
     not(debug_assertions),
     deny(

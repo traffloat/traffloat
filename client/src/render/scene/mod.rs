@@ -1,3 +1,5 @@
+//! Renders nodes, edges and vehicles.
+
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::util::{self, WebglExt};
@@ -9,6 +11,7 @@ pub use able::*;
 mod mesh;
 pub use mesh::*;
 
+/// Sets up the scene canvas.
 pub fn setup(gl: WebGlRenderingContext) -> Setup {
     let object_prog = util::create_program(
         &gl,
@@ -34,6 +37,7 @@ pub fn setup(gl: WebGlRenderingContext) -> Setup {
     }
 }
 
+/// Stores the setup data of the scene canvas.
 pub struct Setup {
     gl: WebGlRenderingContext,
     object_prog: WebGlProgram,
@@ -41,12 +45,14 @@ pub struct Setup {
 }
 
 impl Setup {
+    /// Clears the canvas.
     pub fn clear(&self) {
         self.gl.clear_color(0., 0., 0., 0.);
         self.gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
     }
 
-    pub fn draw(&self, proj: Matrix) {
+    /// Draws an object on the canvas.
+    pub fn draw_object(&self, proj: Matrix) {
         self.gl.use_program(Some(&self.object_prog));
         // self.gl.set_uniform(&self.object_prog, "u_proj", util::glize_matrix(proj));
         self.gl.set_uniform(

@@ -1,9 +1,12 @@
+//! Manages the background canvas.
+
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::util::{self, WebglExt};
 use safety::Safety;
 use traffloat::space::Matrix;
 
+/// Sets up the canvas, loading initial data.
 pub fn setup(gl: WebGlRenderingContext) -> Setup {
     let star_prog = util::create_program(
         &gl,
@@ -45,6 +48,7 @@ pub fn setup(gl: WebGlRenderingContext) -> Setup {
     }
 }
 
+/// Stores the setup data of the background canvas.
 pub struct Setup {
     gl: WebGlRenderingContext,
     star_prog: WebGlProgram,
@@ -54,13 +58,13 @@ pub struct Setup {
 }
 
 impl Setup {
-    pub fn draw_bg(&self, rot: Matrix, aspect: f32) {
+    /// Resets the scene for the next rendering frame.
+    pub fn reset(&self) {
         self.gl.clear_color(0., 0., 0., 1.);
         self.gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
-
-        self.draw_sun(rot, aspect);
     }
 
+    /// Draws the sun on the scene.
     pub fn draw_sun(&self, rot: Matrix, aspect: f32) {
         self.gl.use_program(Some(&self.sun_prog));
         let rot = util::GlMatrix::from_iterator(rot.iter().map(|&f| f.lossy_trunc()));

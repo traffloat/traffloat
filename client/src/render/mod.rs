@@ -19,9 +19,10 @@ pub use comm::*;
 mod image;
 pub use image::*;
 
-mod bg;
-mod scene;
-mod ui;
+pub mod bg;
+pub mod debug;
+pub mod scene;
+pub mod ui;
 
 pub use scene::Renderable;
 
@@ -38,8 +39,8 @@ pub fn render(
     world: &legion::world::SubWorld,
     #[resource] comm: &mut Comm,
     #[state(Default::default())] image_store: &mut ImageStore,
-    #[state(Default::default())] render_fps: &mut ui::fps::Counter,
-    #[state(Default::default())] simul_fps: &mut ui::fps::Counter,
+    #[state(Default::default())] render_fps: &mut debug::fps::Counter,
+    #[state(Default::default())] simul_fps: &mut debug::fps::Counter,
     #[resource] camera: &Camera,
     #[resource] clock: &time::Clock,
     #[resource] sun: &Sun,
@@ -74,10 +75,7 @@ pub fn render(
             };
             canvas.draw_bg(rot, dim.aspect().lossy_trunc());
         }
-        perf_read.push(
-            concat!(module_path!(), "::render::bg"),
-            hrtime() - perf_start,
-        );
+        perf_read.push(concat!(module_path!(), "::bg"), hrtime() - perf_start);
     }
 
     // Measure the time for rendering objects.
@@ -109,59 +107,24 @@ pub fn render(
                 canvas.draw_object(projection * unit_to_real);
             }
         }
-        perf_read.push(
-            concat!(module_path!(), "::render::scene"),
-            hrtime() - perf_start,
-        );
+        perf_read.push(concat!(module_path!(), "::scene"), hrtime() - perf_start);
     }
 
     // Renders debug messages.
     if crate::config::RENDER_DEBUG {
         let perf_start = hrtime();
-        {
-            canvas.write_debug(format!(
-                "FPS: graphics {}, physics {}, cycle time {:.2} \u{03bc}s",
-                render_fps,
-                simul_fps,
-                comm.perf.average_exec_us(),
-            ));
-            canvas.write_debug(format!("Time: {:?} (Sun: {:.3})", clock.now, sun.yaw()));
-            canvas.write_debug(format!(
-                "Focus: ({:.1}, {:.1}, {:.1}); Zoom: {}; Distance: {}",
-                camera.focus().x(),
-                camera.focus().y(),
-                camera.focus().z(),
-                camera.zoom(),
-                camera.distance(),
-            ));
 
-            #[allow(clippy::cast_precision_loss)]
-            for (sys, stats) in perf_read.map.get_mut().expect("Poisoned Perf") {
-                let deque = stats.get_mut().expect("Poisoned Perf");
-                let avg = deque.iter().map(|&t| t as f64).sum::<f64>() / (deque.len() as f64);
-                let sd = (deque.iter().map(|&t| (t as f64 - avg).powi(2)).sum::<f64>()
-                    / (deque.len() as f64))
-                    .sqrt();
-                canvas.write_debug(format!(
-                    "Cycle time for system {}: {:.2} \u{03bc}s (\u{00b1} {:.4} \u{03bc}s)",
-                    sys, avg, sd
-                ));
-            }
-
-            /*if let Some(pos) = cursor.pos.as_ref() {
-                let entity = cursor.entity.as_ref();
-                canvas.write_debug(format!(
-                    "Cursor position: ({:.1}, {:.1}) ({:?})",
-                    pos.x(),
-                    pos.y(),
-                    entity,
-                ));
-            }*/
-        }
-        perf_read.push(
-            concat!(module_path!(), "::render::ui"),
-            hrtime() - perf_start,
+        canvas.debug().draw(
+            render_fps,
+            simul_fps,
+            &camera,
+            &mut *perf_read,
+            clock,
+            sun,
+            &comm.perf,
         );
+
+        perf_read.push(concat!(module_path!(), "::ui"), hrtime() - perf_start);
     }
 }
 

@@ -1,8 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use web_sys::{CanvasRenderingContext2d, WebGlRenderingContext};
+use web_sys::{CanvasRenderingContext2d, ImageBitmap, WebGlRenderingContext};
 
+use crate::util::DebugWriter;
 use traffloat::space::Matrix;
 
 /// The dimension of a canvas
@@ -32,7 +33,7 @@ pub struct CanvasStruct {
     bg: super::bg::Setup,
     scene: super::scene::Setup,
     ui: web_sys::CanvasRenderingContext2d,
-    debug_count: u32,
+    debug: super::debug::Setup,
 }
 
 impl CanvasStruct {
@@ -41,15 +42,17 @@ impl CanvasStruct {
         bg: WebGlRenderingContext,
         scene: WebGlRenderingContext,
         ui: CanvasRenderingContext2d,
+        debug: DebugWriter,
     ) -> Canvas {
         let bg = super::bg::setup(bg);
         let scene = super::scene::setup(scene);
+        let debug = super::debug::Setup::new(debug);
 
         Rc::new(RefCell::new(Self {
             bg,
             scene,
             ui,
-            debug_count: 0,
+            debug,
         }))
     }
 
@@ -66,36 +69,31 @@ impl CanvasStruct {
         self.ui.set_fill_style(&"white".into());
         self.ui.set_font("12px sans-serif");
 
-        self.debug_count = 0;
-    }
-
-    /// Appends a line of debug message.
-    pub fn write_debug(&mut self, line: impl AsRef<str>) {
-        self.ui
-            .stroke_text(line.as_ref(), 10., 20. + (self.debug_count as f64) * 15.)
-            .expect("Failed to draw debug text");
-        self.ui
-            .fill_text(line.as_ref(), 10., 20. + (self.debug_count as f64) * 15.)
-            .expect("Failed to draw debug text");
-
-        self.debug_count += 1;
+        self.debug.reset();
     }
 
     /// Draws the background.
     pub fn draw_bg(&self, rot: Matrix, aspect: f32) {
-        self.bg.draw_bg(rot, aspect);
+        self.bg.reset();
 
         // TODO draw stars
+
+        self.bg.draw_sun(rot, aspect);
     }
 
     /// Draws an object at the given transformation from shape coordinates to world coordinates.
     pub fn draw_object(&self, proj: Matrix) {
-        self.scene.draw(proj);
+        self.scene.draw_object(proj);
+    }
+
+    /// Retrieves the debug layer.
+    pub fn debug(&self) -> &super::debug::Setup {
+        &self.debug
     }
 }
 
-/// Provides an [`ImageBitmap`][web_sys::ImageBitMap].
+/// Provides an [`ImageBitmap`][ImageBitmap].
 pub trait Image {
-    /// Converts the value into an [`ImageBitmap`][web_sys::ImageBitMap].
-    fn as_bitmap(&self) -> Option<&web_sys::ImageBitmap>;
+    /// Converts the value into an [`ImageBitmap`][ImageBitmap].
+    fn as_bitmap(&self) -> Option<&ImageBitmap>;
 }

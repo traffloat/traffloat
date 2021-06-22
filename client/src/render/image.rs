@@ -5,12 +5,14 @@ use crate::util::ReifiedPromise;
 use traffloat::config;
 use traffloat::shape::Texture;
 
+/// A resource that caches the [`ImageBitmap`][web_sys::ImageBitmap] requests.
 #[derive(Default)]
 pub struct ImageStore {
     images: BTreeMap<config::Id<Texture>, Rc<MaybeBitmap>>,
 }
 
 impl ImageStore {
+    /// Fetches the bitmap for a [`Texture`].
     pub fn fetch(&mut self, id: config::Id<Texture>, texture: &Texture) -> Rc<MaybeBitmap> {
         let rc = self
             .images
@@ -33,11 +35,13 @@ fn create_bitmap(texture: &Texture) -> MaybeBitmap {
     MaybeBitmap { promise }
 }
 
+/// A struct that wraps a possibly loaded bitmap.
 pub struct MaybeBitmap {
     promise: ReifiedPromise<web_sys::ImageBitmap>,
 }
 
 impl MaybeBitmap {
+    /// Resolves the [`ImageBitmap`][web_sys::ImageBitmap] if it has been loaded.
     pub fn resolve(&self) -> Option<&web_sys::ImageBitmap> {
         self.promise
             .resolved_or_null()

@@ -97,8 +97,10 @@ impl Legion {
 /// Performance tracking
 #[derive(Default)]
 pub struct Perf {
-    pub map: RwLock<BTreeMap<&'static str, Mutex<VecDeque<i64>>>>,
+    pub map: PerfMap,
 }
+
+pub type PerfMap = RwLock<BTreeMap<&'static str, Mutex<VecDeque<i64>>>>;
 
 const MAX_FRAMES: usize = 100;
 

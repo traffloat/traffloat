@@ -54,6 +54,7 @@ pub struct Perf {
 }
 
 impl Perf {
+    /// Adds a sample of execution time.
     pub fn push_exec_us(&self, time: u64) {
         let mut exec_us = self.exec_us.borrow_mut();
         while exec_us.len() >= 100 {
@@ -62,6 +63,7 @@ impl Perf {
         exec_us.push_back(time);
     }
 
+    /// Computes the average execution time.
     pub fn average_exec_us(&self) -> f64 {
         let exec_us = self.exec_us.borrow();
         #[allow(clippy::cast_precision_loss)]

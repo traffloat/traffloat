@@ -24,6 +24,7 @@ pub struct Game {
     bg_canvas_ref: NodeRef,
     scene_canvas_ref: NodeRef,
     ui_canvas_ref: NodeRef,
+    debug_ref: NodeRef,
     canvas_cache: Option<(render::Canvas, render::Dimension)>,
     clock_epoch: u64,
 }
@@ -78,6 +79,7 @@ impl Game {
             let bg_canvas = self.bg_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
             let scene_canvas = self.scene_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
             let ui_canvas = self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
+            let debug_div = self.debug_ref.cast::<web_sys::HtmlElement>()?;
             let width = ui_canvas.width();
             let height = ui_canvas.height();
 
@@ -96,10 +98,11 @@ impl Game {
                 .expect("Failed to load 2D canvas")?
                 .dyn_into()
                 .expect("Failed to load 2D canvas");
+            let debug_writer = util::DebugWriter::new(debug_div);
             let dim = render::Dimension { width, height };
 
             self.canvas_cache = Some((
-                render::CanvasStruct::new(bg_context, scene_context, ui_context),
+                render::CanvasStruct::new(bg_context, scene_context, ui_context, debug_writer),
                 dim,
             ));
         }
@@ -137,7 +140,7 @@ impl Game {
     }
 
     fn on_key(&mut self, code: &str, down: bool) {
-        todo!("Send the event to ECS")
+        // TODO!("Send the event to ECS")
         /*
         if let Some(event) = input::keyboard::KeyEvent::new(code, down) {
             let mut channel = self
@@ -151,7 +154,7 @@ impl Game {
     }
 
     fn on_mouse_move(&mut self, x: i32, y: i32) {
-        todo!("Send the event to ECS")
+        // TODO!("Send the event to ECS")
         /*
         let canvas = match self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
             Some(canvas) => canvas,
@@ -171,7 +174,7 @@ impl Game {
     }
 
     fn on_mouse_click(&mut self, button: i16, down: bool) {
-        todo!("Send the event to ECS")
+        // TODO!("Send the event to ECS")
         /*
         if let Some(event) = input::keyboard::KeyEvent::new_mouse(button, down) {
             let mut channel = self
@@ -185,7 +188,7 @@ impl Game {
     }
 
     fn on_wheel(&mut self, delta: f64) {
-        todo!("Send the event to ECS")
+        // TODO!("Send the event to ECS")
         /*
         let mut channel = self
             .legion
@@ -248,6 +251,7 @@ impl Component for Game {
             bg_canvas_ref: NodeRef::default(),
             scene_canvas_ref: NodeRef::default(),
             ui_canvas_ref: NodeRef::default(),
+            debug_ref: NodeRef::default(),
             canvas_cache: None,
             clock_epoch: util::high_res_time(),
             link,
@@ -293,11 +297,11 @@ impl Component for Game {
             <div style="margin: 0; background-color: black;">
                 <canvas
                     ref=self.bg_canvas_ref.clone()
-                    style="width: 100vw; height: 100vh; z-index = 1; position: absolute; x: 0; y: 0;"
+                    style="width: 100vw; height: 100vh; z-index: 1; position: absolute; x: 0; y: 0;"
                     />
                 <canvas
                     ref=self.scene_canvas_ref.clone()
-                    style="width: 100vw; height: 100vh; z-index = 2; position: absolute; x: 0; y: 0;"
+                    style="width: 100vw; height: 100vh; z-index: 2; position: absolute; x: 0; y: 0;"
                     />
                 <canvas
                     ref=self.ui_canvas_ref.clone()
@@ -308,7 +312,20 @@ impl Component for Game {
                     ontouchmove=self.link.callback(Msg::TouchMove)
                     ontouchstart=self.link.callback(Msg::TouchDown)
                     ontouchend=self.link.callback(Msg::TouchUp)
-                    style="width: 100vw; height: 100vh; z-index = 3; position: absolute; x: 0; y: 0;"
+                    style="width: 100vw; height: 100vh; z-index: 3; position: absolute; x: 0; y: 0;"
+                    />
+
+                <div
+                    ref=self.debug_ref.clone()
+                    style="\
+                        padding-left: 10px; padding-top: 10px; \
+                        z-index: 4; \
+                        position: absolute; \
+                        x: 0; y: 0; \
+                        color: white; \
+                        pointer-events: none; \
+                        font-family: Helvetica, sans-serif; \
+                        font-size: smaller;"
                     />
             </div>
         }

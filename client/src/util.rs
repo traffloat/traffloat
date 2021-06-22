@@ -3,6 +3,7 @@
 use std::any::Any;
 use std::cell::RefCell;
 
+use derive_new::new;
 use once_cell::unsync::OnceCell;
 
 use wasm_bindgen::prelude::*;
@@ -97,4 +98,31 @@ impl<T: JsCast> ReifiedPromise<T> {
 /// Linear interpolation from a to b, with ratio=0 as a and ratio=1 as b
 pub fn lerp(a: f64, b: f64, ratio: f64) -> f64 {
     a * (1. - ratio) + b * ratio
+}
+
+/// Writer for debug lines in a div
+#[derive(new)]
+pub struct DebugWriter {
+    div: web_sys::HtmlElement,
+}
+
+impl DebugWriter {
+    pub fn reset(&self) {
+        self.div.set_inner_text("");
+    }
+
+    pub fn write(&self, line: impl AsRef<str>) {
+        let window = web_sys::window().expect("Failed to get window object");
+        let document = window.document().expect("Document is undefined");
+        let br = document
+            .create_element("br")
+            .expect("Failed to create <br/> element");
+        let text = document.create_text_node(line.as_ref());
+        self.div
+            .append_child(&br)
+            .expect("Failed to append to debug div");
+        self.div
+            .append_child(&text)
+            .expect("Failed to append to debug div");
+    }
 }
