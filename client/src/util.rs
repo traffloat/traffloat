@@ -107,10 +107,12 @@ pub struct DebugWriter {
 }
 
 impl DebugWriter {
+    /// Resets the writer.
     pub fn reset(&self) {
         self.div.set_inner_text("");
     }
 
+    /// Appends a line to the div.
     pub fn write(&self, line: impl AsRef<str>) {
         let window = web_sys::window().expect("Failed to get window object");
         let document = window.document().expect("Document is undefined");

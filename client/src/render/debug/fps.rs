@@ -27,4 +27,9 @@ impl Counter {
         self.deque.push_back(now);
         self.deque.len()
     }
+
+    /// The number of frames in the last second.
+    pub fn frames(&self) -> usize {
+        self.deque.len()
+    }
 }

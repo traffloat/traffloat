@@ -418,6 +418,7 @@ fn system_imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStre
 
     let output = quote! {
         #[::legion::system]
+        #[allow(clippy::too_many_arguments)]
         #(#attrs)*
         fn #name(
             #(#out_arg_attrs #out_arg_names: #out_arg_types),*

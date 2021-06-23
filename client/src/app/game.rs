@@ -51,15 +51,23 @@ impl Game {
             let canvas = Rc::clone(&canvas);
             let dim = *dim;
 
-            self.render_comm.flag.cell.replace(Some(canvas));
+            let canvas_ref = &mut *self
+                .legion
+                .resources
+                .get_mut::<Option<render::Canvas>>()
+                .expect("Canvas resource not initialized");
+            *canvas_ref = Some(canvas);
+            self.legion
+                .resources
+                .get_mut::<shrev::EventChannel<render::RenderFlag>>()
+                .expect("RenderFlag EventChannel not initialized")
+                .single_write(render::RenderFlag);
             let dim_ref = &mut *self
                 .legion
                 .resources
                 .get_mut::<render::Dimension>()
                 .expect("Uninitialized Dimension resource");
             *dim_ref = dim;
-        } else {
-            self.render_comm.flag.cell.replace(None);
         }
         self.render_task = render_srv::RenderService::request_animation_frame(
             self.link.callback(Msg::RenderFrame),

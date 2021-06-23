@@ -21,8 +21,6 @@ impl Deref for Comm {
 
 /// The actual fields of Comm
 pub struct CommInner {
-    /// Render request tracker
-    pub flag: RenderFlag,
     /// Performance tracker
     pub perf: Perf,
     /// The cursor CSS property for the canvas
@@ -32,20 +30,14 @@ pub struct CommInner {
 impl Default for CommInner {
     fn default() -> Self {
         Self {
-            flag: RenderFlag::default(),
             perf: Perf::default(),
             canvas_cursor_type: Cell::new("initial"),
         }
     }
 }
 
-/// The state used to store the canvas.
-#[derive(Default)]
-pub struct RenderFlag {
-    /// When rendering is requested, the cell is filled with a Canvas object.
-    /// The request is fulfilled by setting it to None.
-    pub cell: Cell<Option<Canvas>>,
-}
+/// An event fired when rendering is requested.
+pub struct RenderFlag;
 
 /// Performance tracker
 #[derive(Default)]

@@ -3,8 +3,11 @@
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::util::{self, WebglExt};
+use super::{Dimension, RenderFlag};
+use crate::camera::Camera;
 use safety::Safety;
-use traffloat::space::Matrix;
+use traffloat::space::{Matrix, Vector};
+use traffloat::sun::Sun;
 
 /// Sets up the canvas, loading initial data.
 pub fn setup(gl: WebGlRenderingContext) -> Setup {
@@ -80,4 +83,39 @@ impl Setup {
         self.sun_pos_buf.apply(&self.gl, &self.sun_prog, "a_pos");
         self.sun_pos_index_buf.draw(&self.gl);
     }
+}
+
+#[codegen::system]
+#[thread_local]
+pub fn draw(
+    #[resource] sun: &Sun,
+    #[resource] camera: &Camera,
+    #[resource(no_init)] dim: &Dimension,
+    #[resource] canvas: &Option<super::Canvas>,
+    #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
+) {
+    match render_flag.last() {
+        Some(RenderFlag) => (),
+        None => return,
+    };
+    let mut canvas = match canvas.as_ref() {
+        Some(canvas) => canvas.borrow_mut(),
+        None => return,
+    };
+
+    canvas.new_frame(dim);
+
+    let rot = match nalgebra::Rotation3::rotation_between(
+        &(camera.rotation().transform_vector(&Vector::new(0., 0., 1.))),
+        &sun.direction(),
+    ) {
+        Some(rot) => rot.matrix().to_homogeneous(),
+        None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
+    };
+    canvas.draw_bg(rot, dim.aspect().lossy_trunc());
+}
+
+/// Sets up legion ECS for debug info rendering.
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    setup.uses(draw_setup)
 }
