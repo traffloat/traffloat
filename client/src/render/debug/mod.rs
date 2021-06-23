@@ -1,15 +1,15 @@
 //! Renders the user interface.
 
-use std::collections::BTreeMap;
-use std::sync::Mutex;
+
+
 
 use derive_new::new;
 
-use super::comm::{Comm, Perf, RenderFlag};
+use super::comm::{Comm, RenderFlag};
 use crate::camera::Camera;
 use crate::config::RENDER_DEBUG;
 use crate::util;
-use codegen::hrtime;
+
 use traffloat::sun::Sun;
 use traffloat::time;
 

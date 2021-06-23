@@ -147,7 +147,7 @@ impl Game {
         self.request_render();
     }
 
-    fn on_key(&mut self, code: &str, down: bool) {
+    fn on_key(&mut self, _code: &str, _down: bool) {
         // TODO!("Send the event to ECS")
         /*
         if let Some(event) = input::keyboard::KeyEvent::new(code, down) {
@@ -161,7 +161,7 @@ impl Game {
         */
     }
 
-    fn on_mouse_move(&mut self, x: i32, y: i32) {
+    fn on_mouse_move(&mut self, _x: i32, _y: i32) {
         // TODO!("Send the event to ECS")
         /*
         let canvas = match self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
@@ -181,7 +181,7 @@ impl Game {
         */
     }
 
-    fn on_mouse_click(&mut self, button: i16, down: bool) {
+    fn on_mouse_click(&mut self, _button: i16, _down: bool) {
         // TODO!("Send the event to ECS")
         /*
         if let Some(event) = input::keyboard::KeyEvent::new_mouse(button, down) {
@@ -195,7 +195,7 @@ impl Game {
         */
     }
 
-    fn on_wheel(&mut self, delta: f64) {
+    fn on_wheel(&mut self, _delta: f64) {
         // TODO!("Send the event to ECS")
         /*
         let mut channel = self

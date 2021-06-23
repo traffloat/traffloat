@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use super::Canvas;
+
 
 /// Thread-local communication between yew and legion renderer
 #[derive(Clone, Default)]

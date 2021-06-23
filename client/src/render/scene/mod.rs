@@ -6,7 +6,7 @@ use legion::world::SubWorld;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::util::{self, WebglExt};
-use super::{Dimension, ImageStore, RenderFlag};
+use super::{ImageStore, RenderFlag};
 use crate::camera::Camera;
 use crate::util::lerp;
 use traffloat::config;
@@ -61,7 +61,7 @@ impl Setup {
     }
 
     /// Draws an object on the canvas.
-    pub fn draw_object(&self, proj: Matrix) {
+    pub fn draw_object(&self, _proj: Matrix) {
         self.gl.use_program(Some(&self.object_prog));
         // self.gl.set_uniform(&self.object_prog, "u_proj", util::glize_matrix(proj));
         self.gl.set_uniform(
@@ -115,11 +115,11 @@ pub fn draw(
         // projection matrix transforms real coordinates to canvas
 
         let unit_to_real = shape.transform(position);
-        let image = image_store.fetch(shape.texture(), shape.texture().get(textures));
+        let _image = image_store.fetch(shape.texture(), shape.texture().get(textures));
 
         let base_month = sun.yaw() / PI / 2. * MONTH_COUNT as f64;
         #[allow(clippy::indexing_slicing)]
-        let brightness = {
+        let _brightness = {
             let brightness_prev = light.brightness()[base_month.floor() as usize % MONTH_COUNT];
             let brightness_next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
             lerp(brightness_prev, brightness_next, base_month.fract())

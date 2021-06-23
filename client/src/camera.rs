@@ -5,8 +5,8 @@ use std::sync::Mutex;
 
 use legion::Entity;
 
-use crate::{config, render};
-use traffloat::shape::Shape;
+use crate::{render};
+
 use traffloat::space::{Matrix, Point, Position, Vector};
 use traffloat::time;
 
@@ -187,7 +187,7 @@ fn camera(
     // #[subscriber] wheel_events: impl Iterator<Item = input::mouse::WheelEvent>,
     // #[subscriber] drag_events: impl Iterator<Item = input::mouse::DragEvent>,
 ) {
-    let dt = clock.delta.value() as f64;
+    let _dt = clock.delta.value() as f64;
 
     /*
     let mut move_direction = Vector::new(0., 0., 0.);
