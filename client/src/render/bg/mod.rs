@@ -88,22 +88,24 @@ impl Setup {
 #[codegen::system]
 #[thread_local]
 pub fn draw(
-    #[resource] sun: &Sun,
-    #[resource] camera: &Camera,
     #[resource(no_init)] dim: &Dimension,
+    #[resource] camera: &Camera,
     #[resource] canvas: &Option<super::Canvas>,
+    #[resource] sun: &Sun,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
+    // Render flag gate boilerplate
     match render_flag.last() {
         Some(RenderFlag) => (),
         None => return,
     };
-    let mut canvas = match canvas.as_ref() {
-        Some(canvas) => canvas.borrow_mut(),
+    let canvas = match canvas.as_ref() {
+        Some(canvas) => canvas.borrow(),
         None => return,
     };
 
-    canvas.new_frame(dim);
+    let bg = canvas.bg();
+    bg.reset();
 
     let rot = match nalgebra::Rotation3::rotation_between(
         &(camera.rotation().transform_vector(&Vector::new(0., 0., 1.))),
@@ -112,7 +114,8 @@ pub fn draw(
         Some(rot) => rot.matrix().to_homogeneous(),
         None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
     };
-    canvas.draw_bg(rot, dim.aspect().lossy_trunc());
+
+    bg.draw_sun(rot, dim.aspect().lossy_trunc());
 }
 
 /// Sets up legion ECS for debug info rendering.

@@ -100,31 +100,33 @@ pub fn lerp(a: f64, b: f64, ratio: f64) -> f64 {
     a * (1. - ratio) + b * ratio
 }
 
+#[wasm_bindgen(module = "/js/debugDiv.js")]
+extern "C" {
+    unsafe fn set_div_lines(div: JsValue, lines: &str);
+}
+
 /// Writer for debug lines in a div
 #[derive(new)]
 pub struct DebugWriter {
     div: web_sys::HtmlElement,
+    #[new(default)]
+    lines: String,
 }
 
 impl DebugWriter {
     /// Resets the writer.
-    pub fn reset(&self) {
-        self.div.set_inner_text("");
+    pub fn reset(&mut self) {
+        self.lines.clear();
     }
 
     /// Appends a line to the div.
-    pub fn write(&self, line: impl AsRef<str>) {
-        let window = web_sys::window().expect("Failed to get window object");
-        let document = window.document().expect("Document is undefined");
-        let br = document
-            .create_element("br")
-            .expect("Failed to create <br/> element");
-        let text = document.create_text_node(line.as_ref());
-        self.div
-            .append_child(&br)
-            .expect("Failed to append to debug div");
-        self.div
-            .append_child(&text)
-            .expect("Failed to append to debug div");
+    pub fn write(&mut self, line: impl AsRef<str>) {
+        self.lines.push('\n');
+        self.lines.push_str(line.as_ref());
+    }
+
+    pub fn flush(&self) {
+        let div: &JsValue = &self.div;
+        set_div_lines(div.clone(), &self.lines);
     }
 }

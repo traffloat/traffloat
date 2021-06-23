@@ -6,11 +6,6 @@ use crate::camera::Camera;
 use crate::util::lerp;
 use codegen::hrtime;
 use safety::Safety;
-use traffloat::config;
-use traffloat::shape::{Shape, Texture};
-use traffloat::space::{Matrix, Position, Vector};
-use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
-use traffloat::time;
 
 mod canvas;
 pub use canvas::*;
@@ -33,5 +28,6 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     setup
         .uses(bg::setup_ecs)
         .uses(scene::setup_ecs)
+        .uses(ui::setup_ecs)
         .uses(debug::setup_ecs)
 }

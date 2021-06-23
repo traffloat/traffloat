@@ -29,10 +29,19 @@ pub type Canvas = Rc<RefCell<CanvasStruct>>;
 ///
 /// This stores three underlying canvas,
 /// namely background, scene and UI.
+#[derive(getset::Getters, getset::MutGetters)]
 pub struct CanvasStruct {
+    /// The background render layer
+    #[getset(get = "pub")]
     bg: super::bg::Setup,
+    /// The object render layer
+    #[getset(get = "pub")]
     scene: super::scene::Setup,
+    /// The UI 2D canvas layer
+    #[getset(get = "pub")]
     ui: web_sys::CanvasRenderingContext2d,
+    /// The debug DOM layer
+    #[getset(get = "pub", get_mut = "pub")]
     debug: super::debug::Setup,
 }
 
@@ -56,22 +65,6 @@ impl CanvasStruct {
         }))
     }
 
-    /// Resets to the rendering to a new frame.
-    pub fn new_frame(&mut self, dim: &Dimension) {
-        self.scene.clear();
-
-        self.ui
-            .reset_transform()
-            .expect("CanvasRenderingContext2d.resetTransform() threw");
-        self.ui
-            .clear_rect(0., 0., dim.width as f64, dim.height as f64);
-        self.ui.set_stroke_style(&"black".into());
-        self.ui.set_fill_style(&"white".into());
-        self.ui.set_font("12px sans-serif");
-
-        self.debug.reset();
-    }
-
     /// Draws the background.
     pub fn draw_bg(&self, rot: Matrix, aspect: f32) {
         self.bg.reset();
@@ -84,11 +77,6 @@ impl CanvasStruct {
     /// Draws an object at the given transformation from shape coordinates to world coordinates.
     pub fn draw_object(&self, proj: Matrix) {
         self.scene.draw_object(proj);
-    }
-
-    /// Retrieves the debug layer.
-    pub fn debug(&self) -> &super::debug::Setup {
-        &self.debug
     }
 }
 

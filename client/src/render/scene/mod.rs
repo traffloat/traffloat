@@ -84,16 +84,16 @@ impl Setup {
 #[thread_local]
 pub fn draw(
     world: &mut SubWorld,
-    #[resource] sun: &Sun,
     #[resource] camera: &Camera,
-    #[resource(no_init)] dim: &Dimension,
     #[resource] canvas: &Option<super::Canvas>,
-    #[state(Default::default())] image_store: &mut ImageStore,
+    #[resource] sun: &Sun,
     #[resource] textures: &config::Store<Texture>,
+    #[state(Default::default())] image_store: &mut ImageStore,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     use legion::IntoQuery;
 
+    // Render flag gate boilerplate
     match render_flag.last() {
         Some(RenderFlag) => (),
         None => return,
@@ -102,6 +102,9 @@ pub fn draw(
         Some(canvas) => canvas.borrow_mut(),
         None => return,
     };
+
+    let scene = canvas.scene();
+    scene.clear();
 
     let projection = camera.projection();
 
