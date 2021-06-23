@@ -3,8 +3,6 @@ use std::collections::VecDeque;
 use std::ops::Deref;
 use std::rc::Rc;
 
-
-
 /// Thread-local communication between yew and legion renderer
 #[derive(Clone, Default)]
 pub struct Comm {

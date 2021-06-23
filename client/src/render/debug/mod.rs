@@ -1,8 +1,5 @@
 //! Renders the user interface.
 
-
-
-
 use derive_new::new;
 
 use super::comm::{Comm, RenderFlag};

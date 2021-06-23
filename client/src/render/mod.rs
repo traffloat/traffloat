@@ -1,12 +1,5 @@
 //! Manages client-side graphics rendering.
 
-
-
-
-
-
-
-
 mod canvas;
 pub use canvas::*;
 mod comm;

@@ -5,7 +5,7 @@ use std::sync::Mutex;
 
 use legion::Entity;
 
-use crate::{render};
+use crate::render;
 
 use traffloat::space::{Matrix, Point, Position, Vector};
 use traffloat::time;

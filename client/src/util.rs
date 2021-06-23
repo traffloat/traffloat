@@ -114,7 +114,7 @@ pub struct DebugWriter {
 }
 
 impl DebugWriter {
-    /// Resets the writer.
+    /// Resets the writer buffer.
     pub fn reset(&mut self) {
         self.lines.clear();
     }
@@ -125,6 +125,7 @@ impl DebugWriter {
         self.lines.push_str(line.as_ref());
     }
 
+    /// Flushes the buffer to the div.
     pub fn flush(&self) {
         let div: &JsValue = &self.div;
         set_div_lines(div.clone(), &self.lines);
