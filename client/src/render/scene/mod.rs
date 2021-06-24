@@ -45,24 +45,24 @@ lazy_static! {
         // +v
         let mut push_face = |v1: usize, v2: usize, v3: usize, v4: usize, normal: [f32; 3]| {
             mesh.positions.extend(&coords[v1]);
-            mesh.positions.extend(&coords[v3]);
             mesh.positions.extend(&coords[v2]);
+            mesh.positions.extend(&coords[v3]);
 
             for _ in 0..3 {
                 mesh.normals.extend(&normal);
             }
 
-            mesh.tex_pos.extend(&[0., 0., 0., 1., 1., 0.]);
+            mesh.tex_pos.extend(&[0., 0., 1., 0., 0., 1.]);
 
             mesh.positions.extend(&coords[v2]);
-            mesh.positions.extend(&coords[v3]);
             mesh.positions.extend(&coords[v4]);
+            mesh.positions.extend(&coords[v3]);
 
             for _ in 0..3 {
                 mesh.normals.extend(&normal);
             }
 
-            mesh.tex_pos.extend(&[1., 0., 0., 1., 1., 1.]);
+            mesh.tex_pos.extend(&[1., 0., 1., 1., 0., 1.]);
         };
 
         // Reference: https://www.khronos.org/opengl/wiki/File:CubeMapAxes.png
@@ -85,6 +85,9 @@ lazy_static! {
 
 /// Sets up the scene canvas.
 pub fn setup(gl: WebGlRenderingContext) -> Setup {
+    gl.enable(WebGlRenderingContext::DEPTH_TEST);
+    gl.enable(WebGlRenderingContext::CULL_FACE);
+
     let object_prog = util::create_program(
         &gl,
         "object.vert",
