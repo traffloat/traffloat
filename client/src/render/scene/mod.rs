@@ -192,6 +192,8 @@ pub fn draw(
 
         let unit_to_real = shape.transform(position);
 
+        log::debug!("Brightness: {:?}", light.brightness());
+
         let base_month = sun.yaw() / PI / 2. * MONTH_COUNT as f64;
         #[allow(clippy::indexing_slicing)]
         let brightness = {
@@ -203,7 +205,7 @@ pub fn draw(
         let tex: &Texture = shape.texture().get(textures);
         let texture = texture_pool.load(tex.url(), image_store, &scene.gl);
 
-        scene.draw_object(projection, sun.direction(), brightness, &texture);
+        scene.draw_object(projection * unit_to_real, sun.direction(), brightness, &texture);
     }
 }
 

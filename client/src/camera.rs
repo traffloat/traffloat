@@ -109,18 +109,9 @@ mod unsafe_proj {
                 // Move backwards to the camera position
                 matrix.append_translation_mut(&Vector::new(0., 0., self.zoom));
 
-                log::debug!("Transform matrix: {}", &matrix);
                 // Finally, apply projection matrix
                 matrix =
                     Matrix::new_perspective(self.aspect, 1.5, self.zoom, self.distance) * matrix;
-                log::debug!(
-                    "Perspective matrix: {} {} {} {} {}",
-                    self.aspect,
-                    self.fovy,
-                    self.zoom,
-                    self.distance,
-                    &matrix
-                );
 
                 matrix
             })
