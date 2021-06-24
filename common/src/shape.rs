@@ -98,7 +98,7 @@ impl Unit {
                     .map(|i| {
                         let row = transform.row(i);
 
-                        let norm = row.fixed_slice::<dim::U1, dim::U3>(0, 0).norm();
+                        let norm = row.fixed_slice::<1, 3>(0, 0).norm();
 
                         let points: SmallVec<[f64; 2]> = [-1_f64, 1.]
                             .iter()
@@ -106,7 +106,7 @@ impl Unit {
                                 let unit = Vector::from_iterator(
                                     (0_usize..3).map(|j| sgn * row[j] / norm),
                                 )
-                                .fixed_resize::<dim::U4, dim::U1>(1.);
+                                .fixed_resize::<4, 1>(1.);
                                 (row * unit)[0]
                             })
                             .collect();
