@@ -87,7 +87,7 @@ impl Setup {
 
 #[codegen::system]
 #[thread_local]
-pub fn draw(
+fn draw(
     #[resource(no_init)] dim: &Dimension,
     #[resource] camera: &Camera,
     #[resource] canvas: &Option<super::Canvas>,
@@ -107,6 +107,7 @@ pub fn draw(
     let bg = canvas.bg();
     bg.reset();
 
+    // Rotation between
     let rot = match nalgebra::Rotation3::rotation_between(
         &(camera.rotation().transform_vector(&Vector::new(0., 0., 1.))),
         &sun.direction(),

@@ -99,7 +99,7 @@ impl CommandState {
 pub type CommandStates = EnumMap<Command, CommandState>;
 
 #[codegen::system]
-pub fn track_states(
+fn track_states(
     #[resource] states: &mut CommandStates,
     #[resource] clock: &time::Clock,
     #[subscriber] raw_key_events: impl Iterator<Item = RawKeyEvent>,

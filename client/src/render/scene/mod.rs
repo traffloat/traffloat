@@ -157,7 +157,7 @@ impl Setup {
 #[read_component(LightStats)]
 #[read_component(Renderable)]
 #[thread_local]
-pub fn draw(
+fn draw(
     world: &mut SubWorld,
     #[resource] camera: &Camera,
     #[resource] canvas: &Option<super::Canvas>,

@@ -34,7 +34,7 @@ pub struct Setup {
 
 #[codegen::system]
 #[thread_local]
-pub fn draw(
+fn draw(
     #[resource] camera: &Camera,
     #[resource] canvas: &Option<super::Canvas>,
     #[resource] clock: &time::Clock,

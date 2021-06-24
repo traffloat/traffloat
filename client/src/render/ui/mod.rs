@@ -4,7 +4,7 @@ use super::{Dimension, RenderFlag};
 
 #[codegen::system]
 #[thread_local]
-pub fn draw(
+fn draw(
     #[resource(no_init)] dim: &Dimension,
     #[resource] canvas: &Option<super::Canvas>,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
