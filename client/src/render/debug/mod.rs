@@ -87,6 +87,7 @@ pub fn draw(
         camera.distance(),
     ));
 
+    writer.write("CYCLE TIME:");
     {
         let perf_read_map = perf_read.map.get_mut().expect("Poisoned Perf");
         #[allow(clippy::cast_precision_loss)]
@@ -97,7 +98,7 @@ pub fn draw(
                 / (deque.len() as f64))
                 .sqrt();
             writer.write(format!(
-                "Cycle time for system {}: {:.2} \u{03bc}s (\u{00b1} {:.4} \u{03bc}s)",
+                "    {}: {:.2} \u{03bc}s (\u{00b1} {:.4} \u{03bc}s)",
                 sys, avg, sd
             ));
         }
