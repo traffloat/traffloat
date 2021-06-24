@@ -25,7 +25,7 @@ legion = {version = "0.4.0", default-features = false, features = ["codegen", "e
 log = "0.4.14"
 nalgebra = "0.25.4"
 once_cell = "1.7.2"
-rand = "0.8.3"
+rand = "0.8.4"
 rand_distr = "0.4.0"
 rand_xoshiro = "0.6.0"
 serde = {version = "1.0.125", features = ["derive"]}
