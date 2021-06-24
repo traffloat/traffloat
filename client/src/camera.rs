@@ -236,7 +236,9 @@ fn keyboard(
             move_direction += Vector::new(0., 0., config::WASD_LINEAR_VELOCITY * dt);
         }
         if move_direction != Vector::new(0., 0., 0.) {
-            let dp = camera.rotation().try_inverse()
+            let dp = camera
+                .rotation()
+                .try_inverse()
                 .expect("Rotation matrix is singular")
                 .transform_vector(&move_direction);
             camera.set_focus(camera.focus() + dp);
