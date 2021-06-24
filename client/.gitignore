@@ -1,3 +1,5 @@
 node_modules
 dist
 /pkg
+static/textures.png
+static/textures.json
