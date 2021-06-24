@@ -5,6 +5,8 @@ use std::sync::Mutex;
 
 use legion::Entity;
 
+use crate::config;
+use crate::input::keyboard;
 use crate::render;
 
 use traffloat::space::{Matrix, Point, Position, Vector};
@@ -179,48 +181,73 @@ pub struct CursorTarget {
 
 #[codegen::system]
 #[allow(clippy::indexing_slicing, clippy::too_many_arguments)]
-fn camera(
+fn keyboard(
     #[resource] camera: &mut Camera,
-    // #[resource] actions: &input::keyboard::ActionSet,
     #[resource] clock: &time::Clock,
+    #[resource] commands: &keyboard::CommandStates,
     #[resource(no_init)] dim: &render::Dimension,
-    // #[subscriber] wheel_events: impl Iterator<Item = input::mouse::WheelEvent>,
-    // #[subscriber] drag_events: impl Iterator<Item = input::mouse::DragEvent>,
 ) {
-    let _dt = clock.delta.value() as f64;
+    let dt = clock.delta().value() as f64;
 
-    /*
-    let mut move_direction = Vector::new(0., 0., 0.);
-    if actions[input::keyboard::Action::Left] {
-        move_direction += Vector::new(-config::WASD_VELOCITY * dt, 0., 0.);
+    if commands[keyboard::Command::RotationMask].active() {
+        let mut roll = 0.;
+        let mut pitch = 0.;
+        let mut yaw = 0.;
+        if commands[keyboard::Command::MoveLeft].active() {
+            yaw -= config::WASD_ROTATION_VELOCITY;
+        }
+        if commands[keyboard::Command::MoveRight].active() {
+            yaw += config::WASD_ROTATION_VELOCITY;
+        }
+        if commands[keyboard::Command::MoveDown].active() {
+            pitch += config::WASD_ROTATION_VELOCITY;
+        }
+        if commands[keyboard::Command::MoveUp].active() {
+            pitch -= config::WASD_ROTATION_VELOCITY;
+        }
+        if commands[keyboard::Command::MoveFront].active() {
+            roll -= config::WASD_ROTATION_VELOCITY;
+        }
+        if commands[keyboard::Command::MoveBack].active() {
+            roll += config::WASD_ROTATION_VELOCITY;
+        }
+        if roll != 0. || pitch != 0. || yaw != 0. {
+            let mat = nalgebra::Rotation3::from_euler_angles(pitch, yaw, roll).to_homogeneous();
+            camera.set_rotation(mat * camera.rotation());
+        }
+    } else {
+        let mut move_direction = Vector::new(0., 0., 0.);
+        if commands[keyboard::Command::MoveLeft].active() {
+            move_direction += Vector::new(-config::WASD_LINEAR_VELOCITY * dt, 0., 0.);
+        }
+        if commands[keyboard::Command::MoveRight].active() {
+            move_direction += Vector::new(config::WASD_LINEAR_VELOCITY * dt, 0., 0.);
+        }
+        if commands[keyboard::Command::MoveUp].active() {
+            move_direction += Vector::new(0., config::WASD_LINEAR_VELOCITY * dt, 0.);
+        }
+        if commands[keyboard::Command::MoveDown].active() {
+            move_direction += Vector::new(0., -config::WASD_LINEAR_VELOCITY * dt, 0.);
+        }
+        if commands[keyboard::Command::MoveFront].active() {
+            move_direction += Vector::new(0., 0., -config::WASD_LINEAR_VELOCITY * dt);
+        }
+        if commands[keyboard::Command::MoveBack].active() {
+            move_direction += Vector::new(0., 0., config::WASD_LINEAR_VELOCITY * dt);
+        }
+        if move_direction != Vector::new(0., 0., 0.) {
+            let dp = camera.rotation().try_inverse()
+                .expect("Rotation matrix is singular")
+                .transform_vector(&move_direction);
+            camera.set_focus(camera.focus() + dp);
+        }
     }
-    if actions[input::keyboard::Action::Right] {
-        move_direction += Vector::new(config::WASD_VELOCITY * dt, 0., 0.);
-    }
-    if actions[input::keyboard::Action::Down] {
-        move_direction += Vector::new(0., -config::WASD_VELOCITY * dt, 0.);
-    }
-    if actions[input::keyboard::Action::Up] {
-        move_direction += Vector::new(0., config::WASD_VELOCITY * dt, 0.);
-    }
-    if actions[input::keyboard::Action::Backward] {
-        move_direction += Vector::new(0., 0., -config::WASD_VELOCITY * dt);
-    }
-    if actions[input::keyboard::Action::Forward] {
-        move_direction += Vector::new(0., 0., config::WASD_VELOCITY * dt);
-    }
-    if move_direction != Vector::new(0., 0., 0.) {
-        let dp = camera.rotation().transform_vector(&move_direction);
-        camera.set_focus(camera.focus() + dp);
-    }
-
-    if actions[input::keyboard::Action::ZoomIn] {
-        camera.set_zoom(camera.zoom() - config::ZOOM_VELOCITY * dt);
-    }
-    if actions[input::keyboard::Action::ZoomOut] {
+    if commands[keyboard::Command::ZoomIn].active() {
         camera.set_zoom(camera.zoom() + config::ZOOM_VELOCITY * dt);
     }
-    */
+    if commands[keyboard::Command::ZoomOut].active() {
+        camera.set_zoom(f64::max(camera.zoom() - config::ZOOM_VELOCITY * dt, 0.0001));
+    }
 
     /*
     for wheel in wheel_events {
@@ -296,5 +323,5 @@ fn locate_cursor(
 
 /// Sets up legion ECS for this module.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(camera_setup)
+    setup.uses(keyboard_setup)
 }

@@ -35,7 +35,7 @@ fn move_sun(
     #[resource] clock: &time::Clock,
     #[resource] config: &config::Scalar,
 ) {
-    sun.yaw += config.sun_speed * clock.delta;
+    sun.yaw += config.sun_speed * clock.delta();
     sun.yaw %= PI * 2.;
 }
 

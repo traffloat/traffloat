@@ -5,6 +5,7 @@ use yew::prelude::*;
 use yew::services::{interval, keyboard as kb_srv, render as render_srv, resize};
 
 use super::GameArgs;
+use crate::input;
 use crate::render;
 use crate::util;
 use safety::Safety;
@@ -147,18 +148,12 @@ impl Game {
         self.request_render();
     }
 
-    fn on_key(&mut self, _code: &str, _down: bool) {
-        // TODO!("Send the event to ECS")
-        /*
-        if let Some(event) = input::keyboard::KeyEvent::new(code, down) {
-            let mut channel = self
-                .legion
-                .resources
-                .get_mut::<shrev::EventChannel<input::keyboard::KeyEvent>>()
-                .expect("EventChannel<KeyEvent> uninitialized");
-            channel.single_write(event);
-        }
-        */
+    fn on_key(&mut self, code: &str, down: bool) {
+        let event = input::keyboard::RawKeyEvent::builder()
+            .code(code.to_string())
+            .down(down)
+            .build();
+        self.legion.publish(event);
     }
 
     fn on_mouse_move(&mut self, _x: i32, _y: i32) {

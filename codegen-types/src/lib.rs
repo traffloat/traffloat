@@ -92,6 +92,17 @@ impl Legion {
     pub fn run(&mut self) {
         self.schedule.execute(&mut self.world, &mut self.resources)
     }
+
+    pub fn publish<T: shrev::Event>(&mut self, event: T) {
+        let mut channel = match self.resources.get_mut::<shrev::EventChannel<T>>() {
+            Some(channel) => channel,
+            None => panic!(
+                "EventChannel<{}> has not been initialized",
+                std::any::type_name::<T>()
+            ),
+        };
+        channel.single_write(event);
+    }
 }
 
 /// Performance tracking

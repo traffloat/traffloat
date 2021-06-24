@@ -73,7 +73,11 @@ pub fn draw(
         simul_fps,
         comm.perf.average_exec_us(),
     ));
-    writer.write(format!("Time: {:?} (Sun: {:.3})", clock.now, sun.yaw()));
+    writer.write(format!(
+        "Time: {:?} (Sun: {:.3})",
+        clock.now().since_epoch().value(),
+        sun.yaw()
+    ));
     writer.write(format!(
         "Focus: ({:.1}, {:.1}, {:.1}); Zoom: {}; Distance: {}",
         camera.focus().x(),

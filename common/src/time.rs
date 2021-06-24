@@ -31,6 +31,13 @@ impl Time {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, codegen::Gen)]
 pub struct Instant(pub Time);
 
+impl Instant {
+    /// Returns the time since epoch
+    pub fn since_epoch(self) -> Time {
+        self.0
+    }
+}
+
 impl Add<Time> for Instant {
     type Output = Self;
 
@@ -68,12 +75,14 @@ impl SubAssign<Time> for Instant {
 }
 
 /// A resource for time read/write.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, getset::CopyGetters)]
 pub struct Clock {
     /// The current time
-    pub now: Instant, // TODO multiplayer calibration
+    #[getset(get_copy = "pub")]
+    now: Instant, // TODO multiplayer calibration
     /// Time since the last frame
-    pub delta: Time,
+    #[getset(get_copy = "pub")]
+    delta: Time,
 }
 
 impl Clock {
