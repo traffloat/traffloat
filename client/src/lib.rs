@@ -76,7 +76,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             .resources
             .get_mut::<config::Store<Texture>>()
             .expect("");
-        t.add(Texture::new(String::from("SOF3.png")))
+        t.add(Texture::new(String::from("SOF3.png"), 0, 0, 6, 6))
     };
     setup
         .entity((

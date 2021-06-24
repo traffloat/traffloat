@@ -109,9 +109,18 @@ mod unsafe_proj {
                 // Move backwards to the camera position
                 matrix.append_translation_mut(&Vector::new(0., 0., self.zoom));
 
+                log::debug!("Transform matrix: {}", &matrix);
                 // Finally, apply projection matrix
-                matrix = Matrix::new_perspective(self.aspect, self.fovy, self.zoom, self.distance)
-                    * matrix;
+                matrix =
+                    Matrix::new_perspective(self.aspect, 1.5, self.zoom, self.distance) * matrix;
+                log::debug!(
+                    "Perspective matrix: {} {} {} {} {}",
+                    self.aspect,
+                    self.fovy,
+                    self.zoom,
+                    self.distance,
+                    &matrix
+                );
 
                 matrix
             })
@@ -155,10 +164,10 @@ impl Camera {
 impl Default for Camera {
     fn default() -> Self {
         Camera::builder()
-            .focus(Position::new(0., 0., 0.))
+            .focus(Position::new(1.5, 2., 6.))
             .rotation(Matrix::identity())
             .aspect(1.)
-            .zoom(0.)
+            .zoom(0.01)
             .distance(100.)
             .fovy(PI / 4.)
             .build()

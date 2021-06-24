@@ -2,6 +2,7 @@
 
 use std::f64::consts::PI;
 
+use lazy_static::lazy_static;
 use legion::world::SubWorld;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
@@ -9,9 +10,10 @@ use super::util::{self, WebglExt};
 use super::{ImageStore, RenderFlag};
 use crate::camera::Camera;
 use crate::util::lerp;
+use safety::Safety;
 use traffloat::config;
 use traffloat::shape::{Shape, Texture};
-use traffloat::space::{Matrix, Position};
+use traffloat::space::{Matrix, Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
 mod able;
@@ -19,6 +21,67 @@ pub use able::*;
 
 mod mesh;
 pub use mesh::*;
+
+lazy_static! {
+    static ref CUBE: Mesh = {
+        let mut mesh = Mesh::default();
+
+        let coords = &[
+            [-1., -1., -1.],
+            [-1., -1., 1.],
+            [-1., 1., -1.],
+            [-1., 1., 1.],
+            [1., -1., -1.],
+            [1., -1., 1.],
+            [1., 1., -1.],
+            [1., 1., 1.],
+        ];
+
+        // vertex order:
+        // 1 2 --> +u
+        // 3 4
+        //  |
+        //  v
+        // +v
+        let mut push_face = |v1: usize, v2: usize, v3: usize, v4: usize, normal: [f32; 3]| {
+            mesh.positions.extend(&coords[v1]);
+            mesh.positions.extend(&coords[v3]);
+            mesh.positions.extend(&coords[v2]);
+
+            for _ in 0..3 {
+                mesh.normals.extend(&normal);
+            }
+
+            mesh.tex_pos.extend(&[0., 0., 0., 1., 1., 0.]);
+
+            mesh.positions.extend(&coords[v2]);
+            mesh.positions.extend(&coords[v3]);
+            mesh.positions.extend(&coords[v4]);
+
+            for _ in 0..3 {
+                mesh.normals.extend(&normal);
+            }
+
+            mesh.tex_pos.extend(&[1., 0., 0., 1., 1., 1.]);
+        };
+
+        // Reference: https://www.khronos.org/opengl/wiki/File:CubeMapAxes.png
+        // Positive X
+        push_face(0b101, 0b100, 0b111, 0b110, [1., 0., 0.]);
+        // Negative X
+        push_face(0b000, 0b101, 0b010, 0b011, [-1., 0., 0.]);
+        // Positive Y
+        push_face(0b011, 0b111, 0b010, 0b110, [0., 1., 0.]);
+        // Negative Y
+        push_face(0b000, 0b100, 0b001, 0b101, [0., -1., 0.]);
+        // Positive Z
+        push_face(0b001, 0b101, 0b011, 0b111, [0., 0., 1.]);
+        // Negative Z
+        push_face(0b100, 0b000, 0b110, 0b010, [0., 0., -1.]);
+
+        mesh
+    };
+}
 
 /// Sets up the scene canvas.
 pub fn setup(gl: WebGlRenderingContext) -> Setup {
@@ -30,14 +93,7 @@ pub fn setup(gl: WebGlRenderingContext) -> Setup {
         include_str!("object.frag"),
     );
 
-    let cube = Mesh::builder()
-        .positions(util::FloatBuffer::create(
-            &gl,
-            &[0., 1., 0.5, 1., 0., 0.5, -1., 0., 0.5],
-            3,
-        ))
-        .faces(util::IndexBuffer::create(&gl, &[0, 1, 2], 3))
-        .build();
+    let cube = CUBE.prepare(&gl);
 
     Setup {
         gl,
@@ -50,7 +106,7 @@ pub fn setup(gl: WebGlRenderingContext) -> Setup {
 pub struct Setup {
     gl: WebGlRenderingContext,
     object_prog: WebGlProgram,
-    cube: Mesh,
+    cube: PreparedMesh,
 }
 
 impl Setup {
@@ -61,18 +117,34 @@ impl Setup {
     }
 
     /// Draws an object on the canvas.
-    pub fn draw_object(&self, _proj: Matrix) {
+    ///
+    /// The projection matrix transforms unit model coordinates to projection coordinates directly.
+    pub fn draw_object(&self, proj: Matrix, sun: Vector, brightness: f64, texture: &util::Texture) {
         self.gl.use_program(Some(&self.object_prog));
-        // self.gl.set_uniform(&self.object_prog, "u_proj", util::glize_matrix(proj));
-        self.gl.set_uniform(
-            &self.object_prog,
-            "u_proj",
-            util::glize_matrix(Matrix::identity()),
+        self.gl
+            .set_uniform(&self.object_prog, "u_proj", util::glize_matrix(proj));
+        self.gl
+            .set_uniform(&self.object_prog, "u_sun", util::glize_vector(sun));
+        self.gl
+            .set_uniform(&self.object_prog, "u_brightness", brightness.lossy_trunc());
+        texture.apply(
+            &self.gl,
+            &self
+                .gl
+                .get_uniform_location(&self.object_prog, "u_tex")
+                .expect("Uniform not found"),
         );
+
         self.cube
             .positions()
             .apply(&self.gl, &self.object_prog, "a_pos");
-        self.cube.faces().draw(&self.gl);
+        self.cube
+            .normals()
+            .apply(&self.gl, &self.object_prog, "a_normal");
+        self.cube
+            .tex_pos()
+            .apply(&self.gl, &self.object_prog, "a_tex_pos");
+        self.cube.draw(&self.gl);
     }
 }
 
@@ -89,6 +161,7 @@ pub fn draw(
     #[resource] sun: &Sun,
     #[resource] textures: &config::Store<Texture>,
     #[state(Default::default())] image_store: &mut ImageStore,
+    #[state(Default::default())] texture_pool: &mut util::TexturePool,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     use legion::IntoQuery;
@@ -115,18 +188,19 @@ pub fn draw(
         // projection matrix transforms real coordinates to canvas
 
         let unit_to_real = shape.transform(position);
-        let _image = image_store.fetch(shape.texture(), shape.texture().get(textures));
 
         let base_month = sun.yaw() / PI / 2. * MONTH_COUNT as f64;
         #[allow(clippy::indexing_slicing)]
-        let _brightness = {
-            let brightness_prev = light.brightness()[base_month.floor() as usize % MONTH_COUNT];
-            let brightness_next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
-            lerp(brightness_prev, brightness_next, base_month.fract())
+        let brightness = {
+            let prev = light.brightness()[base_month.floor() as usize % MONTH_COUNT];
+            let next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
+            lerp(prev, next, base_month.fract())
         };
 
-        // TODO draw image on projection * unit_to_real with lighting = brightness
-        canvas.draw_object(projection * unit_to_real);
+        let tex: &Texture = shape.texture().get(textures);
+        let texture = texture_pool.load(tex.url(), image_store, &scene.gl);
+
+        scene.draw_object(projection, sun.direction(), brightness, &texture);
     }
 }
 

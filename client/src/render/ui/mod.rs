@@ -20,12 +20,6 @@ pub fn draw(
     };
 
     let ui = canvas.ui();
-    ui.reset_transform()
-        .expect("CanvasRenderingContext2d.resetTransform() threw");
-    ui.clear_rect(0., 0., dim.width as f64, dim.height as f64);
-    ui.set_stroke_style(&"black".into());
-    ui.set_fill_style(&"white".into());
-    ui.set_font("12px sans-serif");
 }
 
 /// Sets up legion ECS for debug info rendering.

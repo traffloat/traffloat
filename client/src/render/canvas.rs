@@ -64,20 +64,6 @@ impl CanvasStruct {
             debug,
         }))
     }
-
-    /// Draws the background.
-    pub fn draw_bg(&self, rot: Matrix, aspect: f32) {
-        self.bg.reset();
-
-        // TODO draw stars
-
-        self.bg.draw_sun(rot, aspect);
-    }
-
-    /// Draws an object at the given transformation from shape coordinates to world coordinates.
-    pub fn draw_object(&self, proj: Matrix) {
-        self.scene.draw_object(proj);
-    }
 }
 
 /// Provides an [`ImageBitmap`][ImageBitmap].

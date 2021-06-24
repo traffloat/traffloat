@@ -188,6 +188,30 @@ pub struct Texture {
     /// A URL to an image file
     #[getset(get = "pub")]
     url: String,
+    /// X coordinate of the upper left corner of the texture in the image
+    #[getset(get_copy = "pub")]
+    offset_x: u32,
+    /// Y coordinate of the upper left corner of the texture in the image
+    #[getset(get_copy = "pub")]
+    offset_y: u32,
+    /// Log-2 width of the texture
+    #[getset(get_copy = "pub")]
+    lg_width: u8,
+    /// Log-2 height of the texture
+    #[getset(get_copy = "pub")]
+    lg_height: u8,
+}
+
+impl Texture {
+    /// Width of the texture
+    pub fn width(&self) -> u32 {
+        1 << self.lg_width
+    }
+
+    /// Height of the texture
+    pub fn height(&self) -> u32 {
+        1 << self.lg_height
+    }
 }
 
 impl Config for Texture {}

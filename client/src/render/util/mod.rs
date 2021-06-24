@@ -1,3 +1,5 @@
+use web_sys::WebGlRenderingContext;
+
 mod types;
 pub use types::*;
 

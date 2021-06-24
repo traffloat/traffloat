@@ -63,7 +63,7 @@ pub struct Setup {
 impl Setup {
     /// Resets the scene for the next rendering frame.
     pub fn reset(&self) {
-        self.gl.clear_color(0., 0., 0., 1.);
+        self.gl.clear_color(0.2, 0.1, 0.5, 1.);
         self.gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
     }
 

@@ -1,9 +1,10 @@
 use std::cell;
+use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture, WebGlUniformLocation};
 
-use crate::render::MaybeBitmap;
+use crate::render::{self, MaybeBitmap};
 
 /// A 2D WebGL texture
 pub struct Texture {
@@ -92,5 +93,25 @@ impl Texture {
             gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&*texture));
         }
         gl.uniform1i(Some(uniform_location), 0);
+    }
+}
+
+#[derive(Default)]
+pub struct TexturePool {
+    map: cell::RefCell<BTreeMap<String, Rc<Texture>>>,
+}
+
+impl TexturePool {
+    pub fn load(
+        &self,
+        url: &str,
+        images: &mut render::ImageStore,
+        gl: &WebGlRenderingContext,
+    ) -> Rc<Texture> {
+        let mut map = self.map.borrow_mut();
+        let rc = map
+            .entry(url.to_string())
+            .or_insert_with(|| Rc::new(Texture::create(gl, images.fetch(url))));
+        Rc::clone(rc)
     }
 }

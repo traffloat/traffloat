@@ -8,21 +8,21 @@ use traffloat::shape::Texture;
 /// A resource that caches the [`ImageBitmap`][web_sys::ImageBitmap] requests.
 #[derive(Default)]
 pub struct ImageStore {
-    images: BTreeMap<config::Id<Texture>, Rc<MaybeBitmap>>,
+    images: BTreeMap<String, Rc<MaybeBitmap>>,
 }
 
 impl ImageStore {
     /// Fetches the bitmap for a [`Texture`].
-    pub fn fetch(&mut self, id: config::Id<Texture>, texture: &Texture) -> Rc<MaybeBitmap> {
+    pub fn fetch(&mut self, url: &str) -> Rc<MaybeBitmap> {
         let rc = self
             .images
-            .entry(id)
-            .or_insert_with(|| Rc::new(create_bitmap(texture)));
+            .entry(url.to_string())
+            .or_insert_with(|| Rc::new(create_bitmap(url)));
         Rc::clone(rc)
     }
 }
 
-fn create_bitmap(texture: &Texture) -> MaybeBitmap {
+fn create_bitmap(url: &str) -> MaybeBitmap {
     use wasm_bindgen::prelude::*;
 
     #[wasm_bindgen(module = "/js/bitmap.js")]
@@ -30,7 +30,7 @@ fn create_bitmap(texture: &Texture) -> MaybeBitmap {
         fn create_bitmap(url: &str) -> JsValue;
     }
 
-    let promise = create_bitmap(texture.url());
+    let promise = create_bitmap(url);
     let promise = ReifiedPromise::new(promise, ());
     MaybeBitmap { promise }
 }
