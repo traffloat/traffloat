@@ -78,21 +78,30 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             .resources
             .get_mut::<config::Store<Texture>>()
             .expect("");
-        t.add(Texture::new(String::from("textures.png"), String::from("core")))
+        t.add(Texture::new(
+            String::from("textures.png"),
+            String::from("core"),
+        ))
     };
     let house_texture = {
         let mut t = setup
             .resources
             .get_mut::<config::Store<Texture>>()
             .expect("");
-        t.add(Texture::new(String::from("textures.png"), String::from("house")))
+        t.add(Texture::new(
+            String::from("textures.png"),
+            String::from("house"),
+        ))
     };
     let solar_panel_texture = {
         let mut t = setup
             .resources
             .get_mut::<config::Store<Texture>>()
             .expect("");
-        t.add(Texture::new(String::from("textures.png"), String::from("house")))
+        t.add(Texture::new(
+            String::from("textures.png"),
+            String::from("house"),
+        ))
     };
     setup
         .entity((

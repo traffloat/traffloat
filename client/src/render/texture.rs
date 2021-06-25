@@ -4,10 +4,10 @@ use std::mem;
 use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
-use web_sys::{ImageBitmap, WebGlTexture, WebGlRenderingContext};
+use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture};
 
-use traffloat::shape;
 use crate::util::ReifiedPromise;
+use traffloat::shape;
 
 #[wasm_bindgen(module = "/js/bitmap.js")]
 extern "C" {
@@ -16,7 +16,6 @@ extern "C" {
     fn get_bitmap(value: &JsValue) -> ImageBitmap;
     fn get_index(value: &JsValue) -> String;
 }
-
 
 pub struct Pool {
     map: cell::RefCell<BTreeMap<String, Rc<Atlas>>>,
@@ -49,18 +48,23 @@ impl Pool {
 
     fn load(&self, url: &str) -> Rc<Atlas> {
         let mut map = self.map.borrow_mut();
-        let rc = map.entry(url.to_string())
+        let rc = map
+            .entry(url.to_string())
             .or_insert_with(|| Rc::new(Atlas::load(url)));
         Rc::clone(rc)
     }
 
     /// Retrieves a sprite for the given texture, or returns the dummy texture
-    pub fn sprite(&self, texture: &shape::Texture, gl: &WebGlRenderingContext) -> (Rc<WebGlTexture>, ShapeSprites) {
+    pub fn sprite(
+        &self,
+        texture: &shape::Texture,
+        gl: &WebGlRenderingContext,
+    ) -> (Rc<WebGlTexture>, ShapeSprites) {
         let atlas = self.load(texture.url());
         atlas.get(texture.name(), gl).unwrap_or_else(|| {
             (
                 Rc::clone(&self.dummy),
-                ShapeSprites::Cube(DUMMY_CUBE_SPRITES)
+                ShapeSprites::Cube(DUMMY_CUBE_SPRITES),
             )
         })
     }
@@ -78,7 +82,11 @@ impl Atlas {
     }
 
     /// Gets information about a sprite if available.
-    pub fn get(&self, name: &str, gl: &WebGlRenderingContext) -> Option<(Rc<WebGlTexture>, ShapeSprites)> {
+    pub fn get(
+        &self,
+        name: &str,
+        gl: &WebGlRenderingContext,
+    ) -> Option<(Rc<WebGlTexture>, ShapeSprites)> {
         let mut ae = self.0.borrow_mut();
         ae.update(gl);
         if let AtlasEnum::Ready { index, texture } = &*ae {
@@ -114,7 +122,7 @@ impl AtlasEnum {
                     WebGlRenderingContext::RGBA as i32,   // internalformat
                     WebGlRenderingContext::RGBA,          // format
                     WebGlRenderingContext::UNSIGNED_BYTE, // type
-                    &bitmap,                                   // pixels
+                    &bitmap,                              // pixels
                 )
                 .expect("Failed to assign WebGL texture");
                 gl.generate_mipmap(WebGlRenderingContext::TEXTURE_2D);

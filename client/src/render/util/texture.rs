@@ -63,7 +63,7 @@ impl Texture {
                 WebGlRenderingContext::RGBA as i32,   // internalformat
                 WebGlRenderingContext::RGBA,          // format
                 WebGlRenderingContext::UNSIGNED_BYTE, // type
-                bitmap,                                   // pixels
+                bitmap,                               // pixels
             )
             .expect("Failed to assign WebGL texture");
             gl.generate_mipmap(WebGlRenderingContext::TEXTURE_2D);
