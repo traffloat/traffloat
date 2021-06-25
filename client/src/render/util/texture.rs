@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture, WebGlUniformLocation};
 
-use crate::render::{self, MaybeBitmap};
+use crate::render::{self, util};
 
 /// A 2D WebGL texture
 pub struct Texture {
@@ -17,7 +17,7 @@ enum MaybeTexture {
 }
 
 struct PendingTexture {
-    bitmap: Rc<MaybeBitmap>,
+    bitmap: Rc<util::MaybeBitmap>,
     texture: Option<WebGlTexture>,
 }
 
@@ -27,7 +27,7 @@ struct LoadedTexture {
 
 impl Texture {
     /// Creates a 2D WebGL texture
-    pub fn create(gl: &WebGlRenderingContext, bitmap: Rc<MaybeBitmap>) -> Self {
+    pub fn create(gl: &WebGlRenderingContext, bitmap: Rc<util::MaybeBitmap>) -> Self {
         let texture = gl.create_texture().expect("Failed to create WebGL texture");
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&texture));
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
@@ -55,7 +55,7 @@ impl Texture {
     ///
     /// The returned reference must be dropped before calling this method again.
     pub fn texture(&self, gl: &WebGlRenderingContext) -> cell::Ref<'_, WebGlTexture> {
-        fn init_texture(gl: &WebGlRenderingContext, ib: &ImageBitmap, texture: &WebGlTexture) {
+        fn init_texture(gl: &WebGlRenderingContext, bitmap: &ImageBitmap, texture: &WebGlTexture) {
             gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(texture));
             gl.tex_image_2d_with_u32_and_u32_and_image_bitmap(
                 WebGlRenderingContext::TEXTURE_2D,    // target,
@@ -63,7 +63,7 @@ impl Texture {
                 WebGlRenderingContext::RGBA as i32,   // internalformat
                 WebGlRenderingContext::RGBA,          // format
                 WebGlRenderingContext::UNSIGNED_BYTE, // type
-                ib,                                   // pixels
+                bitmap,                                   // pixels
             )
             .expect("Failed to assign WebGL texture");
             gl.generate_mipmap(WebGlRenderingContext::TEXTURE_2D);
@@ -105,7 +105,7 @@ impl TexturePool {
     pub fn load(
         &self,
         url: &str,
-        images: &mut render::ImageStore,
+        images: &mut util::ImageStore,
         gl: &WebGlRenderingContext,
     ) -> Rc<Texture> {
         let mut map = self.map.borrow_mut();

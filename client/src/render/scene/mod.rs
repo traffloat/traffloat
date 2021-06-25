@@ -7,7 +7,7 @@ use legion::world::SubWorld;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::util::{self, WebglExt};
-use super::{ImageStore, RenderFlag};
+use super::RenderFlag;
 use crate::camera::Camera;
 use crate::util::lerp;
 use safety::Safety;
@@ -90,10 +90,10 @@ pub fn setup(gl: WebGlRenderingContext) -> Setup {
 
     let object_prog = util::create_program(
         &gl,
-        "object.vert",
-        include_str!("object.vert"),
-        "object.frag",
-        include_str!("object.frag"),
+        "node.vert",
+        include_str!("node.vert"),
+        "node.frag",
+        include_str!("node.frag"),
     );
 
     let cube = CUBE.prepare(&gl);
@@ -163,7 +163,7 @@ fn draw(
     #[resource] canvas: &Option<super::Canvas>,
     #[resource] sun: &Sun,
     #[resource] textures: &config::Store<Texture>,
-    #[state(Default::default())] image_store: &mut ImageStore,
+    #[state(Default::default())] image_store: &mut util::ImageStore,
     #[state(Default::default())] texture_pool: &mut util::TexturePool,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {

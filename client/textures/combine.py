@@ -44,5 +44,5 @@ for path in os.listdir("."):
         add_dir(path)
 
 plt.imsave("../static/textures.png", agg)
-with open("../static/textures.json", "w") as fh:
+with open("../static/textures.png.json", "w") as fh:
     fh.write(json.dumps(index))

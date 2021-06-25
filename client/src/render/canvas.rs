@@ -65,9 +65,3 @@ impl CanvasStruct {
         }))
     }
 }
-
-/// Provides an [`ImageBitmap`][ImageBitmap].
-pub trait Image {
-    /// Converts the value into an [`ImageBitmap`][ImageBitmap].
-    fn as_bitmap(&self) -> Option<&ImageBitmap>;
-}

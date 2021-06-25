@@ -4,8 +4,9 @@ mod canvas;
 pub use canvas::*;
 mod comm;
 pub use comm::*;
-mod image;
-pub use image::*;
+
+mod texture;
+pub use texture::*;
 
 pub mod bg;
 pub mod debug;

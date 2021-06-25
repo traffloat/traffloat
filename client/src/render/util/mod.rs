@@ -14,3 +14,6 @@ pub use uniform::*;
 
 mod texture;
 pub use texture::*;
+
+mod image;
+pub use image::*;

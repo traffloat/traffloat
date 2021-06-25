@@ -5,8 +5,9 @@
   "repository": "https://github.com/SOF3/traffloat",
   "license": "AGPL-3.0",
   "scripts": {
-    "build": "rimraf dist pkg && webpack",
-    "build-dev": "rimraf dist pkg && webpack --mode development",
+    "build": "rimraf dist pkg && python3 textures/combine.py && webpack",
+    "build-dev": "rimraf dist pkg && python3 textures/combine.py && webpack --mode development",
+    "texture": "python3 textures/combine.py",
     "start": "rimraf dist pkg && webpack serve --mode development --open",
     "test": "cargo test && wasm-pack test --headless"
   },

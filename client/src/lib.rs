@@ -73,12 +73,26 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
         config,
         shape::{self, Shape, Texture},
     };
-    let id = {
+    let core_texture = {
         let mut t = setup
             .resources
             .get_mut::<config::Store<Texture>>()
             .expect("");
-        t.add(Texture::new(String::from("SOF3.png"), 0, 0, 6, 6))
+        t.add(Texture::new(String::from("textures.png"), String::from("core")))
+    };
+    let house_texture = {
+        let mut t = setup
+            .resources
+            .get_mut::<config::Store<Texture>>()
+            .expect("");
+        t.add(Texture::new(String::from("textures.png"), String::from("house")))
+    };
+    let solar_panel_texture = {
+        let mut t = setup
+            .resources
+            .get_mut::<config::Store<Texture>>()
+            .expect("");
+        t.add(Texture::new(String::from("textures.png"), String::from("house")))
     };
     setup
         .entity((
@@ -87,7 +101,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             Shape::builder()
                 .unit(shape::Unit::Cube)
                 .matrix(Matrix::identity())
-                .texture(id)
+                .texture(core_texture)
                 .build(),
             traffloat::sun::LightStats::default(),
         ))
@@ -97,7 +111,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             Shape::builder()
                 .unit(shape::Unit::Cube)
                 .matrix(Matrix::identity())
-                .texture(id)
+                .texture(house_texture)
                 .build(),
             traffloat::sun::LightStats::default(),
         ))
@@ -107,7 +121,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             Shape::builder()
                 .unit(shape::Unit::Cube)
                 .matrix(Matrix::identity())
-                .texture(id)
+                .texture(solar_panel_texture)
                 .build(),
             traffloat::sun::LightStats::default(),
         ))

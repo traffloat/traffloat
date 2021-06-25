@@ -48,9 +48,3 @@ impl MaybeBitmap {
             .expect("Promise result is not an ImageBitmap")
     }
 }
-
-impl super::Image for MaybeBitmap {
-    fn as_bitmap(&self) -> Option<&web_sys::ImageBitmap> {
-        self.resolve()
-    }
-}
