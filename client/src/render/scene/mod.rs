@@ -7,7 +7,7 @@ use legion::world::SubWorld;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::util::{self, WebglExt};
-use super::RenderFlag;
+use super::{texture, RenderFlag};
 use crate::camera::Camera;
 use crate::util::lerp;
 use safety::Safety;
@@ -16,8 +16,8 @@ use traffloat::shape::{Shape, Texture};
 use traffloat::space::{Matrix, Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
-mod able;
-pub use able::*;
+mod marker;
+pub use marker::*;
 
 mod mesh;
 pub use mesh::*;
@@ -122,7 +122,13 @@ impl Setup {
     /// Draws an object on the canvas.
     ///
     /// The projection matrix transforms unit model coordinates to projection coordinates directly.
-    pub fn draw_object(&self, proj: Matrix, sun: Vector, brightness: f64, texture: &util::Texture) {
+    pub fn draw_object(
+        &self,
+        proj: Matrix,
+        sun: Vector,
+        brightness: f64,
+        texture: &texture::PreparedTexture,
+    ) {
         self.gl.use_program(Some(&self.object_prog));
         self.gl
             .set_uniform(&self.object_prog, "u_proj", util::glize_matrix(proj));
@@ -130,13 +136,10 @@ impl Setup {
             .set_uniform(&self.object_prog, "u_sun", util::glize_vector(sun));
         self.gl
             .set_uniform(&self.object_prog, "u_brightness", brightness.lossy_trunc());
-        texture.apply(
-            &self.gl,
-            &self
-                .gl
-                .get_uniform_location(&self.object_prog, "u_tex")
-                .expect("Uniform not found"),
-        );
+
+        // TODO set texture positions
+
+        self.gl.set_uniform(&self.object_prog, "u_tex", texture);
 
         self.cube
             .positions()
@@ -155,7 +158,7 @@ impl Setup {
 #[read_component(Position)]
 #[read_component(Shape)]
 #[read_component(LightStats)]
-#[read_component(Renderable)]
+#[read_component(RenderNode)]
 #[thread_local]
 fn draw(
     world: &mut SubWorld,
@@ -163,8 +166,7 @@ fn draw(
     #[resource] canvas: &Option<super::Canvas>,
     #[resource] sun: &Sun,
     #[resource] textures: &config::Store<Texture>,
-    #[state(Default::default())] image_store: &mut util::ImageStore,
-    #[state(Default::default())] texture_pool: &mut util::TexturePool,
+    #[resource] texture_pool: &mut Option<texture::Pool>,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     use legion::IntoQuery;
@@ -184,9 +186,11 @@ fn draw(
 
     let projection = camera.projection();
 
+    let texture_pool = texture_pool.get_or_insert_with(|| texture::Pool::new(&scene.gl));
+
     #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
     for (&position, shape, light, _) in
-        <(&Position, &Shape, &LightStats, &Renderable)>::query().iter(world)
+        <(&Position, &Shape, &LightStats, &RenderNode)>::query().iter(world)
     {
         // projection matrix transforms real coordinates to canvas
 
@@ -201,13 +205,13 @@ fn draw(
         };
 
         let tex: &Texture = shape.texture().get(textures);
-        let texture = texture_pool.load(tex.url(), image_store, &scene.gl);
+        let sprite = texture_pool.sprite(tex, &scene.gl);
 
         scene.draw_object(
             projection * unit_to_real,
             sun.direction(),
             brightness,
-            &texture,
+            &sprite,
         );
     }
 }

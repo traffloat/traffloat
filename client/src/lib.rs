@@ -105,7 +105,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     };
     setup
         .entity((
-            render::Renderable,
+            render::scene::RenderNode,
             Position::new(1., 2., 3.),
             Shape::builder()
                 .unit(shape::Unit::Cube)
@@ -115,7 +115,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             traffloat::sun::LightStats::default(),
         ))
         .entity((
-            render::Renderable,
+            render::scene::RenderNode,
             Position::new(1., -2., 3.),
             Shape::builder()
                 .unit(shape::Unit::Cube)
@@ -125,7 +125,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             traffloat::sun::LightStats::default(),
         ))
         .entity((
-            render::Renderable,
+            render::scene::RenderNode,
             Position::new(-2., 0., 3.),
             Shape::builder()
                 .unit(shape::Unit::Cube)

@@ -21,7 +21,7 @@ async function fetchTextureIndexPromise(url) {
 }
 
 export function load_textures(url) {
-	const promise = Await.all([
+	const promise = Promise.all([
 		loadBitmapPromise(url),
 		fetchTextureIndexPromise(url),
 	]).then(pair => ({

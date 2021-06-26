@@ -6,14 +6,11 @@ mod comm;
 pub use comm::*;
 
 mod texture;
-pub use texture::*;
 
 pub mod bg;
 pub mod debug;
 pub mod scene;
 pub mod ui;
-
-pub use scene::Renderable;
 
 mod util;
 

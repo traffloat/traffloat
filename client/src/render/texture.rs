@@ -4,9 +4,10 @@ use std::mem;
 use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
-use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture};
+use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture, WebGlUniformLocation};
 
 use crate::util::ReifiedPromise;
+use super::util::Uniform;
 use traffloat::shape;
 
 #[wasm_bindgen(module = "/js/bitmap.js")]
@@ -17,6 +18,7 @@ extern "C" {
     fn get_index(value: &JsValue) -> String;
 }
 
+/// Stores atlas cache.
 pub struct Pool {
     map: cell::RefCell<BTreeMap<String, Rc<Atlas>>>,
     dummy: Rc<WebGlTexture>,
@@ -55,18 +57,28 @@ impl Pool {
     }
 
     /// Retrieves a sprite for the given texture, or returns the dummy texture
-    pub fn sprite(
-        &self,
-        texture: &shape::Texture,
-        gl: &WebGlRenderingContext,
-    ) -> (Rc<WebGlTexture>, ShapeSprites) {
+    pub fn sprite(&self, texture: &shape::Texture, gl: &WebGlRenderingContext) -> PreparedTexture {
         let atlas = self.load(texture.url());
-        atlas.get(texture.name(), gl).unwrap_or_else(|| {
-            (
-                Rc::clone(&self.dummy),
-                ShapeSprites::Cube(DUMMY_CUBE_SPRITES),
-            )
-        })
+        atlas
+            .get(texture.name(), gl)
+            .unwrap_or_else(|| PreparedTexture {
+                gl_tex: Rc::clone(&self.dummy),
+                sprites: ShapeSprites::Cube(DUMMY_CUBE_SPRITES),
+            })
+    }
+}
+
+/// A texture that can be used on WebGL directly.
+pub struct PreparedTexture {
+    gl_tex: Rc<WebGlTexture>,
+    sprites: ShapeSprites,
+}
+
+impl Uniform for &'_ PreparedTexture {
+    fn apply(&self, location: Option<&WebGlUniformLocation>, gl: &WebGlRenderingContext) {
+        gl.active_texture(WebGlRenderingContext::TEXTURE0);
+        gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&*self.gl_tex));
+        gl.uniform1i(location, 0);
     }
 }
 
@@ -82,16 +94,15 @@ impl Atlas {
     }
 
     /// Gets information about a sprite if available.
-    pub fn get(
-        &self,
-        name: &str,
-        gl: &WebGlRenderingContext,
-    ) -> Option<(Rc<WebGlTexture>, ShapeSprites)> {
+    pub fn get(&self, name: &str, gl: &WebGlRenderingContext) -> Option<PreparedTexture> {
         let mut ae = self.0.borrow_mut();
         ae.update(gl);
         if let AtlasEnum::Ready { index, texture } = &*ae {
             let sprites = index.sprites(name)?;
-            Some((Rc::clone(&texture), sprites))
+            Some(PreparedTexture {
+                gl_tex: Rc::clone(&texture),
+                sprites,
+            })
         } else {
             None
         }
@@ -154,12 +165,13 @@ pub struct Index {
 impl Index {
     /// Returns the information of a sprite in this atlas.
     pub fn sprites(&self, name: &str) -> Option<ShapeSprites> {
-        todo!()
+        self.items.get(name).copied()
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
+#[serde(tag = "shape")]
 pub enum ShapeSprites {
     /// Cube
     Cube(CubeSprites),

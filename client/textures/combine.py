@@ -16,7 +16,11 @@ TEXTURE_SIZE = 1 << 4
 
 def add_dir(path: str):
     global next_cell
-    subindex: typing.Dict[str, typing.Tuple[int, int]] = {}
+
+    subindex: typing.Dict[str, [
+        str,
+        typing.Tuple[int, int],
+    ]] = {"shape": "cube"}
 
     last = None
 
@@ -34,8 +38,8 @@ def add_dir(path: str):
             subindex[direction + side] = {
                 "x": x,
                 "y": y,
-                "lg_width": LN_TEXTURE_SIZE,
-                "lg_height": LN_TEXTURE_SIZE,
+                "width": TEXTURE_SIZE,
+                "height": TEXTURE_SIZE,
             }
     index[path] = subindex
 
