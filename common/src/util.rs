@@ -38,6 +38,6 @@ impl Eq for Finite {}
 #[allow(clippy::derive_ord_xor_partial_ord)]
 impl Ord for Finite {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
-        self.partial_cmp(&other).expect("Values should be finite")
+        self.partial_cmp(other).expect("Values should be finite")
     }
 }

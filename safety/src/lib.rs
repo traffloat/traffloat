@@ -1,7 +1,5 @@
 //! Safety wrappers
 
-#![feature(int_bits_const)]
-
 /// Aggregate trait for all other traits in this crate
 pub trait Safety: Sized {
     /// See `LossyTrunc`.

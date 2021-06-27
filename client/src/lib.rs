@@ -28,7 +28,6 @@
         clippy::indexing_slicing,
     )
 )]
-#![feature(vecdeque_binary_search)]
 
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
