@@ -27,7 +27,6 @@
         clippy::indexing_slicing,
     )
 )]
-#![feature(map_first_last)]
 
 #[macro_use]
 mod macros;
