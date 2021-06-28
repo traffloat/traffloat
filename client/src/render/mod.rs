@@ -5,8 +5,6 @@ pub use canvas::*;
 mod comm;
 pub use comm::*;
 
-mod texture;
-
 pub mod bg;
 pub mod debug;
 pub mod scene;

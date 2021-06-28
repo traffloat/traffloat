@@ -39,6 +39,7 @@ pub fn setup(gl: WebGlRenderingContext) -> Setup {
             -2.,
         ],
         2,
+        util::BufferUsage::WriteOnceReadMany,
     );
     let sun_pos_index_buf = util::IndexBuffer::create(&gl, &[0, 1, 2, 0, 2, 3, 0, 3, 1], 3);
 

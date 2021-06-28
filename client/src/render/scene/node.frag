@@ -1,6 +1,6 @@
 uniform sampler2D u_tex;
 
-varying highp vec2 v_tex_pos;
+varying mediump vec2 v_tex_pos;
 varying mediump float v_light;
 
 void main() {

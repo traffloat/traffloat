@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 
+use js_sys::Float32Array;
 use web_sys::{WebGlBuffer, WebGlProgram, WebGlRenderingContext};
 
 pub struct FloatBuffer {
@@ -7,22 +8,54 @@ pub struct FloatBuffer {
     component_size: u32,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum BufferUsage {
+    WriteOnceReadMany,
+    WriteManyReadMany,
+    WriteOnceReadFew,
+}
+
+impl BufferUsage {
+    pub fn as_gl_usage(self) -> u32 {
+        match self {
+            Self::WriteOnceReadMany => WebGlRenderingContext::STATIC_DRAW,
+            Self::WriteManyReadMany => WebGlRenderingContext::DYNAMIC_DRAW,
+            Self::WriteOnceReadFew => WebGlRenderingContext::STREAM_DRAW,
+        }
+    }
+}
+
 impl FloatBuffer {
-    pub fn create(gl: &WebGlRenderingContext, data: &[f32], component_size: u32) -> Self {
+    pub fn create(
+        gl: &WebGlRenderingContext,
+        data: &[f32],
+        component_size: u32,
+        usage: BufferUsage,
+    ) -> Self {
         let buffer = gl.create_buffer().expect("Failed to allocate WebGL buffer");
         gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&buffer));
 
-        let array = js_sys::Float32Array::from(data);
+        let array = Float32Array::from(data);
         gl.buffer_data_with_array_buffer_view(
             WebGlRenderingContext::ARRAY_BUFFER,
             &array,
-            WebGlRenderingContext::STATIC_DRAW,
+            usage.as_gl_usage(),
         );
 
         Self {
             buffer,
             component_size,
         }
+    }
+
+    pub fn update(&self, gl: &WebGlRenderingContext, data: &[f32]) {
+        gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&self.buffer));
+        let array = Float32Array::from(data);
+        gl.buffer_data_with_array_buffer_view(
+            WebGlRenderingContext::ARRAY_BUFFER,
+            &array,
+            WebGlRenderingContext::DYNAMIC_DRAW,
+        );
     }
 
     pub fn apply(&self, gl: &WebGlRenderingContext, program: &WebGlProgram, attr: &str) {

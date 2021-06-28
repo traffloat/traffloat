@@ -12,13 +12,20 @@ pub struct PreparedMesh {
     /// Number of vertices in the mesh.
     #[getset(get = "pub")]
     len: usize,
-    /// The position buffer.
+    /// Buffer storing vertex positions.
+    ///
+    /// Corresponds to `a_pos`.
     #[getset(get = "pub")]
     positions: util::FloatBuffer,
-    /// The position buffer.
+    /// Buffer storing vertex normals.
+    ///
+    /// Corresponds to `a_normal`.
     #[getset(get = "pub")]
     normals: util::FloatBuffer,
-    /// The position buffer.
+    /// Buffer storing texture positions.
+    ///
+    /// This is a dynamic buffer.
+    /// Corresponds to `a_tex_pos`.
     #[getset(get = "pub")]
     tex_pos: util::FloatBuffer,
 }
@@ -35,7 +42,7 @@ impl PreparedMesh {
 }
 
 /// An in-memory complex object.
-#[derive(Default, TypedBuilder)]
+#[derive(Default)]
 pub struct Mesh {
     /// Triplets of floats indicating the unit model position.
     pub positions: Vec<f32>,
@@ -43,17 +50,31 @@ pub struct Mesh {
     ///
     /// Each vector is repeated 3 times.
     pub normals: Vec<f32>,
-    /// Pairs of floats indicating the texture position.
-    pub tex_pos: Vec<f32>,
 }
 
 impl Mesh {
     /// Loads the mesh onto a mesh.
     pub fn prepare(&self, gl: &WebGlRenderingContext) -> PreparedMesh {
+        let len = self.positions.len() / 3;
         PreparedMesh::builder()
-            .positions(util::FloatBuffer::create(gl, &self.positions, 3))
-            .normals(util::FloatBuffer::create(gl, &self.normals, 3))
-            .tex_pos(util::FloatBuffer::create(gl, &self.tex_pos, 2))
+            .positions(util::FloatBuffer::create(
+                gl,
+                &self.positions,
+                3,
+                util::BufferUsage::WriteOnceReadMany,
+            ))
+            .normals(util::FloatBuffer::create(
+                gl,
+                &self.normals,
+                3,
+                util::BufferUsage::WriteOnceReadMany,
+            ))
+            .tex_pos(util::FloatBuffer::create(
+                gl,
+                &vec![0.; len * 2],
+                2,
+                util::BufferUsage::WriteManyReadMany,
+            ))
             .len(self.positions.len() / 3)
             .build()
     }

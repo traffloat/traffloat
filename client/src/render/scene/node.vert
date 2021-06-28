@@ -1,12 +1,12 @@
-attribute highp vec3 a_pos;
-attribute highp vec2 a_tex_pos;
-attribute highp vec3 a_normal;
+attribute mediump vec3 a_pos;
+attribute mediump vec3 a_normal;
+attribute mediump vec2 a_tex_pos;
 
-uniform highp mat4 u_proj;
-uniform highp vec3 u_sun;
+uniform mediump mat4 u_proj;
+uniform mediump vec3 u_sun;
 uniform mediump float u_brightness;
 
-varying highp vec2 v_tex_pos;
+varying mediump vec2 v_tex_pos;
 varying mediump float v_light;
 
 void main() {

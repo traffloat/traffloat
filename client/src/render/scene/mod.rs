@@ -2,12 +2,11 @@
 
 use std::f64::consts::PI;
 
-use lazy_static::lazy_static;
 use legion::world::SubWorld;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::util::{self, WebglExt};
-use super::{texture, RenderFlag};
+use super::RenderFlag;
 use crate::camera::Camera;
 use crate::util::lerp;
 use safety::Safety;
@@ -16,77 +15,21 @@ use traffloat::shape::{Shape, Texture};
 use traffloat::space::{Matrix, Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
+pub mod cube;
+pub use cube::CUBE;
+
 mod marker;
 pub use marker::*;
 
 mod mesh;
 pub use mesh::*;
 
-lazy_static! {
-    static ref CUBE: Mesh = {
-        let mut mesh = Mesh::default();
-
-        let coords = &[
-            [-1., -1., -1.],
-            [-1., -1., 1.],
-            [-1., 1., -1.],
-            [-1., 1., 1.],
-            [1., -1., -1.],
-            [1., -1., 1.],
-            [1., 1., -1.],
-            [1., 1., 1.],
-        ];
-
-        // vertex order:
-        // 1 2 --> +u
-        // 3 4
-        //  |
-        //  v
-        // +v
-        let mut push_face = |v1: usize, v2: usize, v3: usize, v4: usize, normal: [f32; 3]| {
-            mesh.positions.extend(&coords[v1]);
-            mesh.positions.extend(&coords[v2]);
-            mesh.positions.extend(&coords[v3]);
-
-            for _ in 0..3 {
-                mesh.normals.extend(&normal);
-            }
-
-            mesh.tex_pos.extend(&[0., 0., 1., 0., 0., 1.]);
-
-            mesh.positions.extend(&coords[v2]);
-            mesh.positions.extend(&coords[v4]);
-            mesh.positions.extend(&coords[v3]);
-
-            for _ in 0..3 {
-                mesh.normals.extend(&normal);
-            }
-
-            mesh.tex_pos.extend(&[1., 0., 1., 1., 0., 1.]);
-        };
-
-        // Reference: https://www.khronos.org/opengl/wiki/File:CubeMapAxes.png
-        // Positive X
-        push_face(0b101, 0b100, 0b111, 0b110, [1., 0., 0.]);
-        // Negative X
-        push_face(0b000, 0b001, 0b010, 0b011, [-1., 0., 0.]);
-        // Positive Y
-        push_face(0b011, 0b111, 0b010, 0b110, [0., 1., 0.]);
-        // Negative Y
-        push_face(0b000, 0b100, 0b001, 0b101, [0., -1., 0.]);
-        // Positive Z
-        push_face(0b001, 0b101, 0b011, 0b111, [0., 0., 1.]);
-        // Negative Z
-        push_face(0b100, 0b000, 0b110, 0b010, [0., 0., -1.]);
-
-        mesh
-    };
-}
+mod texture;
 
 /// Sets up the scene canvas.
 pub fn setup(gl: WebGlRenderingContext) -> Setup {
     gl.enable(WebGlRenderingContext::DEPTH_TEST);
-    gl.enable(WebGlRenderingContext::CULL_FACE);
+    // gl.enable(WebGlRenderingContext::CULL_FACE);
 
     let object_prog = util::create_program(
         &gl,
@@ -137,19 +80,23 @@ impl Setup {
         self.gl
             .set_uniform(&self.object_prog, "u_brightness", brightness.lossy_trunc());
 
-        // TODO set texture positions
-
-        self.gl.set_uniform(&self.object_prog, "u_tex", texture);
-
         self.cube
             .positions()
             .apply(&self.gl, &self.object_prog, "a_pos");
         self.cube
             .normals()
             .apply(&self.gl, &self.object_prog, "a_normal");
-        self.cube
-            .tex_pos()
-            .apply(&self.gl, &self.object_prog, "a_tex_pos");
+
+        texture.apply(
+            self.cube.tex_pos(),
+            &self.object_prog,
+            "a_tex_pos",
+            self.gl
+                .get_uniform_location(&self.object_prog, "u_tex")
+                .as_ref(),
+            &self.gl,
+        );
+
         self.cube.draw(&self.gl);
     }
 }

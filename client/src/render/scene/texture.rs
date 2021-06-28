@@ -4,10 +4,14 @@ use std::mem;
 use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
-use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture, WebGlUniformLocation};
+use web_sys::{
+    ImageBitmap, WebGlProgram, WebGlRenderingContext, WebGlTexture, WebGlUniformLocation,
+};
 
+use super::cube;
+use crate::render::util::{FloatBuffer, Uniform};
 use crate::util::ReifiedPromise;
-use super::util::Uniform;
+use safety::Safety;
 use traffloat::shape;
 
 #[wasm_bindgen(module = "/js/bitmap.js")]
@@ -29,6 +33,7 @@ impl Pool {
     pub fn new(gl: &WebGlRenderingContext) -> Self {
         let texture = gl.create_texture().expect("Failed to create WebGL texture");
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&texture));
+
         gl.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array(
             WebGlRenderingContext::TEXTURE_2D,    // target
             0,                                    // level
@@ -64,6 +69,8 @@ impl Pool {
             .unwrap_or_else(|| PreparedTexture {
                 gl_tex: Rc::clone(&self.dummy),
                 sprites: ShapeSprites::Cube(DUMMY_CUBE_SPRITES),
+                width: 1.,
+                height: 1.,
             })
     }
 }
@@ -72,13 +79,29 @@ impl Pool {
 pub struct PreparedTexture {
     gl_tex: Rc<WebGlTexture>,
     sprites: ShapeSprites,
+    width: f32,
+    height: f32,
 }
 
-impl Uniform for &'_ PreparedTexture {
-    fn apply(&self, location: Option<&WebGlUniformLocation>, gl: &WebGlRenderingContext) {
+impl PreparedTexture {
+    pub fn apply(
+        &self,
+        buffer: &FloatBuffer,
+        prog: &WebGlProgram,
+        attr_name: &str,
+        uniform_loc: Option<&WebGlUniformLocation>,
+        gl: &WebGlRenderingContext,
+    ) {
         gl.active_texture(WebGlRenderingContext::TEXTURE0);
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&*self.gl_tex));
-        gl.uniform1i(location, 0);
+        gl.uniform1i(uniform_loc, 0);
+
+        match self.sprites {
+            ShapeSprites::Cube(cube) => {
+                buffer.update(gl, &cube::tex_pos(cube, self.width, self.height));
+                buffer.apply(gl, prog, attr_name);
+            }
+        }
     }
 }
 
@@ -97,11 +120,19 @@ impl Atlas {
     pub fn get(&self, name: &str, gl: &WebGlRenderingContext) -> Option<PreparedTexture> {
         let mut ae = self.0.borrow_mut();
         ae.update(gl);
-        if let AtlasEnum::Ready { index, texture } = &*ae {
+        if let AtlasEnum::Ready {
+            index,
+            texture,
+            width,
+            height,
+        } = &*ae
+        {
             let sprites = index.sprites(name)?;
             Some(PreparedTexture {
                 gl_tex: Rc::clone(&texture),
                 sprites,
+                width: *width,
+                height: *height,
             })
         } else {
             None
@@ -114,6 +145,8 @@ enum AtlasEnum {
     Ready {
         index: Index,
         texture: Rc<WebGlTexture>,
+        width: f32,
+        height: f32,
     },
 }
 
@@ -141,6 +174,8 @@ impl AtlasEnum {
                 *self = Self::Ready {
                     index,
                     texture: Rc::new(texture),
+                    width: bitmap.width().small_float(),
+                    height: bitmap.height().small_float(),
                 };
             }
         }
