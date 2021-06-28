@@ -13,6 +13,7 @@ jobs:
           toolchain: nightly-2021-06-28
           profile: default
           default: true
+      - run: pip3 install -r client/textures/requirements.txt
       - uses: actions/cache@v2
         with:
           path: |

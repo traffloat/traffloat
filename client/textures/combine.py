@@ -14,6 +14,8 @@ index = {}
 LN_TEXTURE_SIZE = 4
 TEXTURE_SIZE = 1 << 4
 
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
 def add_dir(path: str):
     global next_cell
 
