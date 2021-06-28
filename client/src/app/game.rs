@@ -14,11 +14,11 @@ use traffloat::SetupEcs;
 
 /// HTML interface of the game page
 pub struct Game {
-    props: Props,
+    _props: Props,
     link: ComponentLink<Self>,
     legion: traffloat::Legion,
     _resize_task: resize::ResizeTask,
-    render_task: render_srv::RenderTask,
+    _render_task: render_srv::RenderTask,
     _simulation_task: interval::IntervalTask,
     _keyboard_task: [kb_srv::KeyListenerHandle; 2],
     render_comm: render::Comm,
@@ -49,7 +49,7 @@ impl Game {
 
     fn request_render(&mut self) {
         if let Some((canvas, dim)) = self.canvas_context() {
-            let canvas = Rc::clone(&canvas);
+            let canvas = Rc::clone(canvas);
             let dim = *dim;
 
             let canvas_ref = &mut *self
@@ -70,7 +70,7 @@ impl Game {
                 .expect("Uninitialized Dimension resource");
             *dim_ref = dim;
         }
-        self.render_task = render_srv::RenderService::request_animation_frame(
+        self._render_task = render_srv::RenderService::request_animation_frame(
             self.link.callback(Msg::RenderFrame),
         );
         if let Some(canvas) = self.ui_canvas_ref.cast::<web_sys::HtmlElement>() {
@@ -239,10 +239,10 @@ impl Component for Game {
         ];
 
         Self {
-            props,
+            _props: props,
             legion,
             _resize_task: resize::ResizeService::register(link.callback(Msg::Resize)),
-            render_task: render_srv::RenderService::request_animation_frame(
+            _render_task: render_srv::RenderService::request_animation_frame(
                 link.callback(Msg::RenderFrame),
             ),
             _simulation_task: interval::IntervalService::spawn(

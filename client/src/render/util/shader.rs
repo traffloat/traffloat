@@ -10,9 +10,9 @@ pub fn create_shader(
     let shader = gl
         .create_shader(shader_type)
         .expect("Failed to initialize WebGL shader");
-    gl.shader_source(&shader, &code);
+    gl.shader_source(&shader, code);
     gl.compile_shader(&shader);
-    gl.attach_shader(&prog, &shader);
+    gl.attach_shader(prog, &shader);
 
     let value = gl.get_shader_parameter(&shader, WebGlRenderingContext::COMPILE_STATUS);
     if !value.is_truthy() {

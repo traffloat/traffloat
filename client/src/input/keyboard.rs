@@ -1,6 +1,6 @@
 //! Handles keyboard input.
 
-use enum_map::{Enum, EnumMap};
+use enum_map::EnumMap;
 use typed_builder::TypedBuilder;
 
 use traffloat::time;
@@ -106,8 +106,9 @@ fn track_states(
 ) {
     let now = clock.now();
     for event in raw_key_events {
-        if let Some(command) = Command::from_code(&event.code()) {
-            states[command].set(event.down(), now);
+        if let Some(command) = Command::from_code(event.code()) {
+            use std::ops::IndexMut;
+            states.index_mut(command).set(event.down(), now);
         }
     }
 }

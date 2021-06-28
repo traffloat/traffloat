@@ -4,7 +4,6 @@ use typed_builder::TypedBuilder;
 use web_sys::WebGlRenderingContext;
 
 use crate::render::util;
-use safety::Safety;
 
 /// A complex object to render, uploaded onto a WebGL context.
 #[derive(getset::Getters, TypedBuilder)]

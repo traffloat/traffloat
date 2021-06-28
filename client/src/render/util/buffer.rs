@@ -9,6 +9,7 @@ pub struct FloatBuffer {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(clippy::enum_variant_names)]
 pub enum BufferUsage {
     WriteOnceReadMany,
     WriteManyReadMany,

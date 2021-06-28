@@ -4,7 +4,7 @@ use super::*;
 
 /// Wrapper component for the site.
 pub struct Mux {
-    props: Props,
+    _props: Props,
     link: ComponentLink<Self>,
     state: State,
 }
@@ -15,7 +15,7 @@ impl Component for Mux {
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
         Self {
-            props,
+            _props: props,
             link,
             state: State::Home { error: None },
         }

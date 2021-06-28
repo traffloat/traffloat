@@ -5,7 +5,7 @@ use super::{Dimension, RenderFlag};
 #[codegen::system]
 #[thread_local]
 fn draw(
-    #[resource(no_init)] dim: &Dimension,
+    #[resource(no_init)] _dim: &Dimension,
     #[resource] canvas: &Option<super::Canvas>,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
@@ -19,7 +19,7 @@ fn draw(
         None => return,
     };
 
-    let ui = canvas.ui();
+    let _ui = canvas.ui();
 }
 
 /// Sets up legion ECS for debug info rendering.

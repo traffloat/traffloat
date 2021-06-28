@@ -1,10 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use web_sys::{CanvasRenderingContext2d, ImageBitmap, WebGlRenderingContext};
+use web_sys::{CanvasRenderingContext2d, WebGlRenderingContext};
 
 use crate::util::DebugWriter;
-use traffloat::space::Matrix;
 
 /// The dimension of a canvas
 #[derive(Debug, Clone, Copy)]

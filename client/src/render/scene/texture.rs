@@ -1,6 +1,5 @@
 use std::cell;
 use std::collections::BTreeMap;
-use std::mem;
 use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
@@ -9,7 +8,7 @@ use web_sys::{
 };
 
 use super::cube;
-use crate::render::util::{FloatBuffer, Uniform};
+use crate::render::util::FloatBuffer;
 use crate::util::ReifiedPromise;
 use safety::Safety;
 use traffloat::shape;
@@ -129,7 +128,7 @@ impl Atlas {
         {
             let sprites = index.sprites(name)?;
             Some(PreparedTexture {
-                gl_tex: Rc::clone(&texture),
+                gl_tex: Rc::clone(texture),
                 sprites,
                 width: *width,
                 height: *height,

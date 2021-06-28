@@ -1,16 +1,20 @@
+//! This module generates geometry data for a cube.
+
 use lazy_static::lazy_static;
 
 use super::texture::{CubeSprites, RectSprite};
 use super::Mesh;
 use safety::Safety;
 
+/// Positive or negative
 #[derive(Debug, Clone, Copy)]
 pub enum Sign {
+    /// Positive direction
     Positive,
+    /// Negative direction
     Negative,
 }
 
-/// Positive or negative
 impl Sign {
     /// Returns the number one with the sign.
     pub fn as_float(self) -> f32 {
@@ -43,26 +47,6 @@ pub struct DirectedAxis {
     pub axis: usize,
     /// The direction.
     pub sign: Sign,
-}
-
-impl DirectedAxis {
-    pub fn cube_sprite(self, sprites: CubeSprites) -> RectSprite {
-        match self.axis {
-            0 => match self.sign {
-                Sign::Positive => sprites.xp(),
-                Sign::Negative => sprites.xn(),
-            },
-            1 => match self.sign {
-                Sign::Positive => sprites.yp(),
-                Sign::Negative => sprites.yn(),
-            },
-            2 => match self.sign {
-                Sign::Positive => sprites.zp(),
-                Sign::Negative => sprites.zn(),
-            },
-            _ => unreachable!(),
-        }
-    }
 }
 
 /// Positive X direction.
@@ -111,9 +95,12 @@ impl Face {
     /// The position of the lower right coordinates.
     pub fn lower_right_coords(self) -> [f32; 3] {
         let mut output: [f32; 3] = [0., 0., 0.];
-        output[self.normal.axis] = self.normal.sign.as_float();
-        output[self.down.axis] = self.down.sign.as_float();
-        output[self.right.axis] = self.right.sign.as_float();
+        #[allow(clippy::indexing_slicing)]
+        {
+            output[self.normal.axis] = self.normal.sign.as_float();
+            output[self.down.axis] = self.down.sign.as_float();
+            output[self.right.axis] = self.right.sign.as_float();
+        }
         output
     }
 
@@ -144,14 +131,36 @@ impl Face {
     /// The normal vector of this face.
     pub fn normal(self) -> [f32; 3] {
         let mut normal = [0., 0., 0.];
-        normal[self.normal.axis] = self.normal.sign.as_float();
+        #[allow(clippy::indexing_slicing)]
+        {
+            normal[self.normal.axis] = self.normal.sign.as_float();
+        }
         normal
+    }
+
+    /// Extracts the sprite corresponding to this face
+    pub fn cube_sprite(self, sprites: CubeSprites) -> RectSprite {
+        match self.normal.axis {
+            0 => match self.normal.sign {
+                Sign::Positive => sprites.xp(),
+                Sign::Negative => sprites.xn(),
+            },
+            1 => match self.normal.sign {
+                Sign::Positive => sprites.yp(),
+                Sign::Negative => sprites.yn(),
+            },
+            2 => match self.normal.sign {
+                Sign::Positive => sprites.zp(),
+                Sign::Negative => sprites.zn(),
+            },
+            _ => unreachable!(),
+        }
     }
 }
 
-/// The 6 faces of a cube, according to opengl order.
+/// The 6 faces of a cube, according to OpenGL order.
 ///
-/// Reference: https://www.khronos.org/opengl/wiki/File:CubeMapAxes.png
+/// ![](https://www.khronos.org/opengl/wiki_opengl/images/CubeMapAxes.png)
 pub const FACES: [Face; 6] = [
     // Reference: https://www.khronos.org/opengl/wiki/File:CubeMapAxes.png
     Face {
@@ -222,7 +231,7 @@ pub fn tex_pos(sprites: CubeSprites, width: f32, height: f32) -> [f32; 2 * 6 * 6
     let mut next = 0usize;
 
     for face in FACES {
-        let sprite = face.normal.cube_sprite(sprites);
+        let sprite = face.cube_sprite(sprites);
 
         // upper left
         ret[next] = sprite.x().small_float() / width;
