@@ -49,7 +49,7 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - nightly-2021-02-12
+          - nightly-2021-06-28
         stability:
           - ""
     steps:
