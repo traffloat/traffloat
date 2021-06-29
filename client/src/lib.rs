@@ -60,7 +60,7 @@ pub fn run_app() {
 
 /// Sets up legion ECS.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    use traffloat::space::{Matrix, Position};
+    use traffloat::space::{Matrix, Position, Vector};
 
     let setup = setup
         .uses(traffloat::setup_ecs)
@@ -99,7 +99,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             .expect("");
         t.add(Texture::new(
             String::from("textures.png"),
-            String::from("house"),
+            String::from("solar-panel"),
         ))
     };
     setup
@@ -128,7 +128,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             Position::new(-2., 0., 3.),
             Shape::builder()
                 .unit(shape::Unit::Cube)
-                .matrix(Matrix::identity())
+                .matrix(Matrix::identity().append_nonuniform_scaling(&Vector::new(0.1, 0.5, 1.5)))
                 .texture(solar_panel_texture)
                 .build(),
             traffloat::sun::LightStats::default(),
