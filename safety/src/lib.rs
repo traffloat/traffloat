@@ -2,7 +2,7 @@
 
 /// Aggregate trait for all other traits in this crate
 pub trait Safety: Sized {
-    /// See `LossyTrunc`.
+    /// See [`LossyTrunc`].
     fn lossy_trunc<U>(self) -> U
     where
         Self: LossyTrunc<U>,
@@ -10,7 +10,7 @@ pub trait Safety: Sized {
         self.lossy_trunc_impl()
     }
 
-    /// See `SmallFloat`.
+    /// See [`SmallFloat`].
     fn small_float<U>(self) -> U
     where
         Self: SmallFloat<U>,
@@ -18,12 +18,20 @@ pub trait Safety: Sized {
         self.small_float_impl()
     }
 
-    /// See `TruncInt`.
+    /// See [`TruncInt`].
     fn trunc_int<U>(self) -> U
     where
         Self: TruncInt<U>,
     {
         self.trunc_int_impl()
+    }
+
+    /// See [`SmallUnsigned`].
+    fn homosign<U>(self) -> U
+    where
+        Self: SmallUnsigned<U>,
+    {
+        self.small_unsigned()
     }
 }
 
@@ -108,3 +116,40 @@ float_trunc_int!(f32, usize);
 float_trunc_int!(f32, i64);
 float_trunc_int!(f32, i32);
 float_trunc_int!(f32, isize);
+
+/// Flips a small unsigned number between `ixx` and `uxx`.
+pub trait SmallUnsigned<U>: Sized {
+    /// Flips a small unsigned number between `ixx` and `uxx`.
+    ///
+    /// # Panics
+    /// Panics if the integer has the MSB set.
+    fn small_unsigned(self) -> U;
+}
+
+macro_rules! small_unsigned_int {
+    ($from:ty, $to:ty) => {
+        impl SmallUnsigned<$to> for $from {
+            #[allow(unused_comparisons)]
+            fn small_unsigned(self) -> $to {
+                let target = self as $to;
+                debug_assert!(
+                    self >= 0 && target >= 0,
+                    "{} is not homogeneous over signs",
+                    self,
+                );
+                target
+            }
+        }
+    };
+}
+
+small_unsigned_int!(u8, i8);
+small_unsigned_int!(i8, u8);
+small_unsigned_int!(u16, i16);
+small_unsigned_int!(i16, u16);
+small_unsigned_int!(u32, i32);
+small_unsigned_int!(i32, u32);
+small_unsigned_int!(u64, i64);
+small_unsigned_int!(i64, u64);
+small_unsigned_int!(usize, isize);
+small_unsigned_int!(isize, usize);

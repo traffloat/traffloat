@@ -97,6 +97,16 @@ impl Setup {
             &self.gl,
         );
 
+        self.gl.tex_parameteri(
+            WebGlRenderingContext::TEXTURE_2D,
+            WebGlRenderingContext::TEXTURE_MAG_FILTER,
+            WebGlRenderingContext::NEAREST.homosign(),
+        );
+        self.gl.tex_parameteri(
+            WebGlRenderingContext::TEXTURE_2D,
+            WebGlRenderingContext::TEXTURE_MIN_FILTER,
+            WebGlRenderingContext::NEAREST_MIPMAP_NEAREST.homosign(),
+        );
         self.cube.draw(&self.gl);
     }
 }
