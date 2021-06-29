@@ -6,19 +6,37 @@ import numpy
 import os
 import typing
 
-agg = numpy.zeros((256, 256, 3))
+WIDTH = 256
+HEIGHT = 256
 
-next_cell = 0
+TEXTURE_SIZE = 16
+
+agg = numpy.zeros((WIDTH, HEIGHT, 3))
+
+class IndexAlloc:
+    def __init__(self):
+        self.X = 0
+        self.max_X = WIDTH / TEXTURE_SIZE
+        self.Y = 0
+        self.max_Y = HEIGHT / TEXTURE_SIZE
+
+    def alloc(self) -> numpy.ndarray:
+        x = self.X * TEXTURE_SIZE
+        y = self.Y * TEXTURE_SIZE
+        self.X += 1
+        if self.X == self.max_X:
+            self.X = 0
+            self.Y += 1
+
+        return x, y, agg[x:(x + TEXTURE_SIZE), y:(y + TEXTURE_SIZE), :]
+
 index = {}
 
-LN_TEXTURE_SIZE = 4
-TEXTURE_SIZE = 1 << 4
+alloc = IndexAlloc()
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 def add_dir(path: str):
-    global next_cell
-
     subindex: typing.Dict[str, [
         str,
         typing.Tuple[int, int],
@@ -30,12 +48,8 @@ def add_dir(path: str):
         for side in ["p", "n"]:
             im = plt.imread(os.path.join(path, direction + side + ".png"))
             if last is None or not numpy.all(im == last):
-                x = next_cell >> LN_TEXTURE_SIZE
-                y = next_cell & (TEXTURE_SIZE - 1)
-                x <<= LN_TEXTURE_SIZE
-                y <<= LN_TEXTURE_SIZE
-                next_cell += 1
-                agg[x:(x + TEXTURE_SIZE), y:(y + TEXTURE_SIZE), :] = im
+                x, y, region = alloc.alloc()
+                region[:] = im
                 last = im
             subindex[direction + side] = {
                 "x": x,
@@ -49,6 +63,6 @@ for path in os.listdir("."):
     if os.path.isfile(os.path.join(path, "xp.png")):
         add_dir(path)
 
-plt.imsave("../static/textures.png", agg)
+plt.imsave("../static/textures.png", agg.transpose((1, 0, 2)))
 with open("../static/textures.png.json", "w") as fh:
     fh.write(json.dumps(index, separators=(",", ":"), indent=1))

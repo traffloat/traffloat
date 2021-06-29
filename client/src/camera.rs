@@ -248,7 +248,8 @@ fn keyboard(
         camera.set_zoom(camera.zoom() + config::ZOOM_VELOCITY * dt);
     }
     if commands[keyboard::Command::ZoomOut].active() {
-        camera.set_zoom(f64::max(camera.zoom() - config::ZOOM_VELOCITY * dt, 0.0001));
+        // camera.set_zoom(f64::max(camera.zoom() - config::ZOOM_VELOCITY * dt, 0.0001));
+        camera.set_zoom(camera.zoom() - config::ZOOM_VELOCITY * dt);
     }
 
     /*

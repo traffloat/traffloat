@@ -16,7 +16,7 @@ use traffloat::space::{Matrix, Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
 pub mod cube;
-pub use cube::CUBE;
+use cube::CUBE;
 
 mod marker;
 pub use marker::*;
@@ -29,7 +29,7 @@ mod texture;
 /// Sets up the scene canvas.
 pub fn setup(gl: WebGlRenderingContext) -> Setup {
     gl.enable(WebGlRenderingContext::DEPTH_TEST);
-    // gl.enable(WebGlRenderingContext::CULL_FACE);
+    gl.enable(WebGlRenderingContext::CULL_FACE);
 
     let object_prog = util::create_program(
         &gl,

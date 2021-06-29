@@ -186,7 +186,7 @@ pub const FACES: [Face; 6] = [
     Face {
         normal: POSITIVE_Z,
         down: POSITIVE_Y,
-        right: NEGATIVE_X,
+        right: POSITIVE_X,
     },
     Face {
         normal: NEGATIVE_Z,
