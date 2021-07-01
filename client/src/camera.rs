@@ -100,22 +100,22 @@ mod unsafe_proj {
         pub fn projection(&self) -> Matrix {
             // let mut proj = self.proj.lock().expect("Lock poisoned");
             // *proj.get_or_insert_with(|| {
-                let mut matrix = Matrix::identity();
+            let mut matrix = Matrix::identity();
 
-                // Translate the focus to the origin
-                matrix.append_translation_mut(&-self.focus.vector());
+            // Translate the focus to the origin
+            matrix.append_translation_mut(&-self.focus.vector());
 
-                // Rotate the world
-                matrix = self.rotation * matrix;
+            // Rotate the world
+            matrix = self.rotation * matrix;
 
-                // Move backwards to the camera position
-                matrix.append_translation_mut(&Vector::new(0., 0., self.zoom));
+            // Move backwards to the camera position
+            matrix.append_translation_mut(&Vector::new(0., 0., self.zoom));
 
-                // Finally, apply projection matrix
-                matrix = Matrix::new_perspective(self.aspect, self.fovy, self.zoom, self.distance)
-                    * matrix;
+            // Finally, apply projection matrix
+            matrix =
+                Matrix::new_perspective(self.aspect, self.fovy, self.zoom, self.distance) * matrix;
 
-                matrix
+            matrix
             // })
         }
 
