@@ -1,13 +1,25 @@
 //! Manages the background canvas.
 
+use lazy_static::lazy_static;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
-use super::util::{self, WebglExt};
+use super::util::{self, BufferUsage, FloatBuffer, IndexBuffer, WebglExt};
 use super::{Dimension, RenderFlag};
 use crate::camera::Camera;
 use safety::Safety;
 use traffloat::space::{Matrix, Vector};
 use traffloat::sun::Sun;
+
+#[rustfmt::skip]
+// f32::sqrt() is not const yet
+lazy_static! {
+    static ref SUN_MODEL: [f32; 8] = [
+        0.0, 0.0, // origin
+        -(3f32.sqrt()), 1.,
+        3f32.sqrt(), 1.,
+        0., -2.,
+    ];
+}
 
 /// Sets up the canvas, loading initial data.
 pub fn setup(gl: WebGlRenderingContext) -> Setup {
@@ -26,22 +38,8 @@ pub fn setup(gl: WebGlRenderingContext) -> Setup {
         include_str!("sun.frag"),
     );
 
-    let sun_pos_buf = util::FloatBuffer::create(
-        &gl,
-        &[
-            0.0,
-            0.0, // origin
-            -(3f32.sqrt()),
-            1.,
-            3f32.sqrt(),
-            1.,
-            0.,
-            -2.,
-        ],
-        2,
-        util::BufferUsage::WriteOnceReadMany,
-    );
-    let sun_pos_index_buf = util::IndexBuffer::create(&gl, &[0, 1, 2, 0, 2, 3, 0, 3, 1], 3);
+    let sun_pos_buf = FloatBuffer::create(&gl, &*SUN_MODEL, 2, BufferUsage::WriteOnceReadMany);
+    let sun_pos_index_buf = IndexBuffer::create(&gl, &[0, 1, 2, 0, 2, 3, 0, 3, 1], 3);
 
     Setup {
         gl,
@@ -57,8 +55,8 @@ pub struct Setup {
     gl: WebGlRenderingContext,
     star_prog: WebGlProgram,
     sun_prog: WebGlProgram,
-    sun_pos_buf: util::FloatBuffer,
-    sun_pos_index_buf: util::IndexBuffer,
+    sun_pos_buf: FloatBuffer,
+    sun_pos_index_buf: IndexBuffer,
 }
 
 impl Setup {
@@ -69,10 +67,13 @@ impl Setup {
     }
 
     /// Draws the sun on the scene.
-    pub fn draw_sun(&self, rot: Matrix, aspect: f32) {
+    pub fn draw_sun(&self, screen_pos: Vector, aspect: f32) {
         self.gl.use_program(Some(&self.sun_prog));
-        let rot = util::GlMatrix::from_iterator(rot.iter().map(|&f| f.lossy_trunc()));
-        self.gl.set_uniform(&self.sun_prog, "u_sun_mat", rot);
+        self.gl.set_uniform(
+            &self.sun_prog,
+            "u_screen_pos",
+            util::glize_vector(screen_pos),
+        );
         self.gl.set_uniform(
             &self.sun_prog,
             "u_color",
@@ -108,16 +109,10 @@ fn draw(
     let bg = canvas.bg();
     bg.reset();
 
-    // Rotation between
-    let rot = match nalgebra::Rotation3::rotation_between(
-        &(camera.rotation().transform_vector(&Vector::new(0., 0., 1.))),
-        &sun.direction(),
-    ) {
-        Some(rot) => rot.matrix().to_homogeneous(),
-        None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
-    };
+    let sun_pos = sun.direction();
+    let screen_pos = camera.projection().transform_vector(&sun_pos);
 
-    bg.draw_sun(rot, dim.aspect().lossy_trunc());
+    bg.draw_sun(screen_pos, dim.aspect().lossy_trunc());
 }
 
 /// Sets up legion ECS for debug info rendering.

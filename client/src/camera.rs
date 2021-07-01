@@ -98,8 +98,8 @@ mod unsafe_proj {
 
         /// Transforms real coordinates to unit cube [0, 1]^3
         pub fn projection(&self) -> Matrix {
-            let mut proj = self.proj.lock().expect("Lock poisoned");
-            *proj.get_or_insert_with(|| {
+            // let mut proj = self.proj.lock().expect("Lock poisoned");
+            // *proj.get_or_insert_with(|| {
                 let mut matrix = Matrix::identity();
 
                 // Translate the focus to the origin
@@ -112,11 +112,20 @@ mod unsafe_proj {
                 matrix.append_translation_mut(&Vector::new(0., 0., self.zoom));
 
                 // Finally, apply projection matrix
-                matrix =
-                    Matrix::new_perspective(self.aspect, 1.5, self.zoom, self.distance) * matrix;
+                matrix = Matrix::new_perspective(self.aspect, self.fovy, self.zoom, self.distance)
+                    * matrix;
 
                 matrix
-            })
+            // })
+        }
+
+        /// The projection matrix that only uses rotation and perspective
+        /// (disregarding focus and zoom).
+        pub fn asymptotic_projection(&self) -> Matrix {
+            let mut matrix = self.rotation;
+            matrix =
+                Matrix::new_perspective(self.aspect, self.fovy, self.zoom, self.distance) * matrix;
+            matrix
         }
 
         /// Transforms unit cube [0, 1]^2 to real coordinates

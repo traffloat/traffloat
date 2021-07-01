@@ -7,6 +7,7 @@ use crate::camera::Camera;
 use crate::config::RENDER_DEBUG;
 use crate::util;
 
+use traffloat::space::Vector;
 use traffloat::sun::Sun;
 use traffloat::time;
 
@@ -74,15 +75,22 @@ fn draw(
         comm.perf.average_exec_us(),
     ));
     writer.write(format!(
-        "Time: {:?} (Sun: {:.3})",
+        "Time: {:?}; Sun: ({:.1}, {:.1}, {:.1})",
         clock.now().since_epoch().value(),
-        sun.yaw()
+        sun.direction().x,
+        sun.direction().y,
+        sun.direction().z,
     ));
+
+    let line_of_sight = camera.rotation().transform_vector(&Vector::new(0., 0., 1.));
     writer.write(format!(
-        "Focus: ({:.1}, {:.1}, {:.1}); Zoom: {}; Distance: {}",
+        "Focus: ({:.1}, {:.1}, {:.1}); Direction: ({:.1}, {:.1}, {:.1}); Zoom: {}; Distance: {}",
         camera.focus().x(),
         camera.focus().y(),
         camera.focus().z(),
+        line_of_sight.x,
+        line_of_sight.y,
+        line_of_sight.z,
         camera.zoom(),
         camera.distance(),
     ));
