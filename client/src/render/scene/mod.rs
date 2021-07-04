@@ -26,36 +26,36 @@ pub use mesh::*;
 
 mod texture;
 
-/// Sets up the scene canvas.
-pub fn setup(gl: WebGlRenderingContext) -> Setup {
-    gl.enable(WebGlRenderingContext::DEPTH_TEST);
-    gl.enable(WebGlRenderingContext::CULL_FACE);
-
-    let object_prog = util::create_program(
-        &gl,
-        "node.vert",
-        include_str!("node.vert"),
-        "node.frag",
-        include_str!("node.frag"),
-    );
-
-    let cube = CUBE.prepare(&gl);
-
-    Setup {
-        gl,
-        object_prog,
-        cube,
-    }
-}
-
 /// Stores the setup data of the scene canvas.
-pub struct Setup {
+pub struct Canvas {
     gl: WebGlRenderingContext,
     object_prog: WebGlProgram,
     cube: PreparedMesh,
 }
 
-impl Setup {
+impl Canvas {
+    /// Sets up the scene canvas.
+    pub fn new(gl: WebGlRenderingContext) -> Self {
+        gl.enable(WebGlRenderingContext::DEPTH_TEST);
+        gl.enable(WebGlRenderingContext::CULL_FACE);
+
+        let object_prog = util::create_program(
+            &gl,
+            "node.vert",
+            include_str!("node.vert"),
+            "node.frag",
+            include_str!("node.frag"),
+        );
+
+        let cube = CUBE.prepare(&gl);
+
+        Self {
+            gl,
+            object_prog,
+            cube,
+        }
+    }
+
     /// Clears the canvas.
     pub fn clear(&self) {
         self.gl.clear_color(0., 0., 0., 0.);
@@ -120,7 +120,7 @@ impl Setup {
 fn draw(
     world: &mut SubWorld,
     #[resource] camera: &Camera,
-    #[resource] canvas: &Option<super::Canvas>,
+    #[resource] layers: &Option<super::Layers>,
     #[resource] sun: &Sun,
     #[resource] textures: &config::Store<Texture>,
     #[resource] texture_pool: &mut Option<texture::Pool>,
@@ -133,12 +133,12 @@ fn draw(
         Some(RenderFlag) => (),
         None => return,
     };
-    let canvas = match canvas.as_ref() {
-        Some(canvas) => canvas.borrow_mut(),
+    let layers = match layers.as_ref() {
+        Some(layers) => layers.borrow_mut(),
         None => return,
     };
 
-    let scene = canvas.scene();
+    let scene = layers.scene();
     scene.clear();
 
     let projection = camera.projection();

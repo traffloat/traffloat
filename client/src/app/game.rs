@@ -26,7 +26,7 @@ pub struct Game {
     scene_canvas_ref: NodeRef,
     ui_canvas_ref: NodeRef,
     debug_ref: NodeRef,
-    canvas_cache: Option<(render::Canvas, render::Dimension)>,
+    layers_cache: Option<(render::Layers, render::Dimension)>,
     clock_epoch: u64,
 }
 
@@ -48,16 +48,16 @@ impl Game {
     }
 
     fn request_render(&mut self) {
-        if let Some((canvas, dim)) = self.canvas_context() {
-            let canvas = Rc::clone(canvas);
+        if let Some((layers, dim)) = self.canvas_context() {
+            let layers = Rc::clone(layers);
             let dim = *dim;
 
-            let canvas_ref = &mut *self
+            let layers_ref = &mut *self
                 .legion
                 .resources
-                .get_mut::<Option<render::Canvas>>()
-                .expect("Canvas resource not initialized");
-            *canvas_ref = Some(canvas);
+                .get_mut::<Option<render::Layers>>()
+                .expect("render::Layers resource not initialized");
+            *layers_ref = Some(layers);
             self.legion
                 .resources
                 .get_mut::<shrev::EventChannel<render::RenderFlag>>()
@@ -81,10 +81,10 @@ impl Game {
         }
     }
 
-    fn canvas_context(&mut self) -> Option<&(render::Canvas, render::Dimension)> {
+    fn canvas_context(&mut self) -> Option<&(render::Layers, render::Dimension)> {
         use wasm_bindgen::JsCast;
 
-        if self.canvas_cache.is_none() {
+        if self.layers_cache.is_none() {
             let bg_canvas = self.bg_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
             let scene_canvas = self.scene_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
             let ui_canvas = self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
@@ -110,13 +110,13 @@ impl Game {
             let debug_writer = util::DebugWriter::new(debug_div);
             let dim = render::Dimension { width, height };
 
-            self.canvas_cache = Some((
-                render::CanvasStruct::new(bg_context, scene_context, ui_context, debug_writer),
+            self.layers_cache = Some((
+                render::LayersStruct::new(bg_context, scene_context, ui_context, debug_writer),
                 dim,
             ));
         }
 
-        self.canvas_cache.as_ref()
+        self.layers_cache.as_ref()
     }
 
     fn on_resize(&mut self, dim: resize::WindowDimensions) {
@@ -255,7 +255,7 @@ impl Component for Game {
             scene_canvas_ref: NodeRef::default(),
             ui_canvas_ref: NodeRef::default(),
             debug_ref: NodeRef::default(),
-            canvas_cache: None,
+            layers_cache: None,
             clock_epoch: util::high_res_time(),
             link,
         }

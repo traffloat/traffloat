@@ -29,7 +29,7 @@ pub struct RenderFps(
 
 /// Stores setup data for the debug layer.
 #[derive(new)]
-pub struct Setup {
+pub struct Canvas {
     writer: util::DebugWriter,
 }
 
@@ -37,7 +37,7 @@ pub struct Setup {
 #[thread_local]
 fn draw(
     #[resource] camera: &Camera,
-    #[resource] canvas: &Option<super::Canvas>,
+    #[resource] layers: &Option<super::Layers>,
     #[resource] clock: &time::Clock,
     #[resource] comm: &mut Comm,
     #[resource] perf_read: &mut codegen::Perf,
@@ -57,11 +57,11 @@ fn draw(
         Some(RenderFlag) => (),
         None => return,
     };
-    let mut canvas = match canvas.as_ref() {
-        Some(canvas) => canvas.borrow_mut(),
+    let mut layers = match layers.as_ref() {
+        Some(layers) => layers.borrow_mut(),
         None => return,
     };
-    let writer = &mut canvas.debug_mut().writer;
+    let writer = &mut layers.debug_mut().writer;
 
     let render_fps = render_fps.0.add_frame();
 

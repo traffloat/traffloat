@@ -79,12 +79,11 @@ impl FloatBuffer {
 
 pub struct IndexBuffer {
     buffer: WebGlBuffer,
-    component_size: i32,
     len: i32,
 }
 
 impl IndexBuffer {
-    pub fn create(gl: &WebGlRenderingContext, data: &[u16], component_size: i32) -> Self {
+    pub fn create(gl: &WebGlRenderingContext, data: &[u16]) -> Self {
         let buffer = gl.create_buffer().expect("Failed to allocate WebGL buffer");
         gl.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER, Some(&buffer));
 
@@ -97,7 +96,6 @@ impl IndexBuffer {
 
         Self {
             buffer,
-            component_size,
             len: data.len().try_into().expect("Buffer is too large"),
         }
     }

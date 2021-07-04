@@ -3,6 +3,7 @@ use std::rc::Rc;
 
 use web_sys::{CanvasRenderingContext2d, WebGlRenderingContext};
 
+use super::{bg, debug, scene, ui};
 use crate::util::DebugWriter;
 
 /// The dimension of a canvas
@@ -22,39 +23,40 @@ impl Dimension {
 }
 
 /// A shared reference to a canvas.
-pub type Canvas = Rc<RefCell<CanvasStruct>>;
+pub type Layers = Rc<RefCell<LayersStruct>>;
 
 /// Information for the canvas.
 ///
 /// This stores three underlying canvas,
 /// namely background, scene and UI.
 #[derive(getset::Getters, getset::MutGetters)]
-pub struct CanvasStruct {
+pub struct LayersStruct {
     /// The background render layer
     #[getset(get = "pub")]
-    bg: super::bg::Setup,
+    bg: bg::Canvas,
     /// The object render layer
     #[getset(get = "pub")]
-    scene: super::scene::Setup,
+    scene: scene::Canvas,
     /// The UI 2D canvas layer
     #[getset(get = "pub")]
-    ui: web_sys::CanvasRenderingContext2d,
+    ui: ui::Canvas,
     /// The debug DOM layer
     #[getset(get = "pub", get_mut = "pub")]
-    debug: super::debug::Setup,
+    debug: debug::Canvas,
 }
 
-impl CanvasStruct {
+impl LayersStruct {
     /// Instantiates the canvas wrapper.
     pub fn new(
         bg: WebGlRenderingContext,
         scene: WebGlRenderingContext,
         ui: CanvasRenderingContext2d,
         debug: DebugWriter,
-    ) -> Canvas {
-        let bg = super::bg::setup(bg);
-        let scene = super::scene::setup(scene);
-        let debug = super::debug::Setup::new(debug);
+    ) -> Layers {
+        let bg = bg::Canvas::new(bg);
+        let scene = scene::Canvas::new(scene);
+        let ui = ui::Canvas::new(ui);
+        let debug = debug::Canvas::new(debug);
 
         Rc::new(RefCell::new(Self {
             bg,

@@ -7,7 +7,7 @@ use super::util::{self, BufferUsage, FloatBuffer, IndexBuffer, WebglExt};
 use super::{Dimension, RenderFlag};
 use crate::camera::Camera;
 use safety::Safety;
-use traffloat::space::{Matrix, Vector};
+use traffloat::space::Vector;
 use traffloat::sun::Sun;
 
 #[rustfmt::skip]
@@ -21,37 +21,8 @@ lazy_static! {
     ];
 }
 
-/// Sets up the canvas, loading initial data.
-pub fn setup(gl: WebGlRenderingContext) -> Setup {
-    let star_prog = util::create_program(
-        &gl,
-        "star.vert",
-        include_str!("star.vert"),
-        "star.frag",
-        include_str!("star.frag"),
-    );
-    let sun_prog = util::create_program(
-        &gl,
-        "sun.vert",
-        include_str!("sun.vert"),
-        "sun.frag",
-        include_str!("sun.frag"),
-    );
-
-    let sun_pos_buf = FloatBuffer::create(&gl, &*SUN_MODEL, 2, BufferUsage::WriteOnceReadMany);
-    let sun_pos_index_buf = IndexBuffer::create(&gl, &[0, 1, 2, 0, 2, 3, 0, 3, 1], 3);
-
-    Setup {
-        gl,
-        star_prog,
-        sun_prog,
-        sun_pos_buf,
-        sun_pos_index_buf,
-    }
-}
-
 /// Stores the setup data of the background canvas.
-pub struct Setup {
+pub struct Canvas {
     gl: WebGlRenderingContext,
     star_prog: WebGlProgram,
     sun_prog: WebGlProgram,
@@ -59,7 +30,41 @@ pub struct Setup {
     sun_pos_index_buf: IndexBuffer,
 }
 
-impl Setup {
+impl Canvas {
+    /// Sets up the canvas, loading initial data.
+    pub fn new(gl: WebGlRenderingContext) -> Self {
+        let star_prog = util::create_program(
+            &gl,
+            "star.vert",
+            include_str!("star.vert"),
+            "star.frag",
+            include_str!("star.frag"),
+        );
+        let sun_prog = util::create_program(
+            &gl,
+            "sun.vert",
+            include_str!("sun.vert"),
+            "sun.frag",
+            include_str!("sun.frag"),
+        );
+
+        let sun_pos_buf = FloatBuffer::create(&gl, &*SUN_MODEL, 2, BufferUsage::WriteOnceReadMany);
+        #[rustfmt::skip]
+        let sun_pos_index_buf = IndexBuffer::create(&gl, &[
+            0, 1, 2,
+            0, 2, 3,
+            0, 3, 1,
+        ]);
+
+        Self {
+            gl,
+            star_prog,
+            sun_prog,
+            sun_pos_buf,
+            sun_pos_index_buf,
+        }
+    }
+
     /// Resets the scene for the next rendering frame.
     pub fn reset(&self) {
         self.gl.clear_color(0., 0., 0., 1.);
@@ -92,7 +97,7 @@ impl Setup {
 fn draw(
     #[resource(no_init)] dim: &Dimension,
     #[resource] camera: &Camera,
-    #[resource] canvas: &Option<super::Canvas>,
+    #[resource] layers: &Option<super::Layers>,
     #[resource] sun: &Sun,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
@@ -101,12 +106,12 @@ fn draw(
         Some(RenderFlag) => (),
         None => return,
     };
-    let canvas = match canvas.as_ref() {
-        Some(canvas) => canvas.borrow(),
+    let layers = match layers.as_ref() {
+        Some(layers) => layers.borrow(),
         None => return,
     };
 
-    let bg = canvas.bg();
+    let bg = layers.bg();
     bg.reset();
 
     let sun_pos = sun.direction();

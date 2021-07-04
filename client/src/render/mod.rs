@@ -1,7 +1,7 @@
 //! Manages client-side graphics rendering.
 
-mod canvas;
-pub use canvas::*;
+mod layers;
+pub use layers::{Dimension, Layers, LayersStruct};
 mod comm;
 pub use comm::*;
 
