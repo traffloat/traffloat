@@ -24,10 +24,12 @@ jobs:
 
       - name: Set Git author
         run: git config --global user.name "github-actions[bot]" && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: Setup deploy key
-        run: echo "${{secrets.API_KEY}}" > ~/.ssh/id_rsa
       - name: Clone site repo
-        run: git clone git@github.com:traffloat/api ../api
+        uses: actions/checkout@v2
+        with:
+          repository: traffloat/api
+          ssh-key: ${{secrets.API_KEY}}
+          path: ../api
       - name: Delete previous build
         run: test ! -d $(echo ${{github.ref}} | cut -d/ -f3) || rm -r $(echo ${{github.ref}} | cut -d/ -f3)
         working-directory: ../api
