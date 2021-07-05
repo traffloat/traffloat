@@ -1,4 +1,4 @@
-name: Pages
+name: Docs build
 on:
   push:
     branches:
@@ -34,7 +34,7 @@ jobs:
         run: test ! -d $(echo ${{github.ref}} | cut -d/ -f3) || rm -r $(echo ${{github.ref}} | cut -d/ -f3)
         working-directory: .site-repo
       - name: Copy artifact to site repo
-        run: cp -r client/doc .site-repo/$(echo ${{github.ref}} | cut -d/ -f3)
+        run: cp -r target/doc .site-repo/$(echo ${{github.ref}} | cut -d/ -f3)
       - name: Git commit
         run: git add $(echo ${{github.ref}} | cut -d/ -f3) && git commit --allow-empty -m "Docs build for traffloat/traffloat@${{github.sha}}"
         working-directory: .site-repo
