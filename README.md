@@ -1,13 +1,11 @@
 # traffloat
 
-| Item | Status |
-| :---: | :---: |
-| CI | [![](https://github.com/traffloat/traffloat/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/traffloat/traffloat/actions/workflows/ci.yml) |
-| Client build | [![](https://github.com/traffloat/traffloat/actions/workflows/client.yml/badge.svg?branch=master)](https://traffloat.github.io/master) |
-| Docs build | [![](https://github.com/traffloat/traffloat/actions/workflows/docs.yml/badge.svg?branch=master)](https://traffloat.github.io/api/master/traffloat) |
-| Stack | [![](http://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/sof3/traffloat) |
-| Last commit | [![GitHub](https://img.shields.io/github/last-commit/SOF3/serde-iter)](https://github.com/SOF3/serde-iter) |
-| Stars | [![GitHub](https://img.shields.io/github/stars/SOF3/serde-iter?style=social)](https://github.com/SOF3/serde-iter) |
+[![](https://github.com/traffloat/traffloat/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/traffloat/traffloat/actions/workflows/ci.yml)
+[![](https://github.com/traffloat/traffloat/actions/workflows/client.yml/badge.svg?branch=master)](https://traffloat.github.io/master)
+[![](https://github.com/traffloat/traffloat/actions/workflows/docs.yml/badge.svg?branch=master)](https://traffloat.github.io/api/master/traffloat)
+[![](http://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/sof3/traffloat)
+[![GitHub](https://img.shields.io/github/last-commit/SOF3/serde-iter)](https://github.com/SOF3/serde-iter)
+[![GitHub](https://img.shields.io/github/stars/SOF3/serde-iter?style=social)](https://github.com/SOF3/serde-iter)
 
 A cooperative 3D web game with elements of City Building, Logistics and Tower Defense.
 
