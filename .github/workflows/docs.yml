@@ -29,15 +29,15 @@ jobs:
         with:
           repository: traffloat/api
           ssh-key: ${{secrets.API_KEY}}
-          path: ../api
+          path: .site-repo
       - name: Delete previous build
         run: test ! -d $(echo ${{github.ref}} | cut -d/ -f3) || rm -r $(echo ${{github.ref}} | cut -d/ -f3)
-        working-directory: ../api
+        working-directory: .site-repo
       - name: Copy artifact to site repo
-        run: cp -r client/doc ../api/$(echo ${{github.ref}} | cut -d/ -f3)
+        run: cp -r client/doc .site-repo/$(echo ${{github.ref}} | cut -d/ -f3)
       - name: Git commit
         run: git add $(echo ${{github.ref}} | cut -d/ -f3) && git commit --allow-empty -m "Docs build for traffloat/traffloat@${{github.sha}}"
-        working-directory: ../api
+        working-directory: .site-repo
       - name: Push pages
         run: git push
-        working-directory: ../api
+        working-directory: .site-repo

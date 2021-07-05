@@ -42,15 +42,15 @@ jobs:
         with:
           repository: traffloat/traffloat.github.io
           ssh-key: ${{secrets.SITE_KEY}}
-          path: ../site
+          path: .site-repo
       - name: Delete previous build
         run: test ! -d $(echo ${{github.ref}} | cut -d/ -f3) || rm -r $(echo ${{github.ref}} | cut -d/ -f3)
-        working-directory: ../site
+        working-directory: .site-repo
       - name: Copy artifact to site repo
-        run: cp -r client/dist ../site/$(echo ${{github.ref}} | cut -d/ -f3)
+        run: cp -r client/dist .site-repo/$(echo ${{github.ref}} | cut -d/ -f3)
       - name: Git commit
         run: git add $(echo ${{github.ref}} | cut -d/ -f3) && git commit --allow-empty -m "Docs build for traffloat/traffloat@${{github.sha}}"
-        working-directory: ../site
+        working-directory: .site-repo
       - name: Push pages
         run: git push
-        working-directory: ../site
+        working-directory: .site-repo
