@@ -6,7 +6,7 @@ on:
     tags:
       - "*"
 jobs:
-  site:
+  build:
     name: "Web client build"
     runs-on: ubuntu-latest
     steps:
@@ -52,37 +52,3 @@ jobs:
       - name: Push pages
         run: git push
         working-directory: ../site
-
-  api:
-    name: "Documentation build"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v2
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2021-06-28
-          profile: default
-          default: true
-
-      - name: Build documentation
-        run: cargo doc --lib
-
-      - name: Set Git author
-        run: git config --global user.name "github-actions[bot]" && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: Setup deploy key
-        run: echo "${{secrets.API_KEY}}" > ~/.ssh/id_rsa
-      - name: Clone site repo
-        run: git clone git@github.com:traffloat/api ../api
-      - name: Delete previous build
-        run: test ! -d $(echo ${{github.ref}} | cut -d/ -f3) || rm -r $(echo ${{github.ref}} | cut -d/ -f3)
-        working-directory: ../api
-      - name: Copy artifact to site repo
-        run: cp -r client/doc ../api/$(echo ${{github.ref}} | cut -d/ -f3)
-      - name: Git commit
-        run: git add $(echo ${{github.ref}} | cut -d/ -f3) && git commit --allow-empty -m "Docs build for traffloat/traffloat@${{github.sha}}"
-        working-directory: ../api
-      - name: Push pages
-        run: git push
-        working-directory: ../api

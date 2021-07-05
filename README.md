@@ -2,7 +2,7 @@
 
 | Item | Status |
 | :---: | :---: |
-| CI | [![](https://github.com/traffloat/traffloat/actions/workflows/pages.yml/badge.svg?branch=master)](https://github.com/traffloat/traffloat/actions/workflows/ci.yml) |
+| CI | [![](https://github.com/traffloat/traffloat/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/traffloat/traffloat/actions/workflows/ci.yml) |
 | Client build | [![](https://github.com/traffloat/traffloat/actions/workflows/client.yml/badge.svg?branch=master)](https://traffloat.github.io/master) |
 | Docs build | [![](https://github.com/traffloat/traffloat/actions/workflows/docs.yml/badge.svg?branch=master)](https://traffloat.github.io/api/master/traffloat) |
 | Stack | [![](http://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/sof3/traffloat) |
