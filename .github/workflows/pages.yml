@@ -3,46 +3,86 @@ on:
   push:
     branches:
       - master
+    tags:
+      - "*"
 jobs:
-  build:
+  site:
+    name: "Web client build"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly-2021-06-28
           profile: default
           default: true
-      - run: pip3 install -r client/textures/requirements.txt
-      - uses: actions/cache@v2
+      - name: Cache wasm-pack
+        uses: actions/cache@v2
         with:
           path: |
             ~/.cargo
           key: wasm-pack-v0.9
       - run: test -f ~/.cargo/bin/wasm-pack || cargo install wasm-pack
-      - name: Check rustc version
-        id: rustc-version
-        run: echo "::set-ouptut name=RUSTC_VERSION::$(rustc --version)"
-      - uses: actions/cache@v2
+
+      - name: Install Python dependencies
+        run: pip3 install -r client/textures/requirements.txt
+      - name: Build Node dependencies
+        run: npm install
+        working-directory: client
+      - name: Build web client
+        run: npm run build
+        working-directory: client
+
+      - name: Set Git author
+        run: git config --global user.name "github-actions[bot]" && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Setup deploy key
+        run: echo ${{secrets.SITE_KEY}} > ${{env.HOME}}/.ssh/id_rsa
+      - name: Clone site repo
+        run: git clone git@github.com:traffloat/traffloat.github.io ../site
+      - name: Delete previous build
+        run: test ! -d $(echo ${{github.ref}} | cut -d/ -f3) || rm -r $(echo ${{github.ref}} | cut -d/ -f3)
+        working-directory: ../site
+      - name: Copy artifact to site repo
+        run: cp -r client/dist ../site/$(echo ${{github.ref}} | cut -d/ -f3)
+      - name: Git commit
+        run: git add $(echo ${{github.ref}} | cut -d/ -f3) && git commit --allow-empty -m "Docs build for traffloat/traffloat@${{github.sha}}"
+        working-directory: ../site
+      - name: Push pages
+        run: git push
+        working-directory: ../site
+
+  api:
+    name: "Documentation build"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          path: |
-            **/target
-          key: pages-${{ steps.rustc-version.outputs.RUSTC_VERSION }}
-      - run: cargo doc --lib
-      - run: npm install
-        working-directory: client
-      - run: npm run build
-        working-directory: client
-        # - run: cargo build --release
-        # working-directory: server
-      - run: cp -r client/dist ../pkg
-      - run: cp -r target/doc ../pkg/doc
-        # - run: cp target/release/traffloat-server ../pkg/server-unix
-        # - run: gzip ../pkg/server-unix
-      - run: git checkout -- . && git clean -fd
-      - run: git fetch && git checkout gh-pages
-      - run: test ! -d $(echo ${{github.ref}} | cut -d/ -f3) || rm -r $(echo ${{github.ref}} | cut -d/ -f3)
-      - run: cp -r ../pkg $(echo ${{github.ref}} | cut -d/ -f3)
-      - run: git config --local user.name "github-actions[bot]" && git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - run: git add $(echo ${{github.ref}} | cut -d/ -f3) && git commit --allow-empty -m "Docs build for SOF3/traffloat@${{github.sha}}"
-      - run: git push
+          toolchain: nightly-2021-06-28
+          profile: default
+          default: true
+
+      - name: Build documentation
+        run: cargo doc --lib
+
+      - name: Set Git author
+        run: git config --global user.name "github-actions[bot]" && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Setup deploy key
+        run: echo ${{secrets.API_KEY}} > ${{env.HOME}}/.ssh/id_rsa
+      - name: Clone site repo
+        run: git clone git@github.com:traffloat/api ../api
+      - name: Delete previous build
+        run: test ! -d $(echo ${{github.ref}} | cut -d/ -f3) || rm -r $(echo ${{github.ref}} | cut -d/ -f3)
+        working-directory: ../api
+      - name: Copy artifact to site repo
+        run: cp -r client/doc ../api/$(echo ${{github.ref}} | cut -d/ -f3)
+      - name: Git commit
+        run: git add $(echo ${{github.ref}} | cut -d/ -f3) && git commit --allow-empty -m "Docs build for traffloat/traffloat@${{github.sha}}"
+        working-directory: ../api
+      - name: Push pages
+        run: git push
+        working-directory: ../api
