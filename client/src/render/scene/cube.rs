@@ -201,18 +201,18 @@ lazy_static! {
         let mut mesh = Mesh::default();
 
         let mut push_face = |face: Face| {
-            mesh.positions.extend(&face.upper_left_coords());
-            mesh.positions.extend(&face.upper_right_coords());
-            mesh.positions.extend(&face.lower_left_coords());
+            mesh.positions_mut().extend(&face.upper_left_coords());
+            mesh.positions_mut().extend(&face.upper_right_coords());
+            mesh.positions_mut().extend(&face.lower_left_coords());
             for _ in 0..3 {
-                mesh.normals.extend(&face.normal());
+                mesh.normals_mut().extend(&face.normal());
             }
 
-            mesh.positions.extend(&face.upper_right_coords());
-            mesh.positions.extend(&face.lower_right_coords());
-            mesh.positions.extend(&face.lower_left_coords());
+            mesh.positions_mut().extend(&face.upper_right_coords());
+            mesh.positions_mut().extend(&face.lower_right_coords());
+            mesh.positions_mut().extend(&face.lower_left_coords());
             for _ in 0..3 {
-                mesh.normals.extend(&face.normal());
+                mesh.normals_mut().extend(&face.normal());
             }
         };
 

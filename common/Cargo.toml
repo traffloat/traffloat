@@ -3,8 +3,8 @@ name = "traffloat-common"
 authors = ["SOFe <sofe2038@gmail.com>"]
 version = "0.2.0"
 edition = "2018"
-repository = "https://github.com/SOF3/traffloat"
-homepage = "https://github.com/SOF3/traffloat"
+repository = "https://github.com/traffloat/traffloat"
+homepage = "https://github.com/traffloat/traffloat"
 description = "Traffloat simulation library"
 license = "AGPL-3.0"
 

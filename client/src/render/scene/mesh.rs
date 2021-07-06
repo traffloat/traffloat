@@ -41,18 +41,20 @@ impl PreparedMesh {
 }
 
 /// An in-memory complex object.
-#[derive(Default)]
+#[derive(Default, getset::Getters, getset::MutGetters)]
 pub struct Mesh {
     /// Triplets of floats indicating the unit model position.
-    pub positions: Vec<f32>,
+    #[getset(get = "pub")]
+    #[getset(get_mut = "pub")]
+    positions: Vec<f32>,
     /// Triplets of floats indicating the unit normal of faces.
-    ///
-    /// Each vector is repeated 3 times.
-    pub normals: Vec<f32>,
+    #[getset(get = "pub")]
+    #[getset(get_mut = "pub")]
+    normals: Vec<f32>,
 }
 
 impl Mesh {
-    /// Loads the mesh onto a mesh.
+    /// Loads the mesh onto a WebGL context.
     pub fn prepare(&self, gl: &WebGlRenderingContext) -> PreparedMesh {
         let len = self.positions.len() / 3;
         PreparedMesh::builder()
@@ -76,5 +78,37 @@ impl Mesh {
             ))
             .len(self.positions.len() / 3)
             .build()
+    }
+}
+
+/// An in-memory complex object with many repetitive vertices.
+#[derive(Default, getset::Getters, getset::MutGetters)]
+pub struct IndexedMesh {
+    mesh: Mesh,
+    /// Triplets of integers indicating the vertices of triangles in the mesh.
+    #[getset(get = "pub")]
+    #[getset(get_mut = "pub")]
+    indices: Vec<u16>,
+}
+
+impl IndexedMesh {
+    /// Triplets of floats indicating the unit model position.
+    pub fn positions(&self) -> &[f32] {
+        self.mesh.positions()
+    }
+
+    /// Triplets of floats indicating the unit model position.
+    pub fn positions_mut(&mut self) -> &mut Vec<f32> {
+        self.mesh.positions_mut()
+    }
+
+    /// Triples of floats indicating the unit normal of faces.
+    pub fn normals(&self) -> &[f32] {
+        self.mesh.normals()
+    }
+
+    /// Triples of floats indicating the unit normal of faces.
+    pub fn normals_mut(&mut self) -> &mut Vec<f32> {
+        self.mesh.normals_mut()
     }
 }

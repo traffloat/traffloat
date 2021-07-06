@@ -17,6 +17,8 @@ use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
 pub mod cube;
 use cube::CUBE;
+pub mod cylinder;
+use cylinder::CYLINDER;
 
 mod marker;
 pub use marker::*;
@@ -29,7 +31,8 @@ mod texture;
 /// Stores the setup data of the scene canvas.
 pub struct Canvas {
     gl: WebGlRenderingContext,
-    object_prog: WebGlProgram,
+    node_prog: WebGlProgram,
+    edge_prog: WebGlProgram,
     cube: PreparedMesh,
 }
 
@@ -39,19 +42,28 @@ impl Canvas {
         gl.enable(WebGlRenderingContext::DEPTH_TEST);
         gl.enable(WebGlRenderingContext::CULL_FACE);
 
-        let object_prog = util::create_program(
+        let node_prog = util::create_program(
             &gl,
             "node.vert",
-            include_str!("node.vert"),
+            include_str!("node.min.vert"),
             "node.frag",
-            include_str!("node.frag"),
+            include_str!("node.min.frag"),
+        );
+
+        let edge_prog = util::create_program(
+            &gl,
+            "edge.vert",
+            include_str!("edge.min.vert"),
+            "edge.frag",
+            include_str!("edge.min.frag"),
         );
 
         let cube = CUBE.prepare(&gl);
 
         Self {
             gl,
-            object_prog,
+            node_prog,
+            edge_prog,
             cube,
         }
     }
@@ -72,27 +84,27 @@ impl Canvas {
         brightness: f64,
         texture: &texture::PreparedTexture,
     ) {
-        self.gl.use_program(Some(&self.object_prog));
+        self.gl.use_program(Some(&self.node_prog));
         self.gl
-            .set_uniform(&self.object_prog, "u_proj", util::glize_matrix(proj));
+            .set_uniform(&self.node_prog, "u_proj", util::glize_matrix(proj));
         self.gl
-            .set_uniform(&self.object_prog, "u_sun", util::glize_vector(sun));
+            .set_uniform(&self.node_prog, "u_sun", util::glize_vector(sun));
         self.gl
-            .set_uniform(&self.object_prog, "u_brightness", brightness.lossy_trunc());
+            .set_uniform(&self.node_prog, "u_brightness", brightness.lossy_trunc());
 
         self.cube
             .positions()
-            .apply(&self.gl, &self.object_prog, "a_pos");
+            .apply(&self.gl, &self.node_prog, "a_pos");
         self.cube
             .normals()
-            .apply(&self.gl, &self.object_prog, "a_normal");
+            .apply(&self.gl, &self.node_prog, "a_normal");
 
         texture.apply(
             self.cube.tex_pos(),
-            &self.object_prog,
+            &self.node_prog,
             "a_tex_pos",
             self.gl
-                .get_uniform_location(&self.object_prog, "u_tex")
+                .get_uniform_location(&self.node_prog, "u_tex")
                 .as_ref(),
             &self.gl,
         );

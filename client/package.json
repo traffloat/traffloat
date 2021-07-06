@@ -2,11 +2,12 @@
   "author": "SOFe <sofe2038@gmail.com>",
   "name": "traffloat",
   "version": "0.1.0",
-  "repository": "https://github.com/SOF3/traffloat",
+  "repository": "https://github.com/traffloat/traffloat",
   "license": "AGPL-3.0",
   "scripts": {
-    "build": "rimraf dist pkg && python3 textures/combine.py && webpack",
-    "build-dev": "rimraf dist pkg && python3 textures/combine.py && webpack --mode development",
+    "preprocess": "python3 textures/combine.py && ruby glsl_min.rb",
+    "build": "rimraf dist pkg && npm run preprocess && webpack",
+    "build-dev": "rimraf dist pkg && npm run preprocess && webpack --mode development",
     "texture": "python3 textures/combine.py",
     "start": "rimraf dist pkg && webpack serve --mode development --open",
     "test": "cargo test && wasm-pack test --headless"

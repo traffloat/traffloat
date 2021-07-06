@@ -36,16 +36,16 @@ impl Canvas {
         let star_prog = util::create_program(
             &gl,
             "star.vert",
-            include_str!("star.vert"),
+            include_str!("star.min.vert"),
             "star.frag",
-            include_str!("star.frag"),
+            include_str!("star.min.frag"),
         );
         let sun_prog = util::create_program(
             &gl,
             "sun.vert",
-            include_str!("sun.vert"),
+            include_str!("sun.min.vert"),
             "sun.frag",
-            include_str!("sun.frag"),
+            include_str!("sun.min.frag"),
         );
 
         let sun_pos_buf = FloatBuffer::create(&gl, &*SUN_MODEL, 2, BufferUsage::WriteOnceReadMany);
