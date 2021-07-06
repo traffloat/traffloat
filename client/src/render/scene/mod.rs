@@ -136,16 +136,14 @@ impl Canvas {
         self.gl.use_program(Some(&self.edge_prog));
         self.gl
             .set_uniform(&self.edge_prog, "u_trans", util::glize_matrix(proj));
-        self.gl.set_uniform(
-            &self.edge_prog,
-            "u_trans_sun",
-            util::glize_vector(sun),
-        );
+        self.gl
+            .set_uniform(&self.edge_prog, "u_trans_sun", util::glize_vector(sun));
         self.gl.set_uniform(&self.edge_prog, "u_color", rgba);
         self.gl.set_uniform(&self.edge_prog, "u_ambient", 0.3);
         self.gl.set_uniform(&self.edge_prog, "u_diffuse", 0.2);
         self.gl.set_uniform(&self.edge_prog, "u_specular", 1.0);
-        self.gl.set_uniform(&self.edge_prog, "u_specular_coef", 10.0);
+        self.gl
+            .set_uniform(&self.edge_prog, "u_specular_coef", 10.0);
 
         self.cylinder
             .positions()
@@ -243,7 +241,11 @@ fn draw(
             .prepend_nonuniform_scaling(&Vector::new(size.radius(), size.radius(), dir.norm()))
             .append_translation(&from.vector());
 
-        scene.draw_edge(projection * unit, projection.transform_vector(&sun_dir), [0.3, 0.5, 0.8, 0.5]);
+        scene.draw_edge(
+            projection * unit,
+            projection.transform_vector(&sun_dir),
+            [0.3, 0.5, 0.8, 0.5],
+        );
     }
 }
 
