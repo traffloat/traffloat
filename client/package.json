@@ -5,7 +5,7 @@
   "repository": "https://github.com/traffloat/traffloat",
   "license": "AGPL-3.0",
   "scripts": {
-    "preprocess": "python3 textures/combine.py && ruby glsl_min.rb",
+    "preprocess": "pip3 install -r textures/requirements.txt && python3 textures/combine.py && ruby glsl_min.rb",
     "build": "rimraf dist pkg && npm run preprocess && webpack",
     "build-dev": "rimraf dist pkg && npm run preprocess && webpack --mode development",
     "texture": "python3 textures/combine.py",
