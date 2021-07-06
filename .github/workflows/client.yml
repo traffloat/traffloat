@@ -26,8 +26,10 @@ jobs:
           key: wasm-pack-v0.9
       - run: test -f ~/.cargo/bin/wasm-pack || cargo install wasm-pack
 
-      - name: Install Python dependencies
-        run: pip3 install -r client/textures/requirements.txt
+      - run: npm install
+        working-directory: client
+      - run: npm run preprocess
+        working-directory: client
       - name: Build Node dependencies
         run: npm install
         working-directory: client

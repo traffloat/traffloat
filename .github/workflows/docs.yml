@@ -19,6 +19,10 @@ jobs:
           profile: default
           default: true
 
+      - run: npm install
+        working-directory: client
+      - run: npm run preprocess
+        working-directory: client
       - name: Build documentation
         run: cargo doc --lib
 

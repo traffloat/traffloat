@@ -41,6 +41,10 @@ jobs:
             ~/.cargo/registry
             **/target
           key: ${{ matrix.toolchain }}
+      - run: npm install
+        working-directory: client
+      - run: npm run preprocess
+        working-directory: client
       - name: cargo clippy
         run: "cargo clippy --all ${{matrix.stability}}"
   test:
@@ -66,5 +70,9 @@ jobs:
             ~/.cargo/registry
             **/target
           key: ${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
+      - run: npm install
+        working-directory: client
+      - run: npm run preprocess
+        working-directory: client
       - name: cargo test
         run: "cargo test --all ${{matrix.stability}}"
