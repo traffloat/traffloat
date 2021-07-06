@@ -41,6 +41,8 @@ impl Canvas {
     pub fn new(gl: WebGlRenderingContext) -> Self {
         gl.enable(WebGlRenderingContext::DEPTH_TEST);
         gl.enable(WebGlRenderingContext::CULL_FACE);
+        gl.enable(WebGlRenderingContext::BLEND);
+        gl.blend_func_separate(WebGlRenderingContext::SRC_ALPHA, WebGlRenderingContext::ONE_MINUS_SRC_ALPHA, WebGlRenderingContext::SRC_ALPHA, WebGlRenderingContext::ONE);
 
         let node_prog = util::create_program(
             &gl,

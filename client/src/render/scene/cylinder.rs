@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use super::IndexedMesh;
 
 /// Number of vertices on each circle of a cylinder
-pub const NUM_VERTICES: u16 = 16;
+pub const NUM_VERTICES: u16 = 32;
 
 lazy_static! {
     /// A mesh for a unit Z-cylinder (`{(x, y) : x^2 + y^2 = 1} x [0, 1]`)
