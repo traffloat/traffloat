@@ -5,6 +5,7 @@ use derive_new::new;
 use super::comm::{Comm, RenderFlag};
 use crate::camera::Camera;
 use crate::config::RENDER_DEBUG;
+use crate::input;
 use crate::util;
 
 use traffloat::space::Vector;
@@ -44,6 +45,8 @@ fn draw(
     #[resource] render_fps: &mut RenderFps,
     #[resource] simul_fps: &mut SimulFps,
     #[resource] sun: &Sun,
+    #[resource] cursor_segment: &input::mouse::Segment,
+    #[resource] cursor_target: &input::mouse::Target,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     // Store FPS data
@@ -93,6 +96,18 @@ fn draw(
         line_of_sight.z,
         camera.zoom(),
         camera.distance(),
+    ));
+
+    writer.write(format!(
+        "Mouse: ({:.1}, {:.1}, {:.1})..({:.1}, {:.1}, {:.1}) targetting {:?} at depth {:?}",
+        cursor_segment.proximal().x(),
+        cursor_segment.proximal().y(),
+        cursor_segment.proximal().z(),
+        cursor_segment.distal().x(),
+        cursor_segment.distal().y(),
+        cursor_segment.distal().z(),
+        cursor_target.target().map(|(_, entity)| entity),
+        cursor_target.target().map(|(depth, _)| depth),
     ));
 
     writer.write("CYCLE TIME:");

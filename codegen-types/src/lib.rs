@@ -93,6 +93,7 @@ impl Legion {
         self.schedule.execute(&mut self.world, &mut self.resources)
     }
 
+    /// Publishes an event.
     pub fn publish<T: shrev::Event>(&mut self, event: T) {
         let mut channel = match self.resources.get_mut::<shrev::EventChannel<T>>() {
             Some(channel) => channel,

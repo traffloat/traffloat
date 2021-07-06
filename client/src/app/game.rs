@@ -150,9 +150,7 @@ impl Game {
         self.legion.publish(event);
     }
 
-    fn on_mouse_move(&mut self, _x: i32, _y: i32) {
-        // TODO!("Send the event to ECS")
-        /*
+    fn on_mouse_move(&mut self, x: i32, y: i32) {
         let canvas = match self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
             Some(canvas) => canvas,
             None => return,
@@ -166,8 +164,7 @@ impl Game {
             .resources
             .get_mut::<input::mouse::CursorPosition>()
             .expect("CursorPosition is uninitialized");
-        pos.0 = Some(input::mouse::ScreenPosition { x, y });
-        */
+        *pos = input::mouse::CursorPosition::new(x, y);
     }
 
     fn on_mouse_click(&mut self, _button: i16, _down: bool) {

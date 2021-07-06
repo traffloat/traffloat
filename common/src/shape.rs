@@ -14,19 +14,29 @@ pub struct Shape {
     #[getset(get_copy = "pub")]
     /// Unit shape variant
     unit: Unit,
-    /// The transformation matrix from the unit square to this shape centered at the
-    /// origin
+    /// The transformation matrix from the unit shape to this shape centered at the origin.
     #[getset(get_copy = "pub")]
     matrix: Matrix,
+    /// The inverse transformation matrix from this shape centered at the origin to the unit shape.
+    #[getset(get_copy = "pub")]
+    #[builder(
+        default_code = r#"matrix.try_inverse().expect("Transformation matrix is singular")"#
+    )]
+    inv_matrix: Matrix,
     /// The texture for rendering the shape
     #[getset(get_copy = "pub")]
     texture: config::Id<Texture>,
 }
 
 impl Shape {
-    /// The transformation matrix from the unit square to this shape centered at pos
+    /// The transformation matrix from the unit shape to this shape centered at pos
     pub fn transform(&self, pos: Position) -> Matrix {
-        self.matrix.append_translation(&pos.vector())
+        self.matrix().append_translation(&pos.vector())
+    }
+
+    /// The transformation matrix from this shape centered at pos to the unit shape
+    pub fn inv_transform(&self, pos: Position) -> Matrix {
+        self.inv_matrix().prepend_translation(&-pos.vector())
     }
 }
 
@@ -44,11 +54,59 @@ impl Unit {
     pub fn contains(&self, pos: Point) -> bool {
         match self {
             Self::Cube => {
-                (0. ..=1.).contains(&pos.x)
-                    && (0. ..=1.).contains(&pos.y)
-                    && (0. ..=1.).contains(&pos.z)
+                (-1. ..=1.).contains(&pos.x)
+                    && (-1. ..=1.).contains(&pos.y)
+                    && (-1. ..=1.).contains(&pos.z)
             }
             Self::Sphere => pos.x.powi(2) + pos.y.powi(2) + pos.z.powi(2) <= 1.,
+        }
+    }
+
+    /// Checks whether the line segment between `start` and `end` intersects with this unit shape.
+    ///
+    /// If it does, returns a weight `w` (`0 <= w <= 1`) at which `start * (1 - w) + end * w` is
+    /// within this shape. It is unspecified which particular point within the intersecting segment
+    /// is returned.
+    pub fn between(&self, start: Point, end: Point) -> Option<f64> {
+        match self {
+            Self::Cube => {
+                let dir = end - start;
+
+                for dim in 0..3 {
+                    #[allow(clippy::indexing_slicing)]
+                    for &target in &[-1., 1.] {
+                        let w = (target - start[dim]) / dir[dim];
+                        if (0. ..=1.).contains(&w) {
+                            let point = start + dir * w;
+                            let inside = (0..3)
+                                .filter(|&other| other != dim)
+                                .all(|other| (-1. ..=1.).contains(&point[other]));
+                            if inside {
+                                return Some(w);
+                            }
+                        }
+                    }
+                }
+
+                None
+            }
+            Self::Sphere => {
+                if self.contains(start) {
+                    return Some(0.);
+                }
+                if self.contains(end) {
+                    return Some(1.);
+                }
+
+                let dir = end - start;
+
+                // Neither endpoint is within the sphere.
+                // If the sphere contains part of the segment, the closest point of the line
+                // containing the segment from the sphere center must also be within the segment.
+                let w = (Point::origin() - start).dot(&dir) / dir.norm_squared();
+                let closest = start + dir * w;
+                self.contains(closest).then(|| w)
+            }
         }
     }
 
