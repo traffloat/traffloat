@@ -2,7 +2,7 @@
 
 use derive_new::new;
 
-use super::{Dimension, RenderFlag};
+use super::{CursorType, Dimension, RenderFlag};
 
 /// Stores setup data for the ui layer.
 #[derive(new)]
@@ -16,6 +16,15 @@ impl Canvas {
         self.context
             .clear_rect(0., 0., dim.width.into(), dim.height.into());
     }
+
+    /// Sets the cursor icon.
+    pub fn set_cursor(&self, name: &str) {
+        let canvas = self.context.canvas().expect("UI does not have a canvas");
+        canvas
+            .style()
+            .set_property("cursor", name)
+            .expect("Failed to set canvas cursor property");
+    }
 }
 
 #[codegen::system]
@@ -23,6 +32,7 @@ impl Canvas {
 fn draw(
     #[resource(no_init)] dim: &Dimension,
     #[resource] canvas: &Option<super::Layers>,
+    #[resource] cursor_type: &CursorType,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     // Render flag gate boilerplate
@@ -37,6 +47,7 @@ fn draw(
 
     let ui = canvas.ui();
     ui.reset(dim);
+    ui.set_cursor(cursor_type.name());
 }
 
 /// Sets up legion ECS for debug info rendering.

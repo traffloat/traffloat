@@ -73,12 +73,6 @@ impl Game {
         self._render_task = render_srv::RenderService::request_animation_frame(
             self.link.callback(Msg::RenderFrame),
         );
-        if let Some(canvas) = self.ui_canvas_ref.cast::<web_sys::HtmlElement>() {
-            canvas
-                .style()
-                .set_property("cursor", self.render_comm.canvas_cursor_type.get())
-                .expect("Failed to set canvas cursor property");
-        }
     }
 
     fn canvas_context(&mut self) -> Option<&(render::Layers, render::Dimension)> {

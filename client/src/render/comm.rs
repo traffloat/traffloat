@@ -1,4 +1,4 @@
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -21,16 +21,28 @@ impl Deref for Comm {
 pub struct CommInner {
     /// Performance tracker
     pub perf: Perf,
-    /// The cursor CSS property for the canvas
-    pub canvas_cursor_type: Cell<&'static str>,
 }
 
 impl Default for CommInner {
     fn default() -> Self {
         Self {
             perf: Perf::default(),
-            canvas_cursor_type: Cell::new("initial"),
         }
+    }
+}
+
+/// Resource for the cursor icon.
+#[derive(getset::Getters, getset::Setters)]
+pub struct CursorType {
+    /// The CSS cursor type.
+    #[getset(get = "pub")]
+    #[getset(set = "pub")]
+    name: &'static str,
+}
+
+impl Default for CursorType {
+    fn default() -> Self {
+        Self { name: "initial" }
     }
 }
 
