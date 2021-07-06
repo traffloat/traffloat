@@ -232,7 +232,9 @@ fn draw(
             None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
         };
 
-        let unit = rot.prepend_nonuniform_scaling(&Vector::new(1., 1., dir.norm()));
+        let unit = rot
+            .prepend_nonuniform_scaling(&Vector::new(1., 1., dir.norm()))
+            .append_translation(&from.vector());
 
         scene.draw_edge(projection * unit, sun_dir, [0.2, 0.4, 0.6, 0.3]);
     }
