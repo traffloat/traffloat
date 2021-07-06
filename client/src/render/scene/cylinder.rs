@@ -1,5 +1,7 @@
 //! This module generates geometry data for a cube.
 
+use std::f32::consts::PI;
+
 use lazy_static::lazy_static;
 
 use super::IndexedMesh;
@@ -14,7 +16,7 @@ lazy_static! {
         let mut mesh = IndexedMesh::default();
 
         let mut z = 0.;
-        let unit = 0.5f32 / f32::from(NUM_VERTICES);
+        let unit = PI / f32::from(NUM_VERTICES);
         for num in 0..(NUM_VERTICES * 2) {
             let angle = unit * f32::from(num);
             z = 1. - z;
@@ -22,7 +24,7 @@ lazy_static! {
             let cos = angle.cos();
             let sin = angle.sin();
             mesh.positions_mut().extend(&[cos, sin, z]);
-            mesh.normals_mut().extend(&[cos, sin, z]);
+            mesh.normals_mut().extend(&[cos, sin, 0.]);
         }
 
         for num in 0..NUM_VERTICES {

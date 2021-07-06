@@ -6,7 +6,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::Result;
 
-#[proc_macro_derive(Gen, attributes(max_size, from_client_only, from_server_only))]
+#[proc_macro_derive(Gen, attributes(max_size, from_client_only, from_server_only, default))]
 pub fn gen_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     gen_imp(input.into())
         .unwrap_or_else(|err| err.to_compile_error())
@@ -16,24 +16,27 @@ pub fn gen_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 fn gen_imp(input: TokenStream) -> Result<TokenStream> {
     let input = syn::parse2::<syn::DeriveInput>(input)?;
 
-    let has_attr = |str: &str| input.attrs.iter().any(|attr| attr.path.is_ident(str));
+    let has_attr =
+        |attrs: &[syn::Attribute], str: &str| attrs.iter().any(|attr| attr.path.is_ident(str));
 
-    let (client_source_cfg, client_sink_cfg, server_source_cfg, server_sink_cfg) =
-        match (has_attr("from_client_only"), has_attr("from_server_only")) {
-            (true, false) => (
-                quote!(#[cfg(feature = "client")]),
-                quote!(),
-                quote!(),
-                quote!(#[cfg(feature = "server")]),
-            ),
-            (false, true) => (
-                quote!(),
-                quote!(#[cfg(feature = "client")]),
-                quote!(#[cfg(feature = "server")]),
-                quote!(),
-            ),
-            _ => (quote!(), quote!(), quote!(), quote!()),
-        };
+    let (client_source_cfg, client_sink_cfg, server_source_cfg, server_sink_cfg) = match (
+        has_attr(&input.attrs, "from_client_only"),
+        has_attr(&input.attrs, "from_server_only"),
+    ) {
+        (true, false) => (
+            quote!(#[cfg(feature = "client")]),
+            quote!(),
+            quote!(),
+            quote!(#[cfg(feature = "server")]),
+        ),
+        (false, true) => (
+            quote!(),
+            quote!(#[cfg(feature = "client")]),
+            quote!(#[cfg(feature = "server")]),
+            quote!(),
+        ),
+        _ => (quote!(), quote!(), quote!(), quote!()),
+    };
 
     let name = &input.ident;
     let ident_hash = hash(name);
@@ -78,19 +81,27 @@ fn gen_imp(input: TokenStream) -> Result<TokenStream> {
                 };
                 let field_ty = &field.ty;
 
-                write_fields.push(quote! {
-                    crate::proto::BinWrite::write(&self.#field_name, &mut *buf);
-                });
-                read_fields.push(quote! {
-                    #field_key crate::proto::BinRead::read(&mut *buf)?
-                });
-                cksum_fields.push(quote! {
-                    output = output.wrapping_add(#field_name_hash);
-                    output = output.wrapping_mul(crate::proto::PROTO_TYPE_CKSUM_PRIME);
+                if has_attr(&field.attrs, "default") {
+                    write_fields.push(quote!());
+                    read_fields.push(quote! {
+                        #field_key Default::default()
+                    });
+                    cksum_fields.push(quote!());
+                } else {
+                    write_fields.push(quote! {
+                        crate::proto::BinWrite::write(&self.#field_name, &mut *buf);
+                    });
+                    read_fields.push(quote! {
+                        #field_key crate::proto::BinRead::read(&mut *buf)?
+                    });
+                    cksum_fields.push(quote! {
+                        output = output.wrapping_add(#field_name_hash);
+                        output = output.wrapping_mul(crate::proto::PROTO_TYPE_CKSUM_PRIME);
 
-                    output = output.wrapping_add(<#field_ty as crate::proto::ProtoType>::CHECKSUM);
-                    output = output.wrapping_mul(crate::proto::PROTO_TYPE_CKSUM_PRIME);
-                });
+                        output = output.wrapping_add(<#field_ty as crate::proto::ProtoType>::CHECKSUM);
+                        output = output.wrapping_mul(crate::proto::PROTO_TYPE_CKSUM_PRIME);
+                    });
+                }
             }
 
             let read_fields = match &data.fields {

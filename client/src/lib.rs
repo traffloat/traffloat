@@ -60,9 +60,10 @@ pub fn run_app() {
 
 /// Sets up legion ECS.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    use traffloat::graph::{EdgeId, NodeId};
     use traffloat::space::{Matrix, Position, Vector};
 
-    let setup = setup
+    let mut setup = setup
         .uses(traffloat::setup_ecs)
         .uses(camera::setup_ecs)
         .uses(input::setup_ecs)
@@ -102,35 +103,39 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             String::from("solar-panel"),
         ))
     };
+    let core = setup.world.push((
+        NodeId::new(0),
+        Position::new(1., 2., 3.),
+        Shape::builder()
+            .unit(shape::Unit::Cube)
+            .matrix(Matrix::identity())
+            .texture(core_texture)
+            .build(),
+        traffloat::sun::LightStats::default(),
+    ));
+    let house = setup.world.push((
+        NodeId::new(1),
+        Position::new(1., -2., 3.),
+        Shape::builder()
+            .unit(shape::Unit::Cube)
+            .matrix(Matrix::identity())
+            .texture(house_texture)
+            .build(),
+        traffloat::sun::LightStats::default(),
+    ));
+    let solar = setup.world.push((
+        NodeId::new(2),
+        Position::new(-2., 0., 3.),
+        Shape::builder()
+            .unit(shape::Unit::Cube)
+            .matrix(Matrix::identity().append_nonuniform_scaling(&Vector::new(0.1, 0.5, 1.5)))
+            .texture(solar_panel_texture)
+            .build(),
+        traffloat::sun::LightStats::default(),
+    ));
+    let mut edge = EdgeId::new(NodeId::new(0), NodeId::new(1));
+    edge.set_from_entity(Some(core));
+    edge.set_to_entity(Some(house));
+    setup.world.push((edge,));
     setup
-        .entity((
-            render::scene::RenderNode,
-            Position::new(1., 2., 3.),
-            Shape::builder()
-                .unit(shape::Unit::Cube)
-                .matrix(Matrix::identity())
-                .texture(core_texture)
-                .build(),
-            traffloat::sun::LightStats::default(),
-        ))
-        .entity((
-            render::scene::RenderNode,
-            Position::new(1., -2., 3.),
-            Shape::builder()
-                .unit(shape::Unit::Cube)
-                .matrix(Matrix::identity())
-                .texture(house_texture)
-                .build(),
-            traffloat::sun::LightStats::default(),
-        ))
-        .entity((
-            render::scene::RenderNode,
-            Position::new(-2., 0., 3.),
-            Shape::builder()
-                .unit(shape::Unit::Cube)
-                .matrix(Matrix::identity().append_nonuniform_scaling(&Vector::new(0.1, 0.5, 1.5)))
-                .texture(solar_panel_texture)
-                .build(),
-            traffloat::sun::LightStats::default(),
-        ))
 }

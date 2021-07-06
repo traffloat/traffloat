@@ -21,22 +21,41 @@ pub trait Uniform {
 }
 
 macro_rules! impl_uniform {
-    ($unif:ident, $vec:ident, {$($extra:tt)*}) => {
-        impl Uniform for nalgebra::$vec<f32> {
+    ($unif:ident, $vec:ty, $method:ident, {$($extra:tt)*}) => {
+        impl Uniform for $vec {
             fn apply(&self, location: Option<&WebGlUniformLocation>, gl: &WebGlRenderingContext) {
-                gl.$unif(location, $($extra)* self.as_slice());
+                gl.$unif(location, $($extra)* self.$method());
             }
         }
     }
 }
 
-impl_uniform!(uniform2fv_with_f32_array, Vector2, {});
-impl_uniform!(uniform3fv_with_f32_array, Vector3, {});
-impl_uniform!(uniform4fv_with_f32_array, Vector4, {});
+impl_uniform!(
+    uniform2fv_with_f32_array,
+    nalgebra::Vector2<f32>,
+    as_slice,
+    {}
+);
+impl_uniform!(
+    uniform3fv_with_f32_array,
+    nalgebra::Vector3<f32>,
+    as_slice,
+    {}
+);
+impl_uniform!(
+    uniform4fv_with_f32_array,
+    nalgebra::Vector4<f32>,
+    as_slice,
+    {}
+);
 
-impl_uniform!(uniform_matrix2fv_with_f32_array, Matrix2, {false, });
-impl_uniform!(uniform_matrix3fv_with_f32_array, Matrix3, {false, });
-impl_uniform!(uniform_matrix4fv_with_f32_array, Matrix4, {false, });
+impl_uniform!(uniform2fv_with_f32_array, [f32; 2], as_ref, {});
+impl_uniform!(uniform3fv_with_f32_array, [f32; 3], as_ref, {});
+impl_uniform!(uniform4fv_with_f32_array, [f32; 4], as_ref, {});
+
+impl_uniform!(uniform_matrix2fv_with_f32_array, nalgebra::Matrix2<f32>, as_slice, {false, });
+impl_uniform!(uniform_matrix3fv_with_f32_array, nalgebra::Matrix3<f32>, as_slice, {false, });
+impl_uniform!(uniform_matrix4fv_with_f32_array, nalgebra::Matrix4<f32>, as_slice, {false, });
 
 impl Uniform for f32 {
     fn apply(&self, location: Option<&WebGlUniformLocation>, gl: &WebGlRenderingContext) {

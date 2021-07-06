@@ -2,6 +2,7 @@
 
 use std::f64::consts::PI;
 
+use legion::component;
 use legion::world::SubWorld;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
@@ -11,6 +12,7 @@ use crate::camera::Camera;
 use crate::util::lerp;
 use safety::Safety;
 use traffloat::config;
+use traffloat::graph;
 use traffloat::shape::{Shape, Texture};
 use traffloat::space::{Matrix, Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
@@ -19,9 +21,6 @@ pub mod cube;
 use cube::CUBE;
 pub mod cylinder;
 use cylinder::CYLINDER;
-
-mod marker;
-pub use marker::*;
 
 mod mesh;
 pub use mesh::*;
@@ -34,6 +33,7 @@ pub struct Canvas {
     node_prog: WebGlProgram,
     edge_prog: WebGlProgram,
     cube: PreparedMesh,
+    cylinder: PreparedIndexedMesh,
 }
 
 impl Canvas {
@@ -59,12 +59,14 @@ impl Canvas {
         );
 
         let cube = CUBE.prepare(&gl);
+        let cylinder = CYLINDER.prepare(&gl);
 
         Self {
             gl,
             node_prog,
             edge_prog,
             cube,
+            cylinder,
         }
     }
 
@@ -74,10 +76,10 @@ impl Canvas {
         self.gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
     }
 
-    /// Draws an object on the canvas.
+    /// Draws a node on the canvas.
     ///
     /// The projection matrix transforms unit model coordinates to projection coordinates directly.
-    pub fn draw_object(
+    pub fn draw_node(
         &self,
         proj: Matrix,
         sun: Vector,
@@ -121,13 +123,39 @@ impl Canvas {
         );
         self.cube.draw(&self.gl);
     }
+
+    /// Draws an edge on the canvas.
+    pub fn draw_edge(&self, proj: Matrix, sun: Vector, rgba: [f32; 4]) {
+        self.gl.use_program(Some(&self.edge_prog));
+        self.gl
+            .set_uniform(&self.edge_prog, "u_trans", util::glize_matrix(proj));
+        self.gl.set_uniform(
+            &self.edge_prog,
+            "u_trans_sun",
+            util::glize_vector(proj.transform_vector(&sun)),
+        );
+        self.gl.set_uniform(&self.edge_prog, "u_color", rgba);
+        self.gl.set_uniform(&self.edge_prog, "u_ambient", 0.1);
+        self.gl.set_uniform(&self.edge_prog, "u_diffuse", 0.6);
+        self.gl.set_uniform(&self.edge_prog, "u_specular", 0.9);
+        self.gl.set_uniform(&self.edge_prog, "u_specular_coef", 8.0);
+
+        self.cylinder
+            .positions()
+            .apply(&self.gl, &self.edge_prog, "a_pos");
+        self.cylinder
+            .normals()
+            .apply(&self.gl, &self.edge_prog, "a_normal");
+        self.cylinder.draw(&self.gl);
+    }
 }
 
 #[codegen::system]
 #[read_component(Position)]
 #[read_component(Shape)]
 #[read_component(LightStats)]
-#[read_component(RenderNode)]
+#[read_component(graph::NodeId)]
+#[read_component(graph::EdgeId)]
 #[thread_local]
 fn draw(
     world: &mut SubWorld,
@@ -136,9 +164,10 @@ fn draw(
     #[resource] sun: &Sun,
     #[resource] textures: &config::Store<Texture>,
     #[resource] texture_pool: &mut Option<texture::Pool>,
+    #[resource] graph: &graph::Graph,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
-    use legion::IntoQuery;
+    use legion::{EntityStore, IntoQuery};
 
     // Render flag gate boilerplate
     match render_flag.last() {
@@ -157,9 +186,12 @@ fn draw(
 
     let texture_pool = texture_pool.get_or_insert_with(|| texture::Pool::new(&scene.gl));
 
+    let sun_dir = sun.direction();
+
     #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
-    for (&position, shape, light, _) in
-        <(&Position, &Shape, &LightStats, &RenderNode)>::query().iter(world)
+    for (&position, shape, light) in <(&Position, &Shape, &LightStats)>::query()
+        .filter(component::<graph::NodeId>())
+        .iter(world)
     {
         // projection matrix transforms real coordinates to canvas
 
@@ -176,12 +208,33 @@ fn draw(
         let tex: &Texture = shape.texture().get(textures);
         let sprite = texture_pool.sprite(tex, &scene.gl);
 
-        scene.draw_object(
-            projection * unit_to_real,
-            sun.direction(),
-            brightness,
-            &sprite,
-        );
+        scene.draw_node(projection * unit_to_real, sun_dir, brightness, &sprite);
+    }
+
+    for (&edge,) in <(&graph::EdgeId,)>::query().iter(world) {
+        let from = edge.from_entity().expect("from_entity not initialized");
+        let to = edge.to_entity().expect("to_entity not initialized");
+
+        let from: Position = *world
+            .entry_ref(from)
+            .expect("from_entity does not exist")
+            .get_component()
+            .expect("from node does not have Position");
+        let to: Position = *world
+            .entry_ref(to)
+            .expect("to_entity does not exist")
+            .get_component()
+            .expect("to node does not have Position");
+
+        let dir = to - from;
+        let rot = match nalgebra::Rotation3::rotation_between(&Vector::new(0., 0., 1.), &dir) {
+            Some(rot) => rot.to_homogeneous(),
+            None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
+        };
+
+        let unit = rot.prepend_nonuniform_scaling(&Vector::new(1., 1., dir.norm()));
+
+        scene.draw_edge(projection * unit, sun_dir, [0.2, 0.4, 0.6, 0.3]);
     }
 }
 

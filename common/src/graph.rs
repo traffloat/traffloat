@@ -1,5 +1,6 @@
 //! Basic node and edge management
 
+use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 
@@ -9,20 +10,34 @@ use legion::Entity;
 use crate::SetupEcs;
 
 /// Identifies a node
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, codegen::Gen)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new, codegen::Gen)]
 pub struct NodeId {
     inner: u32,
 }
 
 /// Identifies an edge
-#[derive(Debug, Clone, Copy, PartialEq, Eq, codegen::Gen, new, getset::CopyGetters)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, codegen::Gen, new, getset::CopyGetters, getset::Setters,
+)]
 pub struct EdgeId {
     /// The "source" node
     #[getset(get_copy = "pub")]
     from: NodeId,
+    /// The "source" entity
+    #[getset(get_copy = "pub")]
+    #[getset(set = "pub")]
+    #[new(default)]
+    #[default]
+    from_entity: Option<Entity>,
     /// The "dest" node
     #[getset(get_copy = "pub")]
     to: NodeId,
+    /// The "dest" entity
+    #[getset(get_copy = "pub")]
+    #[getset(set = "pub")]
+    #[new(default)]
+    #[default]
+    to_entity: Option<Entity>,
 }
 
 /// Indicates that a node is added
@@ -36,7 +51,7 @@ pub struct NodeAddEvent {
 /// Indicates that a node is flagged for removal
 #[derive(Debug, new, getset::CopyGetters)]
 pub struct NodeRemoveEvent {
-    /// The added node
+    /// The removed node
     #[getset(get_copy = "pub")]
     node: NodeId,
 }
@@ -50,18 +65,18 @@ pub struct PostNodeRemoveEvent {
 }
 
 /// Indicates that an edge is added
-#[derive(Debug, new, getset::CopyGetters)]
+#[derive(Debug, new, getset::Getters)]
 pub struct EdgeAddEvent {
-    /// The added node
-    #[getset(get_copy = "pub")]
+    /// The added edge
+    #[getset(get = "pub")]
     edge: EdgeId,
 }
 
 /// Indicates that an edge is flagged for removal
-#[derive(Debug, new, getset::CopyGetters)]
+#[derive(Debug, new, getset::Getters)]
 pub struct EdgeRemoveEvent {
-    /// The added node
-    #[getset(get_copy = "pub")]
+    /// The removed edge
+    #[getset(get = "pub")]
     edge: EdgeId,
 }
 

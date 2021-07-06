@@ -81,6 +81,31 @@ impl Mesh {
     }
 }
 
+/// A complex object to render with many repetitive vertices, uploaded onto a WebGL context.
+#[derive(getset::Getters, TypedBuilder)]
+pub struct PreparedIndexedMesh {
+    /// Buffer storing vertex positions.
+    ///
+    /// Corresponds to `a_pos`.
+    #[getset(get = "pub")]
+    positions: util::FloatBuffer,
+    /// Buffer storing vertex normals.
+    ///
+    /// Corresponds to `a_normal`.
+    #[getset(get = "pub")]
+    normals: util::FloatBuffer,
+    /// Buffer storing vertex indices.
+    #[getset(get = "pub")]
+    indices: util::IndexBuffer,
+}
+
+impl PreparedIndexedMesh {
+    /// Draws the whole mesh on the canvas.
+    pub fn draw(&self, gl: &WebGlRenderingContext) {
+        self.indices.draw(gl);
+    }
+}
+
 /// An in-memory complex object with many repetitive vertices.
 #[derive(Default, getset::Getters, getset::MutGetters)]
 pub struct IndexedMesh {
@@ -110,5 +135,24 @@ impl IndexedMesh {
     /// Triples of floats indicating the unit normal of faces.
     pub fn normals_mut(&mut self) -> &mut Vec<f32> {
         self.mesh.normals_mut()
+    }
+
+    /// Loads the mesh onto a WebGL context.
+    pub fn prepare(&self, gl: &WebGlRenderingContext) -> PreparedIndexedMesh {
+        PreparedIndexedMesh::builder()
+            .positions(util::FloatBuffer::create(
+                gl,
+                self.positions(),
+                3,
+                util::BufferUsage::WriteOnceReadMany,
+            ))
+            .normals(util::FloatBuffer::create(
+                gl,
+                self.normals(),
+                3,
+                util::BufferUsage::WriteOnceReadMany,
+            ))
+            .indices(util::IndexBuffer::create(gl, &self.indices))
+            .build()
     }
 }
