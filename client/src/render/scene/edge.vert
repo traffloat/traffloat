@@ -5,9 +5,9 @@ attribute mediump vec3 a_pos;
 // This should be normal to the Z-axis.
 attribute mediump vec3 a_normal;
 
-// Transformation from unit coordinates to camera coordinates
+// Transformation from unit cylinder coordinates to camera coordinates
 uniform mediump mat4 u_trans;
-// Sun direction transformed by u_trans.
+// Sun direction relative from the camera.
 // A unit vector.
 uniform mediump vec3 u_trans_sun;
 // Base RGBA of the corridor
@@ -27,9 +27,10 @@ void main() {
     gl_Position = u_trans * vec4(a_pos, 1.0);
 
     mediump mat3 trans = mat3(u_trans);
-    lowp float diffuse = dot(trans * a_normal, u_trans_sun);
+    lowp float diffuse = max(0.0, dot(trans * a_normal, u_trans_sun));
     mediump vec3 halfway = normalize(u_trans_sun + vec3(0.0, 0.0, -1.0));
     lowp float specular = max(0.0, pow(dot(trans * a_normal, halfway), u_specular_coef));
+
     v_color.rgb = u_color.rgb * min(1.0, u_ambient + diffuse + specular);
     v_color.a = u_color.a;
 }

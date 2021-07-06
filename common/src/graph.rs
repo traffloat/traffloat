@@ -39,6 +39,14 @@ pub struct EdgeId {
     to_entity: Option<Entity>,
 }
 
+/// Defines the size of an edge
+#[derive(Debug, Clone, Copy, codegen::Gen, new, getset::CopyGetters)]
+pub struct EdgeSize {
+    /// The radius of the corridor
+    #[getset(get_copy = "pub")]
+    radius: f64,
+}
+
 /// Indicates that a node is added
 #[derive(Debug, new, getset::CopyGetters)]
 pub struct NodeAddEvent {

@@ -139,13 +139,13 @@ impl Canvas {
         self.gl.set_uniform(
             &self.edge_prog,
             "u_trans_sun",
-            util::glize_vector(proj.transform_vector(&sun)),
+            util::glize_vector(sun),
         );
         self.gl.set_uniform(&self.edge_prog, "u_color", rgba);
-        self.gl.set_uniform(&self.edge_prog, "u_ambient", 0.1);
-        self.gl.set_uniform(&self.edge_prog, "u_diffuse", 0.6);
-        self.gl.set_uniform(&self.edge_prog, "u_specular", 0.9);
-        self.gl.set_uniform(&self.edge_prog, "u_specular_coef", 8.0);
+        self.gl.set_uniform(&self.edge_prog, "u_ambient", 0.3);
+        self.gl.set_uniform(&self.edge_prog, "u_diffuse", 0.2);
+        self.gl.set_uniform(&self.edge_prog, "u_specular", 1.0);
+        self.gl.set_uniform(&self.edge_prog, "u_specular_coef", 10.0);
 
         self.cylinder
             .positions()
@@ -163,6 +163,7 @@ impl Canvas {
 #[read_component(LightStats)]
 #[read_component(graph::NodeId)]
 #[read_component(graph::EdgeId)]
+#[read_component(graph::EdgeSize)]
 #[thread_local]
 fn draw(
     world: &mut SubWorld,
@@ -217,7 +218,7 @@ fn draw(
         scene.draw_node(projection * unit_to_real, sun_dir, brightness, &sprite);
     }
 
-    for (&edge,) in <(&graph::EdgeId,)>::query().iter(world) {
+    for (&edge, size) in <(&graph::EdgeId, &graph::EdgeSize)>::query().iter(world) {
         let from = edge.from_entity().expect("from_entity not initialized");
         let to = edge.to_entity().expect("to_entity not initialized");
 
@@ -239,10 +240,10 @@ fn draw(
         };
 
         let unit = rot
-            .prepend_nonuniform_scaling(&Vector::new(1., 1., dir.norm()))
+            .prepend_nonuniform_scaling(&Vector::new(size.radius(), size.radius(), dir.norm()))
             .append_translation(&from.vector());
 
-        scene.draw_edge(projection * unit, sun_dir, [0.2, 0.4, 0.6, 0.3]);
+        scene.draw_edge(projection * unit, projection.transform_vector(&sun_dir), [0.3, 0.5, 0.8, 0.5]);
     }
 }
 

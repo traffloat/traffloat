@@ -166,7 +166,7 @@ impl Camera {
 impl Default for Camera {
     fn default() -> Self {
         Camera::builder()
-            .focus(Position::new(1.5, 2., 6.))
+            .focus(Position::new(0., 0., 16.))
             .rotation(Matrix::identity())
             .aspect(1.)
             .zoom(0.01)

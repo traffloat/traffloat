@@ -60,7 +60,7 @@ pub fn run_app() {
 
 /// Sets up legion ECS.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    use traffloat::graph::{EdgeId, NodeId};
+    use traffloat::graph::{EdgeId, EdgeSize, NodeId};
     use traffloat::space::{Matrix, Position, Vector};
 
     let mut setup = setup
@@ -103,6 +103,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             String::from("solar-panel"),
         ))
     };
+
     let core = setup.world.push((
         NodeId::new(0),
         Position::new(1., 2., 3.),
@@ -123,7 +124,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             .build(),
         traffloat::sun::LightStats::default(),
     ));
-    setup.world.push((
+    let solar_panel = setup.world.push((
         NodeId::new(2),
         Position::new(-2., 0., 3.),
         Shape::builder()
@@ -133,9 +134,16 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             .build(),
         traffloat::sun::LightStats::default(),
     ));
+
     let mut edge = EdgeId::new(NodeId::new(0), NodeId::new(1));
     edge.set_from_entity(Some(core));
     edge.set_to_entity(Some(house));
-    setup.world.push((edge,));
+    setup.world.push((edge, EdgeSize::new(0.2)));
+
+    let mut edge = EdgeId::new(NodeId::new(0), NodeId::new(2));
+    edge.set_from_entity(Some(core));
+    edge.set_to_entity(Some(solar_panel));
+    setup.world.push((edge, EdgeSize::new(0.1)));
+
     setup
 }
