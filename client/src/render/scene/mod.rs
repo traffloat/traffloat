@@ -164,7 +164,6 @@ fn draw(
     #[resource] sun: &Sun,
     #[resource] textures: &config::Store<Texture>,
     #[resource] texture_pool: &mut Option<texture::Pool>,
-    #[resource] graph: &graph::Graph,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     use legion::{EntityStore, IntoQuery};

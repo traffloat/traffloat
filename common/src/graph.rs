@@ -1,6 +1,5 @@
 //! Basic node and edge management
 
-use std::cell::Cell;
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 

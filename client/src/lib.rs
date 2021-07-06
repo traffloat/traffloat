@@ -123,7 +123,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
             .build(),
         traffloat::sun::LightStats::default(),
     ));
-    let solar = setup.world.push((
+    setup.world.push((
         NodeId::new(2),
         Position::new(-2., 0., 3.),
         Shape::builder()
