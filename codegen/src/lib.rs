@@ -4,6 +4,7 @@ extern crate proc_macro;
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
+use syn::parse;
 use syn::Result;
 
 #[proc_macro_derive(Gen, attributes(max_size, from_client_only, from_server_only, default))]
@@ -261,7 +262,9 @@ fn system_imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStre
 
     let mut perf_name = None;
 
-    for arg in &input.sig.inputs {
+    let mut has_debug_entries_resource = false;
+
+    'param_loop: for arg in &input.sig.inputs {
         let syn::PatType {
             pat,
             ty,
@@ -324,6 +327,52 @@ fn system_imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStre
             state_values.push(quote!(#expr));
             out_args.push((quote!(#[state]), quote!(#pat), quote!(#ty)));
             continue;
+        }
+
+        for attr in &arg_attrs {
+            if attr.path.is_ident("debug") {
+                if cfg!(feature = "render-debug") {
+                    let DebugName { category, name } =
+                        syn::parse2::<DebugName>(attr.tokens.clone())?;
+                    if !has_debug_entries_resource {
+                        assigns.push(quote! {
+                            let mut __debug_entries = setup.resources.get_mut_or_default::<codegen::DebugEntries>();
+                        });
+                        has_debug_entries_resource = true;
+                    }
+
+                    let entry_name = format_ident!(
+                        "__debug_entry_for_{}",
+                        match &**pat {
+                            syn::Pat::Ident(ident) => &ident.ident,
+                            span => {
+                                return Err(syn::Error::new_spanned(
+                                    span,
+                                    "debug entry must have simple variable name",
+                                ));
+                            }
+                        }
+                    );
+                    assigns.push(quote! {
+                        let #entry_name = __debug_entries.entry(#category, #name).clone();
+                    });
+                    state_values.push(quote!(#entry_name));
+                    out_args.push((quote!(#[state]), quote!(#pat), quote!(#ty)));
+                } else {
+                    let raw = match &**ty {
+                        syn::Type::Reference(ty) => &ty.elem,
+                        ty => {
+                            return Err(syn::Error::new_spanned(
+                                ty,
+                                "debug entry must have type &mut DebugEntry",
+                            ))
+                        }
+                    };
+                    state_values.push(quote!(#raw(())));
+                    out_args.push((quote!(#[state]), quote!(#pat), quote!(#ty)))
+                }
+                continue 'param_loop;
+            }
         }
 
         if arg_attrs
@@ -411,6 +460,12 @@ fn system_imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStre
         out_args.push((quote!(#(#arg_attrs)*), quote!(#pat), quote!(#ty)));
     }
 
+    if has_debug_entries_resource {
+        assigns.push(quote! {
+            drop(__debug_entries);
+        });
+    }
+
     let perf_name = match perf_name {
         Some(name) => name,
         None => {
@@ -450,11 +505,29 @@ fn system_imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStre
 
         fn #setup_name(mut setup: ::codegen::SetupEcs) -> ::codegen::SetupEcs {
             #(#assigns)*
-            setup
-                .#setup_method(#system_name(#(#state_values),*))
+            setup.#setup_method(#system_name(#(#state_values),*))
         }
     };
     Ok(output)
+}
+
+struct DebugName {
+    category: String,
+    name: String,
+}
+
+impl parse::Parse for DebugName {
+    fn parse(buf: parse::ParseStream) -> parse::Result<Self> {
+        let inner;
+        syn::parenthesized!(inner in buf);
+        let category = inner.parse::<syn::LitStr>()?;
+        inner.parse::<syn::Token![,]>()?;
+        let name = inner.parse::<syn::LitStr>()?;
+        Ok(Self {
+            category: category.value(),
+            name: name.value(),
+        })
+    }
 }
 
 fn hash(name: &syn::Ident) -> u128 {

@@ -56,3 +56,7 @@ features = [
 	"WebGlTexture",
 	"WebGlUniformLocation",
 ]
+
+[features]
+default = ["render-debug"]
+render-debug = ["traffloat-common/render-debug", "traffloat-codegen/render-debug"]

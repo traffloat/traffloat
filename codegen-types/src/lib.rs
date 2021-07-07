@@ -1,7 +1,16 @@
 use std::collections::{BTreeMap, VecDeque};
+use std::fmt;
 use std::sync::{Mutex, RwLock};
 
+#[cfg(feature = "render-debug")]
+use std::collections::btree_map;
+#[cfg(feature = "render-debug")]
+use std::sync::Arc;
+
 pub use traffloat_codegen_raw::*;
+
+/// Whether debug info should be rendered.
+pub const RENDER_DEBUG: bool = cfg!(feature = "render-debug");
 
 /// The standard setup parameters
 #[derive(Default)]
@@ -38,18 +47,18 @@ impl SetupEcs {
     where
         Option<T>: legion::storage::IntoComponentSource,
     {
-        let _ = self.world.push(components);
+        self.world.push(components);
         self
     }
     /// Add entities
     pub fn entities<T>(mut self, components: impl legion::storage::IntoComponentSource) -> Self {
-        let _ = self.world.extend(components);
+        self.world.extend(components);
         self
     }
 
     /// Add a resource
     pub fn resource(mut self, res: impl legion::systems::Resource) -> Self {
-        let _ = self.resources.get_or_insert(res);
+        self.resources.get_or_insert(res);
         self
     }
     /// Declare a published event
@@ -139,6 +148,85 @@ impl Perf {
         }
     }
 }
+
+/// The resource storing debug entries to render.
+#[cfg(feature = "render-debug")]
+#[derive(Default, getset::Getters)]
+pub struct DebugEntries {
+    #[getset(get = "pub")]
+    /// Entries in the format `entries[category][name]`.
+    entries: BTreeMap<&'static str, BTreeMap<&'static str, DebugEntry>>,
+}
+
+#[cfg(feature = "render-debug")]
+impl DebugEntries {
+    /// Creates a new entry.
+    pub fn entry(&mut self, category: &'static str, name: &'static str) -> DebugEntry {
+        let entries = self.entries.entry(category).or_default();
+        match entries.entry(name) {
+            btree_map::Entry::Occupied(_) => panic!("Duplicate debug entry {}/{}", category, name),
+            btree_map::Entry::Vacant(entry) => entry.insert(DebugEntry::default()).clone(),
+        }
+    }
+}
+
+/// The value of a debug entry.
+#[cfg(feature = "render-debug")]
+#[derive(Debug, Clone, Default)]
+pub struct DebugEntry {
+    value: Arc<Mutex<String>>,
+}
+
+/// Updates a debug entry.
+///
+/// Example:
+/// ```n_run
+/// use codegen::{DebugEntry, update_debug};
+/// # fn get_entry() -> &'static mut DebugEntry{
+///     unimplemented!()
+/// # }
+/// let pi_entry: &mut DebugEntry = get_entry();
+/// update_debug!(pi_entry, "{:.1}", std::f32::consts::PI);
+/// ```
+#[macro_export]
+macro_rules! update_debug {
+    ($entry:expr, $lit:literal $($tt:tt)*) => {
+        if cfg!(feature = "render-debug") {
+            $entry._update(std::format_args!($lit $($tt)*));
+        }
+    }
+}
+
+#[cfg(feature = "render-debug")]
+impl DebugEntry {
+    /// Updates the debug entry.
+    pub fn _update(&self, new: impl fmt::Display) {
+        use fmt::Write;
+
+        let mut value = self.value.lock().expect("Poisoned debug entry");
+        value.clear();
+        write!(value, "{}", new).expect("String::write_fmt never fails");
+    }
+
+    /// Returns the value as a str
+    pub fn value(&self) -> impl AsRef<str> + '_ {
+        use std::sync::MutexGuard;
+
+        struct MutexStr<'t>(MutexGuard<'t, String>);
+        impl<'t> AsRef<str> for MutexStr<'t> {
+            fn as_ref(&self) -> &str {
+                self.0.as_str()
+            }
+        }
+        let value = self.value.lock().expect("Poisoned debug entry");
+        MutexStr(value)
+    }
+}
+
+/// Dummy struct for debug entry in non-render-debug builds.
+#[cfg(not(feature = "render-debug"))]
+// #[derive(Debug, Clone, Default)]
+pub struct DebugEntry(pub ());
 
 /// The high-resolution clock in microseconds
 #[cfg(target_arch = "wasm32")]

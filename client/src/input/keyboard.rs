@@ -176,8 +176,7 @@ fn move_camera(
         if move_direction != Vector::new(0., 0., 0.) {
             let dp = camera
                 .rotation()
-                .try_inverse()
-                .expect("Rotation matrix is singular")
+                .transpose()
                 .transform_vector(&move_direction);
             camera.set_focus(camera.focus() + dp);
         }

@@ -667,6 +667,7 @@ dependencies = [
 name = "traffloat-codegen"
 version = "0.2.0"
 dependencies = [
+ "getset",
  "lazy_static",
  "legion",
  "log",

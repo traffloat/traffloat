@@ -2,31 +2,11 @@
 
 use derive_new::new;
 
-use super::comm::{Comm, RenderFlag};
-use crate::camera::Camera;
-use crate::config::RENDER_DEBUG;
-use crate::input;
+use super::comm::RenderFlag;
 use crate::util;
 
-use traffloat::space::Vector;
-use traffloat::sun::Sun;
-use traffloat::time;
-
+#[cfg(feature = "render-debug")]
 pub mod fps;
-
-/// Resource type for simulation FPS counter.
-#[derive(Default)]
-pub struct SimulFps(
-    /// The actual FPS counter
-    pub fps::Counter,
-);
-
-/// Resource type for rendering FPS counter.
-#[derive(Default)]
-pub struct RenderFps(
-    /// The actual FPS counter
-    pub fps::Counter,
-);
 
 /// Stores setup data for the debug layer.
 #[derive(new)]
@@ -35,27 +15,14 @@ pub struct Canvas {
 }
 
 #[codegen::system]
+#[cfg(feature = "render-debug")]
 #[thread_local]
 fn draw(
-    #[resource] camera: &Camera,
     #[resource] layers: &Option<super::Layers>,
-    #[resource] clock: &time::Clock,
-    #[resource] comm: &mut Comm,
     #[resource] perf_read: &mut codegen::Perf,
-    #[resource] render_fps: &mut RenderFps,
-    #[resource] simul_fps: &mut SimulFps,
-    #[resource] sun: &Sun,
-    #[resource] cursor_segment: &input::mouse::Segment,
-    #[resource] cursor_target: &input::mouse::Target,
+    #[resource] entries: &codegen::DebugEntries,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
-    // Store FPS data
-    let simul_fps = simul_fps.0.add_frame();
-
-    if !RENDER_DEBUG {
-        return;
-    }
-
     match render_flag.last() {
         Some(RenderFlag) => (),
         None => return,
@@ -66,50 +33,26 @@ fn draw(
     };
     let writer = &mut layers.debug_mut().writer;
 
-    let render_fps = render_fps.0.add_frame();
-
     // Start actual logging
     writer.reset();
 
-    writer.write(format!(
-        "FPS: graphics {}, physics {}, cycle time {:.2} \u{03bc}s",
-        render_fps,
-        simul_fps,
-        comm.perf.average_exec_us(),
-    ));
-    writer.write(format!(
-        "Time: {:?}; Sun: ({:.1}, {:.1}, {:.1})",
-        clock.now().since_epoch().value(),
-        sun.direction().x,
-        sun.direction().y,
-        sun.direction().z,
-    ));
+    for (category, names) in entries.entries() {
+        use std::fmt::Write;
 
-    let line_of_sight = camera.rotation().transform_vector(&Vector::new(0., 0., 1.));
-    writer.write(format!(
-        "Focus: ({:.1}, {:.1}, {:.1}); Direction: ({:.1}, {:.1}, {:.1}); Zoom: {}; Distance: {}",
-        camera.focus().x(),
-        camera.focus().y(),
-        camera.focus().z(),
-        line_of_sight.x,
-        line_of_sight.y,
-        line_of_sight.z,
-        camera.zoom(),
-        camera.distance(),
-    ));
+        write!(writer, "[{}]", category).expect("String::write_fmt never fails");
+        let mut first = true;
+        for (name, entry) in names {
+            if !first {
+                write!(writer, ",").expect("String::write_fmt never fails");
+            }
+            first = false;
+            write!(writer, " {}: {}", name, entry.value().as_ref())
+                .expect("String::write_fmt never fails");
+        }
+        writeln!(writer).expect("String::write_fmt never fails");
+    }
 
-    writer.write(format!(
-        "Mouse: ({:.1}, {:.1}, {:.1})..({:.1}, {:.1}, {:.1}) targetting {:?} at depth {:?}",
-        cursor_segment.proximal().x(),
-        cursor_segment.proximal().y(),
-        cursor_segment.proximal().z(),
-        cursor_segment.distal().x(),
-        cursor_segment.distal().y(),
-        cursor_segment.distal().z(),
-        cursor_target.target().map(|(_, entity)| entity),
-        cursor_target.target().map(|(depth, _)| depth),
-    ));
-
+    writer.write("");
     writer.write("CYCLE TIME:");
     {
         let perf_read_map = perf_read.map.get_mut().expect("Poisoned Perf");
@@ -131,6 +74,13 @@ fn draw(
 }
 
 /// Sets up legion ECS for debug info rendering.
+#[cfg(feature = "render-debug")]
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(draw_setup)
+    setup.uses(draw_setup).uses(fps::setup_ecs)
+}
+
+/// Dummy setup for non-render-debug builds
+#[cfg(not(feature = "render-debug"))]
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    setup
 }

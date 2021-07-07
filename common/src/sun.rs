@@ -34,9 +34,21 @@ fn move_sun(
     #[resource] sun: &mut Sun,
     #[resource] clock: &time::Clock,
     #[resource] config: &config::Scalar,
+
+    #[debug("Time", "Clock")] clock_debug: &codegen::DebugEntry,
+    #[debug("Time", "Sun")] sun_debug: &codegen::DebugEntry,
 ) {
     sun.yaw += config.sun_speed * clock.delta();
     sun.yaw %= PI * 2.;
+
+    codegen::update_debug!(clock_debug, "{}", clock.now().since_epoch().value());
+    codegen::update_debug!(
+        sun_debug,
+        "({:.1}, {:.1}, {:.1})",
+        sun.direction().x,
+        sun.direction().y,
+        sun.direction().z,
+    );
 }
 
 /// Number of partitions to compute shadow casting for

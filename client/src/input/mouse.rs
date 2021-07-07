@@ -59,6 +59,9 @@ fn trace_segment(
     #[resource] cursor: &CursorPosition,
     #[resource] camera: &Camera,
     #[resource] segment: &mut Segment,
+
+    #[debug("Mouse", "Proximal")] proximal_debug: &codegen::DebugEntry,
+    #[debug("Mouse", "Distal")] distal_debug: &codegen::DebugEntry,
 ) {
     if !mode.needs_cursor_segment() {
         return;
@@ -67,6 +70,21 @@ fn trace_segment(
     let (proximal, distal) = camera.project_mouse(cursor.position().x(), cursor.position().y());
     segment.proximal = proximal;
     segment.distal = distal;
+
+    codegen::update_debug!(
+        proximal_debug,
+        "({:.1}, {:.1}, {:.1})",
+        segment.proximal().x(),
+        segment.proximal().y(),
+        segment.proximal().z(),
+    );
+    codegen::update_debug!(
+        distal_debug,
+        "({:.1}, {:.1}, {:.1})",
+        segment.distal().x(),
+        segment.distal().y(),
+        segment.distal().z(),
+    );
 }
 
 /// Resource storing the entity targeted by the cursor.
@@ -92,6 +110,9 @@ fn trace_entity(
     #[resource] segment: &Segment,
     #[resource] cursor_type: &mut render::CursorType,
     #[resource] cursor_target: &mut Target,
+
+    #[debug("Mouse", "Target entity")] target_debug: &codegen::DebugEntry,
+    #[debug("Mouse", "Target depth")] target_depth_debug: &codegen::DebugEntry,
 ) {
     use legion::IntoQuery;
 
@@ -111,6 +132,14 @@ fn trace_entity(
                 cursor_target.set_target(Some((depth, entity)));
             }
         }
+    }
+
+    if let Some((depth, entity)) = cursor_target.target() {
+        codegen::update_debug!(target_debug, "{:?}", entity);
+        codegen::update_debug!(target_depth_debug, "{:.1}", depth);
+    } else {
+        codegen::update_debug!(target_debug, "None");
+        codegen::update_debug!(target_depth_debug, "None");
     }
 
     cursor_type.set_name(if cursor_target.target().is_some() {

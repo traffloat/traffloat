@@ -2,6 +2,7 @@
 
 use std::collections::VecDeque;
 
+use crate::render::{Comm, RenderFlag};
 use crate::util;
 
 /// Counts the FPS of the last second
@@ -32,4 +33,54 @@ impl Counter {
     pub fn frames(&self) -> usize {
         self.deque.len()
     }
+}
+
+/// Resource type for simulation FPS counter.
+#[derive(Default)]
+pub struct Simul(
+    /// The actual FPS counter
+    pub Counter,
+);
+
+/// Resource type for rendering FPS counter.
+#[derive(Default)]
+pub struct Render(
+    /// The actual FPS counter
+    pub Counter,
+);
+
+#[codegen::system]
+#[thread_local]
+fn update(
+    #[resource] render_fps: &mut Render,
+    #[resource] simul_fps: &mut Simul,
+    #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
+    #[resource] comm: &mut Comm,
+
+    #[debug("FPS", "Graphics")] graphics_debug: &codegen::DebugEntry,
+    #[debug("FPS", "Physics")] physics_debug: &codegen::DebugEntry,
+    #[debug("FPS", "Cycle time")] cycle_time_debug: &codegen::DebugEntry,
+) {
+    // Store FPS data
+    let simul_fps = simul_fps.0.add_frame();
+
+    match render_flag.last() {
+        Some(RenderFlag) => (),
+        None => return,
+    };
+
+    let render_fps = render_fps.0.add_frame();
+
+    codegen::update_debug!(graphics_debug, "{:.1}", render_fps);
+    codegen::update_debug!(physics_debug, "{:.1}", simul_fps);
+    codegen::update_debug!(
+        cycle_time_debug,
+        "{:.2} \u{03bc}s",
+        comm.perf.average_exec_us()
+    );
+}
+
+/// Sets up legion ECS for debug info rendering.
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    setup.uses(update_setup)
 }

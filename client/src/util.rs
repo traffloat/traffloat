@@ -2,6 +2,7 @@
 
 use std::any::Any;
 use std::cell::RefCell;
+use std::fmt;
 
 use derive_new::new;
 use once_cell::unsync::OnceCell;
@@ -121,13 +122,25 @@ impl DebugWriter {
 
     /// Appends a line to the div.
     pub fn write(&mut self, line: impl AsRef<str>) {
-        self.lines.push('\n');
         self.lines.push_str(line.as_ref());
+        self.lines.push('\n');
     }
 
     /// Flushes the buffer to the div.
     pub fn flush(&self) {
         let div: &JsValue = &self.div;
         set_div_lines(div.clone(), &self.lines);
+    }
+}
+
+impl fmt::Write for DebugWriter {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.lines.write_str(s)
+    }
+    fn write_char(&mut self, c: char) -> fmt::Result {
+        self.lines.write_char(c)
+    }
+    fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> fmt::Result {
+        self.lines.write_fmt(args)
     }
 }

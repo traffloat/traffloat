@@ -169,7 +169,40 @@ impl Default for Camera {
     }
 }
 
+#[codegen::system]
+fn debug(
+    #[resource] camera: &Camera,
+
+    #[debug("Camera", "Position")] focus_debug: &codegen::DebugEntry,
+    #[debug("Camera", "Facing")] dir_debug: &codegen::DebugEntry,
+    #[debug("Camera", "Render distance")] dist_debug: &codegen::DebugEntry,
+    #[debug("Camera", "Zoom")] zoom_debug: &codegen::DebugEntry,
+) {
+    codegen::update_debug!(
+        focus_debug,
+        "({:.1}, {:.1}, {:.1})",
+        camera.focus().x(),
+        camera.focus().y(),
+        camera.focus().z()
+    );
+
+    let line_of_sight = camera
+        .rotation()
+        .transpose()
+        .transform_vector(&Vector::new(0., 0., 1.));
+    codegen::update_debug!(
+        dir_debug,
+        "({:.1}, {:.1}, {:.1})",
+        line_of_sight.x,
+        line_of_sight.y,
+        line_of_sight.z,
+    );
+
+    codegen::update_debug!(dist_debug, "{}", camera.distance());
+    codegen::update_debug!(zoom_debug, "{}", camera.zoom());
+}
+
 /// Sets up legion ECS for this module.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup
+    setup.uses(debug_setup)
 }

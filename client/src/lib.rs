@@ -119,17 +119,17 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
         Position::new(1., -2., 3.),
         Shape::builder()
             .unit(shape::Unit::Cube)
-            .matrix(Matrix::identity())
+            .matrix(Matrix::new_scaling(0.4))
             .texture(house_texture)
             .build(),
         traffloat::sun::LightStats::default(),
     ));
     let solar_panel = setup.world.push((
         NodeId::new(2),
-        Position::new(-2., 0., 3.),
+        Position::new(-2., 0., 10.),
         Shape::builder()
             .unit(shape::Unit::Cube)
-            .matrix(Matrix::identity().append_nonuniform_scaling(&Vector::new(0.1, 0.5, 1.5)))
+            .matrix(Matrix::new_nonuniform_scaling(&Vector::new(0.1, 0.5, 1.5)))
             .texture(solar_panel_texture)
             .build(),
         traffloat::sun::LightStats::default(),

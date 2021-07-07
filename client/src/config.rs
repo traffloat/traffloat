@@ -10,4 +10,4 @@ pub const ZOOM_VELOCITY: f64 = 0.02;
 pub const SCROLL_VELOCITY: f64 = 0.03;
 
 /// Whether to render debug messages
-pub const RENDER_DEBUG: bool = true;
+pub const RENDER_DEBUG: bool = codegen::RENDER_DEBUG;
