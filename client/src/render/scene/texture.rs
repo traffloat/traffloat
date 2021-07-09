@@ -7,7 +7,7 @@ use web_sys::{
     ImageBitmap, WebGlProgram, WebGlRenderingContext, WebGlTexture, WebGlUniformLocation,
 };
 
-use super::cube;
+use crate::render::scene::mesh::cube::tex_pos;
 use crate::render::util::FloatBuffer;
 use crate::util::ReifiedPromise;
 use safety::Safety;
@@ -97,7 +97,7 @@ impl PreparedTexture {
 
         match self.sprites {
             ShapeSprites::Cube(cube) => {
-                buffer.update(gl, &cube::tex_pos(cube, self.width, self.height));
+                buffer.update(gl, &tex_pos(cube, self.width, self.height));
                 buffer.apply(gl, prog, attr_name);
             }
         }

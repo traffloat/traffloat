@@ -2,8 +2,8 @@
 
 use lazy_static::lazy_static;
 
-use super::texture::{CubeSprites, RectSprite};
 use super::Mesh;
+use crate::render::scene::texture::{CubeSprites, RectSprite};
 use safety::Safety;
 
 /// Positive or negative

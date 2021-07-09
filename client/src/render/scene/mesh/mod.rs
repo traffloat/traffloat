@@ -1,9 +1,18 @@
+//! Lazily generates meshes for complex objects.
+
 use std::convert::TryInto;
 
 use typed_builder::TypedBuilder;
 use web_sys::WebGlRenderingContext;
 
 use crate::render::util;
+
+pub mod arrow;
+pub use arrow::ARROW;
+pub mod cube;
+pub use cube::CUBE;
+pub mod cylinder;
+pub use cylinder::CYLINDER;
 
 /// A complex object to render, uploaded onto a WebGL context.
 #[derive(getset::Getters, TypedBuilder)]
