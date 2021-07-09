@@ -299,7 +299,9 @@ fn draw(
         );
     }
 
+    /// Shift columns frontward (1 -> 2) or backward (2 -> 1)
     fn shift_axes(mut mat: Matrix, front: bool) -> Matrix {
+        #[allow(clippy::branches_sharing_code)] // it is confusing to merge them
         if front {
             mat.swap_columns(0, 1);
             mat.swap_columns(1, 2);
