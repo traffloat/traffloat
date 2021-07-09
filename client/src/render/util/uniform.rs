@@ -1,18 +1,27 @@
+use std::marker::PhantomData;
+
 use web_sys::{WebGlProgram, WebGlRenderingContext, WebGlUniformLocation};
 
-pub trait WebglExt {
-    fn canvas(&self) -> &WebGlRenderingContext;
-
-    fn set_uniform(&self, program: &WebGlProgram, name: &str, uniform: impl Uniform) {
-        let gl = self.canvas();
-        let location = gl.get_uniform_location(program, name);
-        uniform.apply(location.as_ref(), gl);
-    }
+/// Stores a uniform location with known type.
+pub struct UniformLocation<T> {
+    _ph: PhantomData<*mut T>,
+    loc: WebGlUniformLocation,
 }
 
-impl WebglExt for WebGlRenderingContext {
-    fn canvas(&self) -> &Self {
-        self
+impl<T: Uniform> UniformLocation<T> {
+    pub fn new(gl: &WebGlRenderingContext, program: &WebGlProgram, name: &str) -> Self {
+        let loc = match gl.get_uniform_location(program, name) {
+            Some(loc) => loc,
+            None => panic!("Uniform {:?} does not exist in program", name),
+        };
+        Self {
+            _ph: PhantomData,
+            loc,
+        }
+    }
+
+    pub fn assign(&self, gl: &WebGlRenderingContext, value: T) {
+        value.apply(Some(&self.loc), gl);
     }
 }
 

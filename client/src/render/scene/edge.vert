@@ -27,9 +27,9 @@ void main() {
     gl_Position = u_trans * vec4(a_pos, 1.0);
 
     mediump mat3 trans = mat3(u_trans);
-    lowp float diffuse = max(0.0, dot(trans * a_normal, u_trans_sun));
+    lowp float diffuse = u_diffuse * max(0.0, dot(trans * a_normal, u_trans_sun));
     mediump vec3 halfway = normalize(u_trans_sun + vec3(0.0, 0.0, -1.0));
-    lowp float specular = max(0.0, pow(dot(trans * a_normal, halfway), u_specular_coef));
+    lowp float specular = u_specular * max(0.0, pow(dot(trans * a_normal, halfway), u_specular_coef));
 
     v_color.rgb = u_color.rgb * min(1.0, u_ambient + diffuse + specular);
     v_color.a = u_color.a;

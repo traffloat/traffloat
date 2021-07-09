@@ -3,20 +3,24 @@
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::{mesh, texture};
-use crate::render::util::{create_program, glize_matrix, glize_vector, WebglExt};
+use crate::render::util::{create_program, UniformLocation};
 use safety::Safety;
 use traffloat::space::{Matrix, Vector};
 
 /// Stores the setup data for node rendering.
 pub struct Program {
-    node_prog: WebGlProgram,
+    prog: WebGlProgram,
     cube: mesh::PreparedMesh,
+    u_proj: UniformLocation<Matrix>,
+    u_sun: UniformLocation<Vector>,
+    u_brightness: UniformLocation<f64>,
+    u_inv_gain: UniformLocation<f32>,
 }
 
 impl Program {
     /// Initializes node canvas resources.
     pub fn new(gl: &WebGlRenderingContext) -> Self {
-        let node_prog = create_program(
+        let prog = create_program(
             gl,
             "node.vert",
             include_str!("node.min.vert"),
@@ -25,7 +29,19 @@ impl Program {
         );
         let cube = mesh::CUBE.prepare(gl);
 
-        Self { node_prog, cube }
+        let u_proj = UniformLocation::new(gl, &prog, "u_proj");
+        let u_sun = UniformLocation::new(gl, &prog, "u_sun");
+        let u_brightness = UniformLocation::new(gl, &prog, "u_brightness");
+        let u_inv_gain = UniformLocation::new(gl, &prog, "u_inv_gain");
+
+        Self {
+            prog,
+            cube,
+            u_proj,
+            u_sun,
+            u_brightness,
+            u_inv_gain,
+        }
     }
 
     /// Draws a node on the canvas.
@@ -40,28 +56,21 @@ impl Program {
         selected: bool,
         texture: &texture::PreparedTexture,
     ) {
-        gl.use_program(Some(&self.node_prog));
-        gl.set_uniform(&self.node_prog, "u_proj", glize_matrix(proj));
-        gl.set_uniform(&self.node_prog, "u_sun", glize_vector(sun));
-        gl.set_uniform(
-            &self.node_prog,
-            "u_brightness",
-            brightness.lossy_trunc().clamp(0.5, 1.),
-        );
-        gl.set_uniform(
-            &self.node_prog,
-            "u_inv_gain",
-            if selected { 0.5 } else { 1. },
-        );
+        gl.use_program(Some(&self.prog));
+        self.u_proj.assign(gl, proj);
+        self.u_sun.assign(gl, sun);
+        self.u_brightness.assign(gl, brightness.clamp(0.5, 1.));
+        self.u_inv_gain
+            .assign(gl, if selected { 0.5f32 } else { 1f32 });
 
-        self.cube.positions().apply(gl, &self.node_prog, "a_pos");
-        self.cube.normals().apply(gl, &self.node_prog, "a_normal");
+        self.cube.positions().apply(gl, &self.prog, "a_pos");
+        self.cube.normals().apply(gl, &self.prog, "a_normal");
 
         texture.apply(
             self.cube.tex_pos(),
-            &self.node_prog,
+            &self.prog,
             "a_tex_pos",
-            gl.get_uniform_location(&self.node_prog, "u_tex").as_ref(),
+            gl.get_uniform_location(&self.prog, "u_tex").as_ref(),
             gl,
         );
 
