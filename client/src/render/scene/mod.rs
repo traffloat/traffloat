@@ -1,24 +1,27 @@
 //! Renders nodes, edges and vehicles.
 
+use std::convert::TryInto;
 use std::f64::consts::PI;
 
-use legion::Entity;
 use legion::component;
 use legion::world::SubWorld;
+use legion::Entity;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
-use super::util::{self, WebglExt};
+use super::util::{self, BufferUsage, FloatBuffer, WebglExt};
 use super::RenderFlag;
 use crate::camera::Camera;
+use crate::input::mouse;
 use crate::util::lerp;
 use safety::Safety;
 use traffloat::config;
-use crate::input::mouse;
 use traffloat::graph;
 use traffloat::shape::{Shape, Texture};
 use traffloat::space::{Matrix, Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
+pub mod arrow;
+use arrow::ARROW;
 pub mod cube;
 use cube::CUBE;
 pub mod cylinder;
@@ -34,16 +37,16 @@ pub struct Canvas {
     gl: WebGlRenderingContext,
     node_prog: WebGlProgram,
     edge_prog: WebGlProgram,
+    crosshair_prog: WebGlProgram,
     cube: PreparedMesh,
     cylinder: PreparedIndexedMesh,
+    arrow: FloatBuffer,
 }
 
 impl Canvas {
     /// Sets up the scene canvas.
     pub fn new(gl: WebGlRenderingContext) -> Self {
         gl.enable(WebGlRenderingContext::DEPTH_TEST);
-        gl.enable(WebGlRenderingContext::CULL_FACE);
-        gl.enable(WebGlRenderingContext::BLEND);
         gl.blend_func_separate(
             WebGlRenderingContext::SRC_ALPHA,
             WebGlRenderingContext::ONE_MINUS_SRC_ALPHA,
@@ -67,15 +70,26 @@ impl Canvas {
             include_str!("edge.min.frag"),
         );
 
+        let crosshair_prog = util::create_program(
+            &gl,
+            "crosshair.vert",
+            include_str!("crosshair.min.vert"),
+            "crosshair.frag",
+            include_str!("crosshair.min.frag"),
+        );
+
         let cube = CUBE.prepare(&gl);
         let cylinder = CYLINDER.prepare(&gl);
+        let arrow = FloatBuffer::create(&gl, &ARROW[..], 3, BufferUsage::WriteOnceReadMany);
 
         Self {
             gl,
             node_prog,
             edge_prog,
+            crosshair_prog,
             cube,
             cylinder,
+            arrow,
         }
     }
 
@@ -101,10 +115,16 @@ impl Canvas {
             .set_uniform(&self.node_prog, "u_proj", util::glize_matrix(proj));
         self.gl
             .set_uniform(&self.node_prog, "u_sun", util::glize_vector(sun));
-        self.gl
-            .set_uniform(&self.node_prog, "u_brightness", brightness.lossy_trunc().clamp(0.5, 1.));
-        self.gl
-            .set_uniform(&self.node_prog, "u_inv_gain", if selected { 0.5 } else { 1. });
+        self.gl.set_uniform(
+            &self.node_prog,
+            "u_brightness",
+            brightness.lossy_trunc().clamp(0.5, 1.),
+        );
+        self.gl.set_uniform(
+            &self.node_prog,
+            "u_inv_gain",
+            if selected { 0.5 } else { 1. },
+        );
 
         self.cube
             .positions()
@@ -158,6 +178,21 @@ impl Canvas {
             .apply(&self.gl, &self.edge_prog, "a_normal");
         self.cylinder.draw(&self.gl);
     }
+
+    /// Draws an arrow on the canvas.
+    pub fn draw_arrow(&self, proj: Matrix, rgb: [f32; 3]) {
+        self.gl.use_program(Some(&self.crosshair_prog));
+        self.gl
+            .set_uniform(&self.crosshair_prog, "u_trans", util::glize_matrix(proj));
+        self.gl.set_uniform(&self.crosshair_prog, "u_color", rgb);
+
+        self.arrow.apply(&self.gl, &self.crosshair_prog, "a_pos");
+        self.gl.draw_arrays(
+            WebGlRenderingContext::TRIANGLES,
+            0,
+            (ARROW.len() / 3).try_into().expect("Buffer is too large"),
+        );
+    }
 }
 
 #[codegen::system]
@@ -199,6 +234,9 @@ fn draw(
 
     let sun_dir = sun.direction();
 
+    scene.gl.enable(WebGlRenderingContext::CULL_FACE);
+    scene.gl.enable(WebGlRenderingContext::BLEND);
+
     #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
     for (entity, &position, shape, light) in <(Entity, &Position, &Shape, &LightStats)>::query()
         .filter(component::<graph::NodeId>())
@@ -220,7 +258,13 @@ fn draw(
         let tex: &Texture = shape.texture().get(textures);
         let sprite = texture_pool.sprite(tex, &scene.gl);
 
-        scene.draw_node(projection * unit_to_real, sun_dir, brightness, selected, &sprite);
+        scene.draw_node(
+            projection * unit_to_real,
+            sun_dir,
+            brightness,
+            selected,
+            &sprite,
+        );
     }
 
     for (&edge, size) in <(&graph::EdgeId, &graph::EdgeSize)>::query().iter(world) {
@@ -254,6 +298,28 @@ fn draw(
             [0.3, 0.5, 0.8, 0.5],
         );
     }
+
+    fn shift_axes(mut mat: Matrix, front: bool) -> Matrix {
+        if front {
+            mat.swap_columns(0, 1);
+            mat.swap_columns(1, 2);
+        } else {
+            mat.swap_columns(2, 0);
+            mat.swap_columns(1, 2);
+        }
+
+        mat
+    }
+    let rot_y = shift_axes(Matrix::identity(), true);
+    let rot_z = shift_axes(Matrix::identity(), false);
+
+    let arrow_projection = projection.prepend_translation(&camera.focus().vector());
+
+    scene.gl.disable(WebGlRenderingContext::CULL_FACE);
+    scene.gl.disable(WebGlRenderingContext::BLEND);
+    scene.draw_arrow(arrow_projection, [1., 0., 0.]);
+    scene.draw_arrow(arrow_projection * rot_y, [0., 1., 0.]);
+    scene.draw_arrow(arrow_projection * rot_z, [0., 0., 1.]);
 }
 
 /// Sets up legion ECS for debug info rendering.
