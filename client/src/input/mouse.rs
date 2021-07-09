@@ -101,6 +101,13 @@ pub struct Target {
     target: Option<(f64, Entity)>,
 }
 
+impl Target {
+    /// Whether the passed entity is targeted
+    pub fn is_entity(&self, entity: &Entity) -> bool {
+        matches!(self.target(), Some((_, target)) if target == *entity)
+    }
+}
+
 #[codegen::system]
 #[read_component(Position)]
 #[read_component(Shape)]

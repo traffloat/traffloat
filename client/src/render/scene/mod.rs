@@ -2,6 +2,7 @@
 
 use std::f64::consts::PI;
 
+use legion::Entity;
 use legion::component;
 use legion::world::SubWorld;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
@@ -12,6 +13,7 @@ use crate::camera::Camera;
 use crate::util::lerp;
 use safety::Safety;
 use traffloat::config;
+use crate::input::mouse;
 use traffloat::graph;
 use traffloat::shape::{Shape, Texture};
 use traffloat::space::{Matrix, Position, Vector};
@@ -91,6 +93,7 @@ impl Canvas {
         proj: Matrix,
         sun: Vector,
         brightness: f64,
+        selected: bool,
         texture: &texture::PreparedTexture,
     ) {
         self.gl.use_program(Some(&self.node_prog));
@@ -99,7 +102,9 @@ impl Canvas {
         self.gl
             .set_uniform(&self.node_prog, "u_sun", util::glize_vector(sun));
         self.gl
-            .set_uniform(&self.node_prog, "u_brightness", brightness.lossy_trunc());
+            .set_uniform(&self.node_prog, "u_brightness", brightness.lossy_trunc().clamp(0.5, 1.));
+        self.gl
+            .set_uniform(&self.node_prog, "u_inv_gain", if selected { 0.5 } else { 1. });
 
         self.cube
             .positions()
@@ -170,6 +175,7 @@ fn draw(
     #[resource] sun: &Sun,
     #[resource] textures: &config::Store<Texture>,
     #[resource] texture_pool: &mut Option<texture::Pool>,
+    #[resource] mouse_target: &mouse::Target,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     use legion::{EntityStore, IntoQuery};
@@ -194,7 +200,7 @@ fn draw(
     let sun_dir = sun.direction();
 
     #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
-    for (&position, shape, light) in <(&Position, &Shape, &LightStats)>::query()
+    for (entity, &position, shape, light) in <(Entity, &Position, &Shape, &LightStats)>::query()
         .filter(component::<graph::NodeId>())
         .iter(world)
     {
@@ -209,11 +215,12 @@ fn draw(
             let next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
             lerp(prev, next, base_month.fract())
         };
+        let selected = mouse_target.is_entity(entity);
 
         let tex: &Texture = shape.texture().get(textures);
         let sprite = texture_pool.sprite(tex, &scene.gl);
 
-        scene.draw_node(projection * unit_to_real, sun_dir, brightness, &sprite);
+        scene.draw_node(projection * unit_to_real, sun_dir, brightness, selected, &sprite);
     }
 
     for (&edge, size) in <(&graph::EdgeId, &graph::EdgeSize)>::query().iter(world) {
