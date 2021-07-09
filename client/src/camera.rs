@@ -5,9 +5,12 @@ use std::sync::Mutex;
 
 use traffloat::space::{Matrix, Point, Position, Vector};
 
+/// Rightward axis for clip space.
 pub const GL_RIGHT_DIR: Vector = Vector::new(1., 0., 0.);
+/// Upward axis for clip space.
 pub const GL_TOP_DIR: Vector = Vector::new(0., 1., 0.);
-pub const GL_VIEW_DIR: Vector = Vector::new(0., 0., -1.);
+/// Forward axis for clip space.
+pub const GL_VIEW_DIR: Vector = Vector::new(0., 0., 1.);
 
 /// Visibiilty guard to avoid inconsistent `proj` updates.
 mod unsafe_proj {
@@ -147,7 +150,7 @@ impl Camera {
 
         let matrix = self.inv_projection();
         let proximal = matrix.transform_point(&focus);
-        let distal = matrix.transform_point(&(focus - GL_VIEW_DIR));
+        let distal = matrix.transform_point(&(focus + GL_VIEW_DIR));
         (Position(proximal), Position(distal))
     }
 }
