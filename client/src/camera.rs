@@ -5,6 +5,10 @@ use std::sync::Mutex;
 
 use traffloat::space::{Matrix, Point, Position, Vector};
 
+pub const GL_RIGHT_DIR: Vector = Vector::new(1., 0., 0.);
+pub const GL_TOP_DIR: Vector = Vector::new(0., 1., 0.);
+pub const GL_VIEW_DIR: Vector = Vector::new(0., 0., -1.);
+
 /// Visibiilty guard to avoid inconsistent `proj` updates.
 mod unsafe_proj {
     use super::*;
@@ -101,24 +105,17 @@ mod unsafe_proj {
             // Rotate the world
             matrix = self.rotation * matrix;
 
+            // Now the target is in view space.
             // Move backwards to the camera position
             matrix.append_translation_mut(&Vector::new(0., 0., self.zoom));
 
             // Finally, apply projection matrix
-            matrix =
-                Matrix::new_perspective(self.aspect, self.fovy, self.zoom, self.distance) * matrix;
+            let znear = 0.0001; // a constant small enough beyond 1/width and 1/height
+            let zfar = self.distance + self.zoom; // furthest point offset by zoom.
+            matrix = Matrix::new_perspective(self.aspect, self.fovy, znear, zfar) * matrix;
 
             matrix
             // })
-        }
-
-        /// The projection matrix that only uses rotation and perspective
-        /// (disregarding focus and zoom).
-        pub fn asymptotic_projection(&self) -> Matrix {
-            let mut matrix = self.rotation;
-            matrix =
-                Matrix::new_perspective(self.aspect, self.fovy, self.zoom, self.distance) * matrix;
-            matrix
         }
 
         /// Transforms unit cube [0, 1]^2 to real coordinates
@@ -146,13 +143,12 @@ impl Camera {
         x = x * 2. - 1.;
         y = y * 2. - 1.;
 
-        let mut a = Point::new(x, y, 0.);
-        let mut b = Point::new(x, y, 1.);
+        let focus = Point::origin() + GL_RIGHT_DIR * x + GL_TOP_DIR * -y;
 
         let matrix = self.inv_projection();
-        a = matrix.transform_point(&a);
-        b = matrix.transform_point(&b);
-        (Position(a), Position(b))
+        let proximal = matrix.transform_point(&focus);
+        let distal = matrix.transform_point(&(focus - GL_VIEW_DIR));
+        (Position(proximal), Position(distal))
     }
 }
 
@@ -162,8 +158,8 @@ impl Default for Camera {
             .focus(Position::new(0., 0., 16.))
             .rotation(Matrix::identity())
             .aspect(1.)
-            .zoom(0.01)
-            .distance(100.)
+            .zoom(-10.)
+            .distance(500.)
             .fovy(PI / 4.)
             .build()
     }
@@ -189,7 +185,7 @@ fn debug(
     let line_of_sight = camera
         .rotation()
         .transpose()
-        .transform_vector(&Vector::new(0., 0., 1.));
+        .transform_vector(&Vector::new(0., 0., -1.));
     codegen::update_debug!(
         dir_debug,
         "({:.1}, {:.1}, {:.1})",
