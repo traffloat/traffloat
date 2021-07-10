@@ -18,13 +18,20 @@ jobs:
           toolchain: nightly-2021-06-28
           profile: default
           default: true
+      - name: Cache cargo tools
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo
+          key: just
+      - run: test -f ~/.cargo/bin/just || cargo install just
 
-      - run: npm install
-        working-directory: client
-      - run: npm run preprocess
-        working-directory: client
+      - name: Install toolchain dependencies
+        run: just deps
+      - name: Preprocess resources
+        run: just pp
       - name: Build documentation
-        run: cargo doc --lib
+        run: just doc
 
       - name: Set Git author
         run: git config --global user.name "github-actions[bot]" && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -18,24 +18,18 @@ jobs:
           toolchain: nightly-2021-06-28
           profile: default
           default: true
-      - name: Cache wasm-pack
+      - name: Cache cargo tools
         uses: actions/cache@v2
         with:
           path: |
             ~/.cargo
-          key: wasm-pack-v0.9
-      - run: test -f ~/.cargo/bin/wasm-pack || cargo install wasm-pack
+          key: wasm-pack-just
+      - run: test -f ~/.cargo/bin/just || cargo install wasm-pack just
 
-      - run: npm install
-        working-directory: client
-      - run: npm run preprocess
-        working-directory: client
-      - name: Build Node dependencies
-        run: npm install
-        working-directory: client
+      - name: Install toolchain dependencies
+        run: just deps
       - name: Build web client
-        run: npm run build
-        working-directory: client
+        run: just client/build
 
       - name: Set Git author
         run: git config --global user.name "github-actions[bot]" && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -26,6 +26,7 @@ jobs:
           - nightly-2021-06-28
         stability:
           - ""
+          - "--release"
     steps:
       - uses: actions/checkout@v2
       - run: rm rust-toolchain
@@ -38,13 +39,14 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/registry
+            ~/.cargo
             **/target
           key: ${{ matrix.toolchain }}
-      - run: npm install
-        working-directory: client
-      - run: npm run preprocess
-        working-directory: client
+      - run: test -f ~/.cargo/bin/just || cargo install just
+      - name: Install toolchain dependencies
+        run: just deps
+      - name: Preprocess resources
+        run: just pp
       - name: cargo clippy
         run: "cargo clippy --all ${{matrix.stability}}"
   test:
@@ -56,6 +58,7 @@ jobs:
           - nightly-2021-06-28
         stability:
           - ""
+          - "--release"
     steps:
       - uses: actions/checkout@v2
       - run: rm rust-toolchain
@@ -67,12 +70,13 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo/registry
+            ~/.cargo
             **/target
           key: ${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
-      - run: npm install
-        working-directory: client
-      - run: npm run preprocess
-        working-directory: client
+      - run: test -f ~/.cargo/bin/just || cargo install just
+      - name: Install toolchain dependencies
+        run: just deps
+      - name: Preprocess resources
+        run: just pp
       - name: cargo test
         run: "cargo test --all ${{matrix.stability}}"
