@@ -3,9 +3,12 @@ use web_sys::{WebGlRenderingContext, WebGlUniformLocation};
 use super::Uniform;
 use safety::Safety;
 
+/// A float-based type that can be lossily converted for WebGL compatibility.
 pub trait Glize: Sized {
+    /// The output type that this type is converted into.
     type Output: Sized;
 
+    /// Lossily convert into the output type.
     fn glize(self) -> Self::Output;
 }
 

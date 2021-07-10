@@ -10,7 +10,7 @@ pub mod debug;
 pub mod scene;
 pub mod ui;
 
-mod util;
+pub mod util;
 
 /// Sets up legion ECS for rendering.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {

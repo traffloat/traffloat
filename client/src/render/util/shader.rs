@@ -1,5 +1,6 @@
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
+/// Compiles a WebGL shader.
 pub fn create_shader(
     gl: &WebGlRenderingContext,
     prog: &WebGlProgram,
@@ -21,6 +22,7 @@ pub fn create_shader(
     }
 }
 
+/// Creates a WebGL program.
 pub fn create_program(
     gl: &WebGlRenderingContext,
     vert_file: &str,

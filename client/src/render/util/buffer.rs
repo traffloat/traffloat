@@ -3,20 +3,29 @@ use std::convert::TryInto;
 use js_sys::Float32Array;
 use web_sys::{WebGlBuffer, WebGlProgram, WebGlRenderingContext};
 
+/// A buffer of float values to be passed to a WebGL program.
 pub struct FloatBuffer {
     buffer: WebGlBuffer,
     component_size: u32,
 }
 
+/// Usage pattern of a buffer.
 #[derive(Debug, Clone, Copy)]
 #[allow(clippy::enum_variant_names)]
 pub enum BufferUsage {
+    /// The contents are intended to be specified once by the application,
+    /// and used many times as the source for WebGL drawing and image specification commands.
     WriteOnceReadMany,
+    /// The contents are intended to be respecified repeatedly by the application,
+    /// and used many times as the source for WebGL drawing and image specification commands.
     WriteManyReadMany,
+    /// The contents are intended to be specified once by the application,
+    /// and used at most a few times as the source for WebGL drawing and image specification commands.
     WriteOnceReadFew,
 }
 
 impl BufferUsage {
+    /// The WebGL constant for the buffer usage.
     pub fn as_gl_usage(self) -> u32 {
         match self {
             Self::WriteOnceReadMany => WebGlRenderingContext::STATIC_DRAW,
@@ -27,6 +36,7 @@ impl BufferUsage {
 }
 
 impl FloatBuffer {
+    /// Creates a float buffer.
     pub fn create(
         gl: &WebGlRenderingContext,
         data: &[f32],
@@ -49,6 +59,10 @@ impl FloatBuffer {
         }
     }
 
+    /// Modifies the contents of a float buffer.
+    ///
+    /// Buffers on which this method is used should use [`BufferUsage::WriteManyReadMany`] when
+    /// created.
     pub fn update(&self, gl: &WebGlRenderingContext, data: &[f32]) {
         gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&self.buffer));
         let array = Float32Array::from(data);
@@ -59,6 +73,7 @@ impl FloatBuffer {
         );
     }
 
+    /// Apply the buffer at the given attribute location.
     pub fn apply(&self, gl: &WebGlRenderingContext, program: &WebGlProgram, attr: &str) {
         gl.bind_buffer(WebGlRenderingContext::ARRAY_BUFFER, Some(&self.buffer));
         let location = gl.get_attrib_location(program, attr);
@@ -77,12 +92,14 @@ impl FloatBuffer {
     }
 }
 
+/// A buffer of index values to be passed to a WebGL program.
 pub struct IndexBuffer {
     buffer: WebGlBuffer,
     len: i32,
 }
 
 impl IndexBuffer {
+    /// Creates an index buffer.
     pub fn create(gl: &WebGlRenderingContext, data: &[u16]) -> Self {
         let buffer = gl.create_buffer().expect("Failed to allocate WebGL buffer");
         gl.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER, Some(&buffer));
@@ -100,6 +117,7 @@ impl IndexBuffer {
         }
     }
 
+    /// Draws on a WebGL context using the indices in this buffer.
     pub fn draw(&self, gl: &WebGlRenderingContext) {
         gl.bind_buffer(
             WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,

@@ -1,3 +1,5 @@
+//! Low-level WebGL wrappers.
+
 mod types;
 pub use types::*;
 
