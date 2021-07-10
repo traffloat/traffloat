@@ -327,7 +327,7 @@ impl Component for Game {
                         color: white; \
                         pointer-events: none; \
                         font-family: Helvetica, sans-serif; \
-                        font-size: smaller;"
+                        font-size: x-small;"
                     />
             </div>
         }

@@ -20,6 +20,7 @@ pub struct Canvas {
 impl Canvas {
     /// Sets up the canvas, loading initial data.
     pub fn new(gl: WebGlRenderingContext, seed: [u8; 32]) -> Self {
+        gl.enable(WebGlRenderingContext::CULL_FACE);
         let star_prog = star::Program::new(&gl, seed);
         let sun_prog = sun::Program::new(&gl);
 
@@ -62,7 +63,6 @@ fn draw(
     let sun_pos = sun.direction();
     let screen_pos = camera.projection().transform_vector(&sun_pos);
 
-    bg.gl.enable(WebGlRenderingContext::CULL_FACE);
     bg.sun_prog
         .draw(&bg.gl, screen_pos, dim.aspect().lossy_trunc());
 

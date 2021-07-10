@@ -63,9 +63,10 @@ fn draw(
             let sd = (deque.iter().map(|&t| (t as f64 - avg).powi(2)).sum::<f64>()
                 / (deque.len() as f64))
                 .sqrt();
+            let max = deque.iter().map(|&t| t as f64).fold(0., f64::max);
             writer.write(format!(
-                "    {}: {:.2} \u{03bc}s (\u{00b1} {:.4} \u{03bc}s)",
-                sys, avg, sd
+                "{}: {:.2} \u{03bc}s (\u{00b1} {:.4} \u{03bc}s, \u{2264} {:.4} \u{03bc}s)",
+                sys, avg, sd, max
             ));
         }
 

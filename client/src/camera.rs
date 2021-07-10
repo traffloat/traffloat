@@ -3,7 +3,7 @@
 use std::f64::consts::PI;
 use std::sync::Mutex;
 
-use traffloat::space::{Matrix, Point, Position, Vector, LinearMatrix};
+use traffloat::space::{LinearMatrix, Matrix, Point, Position, Vector};
 
 /// Rightward axis for clip space.
 pub const GL_RIGHT_DIR: Vector = Vector::new(1., 0., 0.);

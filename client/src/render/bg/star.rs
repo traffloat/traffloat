@@ -55,19 +55,24 @@ impl Program {
 }
 
 /// Number of stars to generate.
-const NUM_STARS: usize = 4096;
+const NUM_STARS: usize = 65536;
 const STAR_SCALE: f64 = 0.001;
 
 fn generate_vertices(seed: [u8; 32]) -> Vec<f32> {
-    use rand::SeedableRng;
-    use rand_xoshiro::Xoshiro256StarStar;
-    use rand_distr::{Distribution, UnitSphere};
     use crate::render::util::Glize;
+    use rand::SeedableRng;
+    use rand_distr::{Distribution, LogNormal, UnitSphere};
+    use rand_xoshiro::Xoshiro256StarStar;
 
     let mut rng = Xoshiro256StarStar::from_seed(seed);
 
     let mut output = Vec::with_capacity(NUM_STARS * 6 * 3);
-    for vertex in UnitSphere.sample_iter(&mut rng).take(NUM_STARS) {
+
+    let size_distr = LogNormal::new(0., 0.5).expect("STAR_SCALE is finite");
+
+    for _ in 0..NUM_STARS {
+        let vertex = UnitSphere.sample(&mut rng);
+
         let vertex = Vector::from_iterator(vertex) * 0.999999;
 
         let mut axis = Vector::new(1., 0., 0.);
@@ -76,13 +81,13 @@ fn generate_vertices(seed: [u8; 32]) -> Vec<f32> {
             axis = Vector::new(0., 1., 0.);
         }
 
-        let dir1 = vertex.cross(&axis).normalize();
-        let dir2 = vertex.cross(&dir1).normalize();
+        let dir1 = vertex.cross(&axis).normalize() * size_distr.sample(&mut rng) * STAR_SCALE;
+        let dir2 = vertex.cross(&dir1).normalize() * size_distr.sample(&mut rng) * STAR_SCALE;
 
-        let v1 = vertex + dir1 * STAR_SCALE;
-        let v2 = vertex - dir1 * STAR_SCALE;
-        let v3 = vertex + dir2 * STAR_SCALE;
-        let v4 = vertex - dir2 * STAR_SCALE;
+        let v1 = vertex + dir1;
+        let v2 = vertex - dir1;
+        let v3 = vertex + dir2;
+        let v4 = vertex - dir2;
 
         output.extend(v1.glize().as_slice());
         output.extend(v2.glize().as_slice());
