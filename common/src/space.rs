@@ -10,6 +10,8 @@ pub type Point = nalgebra::Point3<f64>;
 
 /// Standard homogenous matrix type
 pub type Matrix = nalgebra::Matrix4<f64>;
+/// Standard linear transformation matrix type
+pub type LinearMatrix = nalgebra::Matrix3<f64>;
 
 /// A component storing the world position of an object.
 ///

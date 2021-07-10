@@ -1,32 +1,26 @@
 //! Manages the background canvas.
 
-use web_sys::{WebGlProgram, WebGlRenderingContext};
+use web_sys::WebGlRenderingContext;
 
-use super::util::{self};
 use super::{Dimension, RenderFlag};
 use crate::camera::Camera;
 use safety::Safety;
 use traffloat::sun::Sun;
 
+pub mod star;
 pub mod sun;
 
 /// Stores the setup data of the background canvas.
 pub struct Canvas {
     gl: WebGlRenderingContext,
-    star_prog: WebGlProgram,
+    star_prog: star::Program,
     sun_prog: sun::Program,
 }
 
 impl Canvas {
     /// Sets up the canvas, loading initial data.
-    pub fn new(gl: WebGlRenderingContext) -> Self {
-        let star_prog = util::create_program(
-            &gl,
-            "star.vert",
-            include_str!("star.min.vert"),
-            "star.frag",
-            include_str!("star.min.frag"),
-        );
+    pub fn new(gl: WebGlRenderingContext, seed: [u8; 32]) -> Self {
+        let star_prog = star::Program::new(&gl, seed);
         let sun_prog = sun::Program::new(&gl);
 
         Self {
@@ -68,8 +62,11 @@ fn draw(
     let sun_pos = sun.direction();
     let screen_pos = camera.projection().transform_vector(&sun_pos);
 
+    bg.gl.enable(WebGlRenderingContext::CULL_FACE);
     bg.sun_prog
         .draw(&bg.gl, screen_pos, dim.aspect().lossy_trunc());
+
+    bg.star_prog.draw(&bg.gl, camera.asymptotic_projection());
 }
 
 /// Sets up legion ECS for debug info rendering.

@@ -78,6 +78,8 @@ impl Game {
     fn canvas_context(&mut self) -> Option<&(render::Layers, render::Dimension)> {
         use wasm_bindgen::JsCast;
 
+        let seed = rand::random::<[u8; 32]>(); // TODO compute based on multiplayer hostname
+
         if self.layers_cache.is_none() {
             let bg_canvas = self.bg_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
             let scene_canvas = self.scene_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
@@ -105,7 +107,13 @@ impl Game {
             let dim = render::Dimension { width, height };
 
             self.layers_cache = Some((
-                render::LayersStruct::new(bg_context, scene_context, ui_context, debug_writer),
+                render::LayersStruct::new(
+                    bg_context,
+                    scene_context,
+                    ui_context,
+                    debug_writer,
+                    seed,
+                ),
                 dim,
             ));
         }

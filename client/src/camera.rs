@@ -3,7 +3,7 @@
 use std::f64::consts::PI;
 use std::sync::Mutex;
 
-use traffloat::space::{Matrix, Point, Position, Vector};
+use traffloat::space::{Matrix, Point, Position, Vector, LinearMatrix};
 
 /// Rightward axis for clip space.
 pub const GL_RIGHT_DIR: Vector = Vector::new(1., 0., 0.);
@@ -98,27 +98,25 @@ mod unsafe_proj {
 
         /// Transforms real coordinates to unit cube [0, 1]^3
         pub fn projection(&self) -> Matrix {
-            // let mut proj = self.proj.lock().expect("Lock poisoned");
-            // *proj.get_or_insert_with(|| {
-            let mut matrix = Matrix::identity();
+            let mut proj = self.proj.lock().expect("Lock poisoned");
+            *proj.get_or_insert_with(|| {
+                let mut matrix = Matrix::identity();
 
-            // Translate the focus to the origin
-            matrix.append_translation_mut(&-self.focus.vector());
+                // Translate the focus to the origin
+                matrix.append_translation_mut(&-self.focus.vector());
 
-            // Rotate the world
-            matrix = self.rotation * matrix;
+                // Rotate the world
+                matrix = self.rotation * matrix;
 
-            // Now the target is in view space.
-            // Move backwards to the camera position
-            matrix.append_translation_mut(&Vector::new(0., 0., self.zoom));
+                // Now the target is in view space.
+                // Move backwards to the camera position
+                matrix.append_translation_mut(&Vector::new(0., 0., self.zoom));
 
-            // Finally, apply projection matrix
-            let znear = 0.0001; // a constant small enough beyond 1/width and 1/height
-            let zfar = self.distance + self.zoom; // furthest point offset by zoom.
-            matrix = Matrix::new_perspective(self.aspect, self.fovy, znear, zfar) * matrix;
+                // Finally, apply projection matrix
+                matrix = self.perspective() * matrix;
 
-            matrix
-            // })
+                matrix
+            })
         }
 
         /// Transforms unit cube [0, 1]^2 to real coordinates
@@ -129,6 +127,18 @@ mod unsafe_proj {
                     .try_inverse()
                     .expect("Projection matrix is singular")
             })
+        }
+
+        /// An "asymptotic" version of the projection matrix, which does not perform translation.
+        pub fn asymptotic_projection(&self) -> LinearMatrix {
+            self.projection().fixed_slice::<3, 3>(0, 0).into()
+        }
+
+        /// Compute the perspective matrix transforming view space to clip space
+        fn perspective(&self) -> Matrix {
+            let znear = 0.0001; // a constant small enough beyond 1/width and 1/height
+            let zfar = self.distance + self.zoom; // furthest point offset by zoom.
+            Matrix::new_perspective(self.aspect, self.fovy, znear, zfar)
         }
     }
 }

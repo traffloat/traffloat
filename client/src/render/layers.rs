@@ -52,8 +52,9 @@ impl LayersStruct {
         scene: WebGlRenderingContext,
         ui: CanvasRenderingContext2d,
         debug: DebugWriter,
+        seed: [u8; 32],
     ) -> Layers {
-        let bg = bg::Canvas::new(bg);
+        let bg = bg::Canvas::new(bg, seed);
         let scene = scene::Canvas::new(scene);
         let ui = ui::Canvas::new(ui);
         let debug = debug::Canvas::new(debug);
