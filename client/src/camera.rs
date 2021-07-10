@@ -136,7 +136,7 @@ mod unsafe_proj {
 
         /// Compute the perspective matrix transforming view space to clip space
         fn perspective(&self) -> Matrix {
-            let znear = 0.0001; // a constant small enough beyond 1/width and 1/height
+            let znear = 0.1;
             let zfar = self.distance + self.zoom; // furthest point offset by zoom.
             Matrix::new_perspective(self.aspect, self.fovy, znear, zfar)
         }
