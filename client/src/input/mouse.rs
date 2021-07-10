@@ -102,9 +102,14 @@ pub struct Target {
 }
 
 impl Target {
-    /// Whether the passed entity is targeted
-    pub fn is_entity(&self, entity: &Entity) -> bool {
-        matches!(self.target(), Some((_, target)) if target == *entity)
+    /// The targeted entity if it exists.
+    pub fn entity(&self) -> Option<Entity> {
+        self.target.map(|(_, entity)| entity)
+    }
+
+    /// The depth of an object relative to the camera focus and rendering distance.
+    pub fn depth(&self) -> Option<f64> {
+        self.target.map(|(depth, _)| depth)
     }
 }
 

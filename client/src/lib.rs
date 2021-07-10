@@ -60,7 +60,7 @@ pub fn run_app() {
 
 /// Sets up legion ECS.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    use traffloat::graph::{EdgeId, EdgeSize, NodeId};
+    use traffloat::graph::{EdgeId, EdgeSize, NodeId, NodeName};
     use traffloat::space::{Matrix, Position, Vector};
 
     let mut setup = setup
@@ -106,6 +106,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
 
     let core = setup.world.push((
         NodeId::new(0),
+        NodeName::new(String::from("Core")),
         Position::new(1., 2., 3.),
         Shape::builder()
             .unit(shape::Unit::Cube)
@@ -116,6 +117,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     ));
     let house = setup.world.push((
         NodeId::new(1),
+        NodeName::new(String::from("House")),
         Position::new(1., -2., 3.),
         Shape::builder()
             .unit(shape::Unit::Cube)
@@ -126,6 +128,7 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     ));
     let solar_panel = setup.world.push((
         NodeId::new(2),
+        NodeName::new(String::from("Solar panel")),
         Position::new(-2., 0., 10.),
         Shape::builder()
             .unit(shape::Unit::Cube)

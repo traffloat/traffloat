@@ -6,7 +6,7 @@ use legion::world::SubWorld;
 use legion::{component, Entity};
 use web_sys::WebGlRenderingContext;
 
-use super::RenderFlag;
+use super::{CursorType, Dimension, RenderFlag};
 use crate::camera::Camera;
 use crate::input::mouse;
 use crate::util::lerp;
@@ -59,6 +59,22 @@ impl Canvas {
     pub fn clear(&self) {
         self.gl.clear_color(0., 0., 0., 0.);
         self.gl.clear(WebGlRenderingContext::COLOR_BUFFER_BIT);
+    }
+
+    /// Sets the cursor icon.
+    pub fn set_cursor(&self, name: &str) {
+        use wasm_bindgen::JsCast;
+
+        let canvas: web_sys::HtmlCanvasElement = self
+            .gl
+            .canvas()
+            .expect("UI does not have a canvas")
+            .dyn_into()
+            .expect("Canvas is not a HtmlCanvasElement");
+        canvas
+            .style()
+            .set_property("cursor", name)
+            .expect("Failed to set canvas cursor property");
     }
 }
 
@@ -120,7 +136,7 @@ fn draw(
             let next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
             lerp(prev, next, base_month.fract())
         };
-        let selected = mouse_target.is_entity(entity);
+        let selected = mouse_target.entity() == Some(*entity);
 
         let tex: &Texture = shape.texture().get(textures);
         let sprite = texture_pool.sprite(tex, &scene.gl);
@@ -199,7 +215,29 @@ fn draw(
         .draw(&scene.gl, arrow_projection * rot_z, [0., 0., 1.]);
 }
 
+#[codegen::system]
+#[thread_local]
+fn update_cursor(
+    #[resource(no_init)] dim: &Dimension,
+    #[resource] canvas: &Option<super::Layers>,
+    #[resource] cursor_type: &CursorType,
+    #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
+) {
+    // Render flag gate boilerplate
+    match render_flag.last() {
+        Some(RenderFlag) => (),
+        None => return,
+    };
+    let canvas = match canvas.as_ref() {
+        Some(canvas) => canvas.borrow_mut(),
+        None => return,
+    };
+
+    let scene = canvas.scene();
+    scene.set_cursor(cursor_type.name());
+}
+
 /// Sets up legion ECS for debug info rendering.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(draw_setup)
+    setup.uses(draw_setup).uses(update_cursor_setup)
 }

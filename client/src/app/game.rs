@@ -24,7 +24,6 @@ pub struct Game {
     render_comm: render::Comm,
     bg_canvas_ref: NodeRef,
     scene_canvas_ref: NodeRef,
-    ui_canvas_ref: NodeRef,
     debug_ref: NodeRef,
     layers_cache: Option<(render::Layers, render::Dimension)>,
     clock_epoch: u64,
@@ -83,10 +82,9 @@ impl Game {
         if self.layers_cache.is_none() {
             let bg_canvas = self.bg_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
             let scene_canvas = self.scene_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
-            let ui_canvas = self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>()?;
             let debug_div = self.debug_ref.cast::<web_sys::HtmlElement>()?;
-            let width = ui_canvas.width();
-            let height = ui_canvas.height();
+            let width = scene_canvas.width();
+            let height = scene_canvas.height();
 
             let bg_context = bg_canvas
                 .get_context("webgl")
@@ -98,22 +96,11 @@ impl Game {
                 .expect("Failed to load WebGL canvas")?
                 .dyn_into()
                 .expect("Failed to load WebGL canvas");
-            let ui_context = ui_canvas
-                .get_context("2d")
-                .expect("Failed to load 2D canvas")?
-                .dyn_into()
-                .expect("Failed to load 2D canvas");
             let debug_writer = util::DebugWriter::new(debug_div);
             let dim = render::Dimension { width, height };
 
             self.layers_cache = Some((
-                render::LayersStruct::new(
-                    bg_context,
-                    scene_context,
-                    ui_context,
-                    debug_writer,
-                    seed,
-                ),
+                render::LayersStruct::new(bg_context, scene_context, debug_writer, seed),
                 dim,
             ));
         }
@@ -134,11 +121,7 @@ impl Game {
             };
         }
 
-        for node_ref in &[
-            &self.bg_canvas_ref,
-            &self.scene_canvas_ref,
-            &self.ui_canvas_ref,
-        ] {
+        for node_ref in &[&self.bg_canvas_ref, &self.scene_canvas_ref] {
             let canvas = match node_ref.cast::<web_sys::HtmlCanvasElement>() {
                 Some(canvas) => canvas,
                 None => return,
@@ -159,7 +142,7 @@ impl Game {
     }
 
     fn on_mouse_move(&mut self, x: i32, y: i32) {
-        let canvas = match self.ui_canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
+        let canvas = match self.scene_canvas_ref.cast::<web_sys::HtmlCanvasElement>() {
             Some(canvas) => canvas,
             None => return,
         };
@@ -252,7 +235,6 @@ impl Component for Game {
             render_comm,
             bg_canvas_ref: NodeRef::default(),
             scene_canvas_ref: NodeRef::default(),
-            ui_canvas_ref: NodeRef::default(),
             debug_ref: NodeRef::default(),
             layers_cache: None,
             clock_epoch: util::high_res_time(),
@@ -299,14 +281,14 @@ impl Component for Game {
             <div style="margin: 0; background-color: black;">
                 <canvas
                     ref=self.bg_canvas_ref.clone()
-                    style="width: 100vw; height: 100vh; z-index: 1; position: absolute; x: 0; y: 0;"
-                    />
+                    style="
+                        width: 100vw; height: 100vh;
+                        z-index: 1;
+                        position: absolute;
+                        x: 0; y: 0;
+                    " />
                 <canvas
                     ref=self.scene_canvas_ref.clone()
-                    style="width: 100vw; height: 100vh; z-index: 2; position: absolute; x: 0; y: 0;"
-                    />
-                <canvas
-                    ref=self.ui_canvas_ref.clone()
                     onmousemove=self.link.callback(Msg::MouseMove)
                     onmousedown=self.link.callback(Msg::MouseDown)
                     onmouseup=self.link.callback(Msg::MouseUp)
@@ -314,21 +296,31 @@ impl Component for Game {
                     ontouchmove=self.link.callback(Msg::TouchMove)
                     ontouchstart=self.link.callback(Msg::TouchDown)
                     ontouchend=self.link.callback(Msg::TouchUp)
-                    style="width: 100vw; height: 100vh; z-index: 3; position: absolute; x: 0; y: 0;"
-                    />
+                    style="
+                        width: 100vw; height: 100vh;
+                        z-index: 2;
+                        position: absolute;
+                        x: 0; y: 0;
+                    " />
+
+                <render::ui::Wrapper
+                    updater_ref=self.legion.resources.get::<render::ui::UpdaterRef>()
+                        .expect("UpdaterRef was not initialized")
+                        .clone()
+                />
 
                 <div
                     ref=self.debug_ref.clone()
-                    style="\
-                        padding-left: 10px; padding-top: 10px; \
-                        z-index: 4; \
-                        position: absolute; \
-                        x: 0; y: 0; \
-                        color: white; \
-                        pointer-events: none; \
-                        font-family: Helvetica, sans-serif; \
-                        font-size: x-small;"
-                    />
+                    style="
+                        padding-left: 10px; padding-top: 10px;
+                        z-index: 4;
+                        position: absolute;
+                        x: 0; y: 0;
+                        color: white;
+                        pointer-events: none;
+                        font-family: Helvetica, sans-serif;
+                        font-size: x-small;
+                    " />
             </div>
         }
     }
@@ -367,7 +359,7 @@ pub enum Msg {
     TouchMove(TouchEvent),
 }
 
-/// yew properties for [`Game`][Game].
+/// yew properties for [`Game`].
 #[derive(Clone, Properties)]
 pub struct Props {
     /// Arguments for the game.

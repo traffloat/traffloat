@@ -37,9 +37,6 @@ pub struct LayersStruct {
     /// The object render layer
     #[getset(get = "pub")]
     scene: scene::Canvas,
-    /// The UI 2D canvas layer
-    #[getset(get = "pub")]
-    ui: ui::Canvas,
     /// The debug DOM layer
     #[getset(get = "pub", get_mut = "pub")]
     debug: debug::Canvas,
@@ -50,20 +47,13 @@ impl LayersStruct {
     pub fn new(
         bg: WebGlRenderingContext,
         scene: WebGlRenderingContext,
-        ui: CanvasRenderingContext2d,
         debug: DebugWriter,
         seed: [u8; 32],
     ) -> Layers {
         let bg = bg::Canvas::new(bg, seed);
         let scene = scene::Canvas::new(scene);
-        let ui = ui::Canvas::new(ui);
         let debug = debug::Canvas::new(debug);
 
-        Rc::new(RefCell::new(Self {
-            bg,
-            scene,
-            ui,
-            debug,
-        }))
+        Rc::new(RefCell::new(Self { bg, scene, debug }))
     }
 }

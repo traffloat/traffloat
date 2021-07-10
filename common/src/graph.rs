@@ -8,13 +8,22 @@ use legion::Entity;
 
 use crate::SetupEcs;
 
-/// Identifies a node
+/// Component storing an identifier for a node
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new, codegen::Gen)]
 pub struct NodeId {
     inner: u32,
 }
 
-/// Identifies an edge
+/// Component storing the name of the node
+#[derive(Debug, new, codegen::Gen, getset::Getters, getset::Setters)]
+pub struct NodeName {
+    /// Name of the node
+    #[getset(get = "pub")]
+    #[getset(set = "pub")]
+    name: String,
+}
+
+/// Component storing the endpoints of an edge
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, codegen::Gen, new, getset::CopyGetters, getset::Setters,
 )]

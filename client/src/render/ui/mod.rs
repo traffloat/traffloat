@@ -1,8 +1,16 @@
 //! Renders user interface.
 
 use derive_new::new;
+use legion::world::SubWorld;
+use legion::EntityStore;
 
-use super::{CursorType, Dimension, RenderFlag};
+use super::Dimension;
+use crate::input;
+use traffloat::graph;
+
+pub mod node;
+mod wrapper;
+pub use wrapper::*;
 
 /// Stores setup data for the ui layer.
 #[derive(new)]
@@ -16,38 +24,30 @@ impl Canvas {
         self.context
             .clear_rect(0., 0., dim.width.into(), dim.height.into());
     }
-
-    /// Sets the cursor icon.
-    pub fn set_cursor(&self, name: &str) {
-        let canvas = self.context.canvas().expect("UI does not have a canvas");
-        canvas
-            .style()
-            .set_property("cursor", name)
-            .expect("Failed to set canvas cursor property");
-    }
 }
 
 #[codegen::system]
+#[read_component(graph::NodeName)]
 #[thread_local]
 fn draw(
-    #[resource(no_init)] dim: &Dimension,
-    #[resource] canvas: &Option<super::Layers>,
-    #[resource] cursor_type: &CursorType,
-    #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
+    #[resource] cursor_target: &input::mouse::Target,
+    world: &mut SubWorld,
+    #[resource] updater_ref: &UpdaterRef,
 ) {
-    // Render flag gate boilerplate
-    match render_flag.last() {
-        Some(RenderFlag) => (),
-        None => return,
-    };
-    let canvas = match canvas.as_ref() {
-        Some(canvas) => canvas.borrow_mut(),
-        None => return,
+    let info = if let Some(entity) = cursor_target.entity() {
+        let node_name = world
+            .entry_ref(entity)
+            .expect("Target entity does not exist") // TODO what if user is hovering over node while deleting it?
+            .into_component::<graph::NodeName>()
+            .expect("Component NodeName does not exist in target entity");
+        Some(node::Props {
+            node_name: node_name.name().to_string(),
+        })
+    } else {
+        None
     };
 
-    let ui = canvas.ui();
-    ui.reset(dim);
-    ui.set_cursor(cursor_type.name());
+    updater_ref.call(Update::SetNodeInfo(info));
 }
 
 /// Sets up legion ECS for debug info rendering.
