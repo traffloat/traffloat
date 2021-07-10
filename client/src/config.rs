@@ -1,9 +1,9 @@
 //! Hardcoded client constants
 
 /// Moving velocity with WASD per delta time
-pub const WASD_LINEAR_VELOCITY: f64 = 0.10;
+pub const WASD_LINEAR_VELOCITY: f64 = 0.1;
 /// Moving rotation with WASD per delta time
-pub const WASD_ROTATION_VELOCITY: f64 = 0.05;
+pub const WASD_ROTATION_VELOCITY: f64 = 0.01;
 /// Rate of zooming with =- per delta time
 pub const ZOOM_VELOCITY: f64 = 0.05;
 /// Rate of scrolling per event

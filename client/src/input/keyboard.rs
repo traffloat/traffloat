@@ -132,22 +132,22 @@ fn move_camera(
         let mut pitch = 0.;
         let mut yaw = 0.;
         if commands[Command::MoveLeft].active() {
-            yaw -= config::WASD_ROTATION_VELOCITY;
+            yaw -= config::WASD_ROTATION_VELOCITY * dt;
         }
         if commands[Command::MoveRight].active() {
-            yaw += config::WASD_ROTATION_VELOCITY;
+            yaw += config::WASD_ROTATION_VELOCITY * dt;
         }
         if commands[Command::MoveDown].active() {
-            pitch += config::WASD_ROTATION_VELOCITY;
+            pitch += config::WASD_ROTATION_VELOCITY * dt;
         }
         if commands[Command::MoveUp].active() {
-            pitch -= config::WASD_ROTATION_VELOCITY;
+            pitch -= config::WASD_ROTATION_VELOCITY * dt;
         }
         if commands[Command::MoveFront].active() {
-            roll -= config::WASD_ROTATION_VELOCITY;
+            roll -= config::WASD_ROTATION_VELOCITY * dt;
         }
         if commands[Command::MoveBack].active() {
-            roll += config::WASD_ROTATION_VELOCITY;
+            roll += config::WASD_ROTATION_VELOCITY * dt;
         }
         if roll != 0. || pitch != 0. || yaw != 0. {
             let mat = nalgebra::Rotation3::from_euler_angles(pitch, yaw, roll).to_homogeneous();
