@@ -55,7 +55,7 @@ impl Program {
 }
 
 /// Number of stars to generate.
-const NUM_STARS: usize = 65536;
+const NUM_STARS: usize = 8192;
 const STAR_SCALE: f64 = 0.001;
 
 fn generate_vertices(seed: [u8; 32]) -> Vec<f32> {
