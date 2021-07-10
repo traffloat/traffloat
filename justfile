@@ -1,5 +1,5 @@
 client-build: client-clean pp
-	cd client && $(npm bin)webpack
+	cd client && $(npm bin)/webpack
 client-build-dev: client-clean pp
 	cd client && $(npm bin)/webpack --mode development
 client-watch: client-clean pp
