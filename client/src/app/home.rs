@@ -85,7 +85,11 @@ impl Component for Home {
 
                 { for (self.game_mode == GameMode::Single).then(|| html! {
                     <div>
-                        <button onclick=self.link.callback(Msg::StartSingle)>{ "Start" }</button>
+                        <button
+                            onclick=self.link.callback(Msg::StartSingle)
+                            tabindex=1 >
+                            { "Start" }
+                        </button>
                     </div>
                 }) }
 
