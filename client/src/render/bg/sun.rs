@@ -3,7 +3,9 @@
 use lazy_static::lazy_static;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
-use crate::render::util::{create_program, BufferUsage, FloatBuffer, IndexBuffer, UniformLocation};
+use crate::render::util::{
+    create_program, AttrLocation, BufferUsage, FloatBuffer, IndexBuffer, UniformLocation,
+};
 use traffloat::space::Vector;
 
 #[rustfmt::skip]
@@ -20,8 +22,9 @@ lazy_static! {
 /// Stores the setup data for node rendering.
 pub struct Program {
     prog: WebGlProgram,
-    sun_pos_buf: FloatBuffer,
-    sun_pos_index_buf: IndexBuffer,
+    pos_buf: FloatBuffer,
+    index_buf: IndexBuffer,
+    a_pos: AttrLocation,
     u_screen_pos: UniformLocation<Vector>,
     u_color: UniformLocation<[f32; 3]>,
     u_body_radius: UniformLocation<f32>,
@@ -40,14 +43,15 @@ impl Program {
             include_str!("sun.min.frag"),
         );
 
-        let sun_pos_buf = FloatBuffer::create(gl, &*SUN_MODEL, 2, BufferUsage::WriteOnceReadMany);
+        let pos_buf = FloatBuffer::create(gl, &*SUN_MODEL, 2, BufferUsage::WriteOnceReadMany);
         #[rustfmt::skip]
-        let sun_pos_index_buf = IndexBuffer::create(gl, &[
+        let index_buf = IndexBuffer::create(gl, &[
             0, 1, 2,
             0, 2, 3,
             0, 3, 1,
         ]);
 
+        let a_pos = AttrLocation::new(gl, &prog, "a_pos");
         let u_screen_pos = UniformLocation::new(gl, &prog, "u_screen_pos");
         let u_color = UniformLocation::new(gl, &prog, "u_color");
         let u_body_radius = UniformLocation::new(gl, &prog, "u_body_radius");
@@ -56,8 +60,9 @@ impl Program {
 
         Self {
             prog,
-            sun_pos_buf,
-            sun_pos_index_buf,
+            pos_buf,
+            index_buf,
+            a_pos,
             u_screen_pos,
             u_color,
             u_body_radius,
@@ -74,7 +79,7 @@ impl Program {
         self.u_body_radius.assign(gl, 0.15);
         self.u_aura_radius.assign(gl, 0.15);
         self.u_aspect.assign(gl, aspect);
-        self.sun_pos_buf.apply(gl, &self.prog, "a_pos");
-        self.sun_pos_index_buf.draw(gl);
+        self.a_pos.assign(gl, &self.pos_buf);
+        self.index_buf.draw(gl);
     }
 }

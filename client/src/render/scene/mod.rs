@@ -6,7 +6,7 @@ use legion::world::SubWorld;
 use legion::{component, Entity};
 use web_sys::WebGlRenderingContext;
 
-use super::{CursorType, Dimension, RenderFlag};
+use super::{CursorType, RenderFlag};
 use crate::camera::Camera;
 use crate::input;
 use crate::util::lerp;

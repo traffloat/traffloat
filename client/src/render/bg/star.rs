@@ -4,13 +4,16 @@ use std::convert::TryInto;
 
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
-use crate::render::util::{create_program, BufferUsage, FloatBuffer, UniformLocation};
+use crate::render::util::{
+    create_program, AttrLocation, BufferUsage, FloatBuffer, UniformLocation,
+};
 use traffloat::space::{LinearMatrix, Vector};
 
 /// Stores the setup data for node rendering.
 pub struct Program {
     prog: WebGlProgram,
-    star_pos_buf: FloatBuffer,
+    pos_buf: FloatBuffer,
+    a_pos: AttrLocation,
     u_trans: UniformLocation<LinearMatrix>,
 }
 
@@ -25,18 +28,20 @@ impl Program {
             include_str!("star.min.frag"),
         );
 
-        let star_pos_buf = FloatBuffer::create(
+        let pos_buf = FloatBuffer::create(
             gl,
             &generate_vertices(seed),
             3,
             BufferUsage::WriteOnceReadMany,
         );
 
+        let a_pos = AttrLocation::new(gl, &prog, "a_pos");
         let u_trans = UniformLocation::new(gl, &prog, "u_trans");
 
         Self {
             prog,
-            star_pos_buf,
+            pos_buf,
+            a_pos,
             u_trans,
         }
     }
@@ -45,7 +50,7 @@ impl Program {
     pub fn draw(&self, gl: &WebGlRenderingContext, trans: LinearMatrix) {
         gl.use_program(Some(&self.prog));
         self.u_trans.assign(gl, trans);
-        self.star_pos_buf.apply(gl, &self.prog, "a_pos");
+        self.a_pos.assign(gl, &self.pos_buf);
         gl.draw_arrays(
             WebGlRenderingContext::TRIANGLES,
             0,

@@ -5,13 +5,16 @@ use std::convert::TryInto;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::mesh;
-use crate::render::util::{create_program, BufferUsage, FloatBuffer, UniformLocation};
+use crate::render::util::{
+    create_program, AttrLocation, BufferUsage, FloatBuffer, UniformLocation,
+};
 use traffloat::space::Matrix;
 
 /// Stores the setup data for node rendering.
 pub struct Program {
     prog: WebGlProgram,
-    arrow: FloatBuffer,
+    arrow_buf: FloatBuffer,
+    a_pos: AttrLocation,
     u_trans: UniformLocation<Matrix>,
     u_color: UniformLocation<[f32; 3]>,
 }
@@ -27,14 +30,17 @@ impl Program {
             include_str!("reticle.min.frag"),
         );
 
-        let arrow = FloatBuffer::create(gl, &mesh::ARROW[..], 3, BufferUsage::WriteOnceReadMany);
+        let arrow_buf =
+            FloatBuffer::create(gl, &mesh::ARROW[..], 3, BufferUsage::WriteOnceReadMany);
 
+        let a_pos = AttrLocation::new(gl, &prog, "a_pos");
         let u_trans = UniformLocation::new(gl, &prog, "u_trans");
         let u_color = UniformLocation::new(gl, &prog, "u_color");
 
         Self {
             prog,
-            arrow,
+            arrow_buf,
+            a_pos,
             u_trans,
             u_color,
         }
@@ -46,7 +52,7 @@ impl Program {
         self.u_trans.assign(gl, proj);
         self.u_color.assign(gl, rgb);
 
-        self.arrow.apply(gl, &self.prog, "a_pos");
+        self.a_pos.assign(gl, &self.arrow_buf);
         gl.draw_arrays(
             WebGlRenderingContext::TRIANGLES,
             0,

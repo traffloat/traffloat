@@ -5,16 +5,22 @@ use web_sys::{WebGlProgram, WebGlRenderingContext, WebGlUniformLocation};
 /// Stores a uniform location with known type.
 pub struct UniformLocation<T> {
     _ph: PhantomData<*mut T>,
-    loc: WebGlUniformLocation,
+    loc: Option<WebGlUniformLocation>,
 }
 
 impl<T: Uniform> UniformLocation<T> {
     /// Locates a uniform for a given program.
     pub fn new(gl: &WebGlRenderingContext, program: &WebGlProgram, name: &str) -> Self {
-        let loc = match gl.get_uniform_location(program, name) {
-            Some(loc) => loc,
-            None => panic!("Uniform {:?} does not exist in program", name),
-        };
+        let ret = Self::new_optional(gl, program, name);
+        if ret.loc.is_none() {
+            panic!("Uniform {:?} does not exist in program", name);
+        }
+        ret
+    }
+
+    /// Locates a uniform for a given program.
+    pub fn new_optional(gl: &WebGlRenderingContext, program: &WebGlProgram, name: &str) -> Self {
+        let loc = gl.get_uniform_location(program, name);
         Self {
             _ph: PhantomData,
             loc,
@@ -23,7 +29,7 @@ impl<T: Uniform> UniformLocation<T> {
 
     /// Assigns a value for the uniform.
     pub fn assign(&self, gl: &WebGlRenderingContext, value: T) {
-        value.apply(Some(&self.loc), gl);
+        value.apply(self.loc.as_ref(), gl);
     }
 }
 
@@ -73,5 +79,11 @@ impl_uniform!(uniform_matrix4fv_with_f32_array, nalgebra::Matrix4<f32>, as_slice
 impl Uniform for f32 {
     fn apply(&self, location: Option<&WebGlUniformLocation>, gl: &WebGlRenderingContext) {
         gl.uniform1f(location, *self);
+    }
+}
+
+impl Uniform for i32 {
+    fn apply(&self, location: Option<&WebGlUniformLocation>, gl: &WebGlRenderingContext) {
+        gl.uniform1i(location, *self);
     }
 }

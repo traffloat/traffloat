@@ -3,12 +3,10 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
-use web_sys::{
-    ImageBitmap, WebGlProgram, WebGlRenderingContext, WebGlTexture, WebGlUniformLocation,
-};
+use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture};
 
 use crate::render::scene::mesh::cube::tex_pos;
-use crate::render::util::FloatBuffer;
+use crate::render::util::{AttrLocation, FloatBuffer, UniformLocation};
 use crate::util::ReifiedPromise;
 use safety::Safety;
 use traffloat::shape;
@@ -86,19 +84,18 @@ impl PreparedTexture {
     pub fn apply(
         &self,
         buffer: &FloatBuffer,
-        prog: &WebGlProgram,
-        attr_name: &str,
-        uniform_loc: Option<&WebGlUniformLocation>,
+        attr: AttrLocation,
+        unif: &UniformLocation<i32>,
         gl: &WebGlRenderingContext,
     ) {
         gl.active_texture(WebGlRenderingContext::TEXTURE0);
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&*self.gl_tex));
-        gl.uniform1i(uniform_loc, 0);
+        unif.assign(gl, 0);
 
         match self.sprites {
             ShapeSprites::Cube(cube) => {
                 buffer.update(gl, &tex_pos(cube, self.width, self.height));
-                buffer.apply(gl, prog, attr_name);
+                attr.assign(gl, buffer);
             }
         }
     }

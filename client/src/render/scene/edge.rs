@@ -3,13 +3,15 @@
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::mesh;
-use crate::render::util::{create_program, UniformLocation};
+use crate::render::util::{create_program, AttrLocation, UniformLocation};
 use traffloat::space::{Matrix, Vector};
 
 /// Stores the setup data for edge rendering.
 pub struct Program {
     prog: WebGlProgram,
     cylinder: mesh::PreparedIndexedMesh,
+    a_pos: AttrLocation,
+    a_normal: AttrLocation,
     u_trans: UniformLocation<Matrix>,
     u_trans_sun: UniformLocation<Vector>,
     u_color: UniformLocation<[f32; 4]>,
@@ -31,6 +33,8 @@ impl Program {
         );
         let cylinder = mesh::CYLINDER.prepare(gl);
 
+        let a_pos = AttrLocation::new(gl, &prog, "a_pos");
+        let a_normal = AttrLocation::new(gl, &prog, "a_normal");
         let u_trans = UniformLocation::new(gl, &prog, "u_trans");
         let u_trans_sun = UniformLocation::new(gl, &prog, "u_trans_sun");
         let u_color = UniformLocation::new(gl, &prog, "u_color");
@@ -42,6 +46,8 @@ impl Program {
         Self {
             prog,
             cylinder,
+            a_pos,
+            a_normal,
             u_trans,
             u_trans_sun,
             u_color,
@@ -63,8 +69,8 @@ impl Program {
         self.u_specular.assign(gl, 1.0);
         self.u_specular_coef.assign(gl, 10.0);
 
-        self.cylinder.positions().apply(gl, &self.prog, "a_pos");
-        self.cylinder.normals().apply(gl, &self.prog, "a_normal");
+        self.a_pos.assign(gl, self.cylinder.positions());
+        self.a_normal.assign(gl, self.cylinder.normals());
         self.cylinder.draw(gl);
     }
 }

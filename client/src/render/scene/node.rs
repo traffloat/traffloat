@@ -3,7 +3,7 @@
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::{mesh, texture};
-use crate::render::util::{create_program, UniformLocation};
+use crate::render::util::{create_program, AttrLocation, UniformLocation};
 use safety::Safety;
 use traffloat::space::{Matrix, Vector};
 
@@ -11,10 +11,14 @@ use traffloat::space::{Matrix, Vector};
 pub struct Program {
     prog: WebGlProgram,
     cube: mesh::PreparedMesh,
+    a_pos: AttrLocation,
+    a_normal: AttrLocation,
+    a_tex_pos: AttrLocation,
     u_proj: UniformLocation<Matrix>,
     u_sun: UniformLocation<Vector>,
     u_brightness: UniformLocation<f64>,
     u_inv_gain: UniformLocation<f32>,
+    u_tex: UniformLocation<i32>,
 }
 
 impl Program {
@@ -29,18 +33,26 @@ impl Program {
         );
         let cube = mesh::CUBE.prepare(gl);
 
+        let a_pos = AttrLocation::new(gl, &prog, "a_pos");
+        let a_normal = AttrLocation::new(gl, &prog, "a_normal");
+        let a_tex_pos = AttrLocation::new(gl, &prog, "a_tex_pos");
         let u_proj = UniformLocation::new(gl, &prog, "u_proj");
         let u_sun = UniformLocation::new(gl, &prog, "u_sun");
         let u_brightness = UniformLocation::new(gl, &prog, "u_brightness");
         let u_inv_gain = UniformLocation::new(gl, &prog, "u_inv_gain");
+        let u_tex = UniformLocation::new_optional(gl, &prog, "u_tex");
 
         Self {
             prog,
             cube,
+            a_pos,
+            a_normal,
+            a_tex_pos,
             u_proj,
             u_sun,
             u_brightness,
             u_inv_gain,
+            u_tex,
         }
     }
 
@@ -63,16 +75,10 @@ impl Program {
         self.u_inv_gain
             .assign(gl, if selected { 0.5f32 } else { 1f32 });
 
-        self.cube.positions().apply(gl, &self.prog, "a_pos");
-        self.cube.normals().apply(gl, &self.prog, "a_normal");
+        self.a_pos.assign(gl, self.cube.positions());
+        self.a_normal.assign(gl, self.cube.normals());
 
-        texture.apply(
-            self.cube.tex_pos(),
-            &self.prog,
-            "a_tex_pos",
-            gl.get_uniform_location(&self.prog, "u_tex").as_ref(),
-            gl,
-        );
+        texture.apply(self.cube.tex_pos(), self.a_tex_pos, &self.u_tex, gl);
 
         gl.tex_parameteri(
             WebGlRenderingContext::TEXTURE_2D,
