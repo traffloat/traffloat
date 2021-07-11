@@ -49,7 +49,7 @@ impl RawKey<String> {
 }
 
 /// Commands interpreted by the keymap.
-#[derive(Debug, Clone, Copy, enum_map::Enum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, enum_map::Enum)]
 pub enum Command {
     /// Move leftwards
     ///

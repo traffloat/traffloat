@@ -133,7 +133,10 @@ fn trace_entity(
         "initial"
     });
 
-    let has_click = click_sub.count() > 0; // consume the whole iterator without short-circuiting
+    let has_click = click_sub
+        .filter(|click| click.command() == keyboard::Command::LeftClick)
+        .count()
+        > 0; // consume the whole iterator without short-circuiting
     if has_click {
         focus_target.set_entity(hover_target.entity());
     }
