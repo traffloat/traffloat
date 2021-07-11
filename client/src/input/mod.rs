@@ -1,42 +1,10 @@
 //! Handles user input.
 
 use derive_new::new;
+use legion::Entity;
 
 pub mod keyboard;
 pub mod mouse;
-
-/// Mode of input.
-#[derive(Debug, PartialEq, Eq)]
-pub enum Mode {
-    /// The default mode. Navigate around objects and choose them.
-    Navigation,
-    /// Select a position to place an entity.
-    Placement,
-}
-
-impl Mode {
-    /// Whether this mode needs cursor segment computation.
-    pub fn needs_cursor_segment(&self) -> bool {
-        match self {
-            Self::Navigation => true,
-            Self::Placement => true,
-        }
-    }
-
-    /// Whether this mode needs cursor segment computation.
-    pub fn needs_cursor_entity(&self) -> bool {
-        match self {
-            Self::Navigation => true,
-            Self::Placement => false,
-        }
-    }
-}
-
-impl Default for Mode {
-    fn default() -> Self {
-        Self::Navigation
-    }
-}
 
 /// A position on the screen.
 #[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
@@ -51,6 +19,15 @@ pub struct ScreenPosition {
     /// `0.` indicates top edge and `1.` indicates bottom edge.
     #[getset(get_copy = "pub")]
     y: f64,
+}
+
+/// Resource storing the entity focused.
+#[derive(Debug, Clone, Default, getset::CopyGetters, getset::Setters)]
+pub struct FocusTarget {
+    /// The focused entity.
+    #[getset(get_copy = "pub")]
+    #[getset(set = "pub")]
+    entity: Option<Entity>,
 }
 
 /// Sets up legion ECS for input handling.

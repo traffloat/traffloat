@@ -1,5 +1,8 @@
 //! Handles keyboard input.
 
+#![allow(clippy::indexing_slicing)] // this module uses EnumMap extensively.
+
+use derive_new::new;
 use enum_map::EnumMap;
 use typed_builder::TypedBuilder;
 
@@ -13,11 +16,36 @@ use traffloat::time;
 #[derive(TypedBuilder, getset::Getters, getset::CopyGetters)]
 pub struct RawKeyEvent {
     /// The code of the event.
-    #[getset(get = "pub")]
-    code: String,
+    key: RawKey,
     /// Whether the key is pressed down or up.
     #[getset(get_copy = "pub")]
     down: bool,
+}
+
+impl RawKeyEvent {
+    /// The code of the event.
+    pub fn key(&self) -> RawKey<&str> {
+        self.key.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A raw key used by the yew layer.
+pub enum RawKey<S = String> {
+    /// A keyboard key.
+    Key(S),
+    /// A mouse button.
+    Mouse(i16),
+}
+
+impl RawKey<String> {
+    /// Changes the key `String` to a `&str` if any.
+    pub fn as_ref(&self) -> RawKey<&str> {
+        match self {
+            Self::Key(s) => RawKey::Key(s.as_str()),
+            &Self::Mouse(button) => RawKey::Mouse(button),
+        }
+    }
 }
 
 /// Commands interpreted by the keymap.
@@ -53,21 +81,30 @@ pub enum Command {
     ZoomIn,
     /// Zoom out
     ZoomOut,
+    /// The generic left click command
+    LeftClick,
+    /// The generic middle click command
+    MiddleClick,
+    /// The generic right click command
+    RightClick,
 }
 
 impl Command {
     /// Converts a `KeyboardEvent.code` to a `Command` if possible.
-    pub fn from_code(code: &str) -> Option<Command> {
-        Some(match code {
-            "KeyW" => Command::MoveUp,
-            "KeyS" => Command::MoveDown,
-            "KeyA" => Command::MoveLeft,
-            "KeyD" => Command::MoveRight,
-            "KeyZ" => Command::MoveFront,
-            "KeyX" => Command::MoveBack,
-            "Equal" => Command::ZoomIn,
-            "Minus" => Command::ZoomOut,
-            "ShiftLeft" => Command::RotationMask,
+    pub fn from_key(key: RawKey<&str>) -> Option<Command> {
+        Some(match key {
+            RawKey::Key("KeyW") => Command::MoveUp,
+            RawKey::Key("KeyS") => Command::MoveDown,
+            RawKey::Key("KeyA") => Command::MoveLeft,
+            RawKey::Key("KeyD") => Command::MoveRight,
+            RawKey::Key("KeyZ") => Command::MoveFront,
+            RawKey::Key("KeyX") => Command::MoveBack,
+            RawKey::Key("Equal") => Command::ZoomIn,
+            RawKey::Key("Minus") => Command::ZoomOut,
+            RawKey::Key("ShiftLeft") => Command::RotationMask,
+            RawKey::Mouse(0) => Command::LeftClick,
+            RawKey::Mouse(1) => Command::MiddleClick,
+            RawKey::Mouse(2) => Command::RightClick,
             _ => return None,
         })
     }
@@ -89,30 +126,71 @@ pub struct CommandState {
 
 impl CommandState {
     /// Sets the command state and updates the last activation/deactivation time.
-    pub fn set(&mut self, down: bool, now: time::Instant) {
+    pub fn set(&mut self, down: bool, now: time::Instant) -> Option<ClickType> {
         self.active = down;
         if down {
+            let prev = self.last_down;
             self.last_down = now;
+            if now - prev < config::DOUBLE_CLICK_INTERVAL {
+                Some(ClickType::Double)
+            } else {
+                Some(ClickType::Single)
+            }
         } else {
             self.last_up = now;
+            None
         }
     }
 }
 
+/// The type of clicking detected on command state updates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClickType {
+    /// A single lcick
+    Single,
+    /// A double lcick
+    Double,
+}
+
 /// A map storing the time since which a command was clicked or released.
 pub type CommandStates = EnumMap<Command, CommandState>;
+
+/// A single click event.
+#[derive(new, getset::CopyGetters)]
+pub struct SingleClick {
+    /// The command clicked.
+    #[getset(get_copy = "pub")]
+    command: Command,
+}
+
+/// A double click event.
+#[derive(new, getset::CopyGetters)]
+pub struct DoubleClick {
+    /// The command clicked.
+    #[getset(get_copy = "pub")]
+    command: Command,
+}
 
 #[codegen::system]
 fn track_states(
     #[resource] states: &mut CommandStates,
     #[resource] clock: &time::Clock,
     #[subscriber] raw_key_events: impl Iterator<Item = RawKeyEvent>,
+    #[resource] single_click_pub: &mut shrev::EventChannel<SingleClick>,
+    #[resource] double_click_pub: &mut shrev::EventChannel<DoubleClick>,
 ) {
     let now = clock.now();
     for event in raw_key_events {
-        if let Some(command) = Command::from_code(event.code()) {
-            use std::ops::IndexMut;
-            states.index_mut(command).set(event.down(), now);
+        if let Some(command) = Command::from_key(event.key()) {
+            match states[command].set(event.down(), now) {
+                Some(ClickType::Single) => {
+                    single_click_pub.single_write(SingleClick::new(command));
+                }
+                Some(ClickType::Double) => {
+                    double_click_pub.single_write(DoubleClick::new(command));
+                }
+                _ => {}
+            }
         }
     }
 }

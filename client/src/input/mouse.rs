@@ -2,7 +2,7 @@
 
 use legion::Entity;
 
-use super::ScreenPosition;
+use super::{keyboard, ScreenPosition};
 use crate::camera::Camera;
 use crate::render;
 use traffloat::shape::Shape;
@@ -55,7 +55,6 @@ impl Default for Segment {
 
 #[codegen::system]
 fn trace_segment(
-    #[resource] mode: &super::Mode,
     #[resource] cursor: &CursorPosition,
     #[resource] camera: &Camera,
     #[resource] segment: &mut Segment,
@@ -63,10 +62,6 @@ fn trace_segment(
     #[debug("Mouse", "Proximal")] proximal_debug: &codegen::DebugEntry,
     #[debug("Mouse", "Distal")] distal_debug: &codegen::DebugEntry,
 ) {
-    if !mode.needs_cursor_segment() {
-        return;
-    }
-
     let (proximal, distal) = camera.project_mouse(cursor.position().x(), cursor.position().y());
     segment.proximal = proximal;
     segment.distal = distal;
@@ -87,30 +82,14 @@ fn trace_segment(
     );
 }
 
-/// Resource storing the entity targeted by the cursor.
-#[derive(Debug, Default, getset::CopyGetters, getset::Setters)]
-pub struct Target {
+/// Resource storing the entity that the cursor hovers over.
+#[derive(Debug, Clone, Default, getset::CopyGetters, getset::Setters)]
+pub struct HoverTarget {
     /// The target entity pointed by the cursor,
     /// or `None` if none can be detected.
-    ///
-    /// The value consists of an `f64` indicating the depth of the object
-    /// relative to the camera focus and rendering distance,
-    /// as well as an `Entity` indicating the entity ID of the object.
     #[getset(get_copy = "pub")]
     #[getset(set = "pub")]
-    target: Option<(f64, Entity)>,
-}
-
-impl Target {
-    /// The targeted entity if it exists.
-    pub fn entity(&self) -> Option<Entity> {
-        self.target.map(|(_, entity)| entity)
-    }
-
-    /// The depth of an object relative to the camera focus and rendering distance.
-    pub fn depth(&self) -> Option<f64> {
-        self.target.map(|(depth, _)| depth)
-    }
+    entity: Option<Entity>,
 }
 
 #[codegen::system]
@@ -118,22 +97,18 @@ impl Target {
 #[read_component(Shape)]
 fn trace_entity(
     world: &legion::world::SubWorld,
-    #[resource] mode: &super::Mode,
     #[resource] segment: &Segment,
     #[resource] cursor_type: &mut render::CursorType,
-    #[resource] cursor_target: &mut Target,
+    #[resource] hover_target: &mut HoverTarget,
+    #[resource] focus_target: &mut super::FocusTarget,
+    #[subscriber] click_sub: impl Iterator<Item = keyboard::SingleClick>,
 
-    #[debug("Mouse", "Target entity")] target_debug: &codegen::DebugEntry,
-    #[debug("Mouse", "Target depth")] target_depth_debug: &codegen::DebugEntry,
+    #[debug("Mouse", "Target")] target_debug: &codegen::DebugEntry,
 ) {
     use legion::IntoQuery;
 
-    if !mode.needs_cursor_entity() {
-        return;
-    }
-
+    hover_target.set_entity(None);
     let mut last_depth = 2.0;
-    cursor_target.set_target(None);
     for (&entity, &position, shape) in <(Entity, &Position, &Shape)>::query().iter(world) {
         let transform = shape.inv_transform(position);
         let proximal = transform.transform_point(&segment.proximal.0);
@@ -141,24 +116,27 @@ fn trace_entity(
         if let Some(depth) = shape.unit().between(proximal, distal) {
             if depth < last_depth {
                 last_depth = depth;
-                cursor_target.set_target(Some((depth, entity)));
+                hover_target.set_entity(Some(entity));
             }
         }
     }
 
-    if let Some((depth, entity)) = cursor_target.target() {
+    if let Some(entity) = hover_target.entity() {
         codegen::update_debug!(target_debug, "{:?}", entity);
-        codegen::update_debug!(target_depth_debug, "{:.1}", depth);
     } else {
         codegen::update_debug!(target_debug, "None");
-        codegen::update_debug!(target_depth_debug, "None");
     }
 
-    cursor_type.set_name(if cursor_target.target().is_some() {
+    cursor_type.set_name(if hover_target.entity().is_some() {
         "pointer"
     } else {
         "initial"
     });
+
+    let has_click = click_sub.count() > 0; // consume the whole iterator without short-circuiting
+    if has_click {
+        focus_target.set_entity(hover_target.entity());
+    }
 }
 
 /// Sets up legion ECS for mouse input handling.

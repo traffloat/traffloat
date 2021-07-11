@@ -37,6 +37,7 @@ impl Component for Wrapper {
 
     fn change(&mut self, props: Props) -> ShouldRender {
         props.updater_ref.set(self.link.callback(|update| update));
+        self.props = props;
         false // we just modified the setter, but there is nothing to render yet
     }
 

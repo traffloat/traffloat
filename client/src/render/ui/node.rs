@@ -1,6 +1,12 @@
 //! Renders node info.
 
+use legion::world::SubWorld;
+use legion::EntityStore;
 use yew::prelude::*;
+
+use super::{Update, UpdaterRef};
+use crate::input;
+use traffloat::graph;
 
 /// Displays basic info about a node.
 pub struct NodeInfo {
@@ -51,4 +57,34 @@ pub enum Msg {}
 pub struct Props {
     /// Name of the targeted node.
     pub node_name: String,
+}
+
+#[codegen::system]
+#[read_component(graph::NodeName)]
+#[thread_local]
+fn draw(
+    #[resource] hover_target: &input::mouse::HoverTarget,
+    #[resource] focus_target: &input::FocusTarget,
+    world: &mut SubWorld,
+    #[resource] updater_ref: &UpdaterRef,
+) {
+    let info = if let Some(entity) = focus_target.entity().or_else(|| hover_target.entity()) {
+        let node_name = world
+            .entry_ref(entity)
+            .expect("Target entity does not exist") // TODO what if user is hovering over node while deleting it?
+            .into_component::<graph::NodeName>()
+            .expect("Component NodeName does not exist in target entity");
+        Some(Props {
+            node_name: node_name.name().to_string(),
+        })
+    } else {
+        None
+    };
+
+    updater_ref.call(Update::SetNodeInfo(info));
+}
+
+/// Sets up legion ECS for node info rendering.
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    setup.uses(draw_setup)
 }

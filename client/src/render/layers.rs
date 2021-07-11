@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use web_sys::{CanvasRenderingContext2d, WebGlRenderingContext};
+use web_sys::WebGlRenderingContext;
 
-use super::{bg, debug, scene, ui};
+use super::{bg, debug, scene};
 use crate::util::DebugWriter;
 
 /// The dimension of a canvas

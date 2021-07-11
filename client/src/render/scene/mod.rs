@@ -8,7 +8,7 @@ use web_sys::WebGlRenderingContext;
 
 use super::{CursorType, Dimension, RenderFlag};
 use crate::camera::Camera;
-use crate::input::mouse;
+use crate::input;
 use crate::util::lerp;
 use traffloat::config;
 use traffloat::graph;
@@ -93,7 +93,8 @@ fn draw(
     #[resource] sun: &Sun,
     #[resource] textures: &config::Store<Texture>,
     #[resource] texture_pool: &mut Option<texture::Pool>,
-    #[resource] mouse_target: &mouse::Target,
+    #[resource] hover_target: &input::mouse::HoverTarget,
+    #[resource] focus_target: &input::FocusTarget,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     use legion::{EntityStore, IntoQuery};
@@ -136,7 +137,8 @@ fn draw(
             let next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
             lerp(prev, next, base_month.fract())
         };
-        let selected = mouse_target.entity() == Some(*entity);
+        let selected =
+            hover_target.entity() == Some(*entity) || focus_target.entity() == Some(*entity);
 
         let tex: &Texture = shape.texture().get(textures);
         let sprite = texture_pool.sprite(tex, &scene.gl);
@@ -218,7 +220,6 @@ fn draw(
 #[codegen::system]
 #[thread_local]
 fn update_cursor(
-    #[resource(no_init)] dim: &Dimension,
     #[resource] canvas: &Option<super::Layers>,
     #[resource] cursor_type: &CursorType,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,

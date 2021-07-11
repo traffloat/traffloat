@@ -135,7 +135,7 @@ impl Game {
 
     fn on_key(&mut self, code: &str, down: bool) {
         let event = input::keyboard::RawKeyEvent::builder()
-            .code(code.to_string())
+            .key(input::keyboard::RawKey::Key(code.to_string()))
             .down(down)
             .build();
         self.legion.publish(event);
@@ -158,7 +158,12 @@ impl Game {
         *pos = input::mouse::CursorPosition::new(x, y);
     }
 
-    fn on_mouse_click(&mut self, _button: i16, _down: bool) {
+    fn on_mouse_click(&mut self, button: i16, down: bool) {
+        let event = input::keyboard::RawKeyEvent::builder()
+            .key(input::keyboard::RawKey::Mouse(button))
+            .down(down)
+            .build();
+        self.legion.publish(event);
         // TODO!("Send the event to ECS")
         /*
         if let Some(event) = input::keyboard::KeyEvent::new_mouse(button, down) {
