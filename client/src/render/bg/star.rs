@@ -77,14 +77,18 @@ fn generate_vertices(seed: [u8; 32]) -> Vec<f32> {
 
     for _ in 0..NUM_STARS {
         let vertex = UnitSphere.sample(&mut rng);
+        let mut vertex = Vector::from_iterator(vertex);
 
-        let vertex = Vector::from_iterator(vertex) * 0.999999;
+        let axis = loop {
+            let axis = UnitSphere.sample(&mut rng);
+            let axis = Vector::from_iterator(axis);
 
-        let mut axis = Vector::new(1., 0., 0.);
-        if axis.dot(&vertex).abs() > 0.9 {
-            // the axis and the vertex are almost parallel
-            axis = Vector::new(0., 1., 0.);
-        }
+            if axis.dot(&vertex).abs() < 0.95 {
+                break axis;
+            }
+        };
+
+        vertex *= 0.999;
 
         let dir1 = vertex.cross(&axis).normalize() * size_distr.sample(&mut rng) * STAR_SCALE;
         let dir2 = vertex.cross(&dir1).normalize() * size_distr.sample(&mut rng) * STAR_SCALE;
