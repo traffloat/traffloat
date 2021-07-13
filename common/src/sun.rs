@@ -10,6 +10,7 @@ use crate::graph::*;
 use crate::shape::Shape;
 use crate::space::{Position, Vector};
 use crate::time;
+use crate::units::Brightness;
 use crate::util::Finite;
 use crate::SetupEcs;
 use safety::Safety;
@@ -61,7 +62,7 @@ pub struct LightStats {
     ///
     /// The brightness value is the area receiving sunlight.
     #[getset(get = "pub")]
-    brightness: [f64; MONTH_COUNT],
+    brightness: [Brightness; MONTH_COUNT],
 }
 
 #[codegen::system]
@@ -89,7 +90,7 @@ fn shadow_cast(
         let mut query = <(&mut LightStats, &Position, &Shape)>::query();
 
         struct Marker<'t> {
-            light: &'t mut f64,
+            light: &'t mut Brightness,
             min: [Finite; 2],
             max: [Finite; 2],
             priority: Finite,
@@ -113,7 +114,7 @@ fn shadow_cast(
                 .brightness
                 .get_mut(month)
                 .expect("month < MONTH_COUNT");
-            *light = 0.;
+            *light = Brightness(0.);
 
             let marker = Marker {
                 light,
@@ -176,7 +177,7 @@ fn shadow_cast(
         for ((i, j), marker_index) in grids {
             let len0 = cuts[0][i + 1].value() - cuts[0][i].value();
             let len1 = cuts[1][j + 1].value() - cuts[1][j].value();
-            let area = len0 * len1;
+            let area = Brightness(len0 * len1);
             let light = &mut *markers[marker_index].light;
             *light += area;
         }

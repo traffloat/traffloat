@@ -135,7 +135,7 @@ fn draw(
         let brightness = {
             let prev = light.brightness()[base_month.floor() as usize % MONTH_COUNT];
             let next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
-            lerp(prev, next, base_month.fract())
+            lerp(prev.0, next.0, base_month.fract())
         };
         let selected =
             hover_target.entity() == Some(*entity) || focus_target.entity() == Some(*entity);

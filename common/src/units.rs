@@ -32,6 +32,6 @@ ratio_def::units! {
     /// Static electricity in stored form
     ElectricEnergy;
 
-    /// Amount of sunlight received by a node.
+    /// Orthogonal area of a node receiving sunlight.
     Brightness;
 }
