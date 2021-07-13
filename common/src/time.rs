@@ -1,9 +1,12 @@
 //! Game clock management
 
-use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Mul, Rem, RemAssign, Sub, SubAssign};
 
 use crate::proto::{BinRead, BinWrite, ProtoType};
 use crate::SetupEcs;
+
+/// The interval between simulation frames.
+pub const SIMULATION_PERIOD: Time = Time(100);
 
 ratio_def::units! {
     /// Internal trait just because declarative macros are stupid.
@@ -15,6 +18,20 @@ ratio_def::units! {
     ///
     /// The underlying integer is in 1/100 seconds.
     Time;
+}
+
+impl Rem<Time> for Time {
+    type Output = Time;
+
+    fn rem(self, other: Self) -> Self {
+        Self(self.0 % other.0)
+    }
+}
+
+impl RemAssign<Time> for Time {
+    fn rem_assign(&mut self, other: Self) {
+        self.0 %= other.0;
+    }
 }
 
 impl Time {

@@ -31,4 +31,7 @@ ratio_def::units! {
 
     /// Static electricity in stored form
     ElectricEnergy;
+
+    /// Amount of sunlight received by a node.
+    Brightness;
 }

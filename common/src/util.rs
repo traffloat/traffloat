@@ -41,3 +41,8 @@ impl Ord for Finite {
         self.partial_cmp(other).expect("Values should be finite")
     }
 }
+
+/// Linear interpolation from a to b, with ratio=0 as a and ratio=1 as b
+pub fn lerp(a: f64, b: f64, ratio: f64) -> f64 {
+    a * (1. - ratio) + b * ratio
+}

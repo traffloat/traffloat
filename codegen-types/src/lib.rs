@@ -228,6 +228,14 @@ impl DebugEntry {
 // #[derive(Debug, Clone, Default)]
 pub struct DebugEntry(pub ());
 
+#[cfg(not(feature = "render-debug"))]
+impl DebugEntry {
+    /// Dummy method for debug entry in non-render-debug builds.
+    pub fn _update(&self, _new: impl fmt::Display) {
+        unimplemented!()
+    }
+}
+
 /// The high-resolution clock in microseconds
 #[cfg(target_arch = "wasm32")]
 pub fn hrtime() -> i64 {

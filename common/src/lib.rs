@@ -31,8 +31,10 @@
 #[macro_use]
 mod macros;
 
+pub mod cargo;
 pub mod config;
 pub use config::Config;
+pub mod factory;
 pub mod graph;
 pub mod proto;
 pub mod shape;
@@ -50,8 +52,10 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
     setup
         .resource(codegen::Perf::default())
         .uses(config::setup_ecs)
+        .uses(factory::setup_ecs)
         .uses(time::setup_ecs)
         .uses(shape::setup_ecs)
         .uses(graph::setup_ecs)
+        .uses(cargo::setup_ecs)
         .uses(sun::setup_ecs)
 }
