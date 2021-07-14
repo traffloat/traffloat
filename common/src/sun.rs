@@ -5,11 +5,11 @@ use std::f64::consts::PI;
 
 use smallvec::SmallVec;
 
+use crate::clock::Clock;
 use crate::config;
 use crate::graph::*;
 use crate::shape::Shape;
 use crate::space::{Position, Vector};
-use crate::time;
 use crate::units::Brightness;
 use crate::util::Finite;
 use crate::SetupEcs;
@@ -33,7 +33,7 @@ impl Sun {
 #[codegen::system]
 fn move_sun(
     #[resource] sun: &mut Sun,
-    #[resource] clock: &time::Clock,
+    #[resource] clock: &Clock,
     #[resource] config: &config::Scalar,
 
     #[debug("Time", "Clock")] clock_debug: &codegen::DebugEntry,

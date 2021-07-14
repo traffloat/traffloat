@@ -24,9 +24,7 @@ pub struct NodeName {
 }
 
 /// Component storing the endpoints of an edge
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, new, getset::CopyGetters, getset::Setters,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new, getset::CopyGetters, getset::Setters)]
 pub struct EdgeId {
     /// The "source" node
     #[getset(get_copy = "pub")]

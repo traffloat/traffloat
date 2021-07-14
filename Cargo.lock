@@ -775,6 +775,7 @@ dependencies = [
  "smallvec",
  "traffloat-codegen",
  "traffloat-safety",
+ "traffloat-types",
  "typed-builder",
  "yew",
 ]
@@ -782,6 +783,14 @@ dependencies = [
 [[package]]
 name = "traffloat-safety"
 version = "0.2.0"
+
+[[package]]
+name = "traffloat-types"
+version = "0.2.0"
+dependencies = [
+ "nalgebra",
+ "ratio-def",
+]
 
 [[package]]
 name = "typed-builder"

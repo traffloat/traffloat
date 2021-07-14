@@ -3,6 +3,7 @@ members = [
 	"safety",
 	"codegen",
 	"codegen-types",
+	"types",
 	"common",
 	"client",
 ]

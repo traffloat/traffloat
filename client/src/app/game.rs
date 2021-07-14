@@ -9,7 +9,8 @@ use crate::input;
 use crate::render;
 use crate::util;
 use safety::Safety;
-use traffloat::time::{Clock, Instant, Time};
+use traffloat::clock::Clock;
+use traffloat::time::{Instant, Time};
 use traffloat::SetupEcs;
 
 /// HTML interface of the game page

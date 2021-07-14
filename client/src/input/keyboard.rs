@@ -9,8 +9,9 @@ use typed_builder::TypedBuilder;
 use crate::camera::Camera;
 use crate::config;
 use crate::render;
+use traffloat::clock::Clock;
 use traffloat::space::Vector;
-use traffloat::time;
+use traffloat::time::Instant;
 
 /// A raw key event from the yew layer.
 #[derive(TypedBuilder, getset::Getters, getset::CopyGetters)]
@@ -118,15 +119,15 @@ pub struct CommandState {
     active: bool,
     /// The last instant at which the command state changed from inactive to active.
     #[getset(get_copy = "pub")]
-    last_down: time::Instant,
+    last_down: Instant,
     /// The last instant at which the command state changed from active to inactive.
     #[getset(get_copy = "pub")]
-    last_up: time::Instant,
+    last_up: Instant,
 }
 
 impl CommandState {
     /// Sets the command state and updates the last activation/deactivation time.
-    pub fn set(&mut self, down: bool, now: time::Instant) -> Option<ClickType> {
+    pub fn set(&mut self, down: bool, now: Instant) -> Option<ClickType> {
         self.active = down;
         if down {
             let prev = self.last_down;
@@ -174,7 +175,7 @@ pub struct DoubleClick {
 #[codegen::system]
 fn track_states(
     #[resource] states: &mut CommandStates,
-    #[resource] clock: &time::Clock,
+    #[resource] clock: &Clock,
     #[subscriber] raw_key_events: impl Iterator<Item = RawKeyEvent>,
     #[resource] single_click_pub: &mut shrev::EventChannel<SingleClick>,
     #[resource] double_click_pub: &mut shrev::EventChannel<DoubleClick>,
@@ -199,7 +200,7 @@ fn track_states(
 #[allow(clippy::indexing_slicing, clippy::too_many_arguments)]
 fn move_camera(
     #[resource] camera: &mut Camera,
-    #[resource] clock: &time::Clock,
+    #[resource] clock: &Clock,
     #[resource] commands: &CommandStates,
     #[resource(no_init)] dim: &render::Dimension,
 ) {

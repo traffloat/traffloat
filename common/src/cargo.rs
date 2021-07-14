@@ -1,11 +1,12 @@
 //! Management of cargo in buildings
 
-use legion::Entity;
 use legion::world::SubWorld;
+use legion::Entity;
 use smallvec::SmallVec;
 
+use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
 use crate::config::{Config, Id};
-use crate::time::{Time, SIMULATION_PERIOD, SimulationEvent};
+use crate::time::Time;
 use crate::units::CargoSize;
 use crate::util;
 use crate::SetupEcs;
