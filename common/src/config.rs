@@ -123,7 +123,6 @@ impl<T: Config> Store<T> {
 }
 
 /// Scalar configuration values
-#[derive(codegen::Gen)]
 pub struct Scalar {
     /// The angle the sun moves per tick
     pub sun_speed: time::Rate<f64>,

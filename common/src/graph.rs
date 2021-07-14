@@ -9,13 +9,13 @@ use legion::Entity;
 use crate::SetupEcs;
 
 /// Component storing an identifier for a node
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new, codegen::Gen)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new)]
 pub struct NodeId {
     inner: u32,
 }
 
 /// Component storing the name of the node
-#[derive(Debug, new, codegen::Gen, getset::Getters, getset::Setters)]
+#[derive(Debug, new, getset::Getters, getset::Setters)]
 pub struct NodeName {
     /// Name of the node
     #[getset(get = "pub")]
@@ -25,7 +25,7 @@ pub struct NodeName {
 
 /// Component storing the endpoints of an edge
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, codegen::Gen, new, getset::CopyGetters, getset::Setters,
+    Debug, Clone, Copy, PartialEq, Eq, new, getset::CopyGetters, getset::Setters,
 )]
 pub struct EdgeId {
     /// The "source" node
@@ -35,7 +35,6 @@ pub struct EdgeId {
     #[getset(get_copy = "pub")]
     #[getset(set = "pub")]
     #[new(default)]
-    #[default]
     from_entity: Option<Entity>,
     /// The "dest" node
     #[getset(get_copy = "pub")]
@@ -44,12 +43,11 @@ pub struct EdgeId {
     #[getset(get_copy = "pub")]
     #[getset(set = "pub")]
     #[new(default)]
-    #[default]
     to_entity: Option<Entity>,
 }
 
 /// Defines the size of an edge
-#[derive(Debug, Clone, Copy, codegen::Gen, new, getset::CopyGetters)]
+#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
 pub struct EdgeSize {
     /// The radius of the corridor
     #[getset(get_copy = "pub")]

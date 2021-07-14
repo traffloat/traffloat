@@ -2,7 +2,6 @@
 
 use std::ops::{Add, AddAssign, Mul, Rem, RemAssign, Sub, SubAssign};
 
-use crate::proto::{BinRead, BinWrite, ProtoType};
 use crate::SetupEcs;
 
 /// The interval between simulation frames.
@@ -12,7 +11,7 @@ ratio_def::units! {
     /// Internal trait just because declarative macros are stupid.
     _TimeTrait(Clone + Copy);
 
-    #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, codegen::Gen)] u32:
+    #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)] u32:
 
     /// Synchronized time span.
     ///
@@ -55,7 +54,7 @@ impl Time {
 
 /// A specific point of time,
 /// represented as a duration since game epoch.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, codegen::Gen)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Instant(pub Time);
 
 impl Instant {
@@ -129,10 +128,10 @@ impl Clock {
 /// The rate of change.
 ///
 /// The inner value is the amount of change over one second.
-#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, codegen::Gen)]
-pub struct Rate<T: ProtoType + BinRead + BinWrite>(pub T);
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
+pub struct Rate<T>(pub T);
 
-impl<T: ProtoType + BinRead + BinWrite + Mul<f64, Output = T>> std::ops::Mul<Time> for Rate<T> {
+impl<T: Mul<f64, Output = T>> std::ops::Mul<Time> for Rate<T> {
     type Output = T;
 
     fn mul(self, time: Time) -> T {

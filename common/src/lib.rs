@@ -36,7 +36,6 @@ pub mod config;
 pub use config::Config;
 pub mod factory;
 pub mod graph;
-pub mod proto;
 pub mod shape;
 pub mod space;
 pub mod sun;

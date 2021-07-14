@@ -1,12 +1,10 @@
 //! Defines common units
 
-use crate::proto::{BinRead, BinWrite, ProtoType};
-
 ratio_def::units! {
     /// A common unit type
-    Unit(std::fmt::Debug + Clone + Copy + Default + PartialEq + PartialOrd + ProtoType + BinWrite + BinRead);
+    Unit(std::fmt::Debug + Clone + Copy + Default + PartialEq + PartialOrd);
 
-    #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, codegen::Gen)] f64:
+    #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)] f64:
 
     /// An amount of liquid
     LiquidVolume;
