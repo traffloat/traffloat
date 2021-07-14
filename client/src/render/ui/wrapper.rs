@@ -60,13 +60,13 @@ impl Component for Wrapper {
     }
 }
 
-/// Events for [`NodeInfo`].
+/// Events for [`node::NodeInfo`].
 pub enum Update {
     /// Sets the node info to display.
     SetNodeInfo(Option<node::Props>),
 }
 
-/// Yew properties for [`NodeInfo`].
+/// Yew properties for [`node::NodeInfo`].
 #[derive(Clone, Properties)]
 pub struct Props {
     /// An interiorly-mutable reference to update the yew callback for UI messages [`Update`].

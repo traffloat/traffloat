@@ -7,7 +7,59 @@ use std::collections::btree_map;
 #[cfg(feature = "render-debug")]
 use std::sync::Arc;
 
-pub use traffloat_codegen_raw::*;
+/// Generates legion system setup procedure for.
+///
+/// Consider this example:
+///
+/// ```
+/// struct FooEvent(f32);
+/// struct BarEvent(f32);
+///
+/// struct QuxComp(u32);
+/// struct CorgeComp(u32);
+///
+/// #[derive(Default)]
+/// struct GraultRes(u64);
+/// #[derive(Default)]
+/// struct WaldoRes(u64);
+///
+/// #[codegen::system]
+/// #[read_component(QuxComp)]
+/// #[write_component(CorgeComp)]
+/// fn example(
+///     world: &mut legion::world::SubWorld,
+///     #[subscriber] foo_sub: impl Iterator<Item = FooEvent>,
+///     #[publisher] bar_pub: impl FnMut(BarEvent),
+///     #[resource] grault_res: &mut GraultRes,
+///     #[resource] waldo_res: &WaldoRes,
+///     #[state(0)] local_counter: &mut i32,
+/// ) {
+///     use legion::IntoQuery;
+///
+///     for (qux, corge) in <(&QuxComp, &mut CorgeComp)>::query().iter_mut(world) {
+///         corge.0 = qux.0;
+///     }
+///
+///     for &FooEvent(float) in foo_sub {
+///         bar_pub(BarEvent(float));
+///     }
+///
+///     grault_res.0 = waldo_res.0;
+///
+///     *local_counter += 1;
+/// }
+///
+/// fn setup_ecs(setup: codegen::SetupEcs) -> codegen::SetupEcs {
+///     setup.uses(example_setup)
+/// }
+/// ```
+///
+/// If some of the parameters need to be thread-unsafe,
+/// apply the `#[thread_local]` attribute on the function.
+pub use traffloat_codegen_raw::system;
+
+/// Implements network layer serialization.
+pub use traffloat_codegen_raw::Gen;
 
 /// Whether debug info should be rendered.
 pub const RENDER_DEBUG: bool = cfg!(feature = "render-debug");
