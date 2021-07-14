@@ -35,19 +35,23 @@ and Python is used for combining the texture images.
 Node is used to run `webpack` and assemble the site.
 Rust is used to write the main game logic compiled to WebAssembly.
 
-To compile the client:
+See the [justfile](justfile) for common commands, in particular:
 
 ```shell
-cd client
-npm install
-npm run preprocess
-npm run build-dev
+# Install other dependencies
+just deps
+# Preprocess assets
+just pp
+# Compile the client and start a dev server, and recompile if files changed
+just watch
+# Compile the client for production
+just build
 ```
 
-Change `build-dev` to `build` to create an optimized build.
-
-The command `npm start` can be used to watch and recompile the project served on a dev server,
-but it does not regenerate assets and minified GLSL code.
+While development build claims to produce "optimized" output,
+LTO (link time optimization) is enabled in release build
+to further improve performance and reduce file size
+at the cost of longer compile time.
 
 Create a thread in [Discussions](https://github.com/traffloat/traffloat/discussions)
 if you would like to contribute and don't know where to start.
