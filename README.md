@@ -7,17 +7,39 @@
 [![GitHub](https://img.shields.io/github/last-commit/traffloat/traffloat)](https://github.com/traffloat/traffloat)
 [![GitHub](https://img.shields.io/github/stars/traffloat/traffloat?style=social)](https://github.com/traffloat/traffloat)
 
-A cooperative 3D web game with elements of City Building, Logistics and Tower Defense.
+A cooperative 3D factory/city building game.
 
-## Gameplay
-The player manages a space colony.
-Maintain the base, optimize logistics and defend from asteroid attacks.
+## What is this game about?
+This game happens in a self-sustaining space colony.
+The player constructs buildings and corridors in the colony
+to produce and transfer different resources.
 
-The space colony is composed of buildings
-connected by cylindrical corridors.
-AI-controlled units transfer resources through the corridors
-subject to different challenges.
-Buildings produce or convert resources to enforce defense.
+This game is about **logistics**.
+Most resources are created from other types with factories.
+Insufifciency or excess of resources will bottleneck the game.
+
+This game is about **traffic**.
+Resources are transferred in different forms (cargo, liquid, gas, electricity, human).
+Optimize transportation routes to maximize production rate.
+
+This game is about **city building**.
+Inhabitants are produced in the colony to boost productivity.
+Build schools to improve inhabitant skills and unlock new technologies.
+
+This game is **3D**.
+Explore new transportation mechanisms in a
+[genuinely 3D][tvtropes-space-is-an-ocean] network of buildings.
+Become a leading architect for 3D cities.
+
+  [tvtropes-space-is-an-ocean]: https://tvtropes.org/pmwiki/pmwiki.php/Main/SpaceIsAnOcean
+
+This game is **cooperative**.
+Players can join the colonies of other players,
+or create new colonies and establish trades with existing colonies.
+
+This game involves **tower defense**.
+Colonies are attacked by waves of asteroids in the space,
+which can be propelled or dissolved into raw resources.
 
 ## Compilation
 Logic is implemented in the `common` crate,
