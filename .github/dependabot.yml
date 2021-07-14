@@ -5,27 +5,6 @@ updates:
   schedule:
     interval: daily
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: nalgebra
-    versions:
-    - 0.26.0
-    - 0.26.1
-  - dependency-name: wasm-bindgen
-    versions:
-    - 0.2.73
-  - dependency-name: js-sys
-    versions:
-    - 0.3.50
-  - dependency-name: syn
-    versions:
-    - 1.0.66
-    - 1.0.67
-  - dependency-name: quote
-    versions:
-    - 1.0.9
-  - dependency-name: derive-new
-    versions:
-    - 0.5.9
 - package-ecosystem: npm
   directory: "/client"
   schedule:
