@@ -61,6 +61,11 @@ impl SetupEcs {
         self.resources.get_or_insert(res);
         self
     }
+    /// Add a default resource
+    pub fn resource_default<T: legion::systems::Resource + Default>(mut self) -> Self {
+        self.resources.get_or_default::<T>();
+        self
+    }
     /// Declare a published event
     pub fn publish<T: shrev::Event>(mut self) -> Self {
         let _ = self

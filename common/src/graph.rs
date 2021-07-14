@@ -115,7 +115,7 @@ fn delete_nodes(
     cmd_buf: &mut legion::systems::CommandBuffer,
     #[resource] graph: &mut Graph,
     #[subscriber] node_removals: impl Iterator<Item = NodeRemoveEvent>,
-    #[resource] post_node_remove_pub: &mut shrev::EventChannel<PostNodeRemoveEvent>,
+    #[publisher] post_node_remove_pub: impl FnMut(PostNodeRemoveEvent),
 ) {
     for &node in &graph.node_deletion_queue {
         let entity = graph
@@ -127,7 +127,7 @@ fn delete_nodes(
     let count = graph.node_deletion_queue.len();
     graph.node_deletion_queue.clear();
     if let Some(count) = NonZeroUsize::new(count) {
-        post_node_remove_pub.single_write(PostNodeRemoveEvent { count });
+        post_node_remove_pub(PostNodeRemoveEvent { count });
     }
 
     // queue deletion requests for the next event loop

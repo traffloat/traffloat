@@ -312,7 +312,7 @@ fn system_imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStre
                     if let syn::Type::Reference(ty) = &**ty {
                         let elem = &*ty.elem;
                         assigns.push(quote! {
-                                setup = setup.resource(<#elem>::default());
+                            setup = setup.resource_default::<#elem>();
                         });
                     }
                 }
@@ -452,7 +452,74 @@ fn system_imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStre
                 let #reader_var_name = setup.subscribe::<#event>();
             });
             var_adapters.push(quote! {
-                let #pat = #channel_var_name.read(#reader_var_name);
+                let mut #pat = #channel_var_name.read(#reader_var_name);
+            });
+            continue;
+        }
+
+        if arg_attrs
+            .drain_filter(|attr| attr.path.is_ident("publisher"))
+            .next()
+            .is_some()
+        {
+            let event = match &**ty {
+                syn::Type::ImplTrait(it) if it.bounds.len() == 1 => &it.bounds[0],
+                span => {
+                    return Err(syn::Error::new_spanned(
+                        span,
+                        "publisher must have type `impl FnMut(EventType)`",
+                    ))
+                }
+            };
+            let event = match event {
+                syn::TypeParamBound::Trait(tb) => {
+                    &tb.path.segments.last().expect("empty path").arguments
+                }
+                span => {
+                    return Err(syn::Error::new_spanned(
+                        span,
+                        "publisher must have type `impl FnMut(EventType)`",
+                    ))
+                }
+            };
+            let event = match event {
+                syn::PathArguments::Parenthesized(ab) => &ab.inputs,
+                span => {
+                    return Err(syn::Error::new_spanned(
+                        span,
+                        "publisher must have type `impl FnMut(EventType)`",
+                    ))
+                }
+            };
+            let event = match event.first() {
+                Some(event) => event,
+                None => {
+                    return Err(syn::Error::new_spanned(
+                        event,
+                        "publisher must have type `impl FnMut(EventType)`",
+                    ))
+                }
+            };
+
+            let pat = match &**pat {
+                syn::Pat::Ident(ident) => &ident.ident,
+                span => {
+                    return Err(syn::Error::new_spanned(
+                        span,
+                        "publisher must have simple variable name",
+                    ))
+                }
+            };
+            out_args.push((
+                quote!(#[resource]),
+                quote!(#pat),
+                quote!(&mut ::shrev::EventChannel<#event>),
+            ));
+            assigns.push(quote! {
+                setup = setup.resource_default::<::shrev::EventChannel<#event>>();
+            });
+            var_adapters.push(quote! {
+                let mut #pat = move |event| #pat.single_write(event);
             });
             continue;
         }

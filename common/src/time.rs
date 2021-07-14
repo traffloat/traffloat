@@ -41,6 +41,16 @@ impl Time {
     pub fn as_secs(self) -> f64 {
         self.value() as f64 * 0.01
     }
+
+    /// An empty interval.
+    pub fn zero() -> Self {
+        Self(0)
+    }
+
+    /// Returns the integer quotient of the two time spans.
+    pub fn int_div(self, other: Self) -> u32 {
+        self.0 / other.0
+    }
 }
 
 /// A specific point of time,
@@ -130,7 +140,40 @@ impl<T: ProtoType + BinRead + BinWrite + Mul<f64, Output = T>> std::ops::Mul<Tim
     }
 }
 
+/// Subscribe to this event to execute updates.
+///
+/// Subscribers should only handle the event once every time,
+/// i.e. with the following code:
+///
+/// ```no_run
+/// # use traffloat::time::SimulationEvent;
+/// #
+/// #[codegen::system]
+/// fn execute(
+///     #[subscriber] simul_sub: impl Iterator<Item = SimulationEvent>,
+/// ) {
+///     if simul_sub.next().is_none() {
+///         return;
+///     }
+/// }
+/// ```
+pub struct SimulationEvent;
+
+#[codegen::system]
+fn sim_trigger(
+    #[publisher] sim_pub: impl FnMut(SimulationEvent),
+    #[resource] clock: &Clock,
+    #[state(Instant::default())] last_sim_time: &mut Instant,
+) {
+    let now = clock.now().since_epoch().int_div(SIMULATION_PERIOD);
+    let last = last_sim_time.since_epoch().int_div(SIMULATION_PERIOD);
+    if now != last {
+        sim_pub(SimulationEvent);
+        *last_sim_time = clock.now();
+    }
+}
+
 /// Initializes the time module.
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup
+    setup.uses(sim_trigger_setup)
 }
