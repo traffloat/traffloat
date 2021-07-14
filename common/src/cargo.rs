@@ -1,12 +1,13 @@
 //! Management of cargo in buildings
 
 use legion::Entity;
+use legion::world::SubWorld;
 use smallvec::SmallVec;
 
 use crate::config::{Config, Id};
-use crate::time::{Time, SIMULATION_PERIOD};
+use crate::time::{Time, SIMULATION_PERIOD, SimulationEvent};
 use crate::units::CargoSize;
-use crate::util::lerp;
+use crate::util;
 use crate::SetupEcs;
 
 /// A configuration of cargo.
@@ -36,33 +37,47 @@ pub struct Storage {
     capacity: CargoSize,
 }
 
-/// Stores the current state of a storage.
-#[derive(getset::CopyGetters, getset::Setters)]
-pub struct StorageState {
-    /// The amount of cargo in the storage.
+/// The size of a cargo storage in the current simulation frame.
+#[derive(getset::CopyGetters)]
+pub struct StorageSize {
+    /// The cargo size
     #[getset(get_copy = "pub")]
     size: CargoSize,
-    /// The amount of cargo in the storage in the next simulation frame.
-    #[getset(get_copy = "pub")]
-    #[getset(set = "pub")]
-    next_size: CargoSize,
 }
 
-impl StorageState {
-    /// Push the next size as the current size.
-    ///
-    /// This starts a new simulation frame.
-    pub fn push(&mut self) {
-        self.size = self.next_size;
+/// The size of a cargo storage in the next simulation frame.
+#[derive(getset::CopyGetters, getset::MutGetters)]
+pub struct NextStorageSize {
+    /// The cargo size
+    #[getset(get_copy = "pub")]
+    #[getset(get_mut = "pub")]
+    size: CargoSize,
+}
+
+/// Interpolates the current graphical size of a storage.
+pub fn lerp(current: &StorageSize, next: NextStorageSize, time: Time) -> CargoSize {
+    CargoSize(util::lerp(
+        current.size.value(),
+        next.size.value(),
+        (time % SIMULATION_PERIOD).as_secs() / SIMULATION_PERIOD.as_secs(),
+    ))
+}
+
+#[codegen::system]
+#[write_component(StorageSize)]
+#[read_component(NextStorageSize)]
+fn update_storage(
+    world: &mut SubWorld,
+    #[subscriber] sim_sub: impl Iterator<Item = SimulationEvent>,
+) {
+    use legion::IntoQuery;
+
+    if sim_sub.next().is_none() {
+        return;
     }
 
-    /// Interpolate the storage size at the given time.
-    pub fn now(&self, time: Time) -> CargoSize {
-        CargoSize(lerp(
-            self.size.0,
-            self.next_size.0,
-            (time % SIMULATION_PERIOD).as_secs() / SIMULATION_PERIOD.as_secs(),
-        ))
+    for (current, next) in <(&mut StorageSize, &NextStorageSize)>::query().iter_mut(world) {
+        current.size = next.size;
     }
 }
 
