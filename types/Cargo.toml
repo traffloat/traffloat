@@ -9,5 +9,5 @@ description = "Traffloat unit definitions"
 license = "AGPL-3.0"
 
 [dependencies]
-nalgebra = "0.27.1"
+nalgebra = "0.28.0"
 ratio-def = "0.3.1"
