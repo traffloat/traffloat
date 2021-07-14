@@ -37,7 +37,7 @@ impl Clock {
 /// i.e. with the following code:
 ///
 /// ```no_run
-/// # use traffloat::time::SimulationEvent;
+/// # use traffloat::clock::SimulationEvent;
 /// #
 /// #[codegen::system]
 /// fn execute(
