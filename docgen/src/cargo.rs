@@ -14,7 +14,7 @@ pub fn gen_cargos(
     assets: &mut assets::Pool,
     relativize: impl Fn(&Path) -> Result<PathBuf>,
 ) -> Result<Vec<manifest::Nav>> {
-    let mut cargos_index = vec![manifest::Nav::Path(PathBuf::from("cargos.md"))];
+    let mut cargos_index = vec![manifest::Nav::Path(PathBuf::from("cargo.md"))];
 
     for cargo in cargo::ALL {
         let path = write_cargo(opts, assets, cargo)
@@ -23,9 +23,9 @@ pub fn gen_cargos(
     }
 
     {
-        let mut fh = fs::File::create(opts.root_dir.join("docs/cargos.md"))
-            .context("Could not create cargos.md")?;
-        writeln!(&mut fh, "# List of cargos")?;
+        let mut fh = fs::File::create(opts.root_dir.join("docs/cargo.md"))
+            .context("Could not create cargo.md")?;
+        writeln!(&mut fh, "# List of cargo types")?;
 
         for category in cargo::Category::iter() {
             writeln!(
@@ -42,7 +42,7 @@ pub fn gen_cargos(
                     })?;
                     writeln!(
                         &mut fh,
-                        "- [![]({}) {}]({})",
+                        "- [![]({}){{ width=24 }} {}]({})",
                         assets.map(&texture_path)?,
                         cargo.name,
                         cargo.name.to_kebab_case()
@@ -60,8 +60,8 @@ fn write_cargo(
     assets: &mut assets::Pool,
     cargo: &cargo::Def,
 ) -> Result<PathBuf> {
-    let cargos_dir = opts.root_dir.join("docs/cargos");
-    fs::create_dir_all(&cargos_dir).context("Could not create cargos dir")?;
+    let cargos_dir = opts.root_dir.join("docs/cargo");
+    fs::create_dir_all(&cargos_dir).context("Could not create cargo dir")?;
 
     let file = cargos_dir.join(format!("{}.md", cargo.name.to_kebab_case()));
     let mut fh = fs::File::create(&file)

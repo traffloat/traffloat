@@ -41,12 +41,22 @@ pub(crate) const BATTERY: Def = Def {
 pub(crate) const GAS_BOTTLE: Def = Def {
     name: "Gas bottle",
     summary: "Stores a small amount of gas",
-    description: "Produced in gas bottlers and centrifuges, gas bottlers can be used to \
-        transfer a small amount of gases to factories \
-        as a replacement of diffusing gases slowly through corridors.",
+    description: "Produced in gas bottlers and centrifuges, gas bottles can be used to \
+        transfer a small amount of gas to factories \
+        as a replacement of diffusing gas slowly through corridors.",
     category: Category::Container,
     texture: "gas-bottle",
 };
 
+pub(crate) const LIQUID_BOTTLE: Def = Def {
+    name: "Liquid bottle",
+    summary: "Stores a small amount of liquid",
+    description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to \
+        transfer a small amount of liquid to factories \
+        as a replacement of constructing dedicated pipes through corridors.",
+    category: Category::Container,
+    texture: "liquid-bottle",
+};
+
 /// All cargo types.
-pub const ALL: &[Def] = &[BATTERY, GAS_BOTTLE];
+pub const ALL: &[Def] = &[BATTERY, GAS_BOTTLE, LIQUID_BOTTLE];
