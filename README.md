@@ -42,9 +42,6 @@ Colonies are attacked by waves of asteroids in the space,
 which can be propelled or dissolved into raw resources.
 
 ## Compilation
-Logic is implemented in the `common` crate,
-while code specific to rendering and user interface is located in the `client` crate.
-
 The following tools are used for compiling the client:
 
 - Ruby 2.7.0
@@ -63,9 +60,7 @@ See the [justfile](justfile) for common commands, in particular:
 # Install other dependencies
 just deps
 # Preprocess assets
-just pp
-# Compile the client and start a dev server, and recompile if files changed
-just watch
+just pp # Compile the client and start a dev server, and recompile if files changed just watch
 # Compile the client for production
 just build
 ```
@@ -74,6 +69,16 @@ While development build claims to produce "optimized" output,
 LTO (link time optimization) is enabled in release build
 to further improve performance and reduce file size
 at the cost of longer compile time.
+
+## Contribution
+The game is composed of multiple crates:
+
+- [`codegen`](./codegen)/[`codegen-types`](./codegen-types): Defines procedural macros used in the game.
+- [`units`](./units): Defines standard data types of units used in the game.
+- [`vanilla`](./vanilla): Defines vanilla game configuration.
+- [`common`](./common): Implements game world simulation.
+- [`client`](./client): Implements a web game client.
+- [`docgen`](./docgen): Generates the markdown used to generate <https://traffloat.github.io/guide/master/>.
 
 Create a thread in [Discussions](https://github.com/traffloat/traffloat/discussions)
 if you would like to contribute and don't know where to start.

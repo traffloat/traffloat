@@ -1,18 +1,17 @@
 //! Crate to generate docs.
 
-use anyhow::{Context, Result};
-
 use std::fs;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
+use anyhow::{Context, Result};
 use structopt::StructOpt;
 
-use traffloat_vanilla::buildings;
-
 mod assets;
+mod buildings;
+mod cargo;
 mod manifest;
 mod opts;
+mod reactions;
 
 fn main() -> Result<()> {
     let opts = opts::Opts::from_args();
@@ -23,10 +22,7 @@ fn main() -> Result<()> {
         .context("--root-dir could not be canonicalized")?;
     let mut assets = assets::Pool::new(root_dir.join("docs"), String::from("assets"))?;
 
-    let mut buildings_index = Vec::new();
-    let reactions_index = Vec::new();
-
-    let relativize = |path: &Path| -> Result<PathBuf> {
+    let relativize = |path: &Path| {
         let path = path.canonicalize().context("Could not canonicalize path")?;
         let stripped = path
             .strip_prefix(&root_dir.join("docs"))
@@ -34,11 +30,12 @@ fn main() -> Result<()> {
         Ok(stripped.to_path_buf())
     };
 
-    for building in buildings::ALL {
-        let path = write_building(&opts, &mut assets, building)
-            .with_context(|| format!("Error writing building {}", building.name))?;
-        buildings_index.push(manifest::Nav::Path(relativize(&path)?));
-    }
+    let buildings_index = buildings::gen_buildings(&opts, &mut assets, relativize)
+        .context("Generating buildings guide")?;
+    let reactions_index = reactions::gen_reactions(&opts, &mut assets, relativize)
+        .context("Generating reactions guide")?;
+    let cargos_index =
+        cargo::gen_cargos(&opts, &mut assets, relativize).context("Generating cargos guide")?;
 
     let index = vec![
         manifest::Nav::Index {
@@ -46,8 +43,12 @@ fn main() -> Result<()> {
             items: buildings_index,
         },
         manifest::Nav::Index {
-            title: String::from("Reactions"),
+            title: String::from("Mechanisms"),
             items: reactions_index,
+        },
+        manifest::Nav::Index {
+            title: String::from("Cargo"),
+            items: cargos_index,
         },
     ];
 
@@ -59,7 +60,7 @@ fn main() -> Result<()> {
         .map(&favicon_path)
         .context("Resolving favicon path")?;
     let manifest = manifest::Mkdocs {
-        site_name: "Traffloat vanilla documentation",
+        site_name: "Traffloat user guide",
         site_url: opts.site_url.clone().unwrap_or_else(String::new),
         use_directory_urls: opts.site_url.is_some(),
         site_author: "SOFe",
@@ -78,39 +79,4 @@ fn main() -> Result<()> {
     serde_yaml::to_writer(mkdocs_yml, &manifest).context("YAML formatting error")?;
 
     Ok(())
-}
-
-fn write_building(
-    opts: &opts::Opts,
-    assets: &mut assets::Pool,
-    building: &buildings::Def,
-) -> Result<PathBuf> {
-    use heck::KebabCase;
-
-    let buildings_dir = opts.root_dir.join("docs/buildings");
-    fs::create_dir_all(&buildings_dir).context("Could not create buildings dir")?;
-
-    let file = buildings_dir.join(format!("{}.md", building.name.to_kebab_case()));
-    let mut fh = fs::File::create(&file)
-        .with_context(|| format!("Could not open {} for writing", file.display()))?;
-
-    let texture_dir = opts
-        .client_dir
-        .join("textures")
-        .join(building.shape.texture);
-    let texture_dir = texture_dir
-        .canonicalize()
-        .with_context(|| format!("Could not canonicalize {}", texture_dir.display()))?;
-
-    writeln!(&mut fh, "# {}", building.name)?;
-    writeln!(
-        &mut fh,
-        "![](../{}){{ width=64 align=right }}",
-        assets.map(&texture_dir.join("xp.png"))?
-    )?;
-    writeln!(&mut fh, "> {}", building.summary)?;
-    writeln!(&mut fh)?;
-    writeln!(&mut fh, "{}", building.description)?;
-
-    Ok(file)
 }

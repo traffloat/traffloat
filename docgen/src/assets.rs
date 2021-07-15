@@ -20,9 +20,7 @@ impl Pool {
             sub,
         })
     }
-}
 
-impl Pool {
     pub fn map(&mut self, path: &Path) -> Result<String> {
         let count = self.map.len();
         Ok(match self.map.entry(path.display().to_string()) {

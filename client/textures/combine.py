@@ -11,7 +11,7 @@ HEIGHT = 256
 
 TEXTURE_SIZE = 16
 
-agg = numpy.zeros((WIDTH, HEIGHT, 3))
+agg = numpy.zeros((WIDTH, HEIGHT, 4))
 
 class IndexAlloc:
     def __init__(self):
@@ -49,20 +49,35 @@ def add_dir(path: str):
             im = plt.imread(os.path.join(path, direction + side + ".png"))
             if last is None or not numpy.all(im == last):
                 x, y, region = alloc.alloc()
-                region[:] = im
+                region[:, :, :3] = im
+                region[:, :, 3] = 1.0
                 last = im
             subindex[direction + side] = {
-                "x": x,
-                "y": y,
+                "x": y,
+                "y": x,
                 "width": TEXTURE_SIZE,
                 "height": TEXTURE_SIZE,
             }
     index[path] = subindex
 
+def add_file(path: str):
+    im = plt.imread(path)
+    x, y, region = alloc.alloc()
+    region[:] = im
+    index[os.path.basename(path)[:-4]] = {
+        "shape": "icon",
+        "x": y,
+        "y": x,
+        "width": TEXTURE_SIZE,
+        "height": TEXTURE_SIZE,
+    }
+
 for path in os.listdir("."):
     if os.path.isfile(os.path.join(path, "xp.png")):
         add_dir(path)
+    elif path.endswith(".png") and os.path.isfile(path):
+        add_file(path)
 
-plt.imsave("../static/textures.png", agg.transpose((1, 0, 2)))
+plt.imsave("../static/textures.png", agg.copy(order="C"))
 with open("../static/textures.png.json", "w") as fh:
     fh.write(json.dumps(index, separators=(",", ":"), indent=1))

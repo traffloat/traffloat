@@ -33,7 +33,7 @@ jobs:
       - name: Preprocess resources
         run: just pp
       - name: Build documentation
-        run: just vanilla-doc
+        run: just guide
 
       - name: Set Git author
         run: git config --global user.name "github-actions[bot]" && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"

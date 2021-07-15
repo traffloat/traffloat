@@ -97,6 +97,9 @@ impl PreparedTexture {
                 buffer.update(gl, &tex_pos(cube, self.width, self.height));
                 attr.assign(gl, buffer);
             }
+            ShapeSprites::Icon(sprite) => {
+                unimplemented!()
+            }
         }
     }
 }
@@ -200,12 +203,15 @@ impl Index {
     }
 }
 
+/// Sprites for one shape.
 #[derive(serde::Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 #[serde(tag = "shape")]
 pub enum ShapeSprites {
     /// Cube
     Cube(CubeSprites),
+    /// An icon sprite with only one shape.
+    Icon(RectSprite),
 }
 
 #[derive(serde::Deserialize, getset::CopyGetters, Debug, Clone, Copy)]

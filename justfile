@@ -8,8 +8,8 @@ client-watch: client-clean pp
 
 doc: pp
 	cargo doc --lib
-vanilla-doc:
-	cd docgen && cargo run
+guide:
+	cd docgen && cargo run -- --site-url https://traffloat.github.io/guide/master/
 	cd docgen/output && mkdocs build
 
 client-clean:
