@@ -8,6 +8,9 @@ client-watch: client-clean pp
 
 doc: pp
 	cargo doc --lib
+vanilla-doc:
+	cd docgen && cargo run
+	cd docgen/output && mkdocs build
 
 client-clean:
 	cd client && $(npm bin)/rimraf dist pkg

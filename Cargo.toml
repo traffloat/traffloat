@@ -4,6 +4,8 @@ members = [
 	"codegen",
 	"codegen-types",
 	"types",
+	"vanilla",
+	"docgen",
 	"common",
 	"client",
 ]

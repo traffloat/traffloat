@@ -1,0 +1,19 @@
+[package]
+name = "traffloat-docgen"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.2.0"
+edition = "2018"
+repository = "https://github.com/traffloat/traffloat"
+homepage = "https://github.com/traffloat/traffloat"
+description = "Traffloat web client"
+license = "AGPL-3.0"
+
+[dependencies]
+anyhow = "1.0.42"
+clap = "2.33.3"
+derive-new = "0.5.9"
+heck = "0.3.3"
+serde = {version = "1.0.126", features = ["derive"]}
+serde_yaml = "0.8.17"
+structopt = "0.3.22"
+traffloat-vanilla = {version = "0.2.0", path = "../vanilla"}

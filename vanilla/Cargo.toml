@@ -1,0 +1,12 @@
+[package]
+name = "traffloat-vanilla"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.2.0"
+edition = "2018"
+repository = "https://github.com/traffloat/traffloat"
+homepage = "https://github.com/traffloat/traffloat"
+description = "Traffloat vanilla data definitions"
+license = "AGPL-3.0"
+
+[dependencies]
+traffloat-types = {version = "0.2.0", path = "../types"}
