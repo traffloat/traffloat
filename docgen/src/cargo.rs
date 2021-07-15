@@ -28,7 +28,10 @@ pub fn gen_cargos(
         writeln!(&mut fh, "# List of cargo types")?;
 
         for category in cargo::Category::iter() {
-            writeln!(&mut fh, "## {}", category,)?;
+            writeln!(&mut fh, "## {}", category)?;
+            writeln!(&mut fh, "{}", cargo::category_description(category))?;
+            writeln!(&mut fh, "")?;
+
             for cargo in cargo::ALL {
                 if cargo.category == category {
                     let texture_path = opts
