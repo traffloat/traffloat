@@ -28,14 +28,13 @@ pub fn gen_cargos(
         writeln!(&mut fh, "# List of cargo types")?;
 
         for category in cargo::Category::iter() {
-            writeln!(
-                &mut fh,
-                "## {}",
-                category,
-            )?;
+            writeln!(&mut fh, "## {}", category,)?;
             for cargo in cargo::ALL {
                 if cargo.category == category {
-                    let texture_path = opts.client_dir.join("textures").join(cargo.texture)
+                    let texture_path = opts
+                        .client_dir
+                        .join("textures")
+                        .join(cargo.texture)
                         .with_extension("png");
                     let texture_path = texture_path.canonicalize().with_context(|| {
                         format!("Could not canonicalize {}", texture_path.display())
@@ -67,7 +66,11 @@ fn write_cargo(
     let mut fh = fs::File::create(&file)
         .with_context(|| format!("Could not open {} for writing", file.display()))?;
 
-    let texture_path = opts.client_dir.join("textures").join(cargo.texture).with_extension("png");
+    let texture_path = opts
+        .client_dir
+        .join("textures")
+        .join(cargo.texture)
+        .with_extension("png");
     let texture_path = texture_path
         .canonicalize()
         .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;
