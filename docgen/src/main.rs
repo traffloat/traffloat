@@ -69,7 +69,7 @@ fn main() -> Result<()> {
         theme: manifest::Theme {
             name: "material",
             favicon: favicon_path.clone(),
-            logo: favicon_path.clone(),
+            logo: favicon_path,
             features: &[],
         },
         markdown_extensions: &["attr_list"],

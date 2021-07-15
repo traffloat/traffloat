@@ -30,7 +30,7 @@ impl Pool {
                 let dest = self
                     .dest
                     .join(count.to_string())
-                    .with_extension(path.extension().unwrap_or(Default::default()));
+                    .with_extension(path.extension().unwrap_or_default());
                 fs::copy(path, &dest).context("Could not copy to dest")?;
                 let name = dest
                     .file_name()
