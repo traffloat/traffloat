@@ -16,9 +16,9 @@ pub fn gen_reactions(
 ) -> Result<Vec<manifest::Nav>> {
     let mut reactions_index = vec![manifest::Nav::Path(PathBuf::from("reactions.md"))];
 
-    for reaction in reactions::ALL {
+    for reaction in &**reactions::ALL {
         let path = write_reaction(opts, assets, reaction)
-            .with_context(|| format!("Writing reaction {}", reaction.name))?;
+            .with_context(|| format!("Writing reaction {}", reaction.name()))?;
         reactions_index.push(manifest::Nav::Path(relativize(&path)?));
     }
 
@@ -34,13 +34,13 @@ pub fn gen_reactions(
                 category,
                 category.to_string().to_kebab_case()
             )?;
-            for reaction in reactions::ALL {
-                if reaction.category == category {
+            for reaction in &**reactions::ALL {
+                if reaction.category() == category {
                     writeln!(
                         &mut fh,
                         "- [{}]({})",
-                        reaction.name,
-                        reaction.name.to_kebab_case()
+                        reaction.name(),
+                        reaction.name().to_kebab_case()
                     )?;
                 }
             }
@@ -58,11 +58,32 @@ fn write_reaction(
     let reactions_dir = opts.root_dir.join("docs/reactions");
     fs::create_dir_all(&reactions_dir).context("Could not create reactions dir")?;
 
-    let file = reactions_dir.join(format!("{}.md", reaction.name.to_kebab_case()));
+    let file = reactions_dir.join(format!("{}.md", reaction.name().to_kebab_case()));
     let mut fh = fs::File::create(&file)
         .with_context(|| format!("Could not open {} for writing", file.display()))?;
 
-    writeln!(&mut fh, "# {}", reaction.name)?;
+    writeln!(&mut fh, "# {}", reaction.name())?;
+    writeln!(&mut fh, "{}", reaction.description())?;
+
+    if !reaction.catalysts().is_empty() {
+        writeln!(&mut fh, "## Catalysts/Conditions")?;
+        writeln!(&mut fh, "| Type | Minimum | Maximum | Multiplier below minimum | Multiplier at minimum | Multiplier at maximum | Multiplier above maximum |")?;
+        writeln!(&mut fh, "| :-: | :-: | :-: | :-: | :-: | :-: | :-: |")?;
+        for catalyst in reaction.catalysts() {
+            let levels = catalyst.levels();
+            writeln!(
+                &mut fh,
+                "| {} | {} | {} | {}x | {}x | {}x | {}x |",
+                levels.ty(),
+                reactions::DisplayCatalystLevel(levels, reactions::MinMax::Min),
+                reactions::DisplayCatalystLevel(levels, reactions::MinMax::Max),
+                catalyst.multipliers()[0],
+                catalyst.multipliers()[1],
+                catalyst.multipliers()[2],
+                catalyst.multipliers()[3],
+            )?;
+        }
+    }
 
     Ok(file)
 }

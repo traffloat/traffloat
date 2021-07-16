@@ -10,4 +10,3 @@ license = "AGPL-3.0"
 
 [dependencies]
 nalgebra = "0.28.0"
-ratio-def = "0.3.1"

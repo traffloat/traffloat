@@ -30,7 +30,7 @@ pub fn gen_gases(
             let texture_path = opts
                 .client_dir
                 .join("textures")
-                .join(gas.texture)
+                .join(gas.texture.as_ref())
                 .with_extension("png");
             let texture_path = texture_path
                 .canonicalize()
@@ -59,7 +59,7 @@ fn write_gas(opts: &opts::Opts, assets: &mut assets::Pool, gas: &gas::Def) -> Re
     let texture_path = opts
         .client_dir
         .join("textures")
-        .join(gas.texture)
+        .join(gas.texture.as_ref())
         .with_extension("png");
     let texture_path = texture_path
         .canonicalize()

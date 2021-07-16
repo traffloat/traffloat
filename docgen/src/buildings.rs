@@ -39,7 +39,7 @@ pub fn gen_buildings(
                     let texture_dir = opts
                         .client_dir
                         .join("textures")
-                        .join(building.shape.texture);
+                        .join(building.shape.texture.as_ref());
                     let texture_dir = texture_dir.canonicalize().with_context(|| {
                         format!("Could not canonicalize {}", texture_dir.display())
                     })?;
@@ -73,7 +73,7 @@ fn write_building(
     let texture_dir = opts
         .client_dir
         .join("textures")
-        .join(building.shape.texture);
+        .join(building.shape.texture.as_ref());
     let texture_dir = texture_dir
         .canonicalize()
         .with_context(|| format!("Could not canonicalize {}", texture_dir.display()))?;

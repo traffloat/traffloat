@@ -1,8 +1,8 @@
 //! Chronological units
 
-use std::ops::{Add, AddAssign, Mul, Rem, RemAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
-ratio_def::units! {
+units! {
     /// Internal trait just because declarative macros are stupid.
     _TimeTrait(Clone + Copy);
 
@@ -11,21 +11,7 @@ ratio_def::units! {
     /// Synchronized time span.
     ///
     /// The underlying integer is in 1/100 seconds.
-    Time;
-}
-
-impl Rem<Time> for Time {
-    type Output = Time;
-
-    fn rem(self, other: Self) -> Self {
-        Self(self.0 % other.0)
-    }
-}
-
-impl RemAssign<Time> for Time {
-    fn rem_assign(&mut self, other: Self) {
-        self.0 %= other.0;
-    }
+    Time("{:1} s");
 }
 
 impl Time {

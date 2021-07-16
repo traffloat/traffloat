@@ -668,12 +668,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ratio-def"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31f74cebf9b6e79e43664fa49e6e760b728141122a5e13e14f17131ba3af80fb"
-
-[[package]]
 name = "rawpointer"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -927,7 +921,6 @@ dependencies = [
  "legion",
  "log",
  "nalgebra",
- "ratio-def",
  "shrev",
  "smallvec",
  "traffloat-codegen",
@@ -962,7 +955,6 @@ name = "traffloat-types"
 version = "0.2.0"
 dependencies = [
  "nalgebra",
- "ratio-def",
 ]
 
 [[package]]
@@ -970,7 +962,10 @@ name = "traffloat-vanilla"
 version = "0.2.0"
 dependencies = [
  "const_format",
+ "derive-new",
+ "getset",
  "lazy_static",
+ "smallvec",
  "strum",
  "traffloat-types",
 ]

@@ -10,6 +10,9 @@ license = "AGPL-3.0"
 
 [dependencies]
 const_format = "0.2.14"
+derive-new = "0.5.9"
+getset = "0.1.1"
 lazy_static = "1.4.0"
+smallvec = "1.6.1"
 strum = {version = "0.21.0", features = ["derive"]}
 traffloat-types = {version = "0.2.0", path = "../types"}

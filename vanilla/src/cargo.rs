@@ -1,21 +1,23 @@
 //! Vanilla cargo type definitions.
 
-#![deny(dead_code)]
+use std::borrow::Cow;
 
 use crate::{gas, liquid};
 
 /// Defines a cargo type.
 pub struct Def {
+    /// String identifying the type, used for cross-referencing in vanilla definition.
+    pub id: Cow<'static, str>,
     /// Name of the cargo type.
-    pub name: &'static str,
+    pub name: Cow<'static, str>,
     /// Short description string for the cargo type.
-    pub summary: &'static str,
+    pub summary: Cow<'static, str>,
     /// Long, multiline description string for the cargo type.
-    pub description: &'static str,
+    pub description: Cow<'static, str>,
     /// Category of cargo type.
     pub category: Category,
     /// Texture string of the cargo type.
-    pub texture: &'static str,
+    pub texture: Cow<'static, str>,
 }
 
 /// Category of the cargo type, only for display purpose.
@@ -48,108 +50,127 @@ pub fn category_description(category: Category) -> &'static str {
     }
 }
 
-pub(crate) const AMINO_ACID: Def = Def {
-    name: "Amino acid",
-    summary: "An organic mineral.",
-    description: "Amino acids are found in small amounts in asteroids. \
-        Use them to synthesize food and DNA.",
-    category: Category::RawMineral,
-    texture: "dummy",
-};
-
-pub(crate) const ROCK: Def = Def {
-    name: "Rock",
-    summary: "Chunks of rocks from asteroids.",
-    description: "Rocks are the cheapest type of material obtained from asteroids. \
-        They can be used as ammunition or disposed as junk.",
-    category: Category::RawMineral,
-    texture: "dummy",
-};
-
-pub(crate) const DNA: Def = Def {
-    name: "DNA",
-    summary: "Genetic material.",
-    description: "DNA is used to produce inhabitants through asexual reproduction. \
-        Although morally challenged, this is the most effective way \
-        to start a new colony from scratch.",
-    category: Category::RawMineral,
-    texture: "dummy",
-};
-
-pub(crate) const PEPPLES: Def = Def {
-    name: "Pepples",
-    summary: "Stone pepples used as ammunition.",
-    description: "Pepples are produced by decomposing rocks.\
-        They are the basic type of ammunition for defense.",
-    category: Category::Ammunition,
-    texture: "dummy",
-};
-
-pub(crate) const SEDIMENT: Def = Def {
-    name: "Sediment",
-    summary: "Filtration and distillation residue.",
-    description: "Sediments are waste produced during liquid processing. \
-        They cannot be used for anything, and should be ejected with junk launchers \
-        to avoid filling up storage space.",
-    category: Category::Junk,
-    texture: "dummy",
-};
-
-pub(crate) const BATTERY: Def = Def {
-    name: "Battery",
-    summary: "Stores a small amount of power",
-    description: "Charged in charging stations and discharged in discharging stations, \
-        batteries serve as an alternative method to transfer electricity between buildings. \
-        They are useful for avoiding construction of power cables into low-consumption regions \
-        and ensuring uninterrupted power supply in regions where cable often disconnects.
-        ",
-    category: Category::Container,
-    texture: "battery",
-};
-
 pub fn gas_bottle(gas: &gas::Def) -> Def {
     Def {
-        name: Box::leak(format!("Gas bottle ({})", gas.name).into_boxed_str()),
-        summary: "Stores a small amount of gas",
+        id: gas.id.clone(),
+        name: format!("Gas bottle ({})", gas.name).into(),
+        summary: "Stores a small amount of gas".into(),
         description: "Produced in gas bottlers and centrifuges, gas bottles can be used to \
             transfer a small amount of gas to factories \
-            as a replacement of diffusing gas slowly through corridors.",
+            as a replacement of diffusing gas slowly through corridors."
+            .into(),
         category: Category::Container,
-        texture: Box::leak(format!("{}-gas-bottle", gas.texture).into_boxed_str()),
+        texture: format!("{}-gas-bottle", gas.texture).into(),
     }
 }
 
 pub fn liquid_bottle(liquid: &liquid::Def) -> Def {
     Def {
-        name: Box::leak(format!("Liquid bottle ({})", liquid.name).into_boxed_str()),
-        summary: "Stores a small amount of liquid",
+        id: liquid.id.clone(),
+        name: format!("Liquid bottle ({})", liquid.name).into(),
+        summary: "Stores a small amount of liquid".into(),
         description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to \
             transfer a small amount of liquid to factories \
-            as a replacement of constructing dedicated pipes through corridors.",
+            as a replacement of constructing dedicated pipes through corridors."
+            .into(),
         category: Category::Container,
-        texture: Box::leak(format!("{}-liquid-bottle", liquid.texture).into_boxed_str()),
+        texture: format!("{}-liquid-bottle", liquid.texture).into(),
     }
 }
 
-lazy_static::lazy_static! {
-    pub static ref ALL: &'static [Def] = {
-        let mut all = vec![
-            AMINO_ACID,
-            DNA,
-            ROCK,
-            PEPPLES,
-            SEDIMENT,
-            BATTERY,
-        ];
+macro_rules! cargos {
+    (
+        $($ident:ident {
+            name: $name:literal,
+            summary: $summary:literal,
+            description: $description:literal,
+            category: $category:ident,
+            texture: $texture:literal,
+        })*
+    ) => {
+        $(
+            pub(crate) const $ident: Def = Def {
+                id: Cow::Borrowed(stringify!($name)),
+                name: Cow::Borrowed($name),
+                summary: Cow::Borrowed($summary),
+                description: Cow::Borrowed($description),
+                category: Category::$category,
+                texture: Cow::Borrowed($texture),
+            };
+        )*
 
-        for gas in gas::ALL {
-            all.push(gas_bottle(gas));
+        lazy_static::lazy_static! {
+            pub static ref ALL: &'static [Def] = {
+                let mut all = vec![$($ident),*];
+                for gas in gas::ALL {
+                    all.push(gas_bottle(gas));
+                }
+                for liquid in liquid::ALL {
+                    all.push(liquid_bottle(liquid));
+                }
+                all.leak()
+            };
         }
+    }
+}
 
-        for liquid in liquid::ALL {
-            all.push(liquid_bottle(liquid));
-        }
+cargos! {
+    AMINO_ACID {
+        name: "Amino acid",
+        summary: "An organic mineral.",
+        description: "Amino acids are found in small amounts in asteroids. \
+            Use them to synthesize food and DNA.",
+        category: RawMineral,
+        texture: "dummy",
+    }
 
-        all.leak()
-    };
+    ROCK {
+        name: "Rock",
+        summary: "Chunks of rocks from asteroids.",
+        description: "Rocks are the cheapest type of material obtained from asteroids. \
+            They can be used as ammunition or disposed as junk.",
+        category: RawMineral,
+        texture: "dummy",
+    }
+
+    DNA {
+        name: "DNA",
+        summary: "Genetic material.",
+        description: "DNA is used to produce inhabitants through asexual reproduction. \
+            Although morally challenged, this is the most effective way \
+            to start a new colony from scratch.",
+        category: RawMineral,
+        texture: "dummy",
+    }
+
+    PEPPLES {
+        name: "Pepples",
+        summary: "Stone pepples used as ammunition.",
+        description: "Pepples are produced by decomposing rocks.\
+            They are the basic type of ammunition for defense.",
+        category: Ammunition,
+        texture: "dummy",
+    }
+
+    SEDIMENT {
+        name: "Sediment",
+        summary: "Filtration and distillation residue.",
+        description: "Sediments are waste produced during liquid processing. \
+            They cannot be used for anything, and should be ejected with junk launchers \
+            to avoid filling up storage space.",
+        category: Junk,
+        texture: "dummy",
+    }
+
+    BATTERY {
+        name: "Battery",
+        summary: "Stores a small amount of power",
+        description: "Charged in charging stations and discharged in discharging stations, \
+            batteries serve as an alternative method to transfer electricity between buildings. \
+            They are useful for avoiding construction of power cables into low-consumption regions \
+            and ensuring uninterrupted power supply in regions where cable often disconnects.
+            ",
+        category: Container,
+        texture: "battery",
+    }
 }
