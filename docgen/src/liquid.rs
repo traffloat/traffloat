@@ -32,9 +32,9 @@ pub fn gen_liquids(
                 .join("textures")
                 .join(liquid.texture)
                 .with_extension("png");
-            let texture_path = texture_path.canonicalize().with_context(|| {
-                format!("Could not canonicalize {}", texture_path.display())
-            })?;
+            let texture_path = texture_path
+                .canonicalize()
+                .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;
             writeln!(
                 &mut fh,
                 "- [![]({}){{ width=24 }} {}]({})",

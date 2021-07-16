@@ -16,8 +16,8 @@ pub fn gen_gases(
     let mut gases_index = vec![manifest::Nav::Path(PathBuf::from("gas.md"))];
 
     for gas in gas::ALL {
-        let path = write_gas(opts, assets, gas)
-            .with_context(|| format!("Writing gas {}", gas.name))?;
+        let path =
+            write_gas(opts, assets, gas).with_context(|| format!("Writing gas {}", gas.name))?;
         gases_index.push(manifest::Nav::Path(relativize(&path)?));
     }
 
@@ -32,9 +32,9 @@ pub fn gen_gases(
                 .join("textures")
                 .join(gas.texture)
                 .with_extension("png");
-            let texture_path = texture_path.canonicalize().with_context(|| {
-                format!("Could not canonicalize {}", texture_path.display())
-            })?;
+            let texture_path = texture_path
+                .canonicalize()
+                .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;
             writeln!(
                 &mut fh,
                 "- [![]({}){{ width=24 }} {}]({})",
@@ -48,11 +48,7 @@ pub fn gen_gases(
     Ok(gases_index)
 }
 
-fn write_gas(
-    opts: &opts::Opts,
-    assets: &mut assets::Pool,
-    gas: &gas::Def,
-) -> Result<PathBuf> {
+fn write_gas(opts: &opts::Opts, assets: &mut assets::Pool, gas: &gas::Def) -> Result<PathBuf> {
     let gases_dir = opts.root_dir.join("docs/gas");
     fs::create_dir_all(&gases_dir).context("Could not create gas dir")?;
 

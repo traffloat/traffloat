@@ -43,8 +43,4 @@ pub(crate) const NITROGEN: Def = Def {
 };
 
 /// All gas types.
-pub const ALL: &[Def] = &[
-    OXYGEN,
-    CARBON_DIOXIDE,
-    NITROGEN,
-];
+pub const ALL: &[Def] = &[OXYGEN, CARBON_DIOXIDE, NITROGEN];
