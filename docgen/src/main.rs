@@ -49,9 +49,11 @@ fn main() -> Result<()> {
             .context("Copying file")?;
         fs::write(docs_dir.join("corridor.md"), include_str!("corridor.md"))
             .context("Copying file")?;
+        fs::write(docs_dir.join("index.md"), include_str!("index.md")).context("Copying file")?;
     }
 
     let index = vec![
+        manifest::Nav::Path(PathBuf::from("index.md")),
         manifest::Nav::Path(PathBuf::from("controls.md")),
         manifest::Nav::Index {
             title: String::from("Buildings"),
@@ -84,7 +86,7 @@ fn main() -> Result<()> {
         .map(&favicon_path)
         .context("Resolving favicon path")?;
     let manifest = manifest::Mkdocs {
-        site_name: "Traffloat user guide",
+        site_name: "Traffloat user manual",
         site_url: opts.site_url.clone().unwrap_or_else(String::new),
         use_directory_urls: opts.site_url.is_some(),
         site_author: "SOFe",
