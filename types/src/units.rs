@@ -22,7 +22,7 @@ units! {
     ElectricEnergy("{} J");
 
     /// Orthogonal area of a node receiving sunlight.
-    Brightness("{} m^2");
+    Brightness("{} m\u{b2}");
 
     /// Skill level of an inhabitant.
     Skill("{}");
