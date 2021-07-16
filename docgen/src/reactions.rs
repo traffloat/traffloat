@@ -83,6 +83,37 @@ fn write_reaction(
                 catalyst.multipliers()[3],
             )?;
         }
+        writeln!(&mut fh)?;
+    }
+
+    let inputs = reaction
+        .puts()
+        .iter()
+        .filter(|put| put.rate().0.size() < 0.);
+    if inputs.clone().next().is_some() {
+        writeln!(&mut fh, "## Inputs")?;
+        writeln!(&mut fh, "Base consumption per second:")?;
+        writeln!(&mut fh)?;
+        for input in inputs {
+            let mut consume = input.rate().0.clone();
+            *consume.size_mut() *= -1.;
+            writeln!(&mut fh, "- {}", &input.rate().0)?;
+        }
+        writeln!(&mut fh)?;
+    }
+
+    let outputs = reaction
+        .puts()
+        .iter()
+        .filter(|put| put.rate().0.size() > 0.);
+    if outputs.clone().next().is_some() {
+        writeln!(&mut fh, "## Outputs")?;
+        writeln!(&mut fh, "Base production per second:")?;
+        writeln!(&mut fh)?;
+        for output in outputs {
+            writeln!(&mut fh, "- {}", &output.rate().0)?;
+        }
+        writeln!(&mut fh)?;
     }
 
     Ok(file)

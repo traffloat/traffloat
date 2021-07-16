@@ -158,6 +158,7 @@ pub struct Put {
 }
 
 /// A type of resource that can be consumed.
+#[derive(Clone)]
 pub enum Consumable {
     /// Consumed or generated cargo
     Cargo {
@@ -173,6 +174,39 @@ pub enum Consumable {
     Gas { ty: GasType, size: units::GasVolume },
     /// Consumed or generated power
     Electricity { size: units::ElectricPower },
+}
+
+impl Consumable {
+    pub fn size(&self) -> f64 {
+        match self {
+            Self::Cargo { size, .. } => size.value(),
+            Self::Liquid { size, .. } => size.value(),
+            Self::Gas { size, .. } => size.value(),
+            Self::Electricity { size, .. } => size.value(),
+        }
+    }
+
+    pub fn size_mut(&mut self) -> &mut f64 {
+        use units::Unit;
+
+        match self {
+            Self::Cargo { size, .. } => size.value_mut(),
+            Self::Liquid { size, .. } => size.value_mut(),
+            Self::Gas { size, .. } => size.value_mut(),
+            Self::Electricity { size, .. } => size.value_mut(),
+        }
+    }
+}
+
+impl fmt::Display for Consumable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Cargo { ty, size } => write!(f, "{} {}", size, ty),
+            Self::Liquid { ty, size } => write!(f, "{} {}", size, ty),
+            Self::Gas { ty, size } => write!(f, "{} {}", size, ty),
+            Self::Electricity { size } => write!(f, "{} electricity", size),
+        }
+    }
 }
 
 macro_rules! reactions {

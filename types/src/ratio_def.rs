@@ -16,6 +16,9 @@ macro_rules! units {
         pub trait $blanket : $($super)* {
             /// Returns the raw value of this struct.
             fn value(self) -> $base;
+
+            /// Returns a reference to the raw value of this struct.
+            fn value_mut(&mut self) -> &mut $base;
         }
 
         $(
@@ -48,6 +51,11 @@ macro_rules! units {
                 #[inline(always)]
                 fn value(self) -> $base {
                     self.0
+                }
+
+                #[inline(always)]
+                fn value_mut(&mut self) -> &mut $base {
+                    &mut self.0
                 }
             }
 
