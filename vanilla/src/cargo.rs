@@ -2,6 +2,8 @@
 
 #![deny(dead_code)]
 
+use crate::{gas, liquid};
+
 /// Defines a cargo type.
 pub struct Def {
     /// Name of the cargo type.
@@ -83,6 +85,16 @@ pub(crate) const PEPPLES: Def = Def {
     texture: "dummy",
 };
 
+pub(crate) const SEDIMENT: Def = Def {
+    name: "Sediment",
+    summary: "Filtration and distillation residue.",
+    description: "Sediments are waste produced during liquid processing. \
+        They cannot be used for anything, and should be ejected with junk launchers \
+        to avoid filling up storage space.",
+    category: Category::Junk,
+    texture: "dummy",
+};
+
 pub(crate) const BATTERY: Def = Def {
     name: "Battery",
     summary: "Stores a small amount of power",
@@ -95,33 +107,49 @@ pub(crate) const BATTERY: Def = Def {
     texture: "battery",
 };
 
-pub(crate) const GAS_BOTTLE: Def = Def {
-    name: "Gas bottle",
-    summary: "Stores a small amount of gas",
-    description: "Produced in gas bottlers and centrifuges, gas bottles can be used to \
-        transfer a small amount of gas to factories \
-        as a replacement of diffusing gas slowly through corridors.",
-    category: Category::Container,
-    texture: "gas-bottle",
-};
+pub fn gas_bottle(gas: &gas::Def) -> Def {
+    Def {
+        name: Box::leak(format!("Gas bottle ({})", gas.name).into_boxed_str()),
+        summary: "Stores a small amount of gas",
+        description: "Produced in gas bottlers and centrifuges, gas bottles can be used to \
+            transfer a small amount of gas to factories \
+            as a replacement of diffusing gas slowly through corridors.",
+        category: Category::Container,
+        texture: Box::leak(format!("{}-gas-bottle", gas.texture).into_boxed_str()),
+    }
+}
 
-pub(crate) const LIQUID_BOTTLE: Def = Def {
-    name: "Liquid bottle",
-    summary: "Stores a small amount of liquid",
-    description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to \
-        transfer a small amount of liquid to factories \
-        as a replacement of constructing dedicated pipes through corridors.",
-    category: Category::Container,
-    texture: "liquid-bottle",
-};
+pub fn liquid_bottle(liquid: &liquid::Def) -> Def {
+    Def {
+        name: Box::leak(format!("Liquid bottle ({})", liquid.name).into_boxed_str()),
+        summary: "Stores a small amount of liquid",
+        description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to \
+            transfer a small amount of liquid to factories \
+            as a replacement of constructing dedicated pipes through corridors.",
+        category: Category::Container,
+        texture: Box::leak(format!("{}-liquid-bottle", liquid.texture).into_boxed_str()),
+    }
+}
 
-/// All cargo types.
-pub const ALL: &[Def] = &[
-    AMINO_ACID,
-    DNA,
-    ROCK,
-    PEPPLES,
-    BATTERY,
-    GAS_BOTTLE,
-    LIQUID_BOTTLE,
-];
+lazy_static::lazy_static! {
+    pub static ref ALL: &'static [Def] = {
+        let mut all = vec![
+            AMINO_ACID,
+            DNA,
+            ROCK,
+            PEPPLES,
+            SEDIMENT,
+            BATTERY,
+        ];
+
+        for gas in gas::ALL {
+            all.push(gas_bottle(gas));
+        }
+
+        for liquid in liquid::ALL {
+            all.push(liquid_bottle(liquid));
+        }
+
+        all.leak()
+    };
+}

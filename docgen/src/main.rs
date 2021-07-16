@@ -9,6 +9,8 @@ use structopt::StructOpt;
 mod assets;
 mod buildings;
 mod cargo;
+mod gas;
+mod liquid;
 mod manifest;
 mod opts;
 mod reactions;
@@ -36,6 +38,10 @@ fn main() -> Result<()> {
         .context("Generating reactions guide")?;
     let cargos_index =
         cargo::gen_cargos(&opts, &mut assets, relativize).context("Generating cargos guide")?;
+    let gases_index =
+        gas::gen_gases(&opts, &mut assets, relativize).context("Generating gases guide")?;
+    let liquids_index =
+        liquid::gen_liquids(&opts, &mut assets, relativize).context("Generating liquids guide")?;
 
     let index = vec![
         manifest::Nav::Index {
@@ -49,6 +55,14 @@ fn main() -> Result<()> {
         manifest::Nav::Index {
             title: String::from("Cargo"),
             items: cargos_index,
+        },
+        manifest::Nav::Index {
+            title: String::from("Gases"),
+            items: gases_index,
+        },
+        manifest::Nav::Index {
+            title: String::from("Liquids"),
+            items: liquids_index,
         },
     ];
 

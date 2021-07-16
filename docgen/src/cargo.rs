@@ -16,7 +16,7 @@ pub fn gen_cargos(
 ) -> Result<Vec<manifest::Nav>> {
     let mut cargos_index = vec![manifest::Nav::Path(PathBuf::from("cargo.md"))];
 
-    for cargo in cargo::ALL {
+    for cargo in &**cargo::ALL {
         let path = write_cargo(opts, assets, cargo)
             .with_context(|| format!("Writing cargo {}", cargo.name))?;
         cargos_index.push(manifest::Nav::Path(relativize(&path)?));
@@ -32,7 +32,7 @@ pub fn gen_cargos(
             writeln!(&mut fh, "{}", cargo::category_description(category))?;
             writeln!(&mut fh, "")?;
 
-            for cargo in cargo::ALL {
+            for cargo in &**cargo::ALL {
                 if cargo.category == category {
                     let texture_path = opts
                         .client_dir
