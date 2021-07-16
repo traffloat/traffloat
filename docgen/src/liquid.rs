@@ -24,7 +24,8 @@ pub fn gen_liquids(
     {
         let mut fh = fs::File::create(opts.root_dir.join("docs/liquid.md"))
             .context("Could not create liquid.md")?;
-        writeln!(&mut fh, "# List of liquid types")?;
+        writeln!(&mut fh, "{}", include_str!("liquid.md"))?;
+        writeln!(&mut fh, "## List of liquid types")?;
 
         for liquid in liquid::ALL {
             let texture_path = opts

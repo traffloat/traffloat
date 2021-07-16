@@ -25,10 +25,11 @@ pub fn gen_cargos(
     {
         let mut fh = fs::File::create(opts.root_dir.join("docs/cargo.md"))
             .context("Could not create cargo.md")?;
-        writeln!(&mut fh, "# List of cargo types")?;
+        writeln!(&mut fh, "{}", include_str!("cargo.md"))?;
+        writeln!(&mut fh, "## List of cargo types")?;
 
         for category in cargo::Category::iter() {
-            writeln!(&mut fh, "## {}", category)?;
+            writeln!(&mut fh, "### {}", category)?;
             writeln!(&mut fh, "{}", cargo::category_description(category))?;
             writeln!(&mut fh)?;
 

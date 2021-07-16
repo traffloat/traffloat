@@ -1,7 +1,7 @@
 //! Crate to generate docs.
 
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use structopt::StructOpt;
@@ -43,11 +43,19 @@ fn main() -> Result<()> {
     let liquids_index =
         liquid::gen_liquids(&opts, &mut assets, relativize).context("Generating liquids guide")?;
 
+    {
+        let docs_dir = opts.root_dir.join("docs");
+        fs::write(docs_dir.join("controls.md"), include_str!("controls.md")).context("Copying file")?;
+        fs::write(docs_dir.join("corridor.md"), include_str!("corridor.md")).context("Copying file")?;
+    }
+
     let index = vec![
+        manifest::Nav::Path(PathBuf::from("controls.md")),
         manifest::Nav::Index {
             title: String::from("Buildings"),
             items: buildings_index,
         },
+        manifest::Nav::Path(PathBuf::from("corridor.md")),
         manifest::Nav::Index {
             title: String::from("Mechanisms"),
             items: reactions_index,

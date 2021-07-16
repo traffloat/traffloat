@@ -24,6 +24,7 @@ pub fn gen_gases(
     {
         let mut fh = fs::File::create(opts.root_dir.join("docs/gas.md"))
             .context("Could not create gas.md")?;
+        writeln!(&mut fh, "{}", include_str!("gas.md"))?;
         writeln!(&mut fh, "# List of gas types")?;
 
         for gas in gas::ALL {

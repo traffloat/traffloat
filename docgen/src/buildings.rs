@@ -25,12 +25,13 @@ pub fn gen_buildings(
     {
         let mut fh = fs::File::create(opts.root_dir.join("docs/buildings.md"))
             .context("Could not create buildings.md")?;
-        writeln!(&mut fh, "# List of buildings")?;
+        writeln!(&mut fh, "{}", include_str!("buildings.md"))?;
+        writeln!(&mut fh, "## List of buildings")?;
 
         for category in buildings::Category::iter() {
             writeln!(
                 &mut fh,
-                "## [{}](../{}/)",
+                "### [{}](../{}/)",
                 category,
                 category.to_string().to_kebab_case()
             )?;
