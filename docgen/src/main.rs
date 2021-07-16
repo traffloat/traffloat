@@ -45,8 +45,10 @@ fn main() -> Result<()> {
 
     {
         let docs_dir = opts.root_dir.join("docs");
-        fs::write(docs_dir.join("controls.md"), include_str!("controls.md")).context("Copying file")?;
-        fs::write(docs_dir.join("corridor.md"), include_str!("corridor.md")).context("Copying file")?;
+        fs::write(docs_dir.join("controls.md"), include_str!("controls.md"))
+            .context("Copying file")?;
+        fs::write(docs_dir.join("corridor.md"), include_str!("corridor.md"))
+            .context("Copying file")?;
     }
 
     let index = vec![
