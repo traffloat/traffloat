@@ -1,7 +1,5 @@
 //! Defines the mechanism of a game.
 
-use typed_builder::TypedBuilder;
-
 pub mod building;
 pub mod cargo;
 pub mod gas;
@@ -10,7 +8,7 @@ pub mod reaction;
 pub mod skill;
 
 /// Game mechanism definition.
-#[derive(TypedBuilder, getset::Getters, getset::MutGetters)]
+#[derive(Default, getset::Getters, getset::MutGetters)]
 pub struct GameDefinition {
     /// Cargo types.
     #[getset(get = "pub", get_mut = "pub")]

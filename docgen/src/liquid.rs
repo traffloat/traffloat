@@ -6,18 +6,19 @@ use anyhow::{Context, Result};
 use heck::KebabCase;
 
 use super::{assets, manifest, opts};
-use traffloat_vanilla::{liquid, reactions};
+use traffloat_types::def::{liquid, reaction, GameDefinition};
 
 pub fn gen_liquids(
     opts: &opts::Opts,
     assets: &mut assets::Pool,
     relativize: impl Fn(&Path) -> Result<PathBuf>,
+    def: &GameDefinition,
 ) -> Result<Vec<manifest::Nav>> {
     let mut liquids_index = vec![manifest::Nav::Path(PathBuf::from("liquid.md"))];
 
-    for liquid in liquid::ALL {
-        let path = write_liquid(opts, assets, liquid)
-            .with_context(|| format!("Writing liquid {}", liquid.name))?;
+    for (liquid_id, liquid) in def.liquid().iter().enumerate() {
+        let path = write_liquid(opts, assets, liquid_id, liquid, def)
+            .with_context(|| format!("Writing liquid {}", liquid.name()))?;
         liquids_index.push(manifest::Nav::Path(relativize(&path)?));
     }
 
@@ -27,11 +28,11 @@ pub fn gen_liquids(
         writeln!(&mut fh, "{}", include_str!("liquid.md"))?;
         writeln!(&mut fh, "## List of liquid types")?;
 
-        for liquid in liquid::ALL {
+        for liquid in def.liquid() {
             let texture_path = opts
                 .client_dir
                 .join("textures")
-                .join(liquid.texture.as_ref())
+                .join(liquid.texture())
                 .with_extension("png");
             let texture_path = texture_path
                 .canonicalize()
@@ -40,8 +41,8 @@ pub fn gen_liquids(
                 &mut fh,
                 "- [![]({}){{ width=24 }} {}]({})",
                 assets.map(&texture_path)?,
-                liquid.name,
-                liquid.name.to_kebab_case()
+                liquid.name(),
+                liquid.name().to_kebab_case()
             )?;
         }
     }
@@ -52,60 +53,78 @@ pub fn gen_liquids(
 fn write_liquid(
     opts: &opts::Opts,
     assets: &mut assets::Pool,
-    liquid: &liquid::Def,
+    liquid_id: usize,
+    liquid: &liquid::Type,
+    def: &GameDefinition,
 ) -> Result<PathBuf> {
     let liquids_dir = opts.root_dir.join("docs/liquid");
     fs::create_dir_all(&liquids_dir).context("Could not create liquid dir")?;
 
-    let file = liquids_dir.join(format!("{}.md", liquid.name.to_kebab_case()));
+    let file = liquids_dir.join(format!("{}.md", liquid.name().to_kebab_case()));
     let mut fh = fs::File::create(&file)
         .with_context(|| format!("Could not open {} for writing", file.display()))?;
 
     let texture_path = opts
         .client_dir
         .join("textures")
-        .join(liquid.texture.as_ref())
+        .join(liquid.texture())
         .with_extension("png");
     let texture_path = texture_path
         .canonicalize()
         .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;
 
-    writeln!(&mut fh, "# {}", liquid.name)?;
+    writeln!(&mut fh, "# {}", liquid.name())?;
     writeln!(
         &mut fh,
         "![](../{}){{ width=64 align=right }}",
         assets.map(&texture_path)?
     )?;
-    writeln!(&mut fh, "> {}", liquid.summary)?;
+    writeln!(&mut fh, "> {}", liquid.summary())?;
     writeln!(&mut fh)?;
-    writeln!(&mut fh, "{}", liquid.description)?;
+    writeln!(&mut fh, "{}", liquid.description())?;
     writeln!(&mut fh)?;
 
-    let as_catalyst = reactions::ALL
+    fn is_liquid_range(range: &reaction::CatalystRange, liquid_id: usize) -> bool {
+        match range {
+            reaction::CatalystRange::Liquid { ty, .. } => ty.0 == liquid_id,
+            _ => false,
+        }
+    }
+    fn is_liquid_put(put: &reaction::Put, liquid_id: usize) -> bool {
+        match put {
+            reaction::Put::Liquid { ty, .. } => ty.0 == liquid_id,
+            _ => false,
+        }
+    }
+
+    let as_catalyst = def
+        .reaction()
         .iter()
         .filter(|reaction| {
             reaction
                 .catalysts()
                 .iter()
-                .any(|catalyst| catalyst.levels().ty() == liquid.name)
+                .any(|catalyst| is_liquid_range(catalyst.range(), liquid_id))
         })
         .collect();
-    let as_input = reactions::ALL
+    let as_input = def
+        .reaction()
         .iter()
         .filter(|reaction| {
             reaction
                 .puts()
                 .iter()
-                .any(|put| put.rate().0.ty() == liquid.name && put.rate().0.size() < 0.)
+                .any(|put| is_liquid_put(put, liquid_id) && put.base() < 0.)
         })
         .collect();
-    let as_output = reactions::ALL
+    let as_output = def
+        .reaction()
         .iter()
         .filter(|reaction| {
             reaction
                 .puts()
                 .iter()
-                .any(|put| put.rate().0.ty() == liquid.name && put.rate().0.size() > 0.)
+                .any(|put| is_liquid_put(put, liquid_id) && put.base() > 0.)
         })
         .collect();
     let reaction_groups: [(&str, Vec<_>); 3] = [

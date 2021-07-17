@@ -90,23 +90,35 @@ pub struct Multipliers {
 
 /// The inputs and outputs of a reaction.
 pub enum Put {
-    /// Existence of cargo
+    /// Consumption or production of cargo
     Cargo {
         ty: cargo::TypeId,
         base: Rate<units::CargoSize>,
     },
-    /// Existence of liquid
+    /// Consumption or production of liquid
     Liquid {
         ty: liquid::TypeId,
         base: Rate<units::LiquidVolume>,
     },
-    /// Existence of gas
+    /// Consumption or production of gas
     Gas {
         ty: gas::TypeId,
         base: Rate<units::GasVolume>,
     },
-    /// Existence of power
+    /// Consumption or generation or electricity
     Electricity { base: Rate<units::ElectricPower> },
+}
+
+impl Put {
+    /// Base put rate of the reaction.
+    pub fn base(&self) -> f64 {
+        match self {
+            Self::Cargo { base, .. } => base.0.value(),
+            Self::Liquid { base, .. } => base.0.value(),
+            Self::Gas { base, .. } => base.0.value(),
+            Self::Electricity { base, .. } => base.0.value(),
+        }
+    }
 }
 
 /// Identifies a reaction category

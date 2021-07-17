@@ -6,18 +6,19 @@ use anyhow::{Context, Result};
 use heck::KebabCase;
 
 use super::{assets, manifest, opts};
-use traffloat_vanilla::{gas, reactions};
+use traffloat_types::def::{gas, reaction, GameDefinition};
 
 pub fn gen_gases(
     opts: &opts::Opts,
     assets: &mut assets::Pool,
     relativize: impl Fn(&Path) -> Result<PathBuf>,
+    def: &GameDefinition,
 ) -> Result<Vec<manifest::Nav>> {
     let mut gases_index = vec![manifest::Nav::Path(PathBuf::from("gas.md"))];
 
-    for gas in gas::ALL {
-        let path =
-            write_gas(opts, assets, gas).with_context(|| format!("Writing gas {}", gas.name))?;
+    for (gas_id, gas) in def.gas().iter().enumerate() {
+        let path = write_gas(opts, assets, gas_id, gas, def)
+            .with_context(|| format!("Writing gas {}", gas.name()))?;
         gases_index.push(manifest::Nav::Path(relativize(&path)?));
     }
 
@@ -27,11 +28,11 @@ pub fn gen_gases(
         writeln!(&mut fh, "{}", include_str!("gas.md"))?;
         writeln!(&mut fh, "# List of gas types")?;
 
-        for gas in gas::ALL {
+        for gas in def.gas() {
             let texture_path = opts
                 .client_dir
                 .join("textures")
-                .join(gas.texture.as_ref())
+                .join(gas.texture())
                 .with_extension("png");
             let texture_path = texture_path
                 .canonicalize()
@@ -40,8 +41,8 @@ pub fn gen_gases(
                 &mut fh,
                 "- [![]({}){{ width=24 }} {}]({})",
                 assets.map(&texture_path)?,
-                gas.name,
-                gas.name.to_kebab_case()
+                gas.name(),
+                gas.name().to_kebab_case()
             )?;
         }
     }
@@ -49,58 +50,80 @@ pub fn gen_gases(
     Ok(gases_index)
 }
 
-fn write_gas(opts: &opts::Opts, assets: &mut assets::Pool, gas: &gas::Def) -> Result<PathBuf> {
+fn write_gas(
+    opts: &opts::Opts,
+    assets: &mut assets::Pool,
+    gas_id: usize,
+    gas: &gas::Type,
+    def: &GameDefinition,
+) -> Result<PathBuf> {
     let gases_dir = opts.root_dir.join("docs/gas");
     fs::create_dir_all(&gases_dir).context("Could not create gas dir")?;
 
-    let file = gases_dir.join(format!("{}.md", gas.name.to_kebab_case()));
+    let file = gases_dir.join(format!("{}.md", gas.name().to_kebab_case()));
     let mut fh = fs::File::create(&file)
         .with_context(|| format!("Could not open {} for writing", file.display()))?;
 
     let texture_path = opts
         .client_dir
         .join("textures")
-        .join(gas.texture.as_ref())
+        .join(gas.texture())
         .with_extension("png");
     let texture_path = texture_path
         .canonicalize()
         .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;
 
-    writeln!(&mut fh, "# {}", gas.name)?;
+    writeln!(&mut fh, "# {}", gas.name())?;
     writeln!(
         &mut fh,
         "![](../{}){{ width=64 align=right }}",
         assets.map(&texture_path)?
     )?;
-    writeln!(&mut fh, "> {}", gas.summary)?;
+    writeln!(&mut fh, "> {}", gas.summary())?;
     writeln!(&mut fh)?;
-    writeln!(&mut fh, "{}", gas.description)?;
+    writeln!(&mut fh, "{}", gas.description())?;
 
-    let as_catalyst = reactions::ALL
+    fn is_gas_range(range: &reaction::CatalystRange, gas_id: usize) -> bool {
+        match range {
+            reaction::CatalystRange::Gas { ty, .. } => ty.0 == gas_id,
+            _ => false,
+        }
+    }
+    fn is_gas_put(put: &reaction::Put, gas_id: usize) -> bool {
+        match put {
+            reaction::Put::Gas { ty, .. } => ty.0 == gas_id,
+            _ => false,
+        }
+    }
+
+    let as_catalyst = def
+        .reaction()
         .iter()
         .filter(|reaction| {
             reaction
                 .catalysts()
                 .iter()
-                .any(|catalyst| catalyst.levels().ty() == gas.name)
+                .any(|catalyst| is_gas_range(catalyst.range(), gas_id))
         })
         .collect();
-    let as_input = reactions::ALL
+    let as_input = def
+        .reaction()
         .iter()
         .filter(|reaction| {
             reaction
                 .puts()
                 .iter()
-                .any(|put| put.rate().0.ty() == gas.name && put.rate().0.size() < 0.)
+                .any(|put| is_gas_put(put, gas_id) && put.base() < 0.)
         })
         .collect();
-    let as_output = reactions::ALL
+    let as_output = def
+        .reaction()
         .iter()
         .filter(|reaction| {
             reaction
                 .puts()
                 .iter()
-                .any(|put| put.rate().0.ty() == gas.name && put.rate().0.size() > 0.)
+                .any(|put| is_gas_put(put, gas_id) && put.base() > 0.)
         })
         .collect();
     let reaction_groups: [(&str, Vec<_>); 3] = [

@@ -923,6 +923,7 @@ dependencies = [
  "serde_yaml",
  "structopt",
  "strum",
+ "traffloat-types",
  "traffloat-vanilla",
 ]
 

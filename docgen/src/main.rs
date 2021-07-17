@@ -32,16 +32,18 @@ fn main() -> Result<()> {
         Ok(stripped.to_path_buf())
     };
 
-    let buildings_index = buildings::gen_buildings(&opts, &mut assets, relativize)
+    let def = traffloat_vanilla::get();
+
+    let buildings_index = buildings::gen_buildings(&opts, &mut assets, relativize, &def)
         .context("Generating buildings guide")?;
-    let reactions_index = reactions::gen_reactions(&opts, &mut assets, relativize)
+    let reactions_index = reactions::gen_reactions(&opts, &mut assets, relativize, &def)
         .context("Generating reactions guide")?;
-    let cargos_index =
-        cargo::gen_cargos(&opts, &mut assets, relativize).context("Generating cargos guide")?;
+    let cargos_index = cargo::gen_cargos(&opts, &mut assets, relativize, &def)
+        .context("Generating cargos guide")?;
     let gases_index =
-        gas::gen_gases(&opts, &mut assets, relativize).context("Generating gases guide")?;
-    let liquids_index =
-        liquid::gen_liquids(&opts, &mut assets, relativize).context("Generating liquids guide")?;
+        gas::gen_gases(&opts, &mut assets, relativize, &def).context("Generating gases guide")?;
+    let liquids_index = liquid::gen_liquids(&opts, &mut assets, relativize, &def)
+        .context("Generating liquids guide")?;
 
     {
         let docs_dir = opts.root_dir.join("docs");

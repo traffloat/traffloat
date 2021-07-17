@@ -4,21 +4,21 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
 use heck::KebabCase;
-use strum::IntoEnumIterator;
 
 use super::{assets, manifest, opts};
-use traffloat_vanilla::{cargo, reactions};
+use traffloat_types::def::{cargo, reaction, GameDefinition};
 
 pub fn gen_cargos(
     opts: &opts::Opts,
     assets: &mut assets::Pool,
     relativize: impl Fn(&Path) -> Result<PathBuf>,
+    def: &GameDefinition,
 ) -> Result<Vec<manifest::Nav>> {
     let mut cargos_index = vec![manifest::Nav::Path(PathBuf::from("cargo.md"))];
 
-    for cargo in &**cargo::ALL {
-        let path = write_cargo(opts, assets, cargo)
-            .with_context(|| format!("Writing cargo {}", cargo.name))?;
+    for (cargo_id, cargo) in def.cargo().iter().enumerate() {
+        let path = write_cargo(opts, assets, cargo_id, cargo, def)
+            .with_context(|| format!("Writing cargo {}", cargo.name()))?;
         cargos_index.push(manifest::Nav::Path(relativize(&path)?));
     }
 
@@ -28,17 +28,17 @@ pub fn gen_cargos(
         writeln!(&mut fh, "{}", include_str!("cargo.md"))?;
         writeln!(&mut fh, "## List of cargo types")?;
 
-        for category in cargo::Category::iter() {
-            writeln!(&mut fh, "### {}", category)?;
-            writeln!(&mut fh, "{}", cargo::category_description(category))?;
+        for (category_id, category) in def.cargo_cats().iter().enumerate() {
+            writeln!(&mut fh, "### {}", category.title())?;
+            writeln!(&mut fh, "{}", category.description())?;
             writeln!(&mut fh)?;
 
-            for cargo in &**cargo::ALL {
-                if cargo.category == category {
+            for cargo in def.cargo() {
+                if cargo.category().0 == category_id {
                     let texture_path = opts
                         .client_dir
                         .join("textures")
-                        .join(cargo.texture.as_ref())
+                        .join(cargo.texture())
                         .with_extension("png");
                     let texture_path = texture_path.canonicalize().with_context(|| {
                         format!("Could not canonicalize {}", texture_path.display())
@@ -47,8 +47,8 @@ pub fn gen_cargos(
                         &mut fh,
                         "- [![]({}){{ width=24 }} {}]({})",
                         assets.map(&texture_path)?,
-                        cargo.name,
-                        cargo.name.to_kebab_case()
+                        cargo.name(),
+                        cargo.name().to_kebab_case()
                     )?;
                 }
             }
@@ -61,59 +61,77 @@ pub fn gen_cargos(
 fn write_cargo(
     opts: &opts::Opts,
     assets: &mut assets::Pool,
-    cargo: &cargo::Def,
+    cargo_id: usize,
+    cargo: &cargo::Type,
+    def: &GameDefinition,
 ) -> Result<PathBuf> {
     let cargos_dir = opts.root_dir.join("docs/cargo");
     fs::create_dir_all(&cargos_dir).context("Could not create cargo dir")?;
 
-    let file = cargos_dir.join(format!("{}.md", cargo.name.to_kebab_case()));
+    let file = cargos_dir.join(format!("{}.md", cargo.name().to_kebab_case()));
     let mut fh = fs::File::create(&file)
         .with_context(|| format!("Could not open {} for writing", file.display()))?;
 
     let texture_path = opts
         .client_dir
         .join("textures")
-        .join(cargo.texture.as_ref())
+        .join(cargo.texture())
         .with_extension("png");
     let texture_path = texture_path
         .canonicalize()
         .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;
 
-    writeln!(&mut fh, "# {}", cargo.name)?;
+    writeln!(&mut fh, "# {}", cargo.name())?;
     writeln!(
         &mut fh,
         "![](../{}){{ width=64 align=right }}",
         assets.map(&texture_path)?
     )?;
-    writeln!(&mut fh, "> {}", cargo.summary)?;
+    writeln!(&mut fh, "> {}", cargo.summary())?;
     writeln!(&mut fh)?;
-    writeln!(&mut fh, "{}", cargo.description)?;
+    writeln!(&mut fh, "{}", cargo.description())?;
 
-    let as_catalyst = reactions::ALL
+    fn is_cargo_range(range: &reaction::CatalystRange, cargo_id: usize) -> bool {
+        match range {
+            reaction::CatalystRange::Cargo { ty, .. } => ty.0 == cargo_id,
+            _ => false,
+        }
+    }
+    fn is_cargo_put(put: &reaction::Put, cargo_id: usize) -> bool {
+        match put {
+            reaction::Put::Cargo { ty, .. } => ty.0 == cargo_id,
+            _ => false,
+        }
+    }
+
+    let as_catalyst = def
+        .reaction()
         .iter()
         .filter(|reaction| {
             reaction
                 .catalysts()
                 .iter()
-                .any(|catalyst| catalyst.levels().ty() == cargo.name)
+                .any(|catalyst| is_cargo_range(catalyst.range(), cargo_id))
         })
         .collect();
-    let as_input = reactions::ALL
+    let as_input = def
+        .reaction()
         .iter()
         .filter(|reaction| {
             reaction
                 .puts()
                 .iter()
-                .any(|put| put.rate().0.ty() == cargo.name && put.rate().0.size() < 0.)
+                .any(|put| is_cargo_put(put, cargo_id) && put.base() < 0.)
         })
         .collect();
-    let as_output = reactions::ALL
+    let as_output = def
+        .reaction()
         .iter()
         .filter(|reaction| {
             reaction
                 .puts()
                 .iter()
-                .any(|put| put.rate().0.ty() == cargo.name && put.rate().0.size() > 0.)
+                .any(|put| is_cargo_put(put, cargo_id) && put.base() > 0.)
         })
         .collect();
     let reaction_groups: [(&str, Vec<_>); 3] = [

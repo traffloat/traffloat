@@ -17,4 +17,5 @@ serde = {version = "1.0.126", features = ["derive"]}
 serde_yaml = "0.8.17"
 structopt = "0.3.22"
 strum = "0.21.0"
+traffloat-types = {version = "0.2.0", path = "../types"}
 traffloat-vanilla = {version = "0.2.0", path = "../vanilla"}
