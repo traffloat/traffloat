@@ -69,13 +69,15 @@ pub enum CatalystRange {
         levels: Range<units::GasVolume>,
     },
     /// Existence of power
-    Electricity { 
+    Electricity {
         /// Min and max levels of electricity catalyst
-        levels: Range<units::ElectricPower> },
+        levels: Range<units::ElectricPower>,
+    },
     /// Existence of light
     Light {
         /// Min and max levels of light catalyst
-        levels: Range<units::Brightness> },
+        levels: Range<units::Brightness>,
+    },
     /// Existence of skilled operators
     Skill {
         /// Type of skill catalyst
@@ -128,7 +130,8 @@ pub enum Put {
     /// Consumption or generation or electricity
     Electricity {
         /// Base (unmultiplied) rate of electricity consumed/generated
-        base: Rate<units::ElectricPower> },
+        base: Rate<units::ElectricPower>,
+    },
 }
 
 impl Put {
