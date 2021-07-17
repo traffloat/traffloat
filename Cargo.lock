@@ -934,7 +934,10 @@ version = "0.2.0"
 name = "traffloat-types"
 version = "0.2.0"
 dependencies = [
+ "getset",
  "nalgebra",
+ "smallvec",
+ "typed-builder",
 ]
 
 [[package]]

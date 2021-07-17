@@ -1,20 +1,6 @@
 //! Vanilla liquid type definitions.
 
-use std::borrow::Cow;
-
-/// Defines a liquid type.
-pub struct Def {
-    /// String identifying the type, used for cross-referencing in vanilla definition.
-    pub(crate) id: Cow<'static, str>,
-    /// Name of the liquid type.
-    pub name: Cow<'static, str>,
-    /// Short description string for the liquid type.
-    pub summary: Cow<'static, str>,
-    /// Long, multiline description string for the liquid type.
-    pub description: Cow<'static, str>,
-    /// Base texture string of the liquid.
-    pub texture: Cow<'static, str>,
-}
+use traffloat_types::def::{liquid, GameDefinition};
 
 macro_rules! liquids {
     (
@@ -25,23 +11,35 @@ macro_rules! liquids {
             texture: $texture:literal,
         })*
     ) => {
-        $(
-            pub(crate) const $ident: Def = Def {
-                id: Cow::Borrowed(stringify!($name)),
-                name: Cow::Borrowed($name),
-                summary: Cow::Borrowed($summary),
-                description: Cow::Borrowed($description),
-                texture: Cow::Borrowed($texture),
-            };
-        )*
+        /// IDs assigned to the vanilla game definition.
+        pub struct Ids {
+            $(
+                pub $ident: liquid::TypeId,
+            )*
+        }
 
-        /// All liquid types.
-        pub const ALL: &[Def] = &[$($ident),*];
+        /// Populates a [`GameDefinition`] with liquid definition.
+        pub fn populate(def: &mut GameDefinition) -> Ids {
+            $(
+                let $ident = def.add_liquid(
+                    liquid::Type::builder()
+                        .name(String::from($name))
+                        .summary(String::from($summary))
+                        .description(String::from($description))
+                        .texture(String::from($texture))
+                        .build()
+                );
+            )*
+
+            Ids {
+                $($ident,)*
+            }
+        }
     }
 }
 
 liquids! {
-    ASTEROIDAL_WATER {
+    asteroidal_water {
         name: "Asteroidal water",
         summary: "Water found on asteroids",
         description: "Deposits of water can sometimes be found in asteroids. \
@@ -50,7 +48,7 @@ liquids! {
         texture: "dummy",
     }
 
-    FILTERED_WATER {
+    filtered_water {
         name: "Filtered water",
         summary: "Water without insoluble impurities.",
         description: "Filtered water is removed of insoluble impurities, \
@@ -58,7 +56,7 @@ liquids! {
         texture: "dummy",
     }
 
-    DEIONIZED_WATER {
+    deionized_water {
         name: "Deionized water",
         summary: "Drinking water",
         description: "Soluble impurities in water are removed from water during deionization. \
@@ -66,7 +64,7 @@ liquids! {
         texture: "dummy",
     }
 
-    URINE {
+    urine {
         name: "Urine",
         summary: "Waste produced by inhabitants",
         description: "Urines are organic waste produced by inhabitants in houses. \
@@ -75,7 +73,7 @@ liquids! {
         texture: "dummy",
     }
 
-    COOLANT {
+    coolant {
         name: "Coolant",
         summary: "A liquid at very low temperature",
         description: "Coolants are produced by condensation of nitrogen. \

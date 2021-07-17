@@ -1,20 +1,6 @@
 //! Vanilla gas type definitions.
 
-use std::borrow::Cow;
-
-/// Defines a gas type.
-pub struct Def {
-    /// String identifying the type, used for cross-referencing in vanilla definition.
-    pub(crate) id: Cow<'static, str>,
-    /// Name of the gas type.
-    pub name: Cow<'static, str>,
-    /// Short description string for the gas type.
-    pub summary: Cow<'static, str>,
-    /// Long, multiline description string for the gas type.
-    pub description: Cow<'static, str>,
-    /// Base texture string of the gas type.
-    pub texture: Cow<'static, str>,
-}
+use traffloat_types::def::{gas, GameDefinition};
 
 macro_rules! gases {
     (
@@ -25,23 +11,35 @@ macro_rules! gases {
             texture: $texture:literal,
         })*
     ) => {
-        $(
-            pub(crate) const $ident: Def = Def {
-                id: Cow::Borrowed(stringify!($name)),
-                name: Cow::Borrowed($name),
-                summary: Cow::Borrowed($summary),
-                description: Cow::Borrowed($description),
-                texture: Cow::Borrowed($texture),
-            };
-        )*
+        /// IDs assigned to the vanilla game definition.
+        pub struct Ids {
+            $(
+                pub $ident: gas::TypeId,
+            )*
+        }
 
-        /// All gas types.
-        pub const ALL: &[Def] = &[$($ident),*];
+        /// Populates a [`GameDefinition`] with gas definition.
+        pub fn populate(def: &mut GameDefinition) -> Ids {
+            $(
+                let $ident = def.add_gas(
+                    gas::Type::builder()
+                        .name(String::from($name))
+                        .summary(String::from($summary))
+                        .description(String::from($description))
+                        .texture(String::from($texture))
+                        .build()
+                );
+            )*
+
+            Ids {
+                $($ident,)*
+            }
+        }
     }
 }
 
 gases! {
-    OXYGEN {
+    oxygen {
         name: "Oxygen",
         summary: "Needed for breathing",
         description: "Oxygen is required for survival of inhabitants. \
@@ -51,7 +49,7 @@ gases! {
         texture: "dummy",
     }
 
-    CARBON_DIOXIDE {
+    carbon_dioxide {
         name: "Carbon dioxide",
         summary: "Photosynthesis material",
         description: "Carbon dioxide is produced in houses and consumed in oxygen farms. \
@@ -60,7 +58,7 @@ gases! {
         texture: "dummy",
     }
 
-    NITROGEN {
+    nitrogen {
         name: "Nitrogen",
         summary: "An abundant, safe gas for pressure regulation",
         description: "Nitrogen is found in abundant amounts. \
