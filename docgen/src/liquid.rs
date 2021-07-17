@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use heck::KebabCase;
 
 use super::{assets, manifest, opts};
-use traffloat_vanilla::liquid;
+use traffloat_vanilla::{liquid, reactions};
 
 pub fn gen_liquids(
     opts: &opts::Opts,
@@ -79,6 +79,50 @@ fn write_liquid(
     writeln!(&mut fh, "> {}", liquid.summary)?;
     writeln!(&mut fh)?;
     writeln!(&mut fh, "{}", liquid.description)?;
+    writeln!(&mut fh)?;
+
+    let as_catalyst = reactions::ALL
+        .iter()
+        .filter(|reaction| {
+            reaction
+                .catalysts()
+                .iter()
+                .any(|catalyst| catalyst.levels().ty() == liquid.name)
+        })
+        .collect();
+    let as_input = reactions::ALL
+        .iter()
+        .filter(|reaction| {
+            reaction
+                .puts()
+                .iter()
+                .any(|put| put.rate().0.ty() == liquid.name && put.rate().0.size() < 0.)
+        })
+        .collect();
+    let as_output = reactions::ALL
+        .iter()
+        .filter(|reaction| {
+            reaction
+                .puts()
+                .iter()
+                .any(|put| put.rate().0.ty() == liquid.name && put.rate().0.size() > 0.)
+        })
+        .collect();
+    let reaction_groups: [(&str, Vec<_>); 3] = [
+        ("Produced by", as_output),
+        ("Consumed by", as_input),
+        ("Catalyzes", as_catalyst),
+    ];
+
+    for (title, group) in &reaction_groups {
+        if !group.is_empty() {
+            writeln!(&mut fh, "## {}", title)?;
+            for reaction in group {
+                writeln!(&mut fh, "- {}", reaction.name())?;
+            }
+            writeln!(&mut fh)?;
+        }
+    }
 
     Ok(file)
 }

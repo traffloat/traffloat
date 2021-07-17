@@ -177,6 +177,15 @@ pub enum Consumable {
 }
 
 impl Consumable {
+    pub fn ty(&self) -> Cow<'static, str> {
+        match self {
+            Self::Cargo { ty, .. } => Cow::Borrowed(ty),
+            Self::Liquid { ty, .. } => Cow::Borrowed(ty),
+            Self::Gas { ty, .. } => Cow::Borrowed(ty),
+            Self::Electricity { .. } => Cow::Borrowed("Electricity"),
+        }
+    }
+
     pub fn size(&self) -> f64 {
         match self {
             Self::Cargo { size, .. } => size.value(),
