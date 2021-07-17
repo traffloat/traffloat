@@ -85,4 +85,51 @@ impl GameDefinition {
         self.building.push(building);
         building::TypeId(self.building.len() - 1)
     }
+
+    /// Returns the cargo with the specified ID
+    ///
+    /// # Panics
+    /// Panics if the type ID is undefined
+    pub fn get_cargo(&self, id: cargo::TypeId) -> &cargo::Type {
+        self.cargo.get(id.0).expect("Cargo ID is out of bounds")
+    }
+    /// Returns the liquid with the specified ID
+    ///
+    /// # Panics
+    /// Panics if the type ID is undefined
+    pub fn get_liquid(&self, id: liquid::TypeId) -> &liquid::Type {
+        self.liquid.get(id.0).expect("Liquid ID is out of bounds")
+    }
+    /// Returns the gas with the specified ID
+    ///
+    /// # Panics
+    /// Panics if the type ID is undefined
+    pub fn get_gas(&self, id: gas::TypeId) -> &gas::Type {
+        self.gas.get(id.0).expect("Gas ID is out of bounds")
+    }
+    /// Returns the skill with the specified ID
+    ///
+    /// # Panics
+    /// Panics if the type ID is undefined
+    pub fn get_skill(&self, id: skill::TypeId) -> &skill::Type {
+        self.skill.get(id.0).expect("Skill ID is out of bounds")
+    }
+    /// Returns the reaction with the specified ID
+    ///
+    /// # Panics
+    /// Panics if the type ID is undefined
+    pub fn get_reaction(&self, id: reaction::TypeId) -> &reaction::Type {
+        self.reaction
+            .get(id.0)
+            .expect("Reaction ID is out of bounds")
+    }
+    /// Returns the building with the specified ID
+    ///
+    /// # Panics
+    /// Panics if the type ID is undefined
+    pub fn get_building(&self, id: building::TypeId) -> &building::Type {
+        self.building
+            .get(id.0)
+            .expect("Building ID is out of bounds")
+    }
 }

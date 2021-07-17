@@ -77,10 +77,7 @@ fn write_reaction(
                     write!(
                         &mut fh,
                         "| {} | {} | {} ",
-                        def.cargo()
-                            .get(ty.0)
-                            .expect("Undefined cargo reference")
-                            .name(),
+                        def.get_cargo(*ty).name(),
                         levels.start,
                         levels.end
                     )?;
@@ -89,10 +86,7 @@ fn write_reaction(
                     write!(
                         &mut fh,
                         "| {} | {} | {} ",
-                        def.liquid()
-                            .get(ty.0)
-                            .expect("Undefined liquid reference")
-                            .name(),
+                        def.get_liquid(*ty).name(),
                         levels.start,
                         levels.end
                     )?;
@@ -101,7 +95,7 @@ fn write_reaction(
                     write!(
                         &mut fh,
                         "| {} | {} | {} ",
-                        def.gas().get(ty.0).expect("Undefined gas reference").name(),
+                        def.get_gas(*ty).name(),
                         levels.start,
                         levels.end
                     )?;
@@ -120,10 +114,7 @@ fn write_reaction(
                     write!(
                         &mut fh,
                         "| {} | {} | {} ",
-                        def.skill()
-                            .get(ty.0)
-                            .expect("Undefined skill reference")
-                            .name(),
+                        def.get_skill(*ty).name(),
                         levels.start,
                         levels.end
                     )?;
@@ -150,34 +141,13 @@ fn write_reaction(
         for input in inputs {
             match input {
                 reaction::Put::Cargo { ty, base } => {
-                    writeln!(
-                        &mut fh,
-                        "- {} {}",
-                        base.0 * -1.,
-                        def.cargo()
-                            .get(ty.0)
-                            .expect("Undefined cargo reference")
-                            .name()
-                    )?;
+                    writeln!(&mut fh, "- {} {}", base.0 * -1., def.get_cargo(*ty).name())?;
                 }
                 reaction::Put::Liquid { ty, base } => {
-                    writeln!(
-                        &mut fh,
-                        "- {} {}",
-                        base.0 * -1.,
-                        def.liquid()
-                            .get(ty.0)
-                            .expect("Undefined liquid reference")
-                            .name()
-                    )?;
+                    writeln!(&mut fh, "- {} {}", base.0 * -1., def.get_liquid(*ty).name())?;
                 }
                 reaction::Put::Gas { ty, base } => {
-                    writeln!(
-                        &mut fh,
-                        "- {} {}",
-                        base.0 * -1.,
-                        def.gas().get(ty.0).expect("Undefined gas reference").name()
-                    )?;
+                    writeln!(&mut fh, "- {} {}", base.0 * -1., def.get_gas(*ty).name())?;
                 }
                 reaction::Put::Electricity { base } => {
                     writeln!(&mut fh, "- {} electricity", base.0 * -1.)?;
@@ -195,34 +165,13 @@ fn write_reaction(
         for output in outputs {
             match output {
                 reaction::Put::Cargo { ty, base } => {
-                    writeln!(
-                        &mut fh,
-                        "- {} {}",
-                        base.0,
-                        def.cargo()
-                            .get(ty.0)
-                            .expect("Undefined cargo reference")
-                            .name()
-                    )?;
+                    writeln!(&mut fh, "- {} {}", base.0, def.get_cargo(*ty).name())?;
                 }
                 reaction::Put::Liquid { ty, base } => {
-                    writeln!(
-                        &mut fh,
-                        "- {} {}",
-                        base.0,
-                        def.liquid()
-                            .get(ty.0)
-                            .expect("Undefined liquid reference")
-                            .name()
-                    )?;
+                    writeln!(&mut fh, "- {} {}", base.0, def.get_liquid(*ty).name())?;
                 }
                 reaction::Put::Gas { ty, base } => {
-                    writeln!(
-                        &mut fh,
-                        "- {} {}",
-                        base.0,
-                        def.gas().get(ty.0).expect("Undefined gas reference").name()
-                    )?;
+                    writeln!(&mut fh, "- {} {}", base.0, def.get_gas(*ty).name())?;
                 }
                 reaction::Put::Electricity { base } => {
                     writeln!(&mut fh, "- {} electricity", base.0)?;

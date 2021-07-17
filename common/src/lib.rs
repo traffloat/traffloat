@@ -31,7 +31,7 @@
 #[macro_use]
 mod macros;
 
-pub use traffloat_types::{space, time, units};
+pub use traffloat_types::{def, space, time, units};
 
 pub mod cargo;
 pub mod clock;
