@@ -1,4 +1,3 @@
-#[macro_export]
 macro_rules! units {
     (
         $(#[$blanket_meta:meta])*

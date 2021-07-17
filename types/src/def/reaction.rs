@@ -1,3 +1,5 @@
+//! Reaction definitions
+
 use std::ops::Range;
 
 use smallvec::SmallVec;
@@ -47,26 +49,38 @@ pub struct Catalyst {
 pub enum CatalystRange {
     /// Existence of cargo
     Cargo {
+        /// Type of cargo catalyst
         ty: cargo::TypeId,
+        /// Min and max levels of cargo catalyst
         levels: Range<units::CargoSize>,
     },
     /// Existence of liquid
     Liquid {
+        /// Type of liquid catalyst
         ty: liquid::TypeId,
+        /// Min and max levels of liquid catalyst
         levels: Range<units::LiquidVolume>,
     },
     /// Existence of gas
     Gas {
+        /// Type of gas catalyst
         ty: gas::TypeId,
+        /// Min and max levels of gas catalyst
         levels: Range<units::GasVolume>,
     },
     /// Existence of power
-    Electricity { levels: Range<units::ElectricPower> },
+    Electricity { 
+        /// Min and max levels of electricity catalyst
+        levels: Range<units::ElectricPower> },
     /// Existence of light
-    Light { levels: Range<units::Brightness> },
+    Light {
+        /// Min and max levels of light catalyst
+        levels: Range<units::Brightness> },
     /// Existence of skilled operators
     Skill {
+        /// Type of skill catalyst
         ty: skill::TypeId,
+        /// Min and max levels of skill catalyst
         levels: Range<units::Skill>,
     },
 }
@@ -92,21 +106,29 @@ pub struct Multipliers {
 pub enum Put {
     /// Consumption or production of cargo
     Cargo {
+        /// Type of cargo consumed/produced
         ty: cargo::TypeId,
+        /// Base (unmultiplied) rate of gas consumed/produced
         base: Rate<units::CargoSize>,
     },
     /// Consumption or production of liquid
     Liquid {
+        /// Type of liquid consumed/produced
         ty: liquid::TypeId,
+        /// Base (unmultiplied) rate of liquid consumed/produced
         base: Rate<units::LiquidVolume>,
     },
     /// Consumption or production of gas
     Gas {
+        /// Type of gas consumed/produced
         ty: gas::TypeId,
+        /// Base (unmultiplied) rate of gas consumed/produced
         base: Rate<units::GasVolume>,
     },
     /// Consumption or generation or electricity
-    Electricity { base: Rate<units::ElectricPower> },
+    Electricity {
+        /// Base (unmultiplied) rate of electricity consumed/generated
+        base: Rate<units::ElectricPower> },
 }
 
 impl Put {

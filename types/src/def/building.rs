@@ -1,3 +1,5 @@
+//! Building definitions
+
 use typed_builder::TypedBuilder;
 
 /// Identifies a building category

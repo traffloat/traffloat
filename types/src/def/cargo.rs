@@ -1,3 +1,5 @@
+//! Cargo definitions.
+
 use typed_builder::TypedBuilder;
 
 /// Identifies a cargo category
