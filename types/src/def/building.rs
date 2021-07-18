@@ -34,19 +34,22 @@ pub struct Type {
     features: Vec<ExtraFeature>,
 }
 
-/// Whether the reaction can be configured by players
-/// and the behaviour when inputs underflow or outputs overflow.
+/// Reaction behaviour specific to this building.
 #[derive(TypedBuilder, getset::CopyGetters)]
 #[builder(field_defaults(default))]
 pub struct ReactionPolicy {
+    /// Whethre the reaction rate can be configured by the players.
     #[get_copy = "pub"]
     configurable: bool,
+    /// What happens when inputs underflow.
     #[get_copy = "pub"]
     on_underflow: FlowPolicy,
+    /// What happens when outputs overflow.
     #[get_copy = "pub"]
     on_overflow: FlowPolicy,
 }
 
+/// behaviour when inputs underflow or outputs overflow.
 #[derive(Debug, Clone, Copy)]
 pub enum FlowPolicy {
     /// Reduce the rate of reaction such that the input/output capacity is just enough.
