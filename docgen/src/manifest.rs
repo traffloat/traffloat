@@ -11,6 +11,7 @@ pub struct Mkdocs {
     pub site_author: &'static str,
     pub repo_url: &'static str,
     pub repo_name: &'static str,
+    pub edit_uri: &'static str,
     pub copyright: &'static str,
     pub theme: Theme,
     pub markdown_extensions: &'static [&'static str],

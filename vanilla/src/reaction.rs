@@ -33,7 +33,7 @@ macro_rules! reactions {
         })*
     ) => {
         /// IDs assigned to the vanilla game definition.
-        pub struct ReactionIds {
+        pub struct Ids {
             $(
                 $(
                     pub $ident: reaction::TypeId,
@@ -43,7 +43,7 @@ macro_rules! reactions {
 
         /// Populates a [`GameDefinition`] with cargo definition.
         #[allow(unused_variables)]
-        pub fn populate(def: &mut GameDefinition, cargo: super::cargo::Ids, liquid: super::liquid::Ids, gas: super::gas::Ids) -> ReactionIds {
+        pub fn populate(def: &mut GameDefinition, cargo: &super::cargo::Ids, liquid: &super::liquid::Ids, gas: &super::gas::Ids) -> Ids {
             $(
                 let $category_ident = def.add_reaction_category(
                     reaction::Category::builder()
@@ -87,7 +87,7 @@ macro_rules! reactions {
                 )*
             )*
 
-            ReactionIds {
+            Ids {
                 $(
                     $($ident,)*
                 )*

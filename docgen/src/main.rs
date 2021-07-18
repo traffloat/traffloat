@@ -94,6 +94,7 @@ fn main() -> Result<()> {
         site_author: "SOFe",
         repo_url: "https://github.com/traffloat/traffloat",
         repo_name: "traffloat/traffloat",
+        edit_uri: "https://github.com/traffloat/traffloat/edit/master/docgen/src/",
         copyright: "Licensed under AGPL 3.0",
         theme: manifest::Theme {
             name: "material",

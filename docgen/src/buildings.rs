@@ -17,7 +17,7 @@ pub fn gen_buildings(
     let mut buildings_index = vec![manifest::Nav::Path(PathBuf::from("buildings.md"))];
 
     for building in def.building() {
-        let path = write_building(opts, assets, building)
+        let path = write_building(opts, assets, building, def)
             .with_context(|| format!("Writing building {}", building.name()))?;
         buildings_index.push(manifest::Nav::Path(relativize(&path)?));
     }
@@ -62,6 +62,7 @@ fn write_building(
     opts: &opts::Opts,
     assets: &mut assets::Pool,
     building: &building::Type,
+    def: &GameDefinition,
 ) -> Result<PathBuf> {
     let buildings_dir = opts.root_dir.join("docs/buildings");
     fs::create_dir_all(&buildings_dir).context("Could not create buildings dir")?;
@@ -87,6 +88,57 @@ fn write_building(
     writeln!(&mut fh, "> {}", building.summary())?;
     writeln!(&mut fh)?;
     writeln!(&mut fh, "{}", building.description())?;
+    writeln!(&mut fh)?;
+
+    if !building.features().is_empty() {
+        writeln!(&mut fh, "## Features")?;
+        for feature in building.features() {
+            match feature {
+                building::ExtraFeature::Core => {
+                    writeln!(&mut fh, "### Core")?;
+                    writeln!(&mut fh, "This is a core building. Destruction of this building will end the game.")?;
+                    writeln!(&mut fh)?;
+                }
+                building::ExtraFeature::ProvidesHousing(capacity) => {
+                    writeln!(&mut fh, "### Housing ({} inhabitants)", capacity)?;
+                    writeln!(&mut fh, "This building provides {} housing capacity.", capacity)?;
+                    writeln!(&mut fh, "Inhabitants assigned to this building will be affected by")?;
+                    writeln!(&mut fh, "the happiness-related mechanisms of this building, such as food.")?;
+                    writeln!(&mut fh)?;
+                }
+            }
+        }
+    }
+
+    writeln!(&mut fh, "## Mechanisms")?;
+    for (reaction_id, policy) in building.reactions() {
+        let reaction = def.get_reaction(*reaction_id);
+        writeln!(
+            &mut fh,
+            "### [{}](../reactions/{})",
+            reaction.name(),
+            reaction.name().to_kebab_case()
+        )?;
+        writeln!(&mut fh, "{}", reaction.description())?;
+        writeln!(&mut fh)?;
+        writeln!(
+            &mut fh,
+            "| Player can manually restrict rate | When inputs underflow | When outputs overflow |"
+        )?;
+        writeln!(&mut fh, "| :-: | :-: | :-: |")?;
+        writeln!(
+            &mut fh,
+            "| {} | {} | {} |",
+            if policy.configurable() { "Yes" } else { "No" },
+            match policy.on_underflow() {
+                building::FlowPolicy::ReduceRate => "Reduce output rate",
+            },
+            match policy.on_overflow() {
+                building::FlowPolicy::ReduceRate => "Reduce input rate",
+            },
+        )?;
+        writeln!(&mut fh)?;
+    }
 
     Ok(file)
 }

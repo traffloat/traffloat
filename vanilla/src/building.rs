@@ -10,6 +10,14 @@ macro_rules! buildings {
                 summary: $summary:literal,
                 description: $description:literal,
                 texture: $texture:literal,
+                reactions: [
+                    $(
+                        $reaction_name:ident {
+                            $($reaction_param:ident: $reaction_value:expr,)*
+                        },
+                    )*
+                ],
+                features: [$($features:expr),* $(,)?],
             })*
         })*
     ) => {
@@ -23,7 +31,7 @@ macro_rules! buildings {
         }
 
         /// Populates a [`GameDefinition`] with building definition.
-        pub fn populate(def: &mut GameDefinition) -> Ids {
+        pub fn populate(def: &mut GameDefinition, reactions: &super::reaction::Ids) -> Ids {
             $(
                 let $category_ident = def.add_building_category(
                     building::Category::builder()
@@ -39,6 +47,25 @@ macro_rules! buildings {
                             .description(String::from($description))
                             .texture(String::from($texture))
                             .category($category_ident)
+                            .reactions(vec![
+                                $(
+                                    (
+                                        reactions.$reaction_name,
+                                        building::ReactionPolicy::builder()
+                                            $(
+                                                .$reaction_param($reaction_value)
+                                            )*
+                                            .build(),
+                                    ),
+                                )*
+                            ])
+                            .features({
+                                #[allow(unused_imports)]
+                                use traffloat_types::def::building::ExtraFeature::*;
+                                vec![
+                                    $($features,)*
+                                ]
+                            })
                             .build()
                     );
                 )*
@@ -63,12 +90,16 @@ buildings! {
                 some oxygen generation and a few population housing. \
                 Destruction of the core ends the game.",
             texture: "core",
+            reactions: [],
+            features: [Core],
         }
-        house {
-            name: "House",
-            summary: "Produces and supports the survival of inhabitants.",
+        hut {
+            name: "Hut",
+            summary: "A small living quarter.",
             description: "",
             texture: "house",
+            reactions: [],
+            features: [ProvidesHousing(6)],
         }
     }
 
@@ -78,6 +109,10 @@ buildings! {
             summary: "Basic power production",
             description: "",
             texture: "solar-panel",
+            reactions: [
+                solar_power {},
+            ],
+            features: [],
         }
     }
 }

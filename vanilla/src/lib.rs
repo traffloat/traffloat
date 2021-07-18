@@ -14,7 +14,7 @@ pub fn get() -> GameDefinition {
     let liquid = liquid::populate(&mut def);
     let gas = gas::populate(&mut def);
     let cargo = cargo::populate(&mut def);
-    reaction::populate(&mut def, cargo, liquid, gas);
-    building::populate(&mut def);
+    let reaction = reaction::populate(&mut def, &cargo, &liquid, &gas);
+    building::populate(&mut def, &reaction);
     def
 }
