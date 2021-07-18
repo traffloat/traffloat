@@ -96,14 +96,27 @@ fn write_building(
             match feature {
                 building::ExtraFeature::Core => {
                     writeln!(&mut fh, "### Core")?;
-                    writeln!(&mut fh, "This is a core building. Destruction of this building will end the game.")?;
+                    writeln!(
+                        &mut fh,
+                        "This is a core building. Destruction of this building will end the game."
+                    )?;
                     writeln!(&mut fh)?;
                 }
                 building::ExtraFeature::ProvidesHousing(capacity) => {
                     writeln!(&mut fh, "### Housing ({} inhabitants)", capacity)?;
-                    writeln!(&mut fh, "This building provides {} housing capacity.", capacity)?;
-                    writeln!(&mut fh, "Inhabitants assigned to this building will be affected by")?;
-                    writeln!(&mut fh, "the happiness-related mechanisms of this building, such as food.")?;
+                    writeln!(
+                        &mut fh,
+                        "This building provides {} housing capacity.",
+                        capacity
+                    )?;
+                    writeln!(
+                        &mut fh,
+                        "Inhabitants assigned to this building will be affected by"
+                    )?;
+                    writeln!(
+                        &mut fh,
+                        "the happiness-related mechanisms of this building, such as food."
+                    )?;
                     writeln!(&mut fh)?;
                 }
             }
