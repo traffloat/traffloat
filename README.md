@@ -80,7 +80,7 @@ at the cost of longer compile time.
 The game is composed of multiple crates:
 
 - [`codegen`](./codegen)/[`codegen-types`](./codegen-types): Defines procedural macros used in the game.
-- [`units`](./units): Defines standard data types of units used in the game.
+- [`types`](./types): Defines standard data types of vectors, units and gamerule definition.
 - [`vanilla`](./vanilla): Defines vanilla game configuration.
 - [`common`](./common): Implements game world simulation.
 - [`client`](./client): Implements a web game client.
