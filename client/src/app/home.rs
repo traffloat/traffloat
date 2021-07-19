@@ -94,6 +94,19 @@ impl Component for Home {
                 }) }
 
                 // TODO handle multiplayer
+
+                <footer style="position: fixed; bottom: 0; left: 0;width: 100%;">
+                    <ul style="text-align: center; display: block;">
+                        { for [
+                            ("Source code", "https://github.com/traffloat/traffloat"),
+                            ("User manual", "https://traffloat.github.io/guide/master/"),
+                            ("Discussion", "https://github.com/traffloat/traffloat/discussions"),
+                        ].iter().map(|&(name, url)| html! {
+                            <li style="display: inline; margin: 2em;"><a href=url target="_blank">{ name }</a></li>
+                        }) }
+                    </ul>
+                    <p style="text-align: center;">{ "Licensed under GNU Affero General Public License version 3." }</p>
+                </footer>
             </div>
         }
     }
