@@ -128,6 +128,12 @@ macro_rules! units {
                     self.0 %= other.value();
                 }
             }
+
+            impl ::std::iter::Sum for $tys {
+                fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
+                    iter.fold(Self::default(), |a, b| a + b)
+                }
+            }
         )*
 
         $(

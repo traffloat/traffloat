@@ -9,6 +9,7 @@ use structopt::StructOpt;
 mod assets;
 mod buildings;
 mod cargo;
+mod electricity;
 mod gas;
 mod liquid;
 mod manifest;
@@ -35,15 +36,17 @@ fn main() -> Result<()> {
     let (def, _, _) = traffloat_vanilla::get();
 
     let buildings_index = buildings::gen_buildings(&opts, &mut assets, relativize, &def)
-        .context("Generating buildings guide")?;
+        .context("Generating building guide")?;
     let reactions_index = reactions::gen_reactions(&opts, &mut assets, relativize, &def)
-        .context("Generating reactions guide")?;
+        .context("Generating reaction guide")?;
     let cargos_index = cargo::gen_cargos(&opts, &mut assets, relativize, &def)
-        .context("Generating cargos guide")?;
+        .context("Generating cargo guide")?;
     let gases_index =
         gas::gen_gases(&opts, &mut assets, relativize, &def).context("Generating gases guide")?;
     let liquids_index = liquid::gen_liquids(&opts, &mut assets, relativize, &def)
-        .context("Generating liquids guide")?;
+        .context("Generating liquid guide")?;
+    electricity::gen_electricity(&opts, &mut assets, relativize, &def)
+        .context("Generating electricity guide")?;
 
     {
         let docs_dir = opts.root_dir.join("docs");
@@ -78,6 +81,7 @@ fn main() -> Result<()> {
             title: String::from("Liquids"),
             items: liquids_index,
         },
+        manifest::Nav::Path(PathBuf::from("electricity.md")),
     ];
 
     let mkdocs_yml = opts.root_dir.join("mkdocs.yml");
