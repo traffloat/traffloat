@@ -1,4 +1,14 @@
-node_modules
 target
+Cargo.lock
+
+node_modules
+package-lock.json
+
+/client/dist
+/client/pkg
+/client/static/textures.png
+/client/static/textures.png.json
 *.min.vert
 *.min.frag
+
+/docgen/output
