@@ -63,14 +63,14 @@ impl Unit {
 
     /// Checks whether the line segment between `start` and `end` intersects with this unit shape.
     ///
-    /// If it does, returns a weight `w` (`0 <= w <= 1`) at which `start * (1 - w) + end * w` is
-    /// within this shape. It is unspecified which particular point within the intersecting segment
-    /// is returned.
+    /// If it does, returns the smallest weight `w` (`0 <= w <= 1`)
+    /// at which `start * (1 - w) + end * w` is within this shape.
     pub fn between(&self, start: Point, end: Point) -> Option<f64> {
         match self {
             Self::Cube => {
                 let dir = end - start;
 
+                let mut min_w = None;
                 for dim in 0..3 {
                     #[allow(clippy::indexing_slicing)]
                     for &target in &[-1., 1.] {
@@ -81,20 +81,23 @@ impl Unit {
                                 .filter(|&other| other != dim)
                                 .all(|other| (-1. ..=1.).contains(&point[other]));
                             if inside {
-                                return Some(w);
+                                min_w = Some(match min_w {
+                                    Some(prev) if prev < w => prev,
+                                    _ => w,
+                                });
                             }
                         }
                     }
                 }
 
-                None
+                min_w
             }
             Self::Sphere => {
                 if self.contains(start) {
                     return Some(0.);
                 }
                 if self.contains(end) {
-                    return Some(1.);
+                    return Some(1.); // FIXME: This is not the closest point!
                 }
 
                 let dir = end - start;
