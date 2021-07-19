@@ -1,8 +1,6 @@
 target
-Cargo.lock
 
 node_modules
-package-lock.json
 
 /client/dist
 /client/pkg
