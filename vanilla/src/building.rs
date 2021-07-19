@@ -1,6 +1,8 @@
 //! Vanilla building definitions.
 
+use crate::VANILLA_TEXTURE;
 use traffloat_types::def::{building, GameDefinition};
+use traffloat_types::space;
 
 macro_rules! buildings {
     (
@@ -9,6 +11,16 @@ macro_rules! buildings {
                 name: $name:literal,
                 summary: $summary:literal,
                 description: $description:literal,
+                $(cube: $cube_size:literal,)?
+                $(cuboid: [
+                    $cuboid_x1:literal,
+                    $cuboid_y1:literal,
+                    $cuboid_z1:literal $(,)?
+                ] .. [
+                    $cuboid_x2:literal,
+                    $cuboid_y2:literal,
+                    $cuboid_z2:literal $(,)?
+                ],)?
                 texture: $texture:literal,
                 reactions: [
                     $(
@@ -45,7 +57,19 @@ macro_rules! buildings {
                             .name(String::from($name))
                             .summary(String::from($summary))
                             .description(String::from($description))
-                            .texture(String::from($texture))
+                            .shape(building::Shape::builder()
+                                $(
+                                    .transform(space::Matrix::new_scaling($cube_size))
+                                )?
+                                $(
+                                    .transform(space::transform_cuboid(
+                                        space::Vector::new($cuboid_x1, $cuboid_y1, $cuboid_z1),
+                                        space::Vector::new($cuboid_x2, $cuboid_y2, $cuboid_z2),
+                                    ))
+                                )?
+                                .texture_src(String::from(VANILLA_TEXTURE))
+                                .texture_name(String::from($texture))
+                                .build())
                             .category($category_ident)
                             .reactions(vec![
                                 $(
@@ -89,6 +113,7 @@ buildings! {
                 It provides basic resources, including a small amount of uninterrupted power, \
                 some oxygen generation and a few population housing. \
                 Destruction of the core ends the game.",
+            cube: 1.,
             texture: "core",
             reactions: [],
             features: [Core],
@@ -97,6 +122,7 @@ buildings! {
             name: "Hut",
             summary: "A small living quarter.",
             description: "",
+            cube: 1.,
             texture: "house",
             reactions: [],
             features: [ProvidesHousing(6)],
@@ -108,6 +134,7 @@ buildings! {
             name: "Solar panel",
             summary: "Basic power production",
             description: "",
+            cube: 1.,
             texture: "solar-panel",
             reactions: [
                 solar_power {},

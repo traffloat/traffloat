@@ -39,7 +39,10 @@ pub fn gen_buildings(
             writeln!(&mut fh)?;
             for building in def.building() {
                 if building.category().0 == category_id {
-                    let texture_dir = opts.client_dir.join("textures").join(building.texture());
+                    let texture_dir = opts
+                        .client_dir
+                        .join("textures")
+                        .join(building.shape().texture_name());
                     let texture_dir = texture_dir.canonicalize().with_context(|| {
                         format!("Could not canonicalize {}", texture_dir.display())
                     })?;
@@ -74,7 +77,7 @@ fn write_building(
     let texture_dir = opts
         .client_dir
         .join("textures")
-        .join(building.texture().as_str());
+        .join(building.shape().texture_name().as_str());
     let texture_dir = texture_dir
         .canonicalize()
         .with_context(|| format!("Could not canonicalize {}", texture_dir.display()))?;

@@ -9,7 +9,6 @@ use web_sys::WebGlRenderingContext;
 use super::{CursorType, RenderFlag};
 use crate::camera::Camera;
 use crate::input;
-use traffloat::config;
 use traffloat::graph;
 use traffloat::lerp;
 use traffloat::shape::{Shape, Texture};
@@ -91,7 +90,6 @@ fn draw(
     #[resource] camera: &Camera,
     #[resource] layers: &Option<super::Layers>,
     #[resource] sun: &Sun,
-    #[resource] textures: &config::Store<Texture>,
     #[resource] texture_pool: &mut Option<texture::Pool>,
     #[resource] hover_target: &input::mouse::HoverTarget,
     #[resource] focus_target: &input::FocusTarget,
@@ -140,7 +138,7 @@ fn draw(
         let selected =
             hover_target.entity() == Some(*entity) || focus_target.entity() == Some(*entity);
 
-        let tex: &Texture = shape.texture().get(textures);
+        let tex: &Texture = shape.texture();
         let sprite = texture_pool.sprite(tex, &scene.gl);
 
         scene.node_prog.draw(

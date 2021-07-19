@@ -32,7 +32,7 @@ fn main() -> Result<()> {
         Ok(stripped.to_path_buf())
     };
 
-    let def = traffloat_vanilla::get();
+    let (def, _, _) = traffloat_vanilla::get();
 
     let buildings_index = buildings::gen_buildings(&opts, &mut assets, relativize, &def)
         .context("Generating buildings guide")?;

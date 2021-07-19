@@ -85,3 +85,9 @@ impl SubAssign<Vector> for Position {
         *self = *self - other;
     }
 }
+
+/// Creates a transformation matrix from a cube to a cuboid at `lower..upper`.
+pub fn transform_cuboid(lower: Vector, upper: Vector) -> Matrix {
+    let origin = (lower + upper) / 2.;
+    Matrix::new_nonuniform_scaling(&(upper - origin)).append_translation(&origin)
+}

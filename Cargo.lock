@@ -323,6 +323,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "indvec"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6538c5e120cfe439bd56a3440a833ce9a70cfce36f0b4bdf637fb328dc2669df"
+
+[[package]]
 name = "instant"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -862,6 +868,7 @@ dependencies = [
  "traffloat-codegen",
  "traffloat-common",
  "traffloat-safety",
+ "traffloat-vanilla",
  "typed-builder",
  "wasm-bindgen",
  "wasm-logger",
@@ -901,12 +908,12 @@ dependencies = [
  "legion",
  "log",
  "nalgebra",
+ "rand",
  "shrev",
  "smallvec",
  "traffloat-codegen",
  "traffloat-safety",
  "traffloat-types",
- "traffloat-vanilla",
  "typed-builder",
  "yew",
 ]
@@ -947,9 +954,12 @@ version = "0.2.0"
 dependencies = [
  "derive-new",
  "getset",
+ "indvec",
  "lazy_static",
+ "legion",
  "smallvec",
  "strum",
+ "traffloat-common",
  "traffloat-types",
 ]
 

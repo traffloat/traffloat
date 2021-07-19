@@ -35,6 +35,7 @@ use yew::prelude::*;
 mod app;
 pub mod camera;
 pub mod config;
+mod initial;
 pub mod input;
 pub mod render;
 pub mod util;
@@ -60,93 +61,10 @@ pub fn run_app() {
 
 /// Sets up legion ECS.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    use traffloat::graph::{EdgeId, EdgeSize, NodeId, NodeName};
-    use traffloat::space::{Matrix, Position, Vector};
-
-    let mut setup = setup
+    setup
         .uses(traffloat::setup_ecs)
         .uses(camera::setup_ecs)
+        .uses(initial::setup_ecs)
         .uses(input::setup_ecs)
-        .uses(render::setup_ecs);
-
-    use traffloat::{
-        config,
-        shape::{self, Shape, Texture},
-    };
-    let core_texture = {
-        let mut t = setup
-            .resources
-            .get_mut::<config::Store<Texture>>()
-            .expect("");
-        t.add(Texture::new(
-            String::from("textures.png"),
-            String::from("core"),
-        ))
-    };
-    let house_texture = {
-        let mut t = setup
-            .resources
-            .get_mut::<config::Store<Texture>>()
-            .expect("");
-        t.add(Texture::new(
-            String::from("textures.png"),
-            String::from("house"),
-        ))
-    };
-    let solar_panel_texture = {
-        let mut t = setup
-            .resources
-            .get_mut::<config::Store<Texture>>()
-            .expect("");
-        t.add(Texture::new(
-            String::from("textures.png"),
-            String::from("solar-panel"),
-        ))
-    };
-
-    let core = setup.world.push((
-        NodeId::new(0),
-        NodeName::new(String::from("Core")),
-        Position::new(1., 2., 3.),
-        Shape::builder()
-            .unit(shape::Unit::Cube)
-            .matrix(Matrix::identity())
-            .texture(core_texture)
-            .build(),
-        traffloat::sun::LightStats::default(),
-    ));
-    let house = setup.world.push((
-        NodeId::new(1),
-        NodeName::new(String::from("House")),
-        Position::new(1., -2., 3.),
-        Shape::builder()
-            .unit(shape::Unit::Cube)
-            .matrix(Matrix::new_scaling(0.4))
-            .texture(house_texture)
-            .build(),
-        traffloat::sun::LightStats::default(),
-    ));
-    let solar_panel = setup.world.push((
-        NodeId::new(2),
-        NodeName::new(String::from("Solar panel")),
-        Position::new(-2., 0., 10.),
-        Shape::builder()
-            .unit(shape::Unit::Cube)
-            .matrix(Matrix::new_nonuniform_scaling(&Vector::new(0.1, 0.5, 1.5)))
-            .texture(solar_panel_texture)
-            .build(),
-        traffloat::sun::LightStats::default(),
-    ));
-
-    let mut edge = EdgeId::new(NodeId::new(0), NodeId::new(1));
-    edge.set_from_entity(Some(core));
-    edge.set_to_entity(Some(house));
-    setup.world.push((edge, EdgeSize::new(0.2)));
-
-    let mut edge = EdgeId::new(NodeId::new(0), NodeId::new(2));
-    edge.set_from_entity(Some(core));
-    edge.set_to_entity(Some(solar_panel));
-    setup.world.push((edge, EdgeSize::new(0.1)));
-
-    setup
+        .uses(render::setup_ecs)
 }

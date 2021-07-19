@@ -3,6 +3,7 @@
 use typed_builder::TypedBuilder;
 
 use super::reaction;
+use crate::space::Matrix;
 
 /// Identifies a building category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,15 +24,29 @@ pub struct Type {
     /// Category of the building type.
     #[getset(get_copy = "pub")]
     category: CategoryId,
-    /// Name of the texture.
+    /// Shape of the building.
     #[getset(get = "pub")]
-    texture: String,
+    shape: Shape,
     /// Reactions associated with the building.
     #[getset(get = "pub")]
     reactions: Vec<(reaction::TypeId, ReactionPolicy)>,
     /// Extra features associated with the building.
     #[getset(get = "pub")]
     features: Vec<ExtraFeature>,
+}
+
+/// Shape of a building.
+#[derive(TypedBuilder, getset::CopyGetters, getset::Getters)]
+pub struct Shape {
+    /// The transformation matrix from the unit cube [0, 1]^3 to this shape.
+    #[getset(get_copy = "pub")]
+    transform: Matrix,
+    /// The texture source path of the building.
+    #[getset(get = "pub")]
+    texture_src: String,
+    /// The texture name of the building.
+    #[getset(get = "pub")]
+    texture_name: String,
 }
 
 /// Reaction behaviour specific to this building.

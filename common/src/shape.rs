@@ -4,12 +4,11 @@ use derive_new::new;
 use smallvec::{smallvec, SmallVec};
 use typed_builder::TypedBuilder;
 
-use crate::config::{self, Config};
 use crate::space::{Matrix, Point, Position, Vector};
 use crate::SetupEcs;
 
 /// Describes the shape and appearance of an object
-#[derive(TypedBuilder, getset::CopyGetters)]
+#[derive(TypedBuilder, getset::CopyGetters, getset::Getters)]
 pub struct Shape {
     #[getset(get_copy = "pub")]
     /// Unit shape variant
@@ -24,8 +23,8 @@ pub struct Shape {
     )]
     inv_matrix: Matrix,
     /// The texture for rendering the shape
-    #[getset(get_copy = "pub")]
-    texture: config::Id<Texture>,
+    #[getset(get = "pub")]
+    texture: Texture,
 }
 
 impl Shape {
@@ -250,8 +249,6 @@ pub struct Texture {
     #[getset(get = "pub")]
     name: String,
 }
-
-impl Config for Texture {}
 
 /// Initializes systems
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {

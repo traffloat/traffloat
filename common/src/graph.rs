@@ -6,6 +6,10 @@ use std::num::NonZeroUsize;
 use derive_new::new;
 use legion::Entity;
 
+use crate::def::{building, GameDefinition};
+use crate::shape::{self, Shape};
+use crate::space::{Matrix, Position};
+use crate::sun::LightStats;
 use crate::SetupEcs;
 
 /// Component storing an identifier for a node
@@ -135,4 +139,32 @@ fn delete_nodes(
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
     setup.uses(delete_nodes_setup)
+}
+
+/// Return type of [`create_node_components`].
+pub type NodeComponents = (NodeId, NodeName, Position, Shape, LightStats);
+
+/// Creates the components for a node entity.
+pub fn create_node_components(
+    def: &GameDefinition,
+    id: building::TypeId,
+    position: Position,
+    rotation: Matrix,
+) -> NodeComponents {
+    let building = def.get_building(id);
+
+    (
+        NodeId::new(rand::random()),
+        NodeName::new(building.name().clone()),
+        position,
+        Shape::builder()
+            .unit(shape::Unit::Cube)
+            .matrix(rotation * building.shape().transform())
+            .texture(shape::Texture::new(
+                building.shape().texture_src().clone(),
+                building.shape().texture_name().clone(),
+            ))
+            .build(),
+        LightStats::default(),
+    )
 }

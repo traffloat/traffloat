@@ -36,7 +36,6 @@ pub use traffloat_types::{def, space, time, units};
 pub mod cargo;
 pub mod clock;
 pub mod config;
-pub use config::Config;
 pub mod factory;
 pub mod graph;
 pub mod shape;
@@ -50,7 +49,6 @@ pub use codegen::{Legion, SetupEcs};
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
     setup
         .resource(codegen::Perf::default())
-        .uses(config::setup_ecs)
         .uses(clock::setup_ecs)
         .uses(factory::setup_ecs)
         .uses(shape::setup_ecs)
