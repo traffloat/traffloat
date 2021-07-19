@@ -2,7 +2,7 @@
 
 use crate::VANILLA_TEXTURE;
 use traffloat_types::def::{building, GameDefinition};
-use traffloat_types::space;
+use traffloat_types::{space, units};
 
 macro_rules! buildings {
     (
@@ -116,7 +116,7 @@ buildings! {
             cube: 1.,
             texture: "core",
             reactions: [],
-            features: [Core],
+            features: [Core, ProvidesHousing(1)],
         }
         hut {
             name: "Hut",
@@ -129,11 +129,29 @@ buildings! {
         }
     }
 
+    traffic "Traffic" ("Buildings for traffic control") {
+        terminal {
+            name: "Terminal",
+            summary: "Connects and drives corridors",
+            description: "",
+            cube: 0.2,
+            texture: "dummy-building",
+            reactions: [],
+            features: [
+                RailTerminal(units::RailForce(100.)),
+                LiquidPump(units::PipeForce(100.)),
+                GasPump(units::FanForce(100.)),
+            ],
+        }
+    }
+
     electricity "Electricity" ("Buildings to manage electricity") {
         solar_panel {
             name: "Solar panel",
             summary: "Basic power production",
-            description: "",
+            description: "Solar power is an effective power generation mechanism. \
+                Unobstructed by planetary atmosphere, \
+                solar panels are the primary source of power in early to mid game.",
             cube: 1.,
             texture: "solar-panel",
             reactions: [

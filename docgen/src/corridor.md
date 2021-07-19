@@ -35,7 +35,7 @@ Transferring electricity through cables consumes electricity.
 Therefore, it may be useful to turn off
 electricity cables that are not necessary.
 
-### Gas
+### Gases
 Gases diffuse through the corridor.
 Fans can be installed on terminals to adjust the flow rate of gases.
 The empty cross-section area of the corridor also affects

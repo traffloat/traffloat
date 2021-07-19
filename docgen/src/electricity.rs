@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
+use heck::KebabCase;
 
 use super::{assets, opts};
 use traffloat_types::def::{reaction, GameDefinition};
@@ -31,7 +32,13 @@ pub fn gen_electricity(
             })
             .sum();
         if power.0 > 0. {
-            writeln!(&mut fh, "| {} | {} |", reaction.name(), power)?;
+            writeln!(
+                &mut fh,
+                "| [{}](../../reactions/{}) | {} |",
+                reaction.name(),
+                reaction.name().to_kebab_case(),
+                power,
+            )?;
         }
     }
 

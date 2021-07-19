@@ -35,6 +35,7 @@ pub fn gen_reactions(
                 category.title().to_kebab_case()
             )?;
             writeln!(&mut fh, "{}", category.description())?;
+            writeln!(&mut fh)?;
             for reaction in def.reaction() {
                 if reaction.category().0 == category_id {
                     writeln!(
@@ -76,45 +77,53 @@ fn write_reaction(
                 reaction::CatalystRange::Cargo { ty, levels } => {
                     write!(
                         &mut fh,
-                        "| {} | {} | {} ",
+                        "| [{}](../../cargo/{}) | {} | {} ",
                         def.get_cargo(*ty).name(),
+                        def.get_cargo(*ty).name().to_kebab_case(),
                         levels.start,
-                        levels.end
+                        levels.end,
                     )?;
                 }
                 reaction::CatalystRange::Liquid { ty, levels } => {
                     write!(
                         &mut fh,
-                        "| {} | {} | {} ",
+                        "| [{}](../../liquid/{}) | {} | {} ",
                         def.get_liquid(*ty).name(),
+                        def.get_liquid(*ty).name().to_kebab_case(),
                         levels.start,
-                        levels.end
+                        levels.end,
                     )?;
                 }
                 reaction::CatalystRange::Gas { ty, levels } => {
                     write!(
                         &mut fh,
-                        "| {} | {} | {} ",
+                        "| [{}](../../gas/{}) | {} | {} ",
                         def.get_gas(*ty).name(),
+                        def.get_gas(*ty).name().to_kebab_case(),
                         levels.start,
-                        levels.end
+                        levels.end,
                     )?;
                 }
                 reaction::CatalystRange::Electricity { levels } => {
                     write!(
                         &mut fh,
-                        "| Electricity | {} | {} ",
-                        levels.start, levels.end
+                        "| [Electricity](../../electricity) | {} | {} ",
+                        levels.start, levels.end,
                     )?;
                 }
                 reaction::CatalystRange::Light { levels } => {
-                    write!(&mut fh, "| Light | {} | {} ", levels.start, levels.end)?;
+                    write!(
+                        &mut fh,
+                        "| [Light](../../sun) | {} | {} ",
+                        levels.start, levels.end
+                    )?;
                 }
                 reaction::CatalystRange::Skill { ty, levels } => {
                     write!(
                         &mut fh,
-                        "| {} | {} | {} ",
+                        "| [{}](../../skill/{}) | {} | {} ",
                         def.get_skill(*ty).name(),
+                        def.get_skill(*ty).name().to_kebab_case(),
                         levels.start,
                         levels.end
                     )?;
@@ -133,52 +142,58 @@ fn write_reaction(
         writeln!(&mut fh)?;
     }
 
-    let inputs = reaction.puts().iter().filter(|put| put.base() < 0.);
-    if inputs.clone().next().is_some() {
-        writeln!(&mut fh, "## Inputs")?;
-        writeln!(&mut fh, "Base consumption per second:")?;
-        writeln!(&mut fh)?;
-        for input in inputs {
-            match input {
-                reaction::Put::Cargo { ty, base } => {
-                    writeln!(&mut fh, "- {} {}", base.0 * -1., def.get_cargo(*ty).name())?;
-                }
-                reaction::Put::Liquid { ty, base } => {
-                    writeln!(&mut fh, "- {} {}", base.0 * -1., def.get_liquid(*ty).name())?;
-                }
-                reaction::Put::Gas { ty, base } => {
-                    writeln!(&mut fh, "- {} {}", base.0 * -1., def.get_gas(*ty).name())?;
-                }
-                reaction::Put::Electricity { base } => {
-                    writeln!(&mut fh, "- {} electricity", base.0 * -1.)?;
+    for (positive, title, noun, mul) in [
+        (false, "Inputs", "consumption", -1.),
+        (true, "Outputs", "production", 1.),
+    ] {
+        let puts = reaction
+            .puts()
+            .iter()
+            .filter(|put| (put.base() > 0.) == positive);
+        if puts.clone().next().is_some() {
+            writeln!(&mut fh, "## {}", title)?;
+            writeln!(&mut fh, "Base {} per second:", noun)?;
+            writeln!(&mut fh)?;
+            for put in puts {
+                match put {
+                    reaction::Put::Cargo { ty, base } => {
+                        writeln!(
+                            &mut fh,
+                            "- {} [{}](../../cargo/{})",
+                            base.0 * mul,
+                            def.get_cargo(*ty).name(),
+                            def.get_cargo(*ty).name().to_kebab_case(),
+                        )?;
+                    }
+                    reaction::Put::Liquid { ty, base } => {
+                        writeln!(
+                            &mut fh,
+                            "- {} [{}](../../cargo/{})",
+                            base.0 * mul,
+                            def.get_liquid(*ty).name(),
+                            def.get_liquid(*ty).name().to_kebab_case(),
+                        )?;
+                    }
+                    reaction::Put::Gas { ty, base } => {
+                        writeln!(
+                            &mut fh,
+                            "- {} [{}](../../cargo/{})",
+                            base.0 * mul,
+                            def.get_gas(*ty).name(),
+                            def.get_gas(*ty).name().to_kebab_case(),
+                        )?;
+                    }
+                    reaction::Put::Electricity { base } => {
+                        writeln!(
+                            &mut fh,
+                            "- {} [electricity](../../electricity)",
+                            base.0 * mul,
+                        )?;
+                    }
                 }
             }
+            writeln!(&mut fh)?;
         }
-        writeln!(&mut fh)?;
-    }
-
-    let outputs = reaction.puts().iter().filter(|put| put.base() > 0.);
-    if outputs.clone().next().is_some() {
-        writeln!(&mut fh, "## Outputs")?;
-        writeln!(&mut fh, "Base production per second:")?;
-        writeln!(&mut fh)?;
-        for output in outputs {
-            match output {
-                reaction::Put::Cargo { ty, base } => {
-                    writeln!(&mut fh, "- {} {}", base.0, def.get_cargo(*ty).name())?;
-                }
-                reaction::Put::Liquid { ty, base } => {
-                    writeln!(&mut fh, "- {} {}", base.0, def.get_liquid(*ty).name())?;
-                }
-                reaction::Put::Gas { ty, base } => {
-                    writeln!(&mut fh, "- {} {}", base.0, def.get_gas(*ty).name())?;
-                }
-                reaction::Put::Electricity { base } => {
-                    writeln!(&mut fh, "- {} electricity", base.0)?;
-                }
-            }
-        }
-        writeln!(&mut fh)?;
     }
 
     Ok(file)

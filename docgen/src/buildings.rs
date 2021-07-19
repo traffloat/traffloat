@@ -96,65 +96,97 @@ fn write_building(
     if !building.features().is_empty() {
         writeln!(&mut fh, "## Features")?;
         for feature in building.features() {
-            match feature {
-                building::ExtraFeature::Core => {
-                    writeln!(&mut fh, "### Core")?;
-                    writeln!(
-                        &mut fh,
-                        "This is a core building. Destruction of this building will end the game."
-                    )?;
-                    writeln!(&mut fh)?;
-                }
-                building::ExtraFeature::ProvidesHousing(capacity) => {
-                    writeln!(&mut fh, "### Housing ({} inhabitants)", capacity)?;
-                    writeln!(
-                        &mut fh,
-                        "This building provides {} housing capacity.",
-                        capacity
-                    )?;
-                    writeln!(
-                        &mut fh,
-                        "Inhabitants assigned to this building will be affected by"
-                    )?;
-                    writeln!(
-                        &mut fh,
-                        "the happiness-related mechanisms of this building, such as food."
-                    )?;
-                    writeln!(&mut fh)?;
-                }
-            }
+            write_feature(&mut fh, feature)?;
         }
     }
 
-    writeln!(&mut fh, "## Mechanisms")?;
-    for (reaction_id, policy) in building.reactions() {
-        let reaction = def.get_reaction(*reaction_id);
-        writeln!(
-            &mut fh,
-            "### [{}](../reactions/{})",
-            reaction.name(),
-            reaction.name().to_kebab_case()
-        )?;
-        writeln!(&mut fh, "{}", reaction.description())?;
-        writeln!(&mut fh)?;
-        writeln!(
-            &mut fh,
-            "| Player can manually restrict rate | When inputs underflow | When outputs overflow |"
-        )?;
-        writeln!(&mut fh, "| :-: | :-: | :-: |")?;
-        writeln!(
-            &mut fh,
-            "| {} | {} | {} |",
-            if policy.configurable() { "Yes" } else { "No" },
-            match policy.on_underflow() {
-                building::FlowPolicy::ReduceRate => "Reduce output rate",
-            },
-            match policy.on_overflow() {
-                building::FlowPolicy::ReduceRate => "Reduce input rate",
-            },
-        )?;
-        writeln!(&mut fh)?;
+    if !building.reactions().is_empty() {
+        writeln!(&mut fh, "## Mechanisms")?;
+        for (reaction_id, policy) in building.reactions() {
+            let reaction = def.get_reaction(*reaction_id);
+            writeln!(
+                &mut fh,
+                "### [{}](../../reactions/{})",
+                reaction.name(),
+                reaction.name().to_kebab_case()
+            )?;
+            writeln!(&mut fh, "{}", reaction.description())?;
+            writeln!(&mut fh)?;
+            writeln!(
+                &mut fh,
+                "| Player can manually restrict rate | When inputs underflow | When outputs overflow |"
+            )?;
+            writeln!(&mut fh, "| :-: | :-: | :-: |")?;
+            writeln!(
+                &mut fh,
+                "| {} | {} | {} |",
+                if policy.configurable() { "Yes" } else { "No" },
+                match policy.on_underflow() {
+                    building::FlowPolicy::ReduceRate => "Reduce output rate",
+                },
+                match policy.on_overflow() {
+                    building::FlowPolicy::ReduceRate => "Reduce input rate",
+                },
+            )?;
+            writeln!(&mut fh)?;
+        }
     }
 
     Ok(file)
+}
+
+fn write_feature(mut fh: impl Write, feature: &building::ExtraFeature) -> Result<()> {
+    match feature {
+        building::ExtraFeature::Core => {
+            writeln!(&mut fh, "### Core")?;
+            writeln!(
+                &mut fh,
+                "This is a core building. Destruction of this building will end the game."
+            )?;
+            writeln!(&mut fh)?;
+        }
+        building::ExtraFeature::ProvidesHousing(capacity) => {
+            writeln!(&mut fh, "### Housing ({} inhabitants)", capacity)?;
+            writeln!(
+                &mut fh,
+                "This building provides {} [housing capacity](../../population#happiness).",
+                capacity
+            )?;
+            writeln!(
+                &mut fh,
+                "Inhabitants assigned to this building will be affected by"
+            )?;
+            writeln!(
+                &mut fh,
+                "the happiness-related mechanisms of this building, such as food."
+            )?;
+            writeln!(&mut fh)?;
+        }
+        building::ExtraFeature::RailTerminal(force) => {
+            writeln!(&mut fh, "### Rail terminal")?;
+            writeln!(&mut fh, "Vehicles in adjacent [corridors](../../corridor#vehicles) are powered by an extra {}.", force)?;
+            writeln!(&mut fh)?;
+        }
+        building::ExtraFeature::LiquidPump(force) => {
+            writeln!(&mut fh, "### Liquid pump")?;
+            writeln!(
+                &mut fh,
+                "Pipes in adjacent [corridors](../../corridor#liquids) are powered by an extra {}.",
+                force
+            )?;
+            writeln!(&mut fh)?;
+        }
+        building::ExtraFeature::GasPump(force) => {
+            writeln!(&mut fh, "### Gas fan")?;
+            writeln!(&mut fh, "Fans can be installed on adjacent [corridors](../../corridor#gase) to speed up gas diffusion.")?;
+            writeln!(
+                &mut fh,
+                "Each fan provides up to {} of pumping force.",
+                force
+            )?;
+            writeln!(&mut fh)?;
+        }
+    }
+
+    Ok(())
 }

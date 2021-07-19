@@ -15,6 +15,7 @@ mod liquid;
 mod manifest;
 mod opts;
 mod reactions;
+mod skill;
 
 fn main() -> Result<()> {
     let opts = opts::Opts::from_args();
@@ -45,6 +46,8 @@ fn main() -> Result<()> {
         gas::gen_gases(&opts, &mut assets, relativize, &def).context("Generating gases guide")?;
     let liquids_index = liquid::gen_liquids(&opts, &mut assets, relativize, &def)
         .context("Generating liquid guide")?;
+    let skills_index = skill::gen_skills(&opts, &mut assets, relativize, &def)
+        .context("Generating skill guide")?;
     electricity::gen_electricity(&opts, &mut assets, relativize, &def)
         .context("Generating electricity guide")?;
 
@@ -55,6 +58,13 @@ fn main() -> Result<()> {
         fs::write(docs_dir.join("corridor.md"), include_str!("corridor.md"))
             .context("Copying file")?;
         fs::write(docs_dir.join("index.md"), include_str!("index.md")).context("Copying file")?;
+        fs::write(
+            docs_dir.join("population.md"),
+            include_str!("population.md"),
+        )
+        .context("Copying file")?;
+        fs::write(docs_dir.join("happiness.md"), include_str!("happiness.md"))
+            .context("Copying file")?;
     }
 
     let index = vec![
@@ -65,6 +75,17 @@ fn main() -> Result<()> {
             items: buildings_index,
         },
         manifest::Nav::Path(PathBuf::from("corridor.md")),
+        manifest::Nav::Index {
+            title: String::from("Population"),
+            items: vec![
+                manifest::Nav::Path(PathBuf::from("population.md")),
+                manifest::Nav::Path(PathBuf::from("happiness.md")),
+                manifest::Nav::Index {
+                    title: String::from("Skill"),
+                    items: skills_index,
+                },
+            ],
+        },
         manifest::Nav::Index {
             title: String::from("Mechanisms"),
             items: reactions_index,

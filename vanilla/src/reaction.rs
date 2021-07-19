@@ -100,7 +100,7 @@ reactions! {
     electricity "Electricity" ("Reactions for electricity management.") {
         solar_power {
             name: "Solar power",
-            description: "Generates electricity from sunlight.",
+            description: "Generates [electricity](../../electricity) from sunlight.",
             catalysts: [
                 Light {
                     levels: 0. .. 10.,

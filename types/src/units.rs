@@ -26,4 +26,13 @@ units! {
 
     /// Skill level of an inhabitant.
     Skill("{}");
+
+    /// Driving force on a rail
+    RailForce("{} T");
+
+    /// Pumping force on a liquid pipe
+    PipeForce("{} Pa");
+
+    /// Pumping force for gas diffusion
+    FanForce("{} Pa");
 }

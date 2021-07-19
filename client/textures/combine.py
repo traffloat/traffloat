@@ -49,7 +49,7 @@ def add_dir(path: str):
             im = plt.imread(os.path.join(path, direction + side + ".png"))
             if last is None or not numpy.all(im == last):
                 x, y, region = alloc.alloc()
-                region[:, :, :3] = im
+                region[:, :, :3] = im[:, :, :3]
                 region[:, :, 3] = 1.0
                 last = im
             subindex[direction + side] = {

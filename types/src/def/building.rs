@@ -4,6 +4,7 @@ use typed_builder::TypedBuilder;
 
 use super::reaction;
 use crate::space::Matrix;
+use crate::units;
 
 /// Identifies a building category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -77,13 +78,19 @@ impl Default for FlowPolicy {
     }
 }
 
-/// Extra features of a building
+/// Extra features of a building (in addition to reactions)
 #[derive(Debug, Clone)]
 pub enum ExtraFeature {
     /// The building is a core and must not be destroyed.
     Core,
     /// The building provides housing capacity, and inhabitants can be assigned to it.
     ProvidesHousing(u32),
+    /// The building provides driving force for vehicles on adjacent rails.
+    RailTerminal(units::RailForce),
+    /// The building provides pumping force for adjacent liquid pipes.
+    LiquidPump(units::PipeForce),
+    /// The building provides pumping force for gas diffusion in adjacent corridors.
+    GasPump(units::FanForce),
 }
 
 /// Identifies a building category
