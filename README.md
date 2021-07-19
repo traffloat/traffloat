@@ -1,4 +1,4 @@
-# traffloat
+# Traffloat
 
 [![](https://github.com/traffloat/traffloat/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/traffloat/traffloat/actions/workflows/ci.yml)
 [![](https://github.com/traffloat/traffloat/actions/workflows/client.yml/badge.svg?branch=master)](https://traffloat.github.io/master)
@@ -7,7 +7,13 @@
 [![GitHub](https://img.shields.io/github/last-commit/traffloat/traffloat)](https://github.com/traffloat/traffloat)
 [![GitHub](https://img.shields.io/github/stars/traffloat/traffloat?style=social)](https://github.com/traffloat/traffloat)
 
-A cooperative 3D factory/city building game.
+A 3D traffic, factory, city building, tower defense web game.
+
+[Play the game](https://traffloat.github.io/master/) \|
+[User guide](https://traffloat.github.io/guide/master/) \|
+[Rust API docs](https://traffloat.github.io/api/master/) \|
+[Discuss](https://github.com/traffloat/traffloat/discussions) \|
+[Report bug](https://github.com/traffloat/traffloat/issues)
 
 ## What is this game about?
 This game happens in a self-sustaining space colony.
@@ -28,10 +34,10 @@ Build schools to improve inhabitant skills and unlock new technologies.
 
 This game is **3D**.
 Explore new transportation mechanisms in a
-[genuinely 3D][tvtropes-space-is-an-ocean] network of buildings.
+[genuinely 3D][tvtropes-2d-space] network of buildings.
 Become a leading architect for 3D cities.
 
-  [tvtropes-space-is-an-ocean]: https://tvtropes.org/pmwiki/pmwiki.php/Main/SpaceIsAnOcean
+  [tvtropes-2d-space]: https://tvtropes.org/pmwiki/pmwiki.php/Main/TwoDSpace
 
 This game is **cooperative**.
 Players can join the colonies of other players,
