@@ -23,8 +23,8 @@ jobs:
         with:
           path: |
             ~/.cargo
-          key: just
-      - run: test -f ~/.cargo/bin/just || cargo install just
+          key: just-tokei
+      - run: test -f ~/.cargo/bin/just || cargo install just tokei
 
       - name: Install toolchain dependencies
         run: just deps
@@ -32,6 +32,25 @@ jobs:
         run: just pp
       - name: Build documentation
         run: just doc
+
+      - name: Create index page
+        run: |
+          echo "# API documentation" > target/doc/index.md
+          cargo metadata --format-version 1 | \
+            jq '.packages |
+              map(select(.manifest_path |
+              contains("registry") | not)) |
+              map(.targets[0].name | split("-") | join("_")) |
+              .[]' -r | \
+            while read crate; do
+              echo "- [$crate](./$crate)"
+            done \
+            >> target/doc/index.md
+          echo >> target/doc/index.md
+          echo "## Code statistics" >> target/doc/index.md
+          echo '```' >> target/doc/index.md
+          tokei -e "*lock*" >> target/doc/index.md
+          echo '```' >> target/doc/index.md
 
       - name: Set Git author
         run: git config --global user.name "github-actions[bot]" && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
