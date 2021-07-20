@@ -3,13 +3,13 @@ use std::rc::Rc;
 
 use yew::prelude::*;
 
-use super::node;
+use super::scene_object;
 
 /// Wrapper for UI elements.
 pub struct Wrapper {
     props: Props,
     link: ComponentLink<Self>,
-    node_info: Option<node::Props>,
+    scene_object_info: Option<scene_object::Props>,
 }
 
 impl Component for Wrapper {
@@ -22,14 +22,14 @@ impl Component for Wrapper {
         Self {
             props,
             link,
-            node_info: None,
+            scene_object_info: None,
         }
     }
 
     fn update(&mut self, msg: Update) -> ShouldRender {
         match msg {
-            Update::SetNodeInfo(node_info) => {
-                self.node_info = node_info;
+            Update::SetSceneObject(info) => {
+                self.scene_object_info = info;
                 true
             }
         }
@@ -50,9 +50,9 @@ impl Component for Wrapper {
                 pointer-events: none;
                 x: 0; y: 0;
             ">
-                { for self.node_info.as_ref().map(|props| html! {
-                    <node::NodeInfo
-                        node_name=props.node_name.clone()
+                { for self.scene_object_info.as_ref().map(|props| html! {
+                    <scene_object::Comp
+                        info=props.info.clone()
                         />
                 }) }
             </div>
@@ -60,13 +60,13 @@ impl Component for Wrapper {
     }
 }
 
-/// Events for [`node::NodeInfo`].
+/// Events for [`Wrapper`].
 pub enum Update {
-    /// Sets the node info to display.
-    SetNodeInfo(Option<node::Props>),
+    /// Sets the scene object info to display.
+    SetSceneObject(Option<scene_object::Props>),
 }
 
-/// Yew properties for [`node::NodeInfo`].
+/// Yew properties for [`Wrapper`].
 #[derive(Clone, Properties)]
 pub struct Props {
     /// An interiorly-mutable reference to update the yew callback for UI messages [`Update`].

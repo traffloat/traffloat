@@ -8,7 +8,7 @@ use legion::Entity;
 
 use crate::def::{building, GameDefinition};
 use crate::shape::{self, Shape};
-use crate::space::{Matrix, Position};
+use crate::space::{Matrix, Position, Vector};
 use crate::sun::LightStats;
 use crate::SetupEcs;
 
@@ -167,4 +167,47 @@ pub fn create_node_components(
             .build(),
         LightStats::default(),
     )
+}
+
+/// Computes the transformation matrix from or to the unit cylinder
+pub fn edge_tf(
+    edge: &EdgeId,
+    size: &EdgeSize,
+    world: &legion::world::SubWorld,
+    from_unit: bool,
+) -> Matrix {
+    use legion::EntityStore;
+
+    let from = edge.from_entity().expect("from_entity not initialized");
+    let to = edge.to_entity().expect("to_entity not initialized");
+
+    let from: Position = *world
+        .entry_ref(from)
+        .expect("from_entity does not exist")
+        .get_component()
+        .expect("from node does not have Position");
+    let to: Position = *world
+        .entry_ref(to)
+        .expect("to_entity does not exist")
+        .get_component()
+        .expect("to node does not have Position");
+
+    let dir = to - from;
+    let rot = match nalgebra::Rotation3::rotation_between(&Vector::new(0., 0., 1.), &dir) {
+        Some(rot) => rot.to_homogeneous(),
+        None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
+    };
+
+    if from_unit {
+        rot.prepend_nonuniform_scaling(&Vector::new(size.radius(), size.radius(), dir.norm()))
+            .append_translation(&from.vector())
+    } else {
+        rot.transpose()
+            .prepend_translation(&-from.vector())
+            .append_nonuniform_scaling(&Vector::new(
+                1. / size.radius(),
+                1. / size.radius(),
+                1. / dir.norm(),
+            ))
+    }
 }

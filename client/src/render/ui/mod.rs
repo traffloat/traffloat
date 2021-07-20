@@ -4,7 +4,7 @@ use derive_new::new;
 
 use super::Dimension;
 
-pub mod node;
+pub mod scene_object;
 mod wrapper;
 pub use wrapper::*;
 
@@ -24,5 +24,5 @@ impl Canvas {
 
 /// Sets up legion ECS for UI rendering.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(node::setup_ecs)
+    setup.uses(scene_object::setup_ecs)
 }

@@ -12,7 +12,7 @@ use crate::input;
 use traffloat::graph;
 use traffloat::lerp;
 use traffloat::shape::{Shape, Texture};
-use traffloat::space::{Matrix, Position, Vector};
+use traffloat::space::{Matrix, Position};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
 pub mod mesh;
@@ -95,7 +95,7 @@ fn draw(
     #[resource] focus_target: &input::FocusTarget,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
-    use legion::{EntityStore, IntoQuery};
+    use legion::IntoQuery;
 
     // Render flag gate boilerplate
     match render_flag.last() {
@@ -151,36 +151,17 @@ fn draw(
         );
     }
 
-    for (&edge, size) in <(&graph::EdgeId, &graph::EdgeSize)>::query().iter(world) {
-        let from = edge.from_entity().expect("from_entity not initialized");
-        let to = edge.to_entity().expect("to_entity not initialized");
-
-        let from: Position = *world
-            .entry_ref(from)
-            .expect("from_entity does not exist")
-            .get_component()
-            .expect("from node does not have Position");
-        let to: Position = *world
-            .entry_ref(to)
-            .expect("to_entity does not exist")
-            .get_component()
-            .expect("to node does not have Position");
-
-        let dir = to - from;
-        let rot = match nalgebra::Rotation3::rotation_between(&Vector::new(0., 0., 1.), &dir) {
-            Some(rot) => rot.to_homogeneous(),
-            None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
-        };
-
-        let unit = rot
-            .prepend_nonuniform_scaling(&Vector::new(size.radius(), size.radius(), dir.norm()))
-            .append_translation(&from.vector());
+    for (entity, edge, size) in <(Entity, &graph::EdgeId, &graph::EdgeSize)>::query().iter(world) {
+        let unit = graph::edge_tf(edge, size, &*world, true);
+        let selected =
+            hover_target.entity() == Some(*entity) || focus_target.entity() == Some(*entity);
 
         scene.edge_prog.draw(
             &scene.gl,
             projection * unit,
             projection.transform_vector(&sun_dir),
             [0.3, 0.5, 0.8, 0.5],
+            selected,
         );
     }
 

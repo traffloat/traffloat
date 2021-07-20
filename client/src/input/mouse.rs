@@ -5,7 +5,8 @@ use legion::Entity;
 use super::{keyboard, ScreenPosition};
 use crate::camera::Camera;
 use crate::render;
-use traffloat::shape::Shape;
+use traffloat::graph;
+use traffloat::shape::{self, Shape};
 use traffloat::space::Position;
 
 /// Resource storing the position of the mouse, in the range [0, 1]^2.
@@ -95,6 +96,9 @@ pub struct HoverTarget {
 #[codegen::system]
 #[read_component(Position)]
 #[read_component(Shape)]
+#[read_component(graph::NodeId)]
+#[read_component(graph::EdgeId)]
+#[read_component(graph::EdgeSize)]
 fn trace_entity(
     world: &legion::world::SubWorld,
     #[resource] segment: &Segment,
@@ -114,6 +118,19 @@ fn trace_entity(
         let proximal = transform.transform_point(&segment.proximal.0);
         let distal = transform.transform_point(&segment.distal.0);
         if let Some(depth) = shape.unit().between(proximal, distal) {
+            if depth < last_depth {
+                last_depth = depth;
+                hover_target.set_entity(Some(entity));
+            }
+        }
+    }
+
+    for (&entity, edge, size) in <(Entity, &graph::EdgeId, &graph::EdgeSize)>::query().iter(world) {
+        let unit = graph::edge_tf(edge, size, &*world, false);
+        let proximal = unit.transform_point(&segment.proximal.0);
+        let distal = unit.transform_point(&segment.distal.0);
+
+        if let Some(depth) = shape::Unit::Cylinder.between(proximal, distal) {
             if depth < last_depth {
                 last_depth = depth;
                 hover_target.set_entity(Some(entity));
