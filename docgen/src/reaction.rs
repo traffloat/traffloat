@@ -14,7 +14,7 @@ pub fn gen_reactions(
     relativize: impl Fn(&Path) -> Result<PathBuf>,
     def: &GameDefinition,
 ) -> Result<Vec<manifest::Nav>> {
-    let mut reactions_index = vec![manifest::Nav::Path(PathBuf::from("reactions.md"))];
+    let mut reactions_index = vec![manifest::Nav::Path(PathBuf::from("reaction.md"))];
 
     for reaction in def.reaction() {
         let path = write_reaction(opts, assets, reaction, def)
@@ -23,8 +23,8 @@ pub fn gen_reactions(
     }
 
     {
-        let mut fh = fs::File::create(opts.root_dir.join("docs/reactions.md"))
-            .context("Could not create buildings.md")?;
+        let mut fh = fs::File::create(opts.root_dir.join("docs/reaction.md"))
+            .context("Could not create building.md")?;
         writeln!(&mut fh, "# List of mechanisms")?;
 
         for (category_id, category) in def.reaction_cats().iter().enumerate() {
@@ -58,8 +58,8 @@ fn write_reaction(
     reaction: &reaction::Type,
     def: &GameDefinition,
 ) -> Result<PathBuf> {
-    let reactions_dir = opts.root_dir.join("docs/reactions");
-    fs::create_dir_all(&reactions_dir).context("Could not create reactions dir")?;
+    let reactions_dir = opts.root_dir.join("docs/reaction");
+    fs::create_dir_all(&reactions_dir).context("Could not create reaction dir")?;
 
     let file = reactions_dir.join(format!("{}.md", reaction.name().to_kebab_case()));
     let mut fh = fs::File::create(&file)
@@ -149,7 +149,7 @@ fn write_reaction(
         let puts = reaction
             .puts()
             .iter()
-            .filter(|put| (put.base() > 0.) == positive);
+            .filter(|put| (put.is_output()) == positive);
         if puts.clone().next().is_some() {
             writeln!(&mut fh, "## {}", title)?;
             writeln!(&mut fh, "Base {} per second:", noun)?;
@@ -187,6 +187,13 @@ fn write_reaction(
                         writeln!(
                             &mut fh,
                             "- {} [electricity](../../electricity)",
+                            base.0 * mul,
+                        )?;
+                    }
+                    reaction::Put::Happiness { base } => {
+                        writeln!(
+                            &mut fh,
+                            "- {:+} [electricity](../../electricity)",
                             base.0 * mul,
                         )?;
                     }

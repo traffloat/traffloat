@@ -97,7 +97,7 @@ macro_rules! reactions {
 }
 
 reactions! {
-    electricity "Electricity" ("Reactions for electricity management.") {
+    electricity "Electricity" ("Electricity management.") {
         solar_power {
             name: "Solar power",
             description: "Generates [electricity](../../electricity) from sunlight.",

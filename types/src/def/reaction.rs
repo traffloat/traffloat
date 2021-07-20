@@ -132,17 +132,33 @@ pub enum Put {
         /// Base (unmultiplied) rate of electricity consumed/generated
         base: Rate<units::ElectricPower>,
     },
+    /// Change of happiness
+    Happiness {
+        /// Base (unmultiplied) rate of happiness change
+        base: Rate<units::Happiness>,
+    },
 }
 
 impl Put {
-    /// Base put rate of the reaction.
-    pub fn base(&self) -> f64 {
+    /// Base put rate of the resource.
+    fn base(&self) -> f64 {
         match self {
             Self::Cargo { base, .. } => base.0.value(),
             Self::Liquid { base, .. } => base.0.value(),
             Self::Gas { base, .. } => base.0.value(),
             Self::Electricity { base, .. } => base.0.value(),
+            Self::Happiness { base, .. } => base.0.value(),
         }
+    }
+
+    /// Whether this is an output
+    pub fn is_output(&self) -> bool {
+        self.base() > 0.
+    }
+
+    /// Whether this is an input
+    pub fn is_input(&self) -> bool {
+        self.base() < 0.
     }
 }
 

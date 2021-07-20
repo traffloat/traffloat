@@ -7,14 +7,14 @@ use anyhow::{Context, Result};
 use structopt::StructOpt;
 
 mod assets;
-mod buildings;
+mod building;
 mod cargo;
 mod electricity;
 mod gas;
 mod liquid;
 mod manifest;
 mod opts;
-mod reactions;
+mod reaction;
 mod skill;
 
 fn main() -> Result<()> {
@@ -36,9 +36,9 @@ fn main() -> Result<()> {
 
     let (def, _, _) = traffloat_vanilla::get();
 
-    let buildings_index = buildings::gen_buildings(&opts, &mut assets, relativize, &def)
+    let buildings_index = building::gen_buildings(&opts, &mut assets, relativize, &def)
         .context("Generating building guide")?;
-    let reactions_index = reactions::gen_reactions(&opts, &mut assets, relativize, &def)
+    let reactions_index = reaction::gen_reactions(&opts, &mut assets, relativize, &def)
         .context("Generating reaction guide")?;
     let cargos_index = cargo::gen_cargos(&opts, &mut assets, relativize, &def)
         .context("Generating cargo guide")?;

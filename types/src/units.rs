@@ -25,7 +25,7 @@ units! {
     Brightness("{} m\u{b2}");
 
     /// Skill level of an inhabitant.
-    Skill("{}");
+    Skill("{} SP");
 
     /// Driving force on a rail
     RailForce("{} T");
@@ -35,4 +35,7 @@ units! {
 
     /// Pumping force for gas diffusion
     FanForce("{} Pa");
+
+    /// Happiness value of an inhabitant.
+    Happiness("{}%");
 }

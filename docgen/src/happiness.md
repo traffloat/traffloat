@@ -2,7 +2,7 @@
 Each inhabitant has their own happiness value.
 Happiness gradually decreases when the inhabitant is performing an assigned job,
 and gradually increases otherwise.
-Happiness can be quickly restored by using [entertainment](../buildings#entertainment) facilities.
+Happiness can be quickly restored by using [entertainment](../building#entertainment) facilities.
 Lack of housing or supplies causes a sharp reduction in happiness.
 
 When happiness drops below zero, the inhabitant becomes an *outlaw*,

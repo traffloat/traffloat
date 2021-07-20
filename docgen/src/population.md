@@ -4,7 +4,7 @@ The space colony is operated by inhabitants.
 ## Birth
 Inhabitants are produced by asexual reproduction or sexual reproduction
 
-Asexual reproduction is performed manually in the [core](../buildings/core).
+Asexual reproduction is performed manually in the [core](../building/core).
 Given sufficient amount of [DNA](../cargo/dna) is available,
 players can initiate asexual reproduction using the core building menu.
 The created inhabitants will be assigned any random available housing in the colony.
@@ -20,7 +20,7 @@ The child will be assigned to the same housing as its parents.
 
 Inhabitants are born with low skill points in each area.
 Skill points increase slowly as age increases,
-but can be boosted by attending [schools](../buildings#education).
+but can be boosted by attending [schools](../building#education).
 Inhabitants operate vehicles or buildings more effectively
 when they have higher skill points in the relevant areas.
 

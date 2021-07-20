@@ -14,7 +14,7 @@ pub fn gen_buildings(
     relativize: impl Fn(&Path) -> Result<PathBuf>,
     def: &GameDefinition,
 ) -> Result<Vec<manifest::Nav>> {
-    let mut buildings_index = vec![manifest::Nav::Path(PathBuf::from("buildings.md"))];
+    let mut buildings_index = vec![manifest::Nav::Path(PathBuf::from("building.md"))];
 
     for building in def.building() {
         let path = write_building(opts, assets, building, def)
@@ -23,9 +23,9 @@ pub fn gen_buildings(
     }
 
     {
-        let mut fh = fs::File::create(opts.root_dir.join("docs/buildings.md"))
-            .context("Could not create buildings.md")?;
-        writeln!(&mut fh, "{}", include_str!("buildings.md"))?;
+        let mut fh = fs::File::create(opts.root_dir.join("docs/building.md"))
+            .context("Could not create building.md")?;
+        writeln!(&mut fh, "{}", include_str!("building.md"))?;
         writeln!(&mut fh, "## List of buildings")?;
 
         for (category_id, category) in def.building_cats().iter().enumerate() {
@@ -67,8 +67,8 @@ fn write_building(
     building: &building::Type,
     def: &GameDefinition,
 ) -> Result<PathBuf> {
-    let buildings_dir = opts.root_dir.join("docs/buildings");
-    fs::create_dir_all(&buildings_dir).context("Could not create buildings dir")?;
+    let buildings_dir = opts.root_dir.join("docs/building");
+    fs::create_dir_all(&buildings_dir).context("Could not create building dir")?;
 
     let file = buildings_dir.join(format!("{}.md", building.name().to_kebab_case()));
     let mut fh = fs::File::create(&file)
@@ -106,7 +106,7 @@ fn write_building(
             let reaction = def.get_reaction(*reaction_id);
             writeln!(
                 &mut fh,
-                "### [{}](../../reactions/{})",
+                "### [{}](../../reaction/{})",
                 reaction.name(),
                 reaction.name().to_kebab_case()
             )?;

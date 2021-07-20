@@ -121,7 +121,7 @@ fn write_cargo(
             reaction
                 .puts()
                 .iter()
-                .any(|put| is_cargo_put(put, cargo_id) && put.base() < 0.)
+                .any(|put| is_cargo_put(put, cargo_id) && put.is_input())
         })
         .collect();
     let as_output = def
@@ -131,7 +131,7 @@ fn write_cargo(
             reaction
                 .puts()
                 .iter()
-                .any(|put| is_cargo_put(put, cargo_id) && put.base() > 0.)
+                .any(|put| is_cargo_put(put, cargo_id) && put.is_output())
         })
         .collect();
     let reaction_groups: [(&str, Vec<_>); 3] = [

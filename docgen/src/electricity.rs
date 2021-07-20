@@ -34,7 +34,7 @@ pub fn gen_electricity(
         if power.0 > 0. {
             writeln!(
                 &mut fh,
-                "| [{}](../../reactions/{}) | {} |",
+                "| [{}](../../reaction/{}) | {} |",
                 reaction.name(),
                 reaction.name().to_kebab_case(),
                 power,

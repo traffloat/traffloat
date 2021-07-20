@@ -114,7 +114,7 @@ fn write_liquid(
             reaction
                 .puts()
                 .iter()
-                .any(|put| is_liquid_put(put, liquid_id) && put.base() < 0.)
+                .any(|put| is_liquid_put(put, liquid_id) && put.is_input())
         })
         .collect();
     let as_output = def
@@ -124,7 +124,7 @@ fn write_liquid(
             reaction
                 .puts()
                 .iter()
-                .any(|put| is_liquid_put(put, liquid_id) && put.base() > 0.)
+                .any(|put| is_liquid_put(put, liquid_id) && put.is_output())
         })
         .collect();
     let reaction_groups: [(&str, Vec<_>); 3] = [
