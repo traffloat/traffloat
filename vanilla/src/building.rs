@@ -29,6 +29,11 @@ macro_rules! buildings {
                         },
                     )*
                 ],
+                storage: {
+                    cargo: $cargo_storage:literal,
+                    liquid: $liquid_storage:literal,
+                    gas: $gas_storage:literal,
+                },
                 features: [$($features:expr),* $(,)?],
             })*
         })*
@@ -83,6 +88,11 @@ macro_rules! buildings {
                                     ),
                                 )*
                             ])
+                            .storage(building::Storage::builder()
+                                .cargo($cargo_storage.into())
+                                .liquid($liquid_storage.into())
+                                .gas($gas_storage.into())
+                                .build())
                             .features({
                                 #[allow(unused_imports)]
                                 use traffloat_types::def::building::ExtraFeature::*;
@@ -116,7 +126,12 @@ buildings! {
             cube: 1.,
             texture: "core",
             reactions: [],
-            features: [Core, ProvidesHousing(1)],
+            storage: {
+                cargo: 1000.,
+                liquid: 1000.,
+                gas: 1000.,
+            },
+            features: [Core, ProvidesHousing(4)],
         }
         hut {
             name: "Hut",
@@ -125,7 +140,12 @@ buildings! {
             cube: 1.,
             texture: "house",
             reactions: [],
-            features: [ProvidesHousing(6)],
+            storage: {
+                cargo: 1000.,
+                liquid: 1000.,
+                gas: 1000.,
+            },
+            features: [ProvidesHousing(3)],
         }
     }
 
@@ -137,6 +157,11 @@ buildings! {
             cube: 0.2,
             texture: "dummy-building",
             reactions: [],
+            storage: {
+                cargo: 1000.,
+                liquid: 1000.,
+                gas: 1000.,
+            },
             features: [
                 RailTerminal(units::RailForce(100.)),
                 LiquidPump(units::PipeForce(100.)),
@@ -157,7 +182,20 @@ buildings! {
             reactions: [
                 solar_power {},
             ],
+            storage: {
+                cargo: 1000.,
+                liquid: 1000.,
+                gas: 1000.,
+            },
             features: [],
         }
+    }
+
+    education "Education" ("Buildings to train inhabitant skills") {
+
+    }
+
+    entertainment "Entertainment" ("Buildings to maintain inhabitant happiness") {
+
     }
 }

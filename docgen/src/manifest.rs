@@ -24,6 +24,7 @@ pub struct Theme {
     pub favicon: String,
     pub logo: String,
     pub features: &'static [&'static str],
+    pub palette: serde_json::Value,
 }
 
 pub enum Nav {

@@ -31,6 +31,9 @@ pub struct Type {
     /// Reactions associated with the building.
     #[getset(get = "pub")]
     reactions: Vec<(reaction::TypeId, ReactionPolicy)>,
+    /// Storage provided by a building
+    #[getset(get = "pub")]
+    storage: Storage,
     /// Extra features associated with the building.
     #[getset(get = "pub")]
     features: Vec<ExtraFeature>,
@@ -76,6 +79,23 @@ impl Default for FlowPolicy {
     fn default() -> Self {
         Self::ReduceRate
     }
+}
+
+/// Storage provided by a building.
+///
+/// This storage is also used as a buffer for liquid and gas transfer.
+/// The storage size is the maximum amount of liquid and gas that
+#[derive(TypedBuilder, getset::CopyGetters)]
+pub struct Storage {
+    /// Cargo storage provided
+    #[getset(get_copy = "pub")]
+    cargo: units::CargoSize,
+    /// Liquid storage provided
+    #[getset(get_copy = "pub")]
+    liquid: units::LiquidVolume,
+    /// Gas storage provided
+    #[getset(get_copy = "pub")]
+    gas: units::GasVolume,
 }
 
 /// Extra features of a building (in addition to reactions)

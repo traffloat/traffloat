@@ -149,7 +149,7 @@ fn write_feature(mut fh: impl Write, feature: &building::ExtraFeature) -> Result
             writeln!(&mut fh, "### Housing ({} inhabitants)", capacity)?;
             writeln!(
                 &mut fh,
-                "This building provides {} [housing capacity](../../population#happiness).",
+                "This building provides {} [housing capacity](../../happiness).",
                 capacity
             )?;
             writeln!(

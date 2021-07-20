@@ -63,6 +63,8 @@ fn main() -> Result<()> {
             include_str!("population.md"),
         )
         .context("Copying file")?;
+        fs::write(docs_dir.join("housing.md"), include_str!("housing.md"))
+            .context("Copying file")?;
         fs::write(docs_dir.join("happiness.md"), include_str!("happiness.md"))
             .context("Copying file")?;
     }
@@ -79,6 +81,7 @@ fn main() -> Result<()> {
             title: String::from("Population"),
             items: vec![
                 manifest::Nav::Path(PathBuf::from("population.md")),
+                manifest::Nav::Path(PathBuf::from("housing.md")),
                 manifest::Nav::Path(PathBuf::from("happiness.md")),
                 manifest::Nav::Index {
                     title: String::from("Skill"),
@@ -126,6 +129,24 @@ fn main() -> Result<()> {
             favicon: favicon_path.clone(),
             logo: favicon_path,
             features: &[],
+            palette: serde_json::json! {
+                [
+                    {
+                        "scheme": "default",
+                        "toggle": {
+                            "icon": "material/toggle-switch-off-outline",
+                            "name": "Switch to dark mode",
+                        }
+                    },
+                    {
+                        "scheme": "slate",
+                        "toggle": {
+                            "icon": "material/toggle-switch",
+                            "name": "Switch to light mode",
+                        }
+                    }
+                ]
+            },
         },
         markdown_extensions: &["attr_list"],
         nav: index,
