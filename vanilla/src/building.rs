@@ -25,7 +25,7 @@ macro_rules! buildings {
                 reactions: [
                     $(
                         $reaction_name:ident {
-                            $($reaction_param:ident: $reaction_value:expr,)*
+                            $($reaction_param:ident: $reaction_value:expr),* $(,)?
                         },
                     )*
                 ],
@@ -180,7 +180,7 @@ buildings! {
             cube: 1.,
             texture: "solar-panel",
             reactions: [
-                solar_power {},
+                solar_power {configurable: true},
             ],
             storage: {
                 cargo: 1000.,
@@ -191,11 +191,47 @@ buildings! {
         }
     }
 
-    education "Education" ("Buildings to train inhabitant skills") {
-
+    skill "Skill" ("Buildings to train inhabitant skills") {
+        driving_school {
+            name: "Driving school",
+            summary: "Train inhabitants to drive better",
+            description: "Train inhabitants to drive better.",
+            cube: 1.,
+            texture: "dummy-building",
+            reactions: [
+                driving_lesson {},
+            ],
+            storage: {
+                cargo: 1000.,
+                liquid: 1000.,
+                gas: 1000.,
+            },
+            features: [],
+        }
     }
 
-    entertainment "Entertainment" ("Buildings to maintain inhabitant happiness") {
-
+    happiness "Happiness" ("Buildings related to happiness and security") {
+        prison {
+            name: "Prison",
+            summary: "Correctional services for criminals",
+            description: "Inhabitants with negative happiness are imprisoned here \
+                to recultivate morality and restore happiness.",
+            cube: 1.,
+            texture: "dummy-building",
+            reactions: [
+                imprisonment {},
+            ],
+            storage: {
+                cargo: 1000.,
+                liquid: 1000.,
+                gas: 1000.,
+            },
+            features: [
+                SecureExit {
+                    min_happiness: 10f64.into(),
+                    breach_probability: 0.001,
+                },
+            ],
+        }
     }
 }

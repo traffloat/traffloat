@@ -186,6 +186,44 @@ fn write_feature(mut fh: impl Write, feature: &building::ExtraFeature) -> Result
             )?;
             writeln!(&mut fh)?;
         }
+        building::ExtraFeature::SecureEntry {
+            min_happiness,
+            breach_probability,
+        } => {
+            writeln!(&mut fh, "### Entry security")?;
+            writeln!(
+                &mut fh,
+                "Inhabitants entering the building must have at least {} happiness.",
+                min_happiness
+            )?;
+            if *breach_probability > 0. {
+                writeln!(
+                    &mut fh,
+                    "However, inhabitants with low happiness may manage to sneak into the building with {} probability.",
+                    breach_probability,
+                )?;
+            }
+            writeln!(&mut fh)?;
+        }
+        building::ExtraFeature::SecureExit {
+            min_happiness,
+            breach_probability,
+        } => {
+            writeln!(&mut fh, "### Exit security")?;
+            writeln!(
+                &mut fh,
+                "Inhabitants exiting the building must have at least {} happiness.",
+                min_happiness
+            )?;
+            if *breach_probability > 0. {
+                writeln!(
+                    &mut fh,
+                    "However, inhabitants with low happiness may manage to sneak out of the building with {} probability.",
+                    breach_probability,
+                )?;
+            }
+            writeln!(&mut fh)?;
+        }
     }
 
     Ok(())

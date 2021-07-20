@@ -35,20 +35,39 @@ macro_rules! skills {
 }
 
 skills! {
+    age {
+        name: "Age",
+        description: "Age of the inhabitant. Some jobs require operators of a specific age range. \
+            A high age increases the probability of health decrease.",
+    }
+    health {
+        name: "Health",
+        description: "Physical well-being of the inhabitant. The inhabitant dies when health drops to zero.",
+    }
+    morality {
+        name: "Morality",
+        description: "Inhabitants are educated with morality values to reduce the probability of committing crimes.",
+    }
     driving {
-        name: "Driving",
+        name: "Driving skill",
         description: "When an inhabitant with good driving skill operates a vehicle, it can move faster across rails.",
     }
     mechanic {
-        name: "Mechanic",
+        name: "Mechanic skill",
         description: "Inhabitants are trained as mechanics to operate factories more effectively.",
     }
     construction {
-        name: "Construction",
+        name: "Construction skill",
         description: "Inhabitants are trained as builders to construct new buildings faster.",
     }
     teaching {
-        name: "Teaching",
+        name: "Teaching skill",
         description: "Inhabitants are trained as teachers so that the next generation can learn better in schools.",
+    }
+    military {
+        name: "Military skill",
+        description: "Inhabitants are trained as soldiers or police. \
+            Weapons they operate will be more effective, \
+            and they have higher chance of successfully arresting an outlaw.",
     }
 }

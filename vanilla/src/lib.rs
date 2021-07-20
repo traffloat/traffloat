@@ -5,6 +5,7 @@ use traffloat_types::def::GameDefinition;
 
 pub mod building;
 pub mod cargo;
+pub mod crime;
 mod default;
 pub mod gas;
 pub mod liquid;
@@ -26,6 +27,7 @@ pub fn get() -> (
     let cargo = cargo::populate(&mut def);
     let reaction = reaction::populate(&mut def, &cargo, &liquid, &gas, &skill);
     let building = building::populate(&mut def, &reaction);
+    crime::populate(&mut def, &skill);
 
     let (nodes, edges) = default::default_setup(&def, &building);
 

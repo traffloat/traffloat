@@ -111,6 +111,24 @@ pub enum ExtraFeature {
     LiquidPump(units::PipeForce),
     /// The building provides pumping force for gas diffusion in adjacent corridors.
     GasPump(units::FanForce),
+    /// Inhabitants with low happiness may not be permitted to enter the node.
+    SecureEntry {
+        /// The minimum happiness required to enter the building.
+        min_happiness: units::Happiness,
+        /// The probability per second per inhabitant that
+        /// the inhabitant has lower happiness than required
+        /// but still can enter the building.
+        breach_probability: f64,
+    },
+    /// Inhabitants with negative happiness may not be permitted to exit the node.
+    SecureExit {
+        /// The minimum happiness required to enter the building.
+        min_happiness: units::Happiness,
+        /// The probability per second per operator that
+        /// the operator has lower happiness than required
+        /// but still can exit the building.
+        breach_probability: f64,
+    },
 }
 
 /// Identifies a building category

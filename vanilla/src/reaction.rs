@@ -7,6 +7,7 @@ use traffloat_types::time::Rate;
 
 macro_rules! reactions {
     (
+        $cargo:ident $liquid:ident $gas:ident $skill:ident; // macro hygiene hack
         $($category_ident:ident $category:literal ($category_description:literal) {
             $($ident:ident {
                 name: $name:literal,
@@ -43,7 +44,7 @@ macro_rules! reactions {
 
         /// Populates a [`GameDefinition`] with cargo definition.
         #[allow(unused_variables)]
-        pub fn populate(def: &mut GameDefinition, cargo: &super::cargo::Ids, liquid: &super::liquid::Ids, gas: &super::gas::Ids, skill: &super::skill::Ids) -> Ids {
+        pub fn populate(def: &mut GameDefinition, $cargo: &super::cargo::Ids, $liquid: &super::liquid::Ids, $gas: &super::gas::Ids, $skill: &super::skill::Ids) -> Ids {
             $(
                 let $category_ident = def.add_reaction_category(
                     reaction::Category::builder()
@@ -78,7 +79,7 @@ macro_rules! reactions {
                                     reaction::Put::$put_variant {
                                         $(ty: $put_type,)?
                                         base: Rate($put_rate.into()),
-                                    }
+                                    },
                                 )*
                             ])
                             .category($category_ident)
@@ -97,6 +98,8 @@ macro_rules! reactions {
 }
 
 reactions! {
+    cargo liquid gas skill;
+
     electricity "Electricity" ("Electricity management.") {
         solar_power {
             name: "Solar power",
@@ -110,6 +113,49 @@ reactions! {
             puts: [
                 Electricity {
                     rate: 100.,
+                },
+            ],
+        }
+    }
+
+    education "Education" ("Train inhabitant skills.") {
+        driving_lesson {
+            name: "Driving lesson",
+            description: "Assign an experienced driver to teach driving skills to other inhabitants.",
+            catalysts: [
+                Skill {
+                    ty: skill.driving,
+                    levels: 10. .. 20.,
+                    multipliers: [0., 0., 1., 1.],
+                },
+            ],
+            puts: [
+                Skill {
+                    ty: skill.driving,
+                    rate: 0.03,
+                },
+            ],
+        }
+    }
+
+    happiness "Happiness" ("Entertainment and correctional services.") {
+        imprisonment {
+            name: "Imprisonment",
+            description: "Imprison criminals to recultivate their moral values and turn to a good citizen.",
+            catalysts: [
+                Skill {
+                    ty: skill.teaching,
+                    levels: 5. .. 50.,
+                    multipliers: [0., 1., 1., 1.],
+                },
+            ],
+            puts: [
+                Happiness {
+                    rate: 0.1,
+                },
+                Skill {
+                    ty: skill.morality,
+                    rate: 0.01,
                 },
             ],
         }

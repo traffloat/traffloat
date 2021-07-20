@@ -79,6 +79,8 @@ pub enum CatalystRange {
         levels: Range<units::Brightness>,
     },
     /// Existence of skilled operators
+    ///
+    /// Only the most skilled operator is counted as a catalyst.
     Skill {
         /// Type of skill catalyst
         ty: skill::TypeId,
@@ -132,10 +134,20 @@ pub enum Put {
         /// Base (unmultiplied) rate of electricity consumed/generated
         base: Rate<units::ElectricPower>,
     },
-    /// Change of happiness
+    /// Change in happiness
     Happiness {
         /// Base (unmultiplied) rate of happiness change
         base: Rate<units::Happiness>,
+    },
+    /// Change in skill
+    ///
+    /// Operators used as catalyst do not receive the skill change.
+    /// All other operators receive the same amount of change.
+    Skill {
+        /// Type of skill trained/lost
+        ty: skill::TypeId,
+        /// Base (unmultiplied) rate of gas consumed/produced
+        base: Rate<units::Skill>,
     },
 }
 
@@ -148,6 +160,7 @@ impl Put {
             Self::Gas { base, .. } => base.0.value(),
             Self::Electricity { base, .. } => base.0.value(),
             Self::Happiness { base, .. } => base.0.value(),
+            Self::Skill { base, .. } => base.0.value(),
         }
     }
 

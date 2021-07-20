@@ -191,10 +191,15 @@ fn write_reaction(
                         )?;
                     }
                     reaction::Put::Happiness { base } => {
+                        writeln!(&mut fh, "- {} [happiness](../../happiness)", base.0 * mul,)?;
+                    }
+                    reaction::Put::Skill { ty, base } => {
                         writeln!(
                             &mut fh,
-                            "- {:+} [electricity](../../electricity)",
+                            "- {} [{}](../../skill/{})",
                             base.0 * mul,
+                            def.get_skill(*ty).name(),
+                            def.get_skill(*ty).name().to_kebab_case(),
                         )?;
                     }
                 }

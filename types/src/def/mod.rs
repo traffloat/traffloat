@@ -2,6 +2,7 @@
 
 pub mod building;
 pub mod cargo;
+pub mod crime;
 pub mod gas;
 pub mod liquid;
 pub mod reaction;
@@ -37,6 +38,9 @@ pub struct GameDefinition {
     /// Building categories.
     #[getset(get = "pub", get_mut = "pub")]
     building_cats: Vec<building::Category>,
+    /// List of possible crimes.
+    #[getset(get = "pub", get_mut = "pub")]
+    crime: Vec<crime::Type>,
 }
 
 impl GameDefinition {

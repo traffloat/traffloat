@@ -8,7 +8,8 @@ client-watch: client-clean pp
 
 doc: pp
 	cargo doc --lib
-guide:
+
+guide: guide-clean
 	cd docgen && cargo run -- --site-url https://traffloat.github.io/guide/master/
 	cd docgen/output && mkdocs build
 
@@ -19,6 +20,8 @@ client-texture:
 	python3 client/textures/combine.py
 client-glsl:
 	cd client && ./glsl_min.rb
+guide-clean:
+	test ! -d docgen/output || rm -r docgen/output
 
 test:
 	cargo test && wasm-pack test --headless
