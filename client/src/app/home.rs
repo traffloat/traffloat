@@ -102,7 +102,7 @@ impl Component for Home {
                             ("User manual", "https://traffloat.github.io/guide/master/"),
                             ("Discussion", "https://github.com/traffloat/traffloat/discussions"),
                         ].iter().map(|&(name, url)| html! {
-                            <li style="display: inline; margin: 2em;"><a href=url target="_blank">{ name }</a></li>
+                            <li style="display: inline; margin: 1em;"><a href=url target="_blank">{ name }</a></li>
                         }) }
                     </ul>
                     <p style="text-align: center;">{ "Licensed under GNU Affero General Public License version 3." }</p>
