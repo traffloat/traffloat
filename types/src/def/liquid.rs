@@ -2,6 +2,8 @@
 
 use typed_builder::TypedBuilder;
 
+use crate::units;
+
 /// Identifies a cargo category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TypeId(pub usize);
@@ -18,6 +20,9 @@ pub struct Type {
     /// Long description of the liquid type.
     #[getset(get = "pub")]
     description: String,
+    /// Viscosity of a liquid.
+    #[getset(get = "pub")]
+    viscosity: units::LiquidViscosity,
     /// Name of the texture.
     #[getset(get = "pub")]
     texture: String,

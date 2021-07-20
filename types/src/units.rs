@@ -9,6 +9,9 @@ units! {
     /// An amount of liquid.
     LiquidVolume("{} L");
 
+    /// Viscosity of a liquid.
+    LiquidViscosity("{} Pas");
+
     /// An absolute amount of gas.
     GasVolume("{} mol");
 

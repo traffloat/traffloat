@@ -8,6 +8,7 @@ macro_rules! liquids {
             name: $name:literal,
             summary: $summary:literal,
             description: $description:literal,
+            viscosity: $viscosity:literal,
             texture: $texture:literal,
         })*
     ) => {
@@ -26,6 +27,7 @@ macro_rules! liquids {
                         .name(String::from($name))
                         .summary(String::from($summary))
                         .description(String::from($description))
+                        .viscosity($viscosity.into())
                         .texture(String::from($texture))
                         .build()
                 );
@@ -45,6 +47,7 @@ liquids! {
         description: "Deposits of water can sometimes be found in asteroids. \
             Contaminated by asteroidal minerals, it must be filtered to be used in factories,
             or deionized so that it is drinkable by inhabitants.",
+        viscosity: 1.,
         texture: "dummy",
     }
 
@@ -53,6 +56,7 @@ liquids! {
         summary: "Water without insoluble impurities.",
         description: "Filtered water is removed of insoluble impurities, \
             so they can be used in other factories without clogging up the pipes.",
+        viscosity: 1.,
         texture: "dummy",
     }
 
@@ -61,6 +65,7 @@ liquids! {
         summary: "Drinking water",
         description: "Soluble impurities in water are removed from water during deionization. \
             This makes the water safe for inhabitant intake.",
+        viscosity: 1.,
         texture: "dummy",
     }
 
@@ -70,6 +75,7 @@ liquids! {
         description: "Urines are organic waste produced by inhabitants in houses. \
             Arrange sewage pipes to remove them from houses and \
             recycle them by distillation into drinking water.",
+        viscosity: 5.,
         texture: "dummy",
     }
 
@@ -78,6 +84,7 @@ liquids! {
         summary: "A liquid at very low temperature",
         description: "Coolants are produced by condensation of nitrogen. \
             They are required in factories with highly exothermic reactions.",
+        viscosity: 1.,
         texture: "dummy",
     }
 }
