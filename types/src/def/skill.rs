@@ -12,9 +12,6 @@ pub struct Type {
     /// Name of the skill type.
     #[getset(get = "pub")]
     name: String,
-    /// Short summary of the skill type.
-    #[getset(get = "pub")]
-    summary: String,
     /// Long description of the skill type.
     #[getset(get = "pub")]
     description: String,

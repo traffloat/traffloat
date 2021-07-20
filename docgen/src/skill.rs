@@ -56,8 +56,6 @@ fn write_skill(
         .with_context(|| format!("Could not open {} for writing", file.display()))?;
 
     writeln!(&mut fh, "# {}", skill.name())?;
-    writeln!(&mut fh, "> {}", skill.summary())?;
-    writeln!(&mut fh)?;
     writeln!(&mut fh, "{}", skill.description())?;
     writeln!(&mut fh)?;
 

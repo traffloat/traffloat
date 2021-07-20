@@ -9,6 +9,7 @@ mod default;
 pub mod gas;
 pub mod liquid;
 pub mod reaction;
+pub mod skill;
 
 pub const VANILLA_TEXTURE: &str = "textures.png";
 
@@ -19,10 +20,11 @@ pub fn get() -> (
     Vec<(usize, usize, f64)>,
 ) {
     let mut def = GameDefinition::default();
+    let skill = skill::populate(&mut def);
     let liquid = liquid::populate(&mut def);
     let gas = gas::populate(&mut def);
     let cargo = cargo::populate(&mut def);
-    let reaction = reaction::populate(&mut def, &cargo, &liquid, &gas);
+    let reaction = reaction::populate(&mut def, &cargo, &liquid, &gas, &skill);
     let building = building::populate(&mut def, &reaction);
 
     let (nodes, edges) = default::default_setup(&def, &building);

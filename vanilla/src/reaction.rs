@@ -43,7 +43,7 @@ macro_rules! reactions {
 
         /// Populates a [`GameDefinition`] with cargo definition.
         #[allow(unused_variables)]
-        pub fn populate(def: &mut GameDefinition, cargo: &super::cargo::Ids, liquid: &super::liquid::Ids, gas: &super::gas::Ids) -> Ids {
+        pub fn populate(def: &mut GameDefinition, cargo: &super::cargo::Ids, liquid: &super::liquid::Ids, gas: &super::gas::Ids, skill: &super::skill::Ids) -> Ids {
             $(
                 let $category_ident = def.add_reaction_category(
                     reaction::Category::builder()
