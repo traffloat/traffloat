@@ -41,4 +41,7 @@ units! {
 
     /// Happiness value of an inhabitant.
     Happiness("{}%");
+
+    /// Hitpoint of a building.
+    Hitpoint("{} HP");
 }

@@ -29,6 +29,7 @@ macro_rules! buildings {
                         },
                     )*
                 ],
+                hitpoint: $hitpoint:literal,
                 storage: {
                     cargo: $cargo_storage:literal,
                     liquid: $liquid_storage:literal,
@@ -88,6 +89,7 @@ macro_rules! buildings {
                                     ),
                                 )*
                             ])
+                            .hitpoint($hitpoint.into())
                             .storage(building::Storage::builder()
                                 .cargo($cargo_storage.into())
                                 .liquid($liquid_storage.into())
@@ -126,6 +128,7 @@ buildings! {
             cube: 1.,
             texture: "core",
             reactions: [],
+            hitpoint: 3000.,
             storage: {
                 cargo: 1000.,
                 liquid: 1000.,
@@ -140,6 +143,7 @@ buildings! {
             cube: 1.,
             texture: "house",
             reactions: [],
+            hitpoint: 150.,
             storage: {
                 cargo: 1000.,
                 liquid: 1000.,
@@ -157,6 +161,7 @@ buildings! {
             cube: 0.2,
             texture: "dummy-building",
             reactions: [],
+            hitpoint: 100.,
             storage: {
                 cargo: 1000.,
                 liquid: 1000.,
@@ -182,6 +187,7 @@ buildings! {
             reactions: [
                 solar_power {configurable: true},
             ],
+            hitpoint: 200.,
             storage: {
                 cargo: 1000.,
                 liquid: 1000.,
@@ -201,6 +207,7 @@ buildings! {
             reactions: [
                 driving_lesson {},
             ],
+            hitpoint: 150.,
             storage: {
                 cargo: 1000.,
                 liquid: 1000.,
@@ -221,6 +228,7 @@ buildings! {
             reactions: [
                 imprisonment {},
             ],
+            hitpoint: 200.,
             storage: {
                 cargo: 1000.,
                 liquid: 1000.,

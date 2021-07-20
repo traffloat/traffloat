@@ -8,6 +8,7 @@ use typed_builder::TypedBuilder;
 use crate::def::skill;
 use crate::units;
 
+/// Consequence of a crime.
 #[derive(Clone, Copy)]
 pub enum Action {
     /// Steal random cargo carried by inhabitants in the same node or vehicle.
@@ -35,9 +36,11 @@ pub enum Action {
 /// A criterion to sort inhabitants with.
 #[derive(Clone, Copy)]
 pub enum InhabitantCriterion {
+    /// Select the inhabitant with the highest skill.
     HighestSkill(skill::TypeId),
 }
 
+/// A type of crime customized for the game definition.
 #[derive(TypedBuilder, getset::Getters, getset::CopyGetters)]
 pub struct Type {
     /// Name of the crime.

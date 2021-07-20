@@ -93,6 +93,22 @@ fn write_building(
     writeln!(&mut fh, "{}", building.description())?;
     writeln!(&mut fh)?;
 
+    writeln!(&mut fh, "| Property | Value |")?;
+    writeln!(&mut fh, "| :-: | :-: |")?;
+    writeln!(&mut fh, "| Hitpoints | {} |", building.hitpoint())?;
+    writeln!(
+        &mut fh,
+        "| Cargo storage | {} |",
+        building.storage().cargo()
+    )?;
+    writeln!(
+        &mut fh,
+        "| Liquid storage | {} |",
+        building.storage().liquid()
+    )?;
+    writeln!(&mut fh, "| Gas storage | {} |", building.storage().gas())?;
+    writeln!(&mut fh)?;
+
     if !building.features().is_empty() {
         writeln!(&mut fh, "## Features")?;
         for feature in building.features() {

@@ -31,6 +31,12 @@ pub struct Type {
     /// Reactions associated with the building.
     #[getset(get = "pub")]
     reactions: Vec<(reaction::TypeId, ReactionPolicy)>,
+    /// Maximum hitpoint of a building.
+    ///
+    /// The actual hitpoint is subject to asteroid and fire damage.
+    /// It can be restored by construction work.
+    #[getset(get = "pub")]
+    hitpoint: units::Hitpoint,
     /// Storage provided by a building
     #[getset(get = "pub")]
     storage: Storage,
