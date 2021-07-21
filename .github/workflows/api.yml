@@ -25,6 +25,8 @@ jobs:
             ~/.cargo
           key: just-tokei
       - run: test -f ~/.cargo/bin/just || cargo install just tokei
+      - name: Setup Graphviz
+        uses: ts-graphviz/setup-graphviz@v1
 
       - name: Install toolchain dependencies
         run: just deps
