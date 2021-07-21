@@ -91,7 +91,7 @@ fn write_vehicle(
     let skill = def.get_skill(vehicle.skill().skill());
     writeln!(
         &mut fh,
-        "| When driver [{}](../../skill/{}) is below {} | {}x |",
+        "| When driver [{}](../../skill/{}) is below {} | {}x speed |",
         skill.name(),
         skill.name().to_kebab_case(),
         vehicle.skill().levels().start,
