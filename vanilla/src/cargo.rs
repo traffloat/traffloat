@@ -1,5 +1,7 @@
 //! Vanilla cargo type definitions.
 
+use arcstr::{format, literal};
+
 use traffloat_types::def::{cargo, GameDefinition};
 
 macro_rules! cargos {
@@ -30,17 +32,17 @@ macro_rules! cargos {
             $(
                 let $category_ident = def.add_cargo_category(
                     cargo::Category::builder()
-                        .title(String::from($category))
-                        .description(String::from($category_description))
+                        .title(literal!($category))
+                        .description(literal!($category_description))
                         .build()
                 );
                 $(
                     let $ident = def.add_cargo(
                         cargo::Type::builder()
-                            .name(String::from($name))
-                            .summary(String::from($summary))
-                            .description(String::from($description))
-                            .texture(String::from($texture))
+                            .name(literal!($name))
+                            .summary(literal!($summary))
+                            .description(literal!($description))
+                            .texture(literal!($texture))
                             .category($category_ident)
                             .build()
                     );
@@ -54,7 +56,7 @@ macro_rules! cargos {
                     cargo::Type::builder()
                         .name(format!("Liquid bottle ({})", liquid.name()))
                         .summary(format!("Stores a small amount of {}", liquid.name()))
-                        .description(String::from("Produced in liquid bottlers and centrifuges, liquid bottles can be used to \
+                        .description(literal!("Produced in liquid bottlers and centrifuges, liquid bottles can be used to \
                             transfer a small amount of liquid to factories \
                             as a replacement of constructing dedicated pipes through corridors."))
                         .texture(format!("{}-liquid-bottle", liquid.texture()))
@@ -70,7 +72,7 @@ macro_rules! cargos {
                     cargo::Type::builder()
                         .name(format!("Gas bottle ({})", gas.name()))
                         .summary(format!("Stores a small amount of {}", gas.name()))
-                        .description(String::from("Produced in gas bottlers and centrifuges, gas bottles can be used to \
+                        .description(literal!("Produced in gas bottlers and centrifuges, gas bottles can be used to \
                             transfer a small amount of gas to factories \
                             as a replacement of diffusing gas slowly through corridors."))
                         .texture(format!("{}-liquid-bottle", gas.texture()))

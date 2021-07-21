@@ -1,5 +1,6 @@
 //! Gas definitions.
 
+use arcstr::ArcStr;
 use typed_builder::TypedBuilder;
 
 /// Identifies a gas category
@@ -11,14 +12,14 @@ pub struct TypeId(pub usize);
 pub struct Type {
     /// Name of the gas type.
     #[getset(get = "pub")]
-    name: String,
+    name: ArcStr,
     /// Short summary of the gas type.
     #[getset(get = "pub")]
-    summary: String,
+    summary: ArcStr,
     /// Long description of the gas type.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
     /// Name of the texture.
     #[getset(get = "pub")]
-    texture: String,
+    texture: ArcStr,
 }

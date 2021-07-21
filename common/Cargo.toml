@@ -12,6 +12,7 @@ license = "AGPL-3.0"
 name = "traffloat"
 
 [dependencies]
+arcstr = "1.0.0"
 derive-new = "0.5.9"
 getset = "0.1.1"
 legion = {version = "0.4.0", default-features = false, features = ["codegen"]}

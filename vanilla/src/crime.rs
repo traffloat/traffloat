@@ -1,5 +1,6 @@
 //! Crime definitions
 
+use arcstr::literal;
 use smallvec::smallvec;
 
 use traffloat_types::def::{
@@ -21,8 +22,8 @@ macro_rules! crimes {
         pub fn populate(def: &mut GameDefinition, skill: &super::skill::Ids) {
             $(
                 def.crime_mut().push(crime::Type::builder()
-                    .name(String::from($name))
-                    .description(String::from($description))
+                    .name(literal!($name))
+                    .description(literal!($description))
                     .action($action)
                     .trigger_happiness_range(($trigger_min.into()..$trigger_max.into()))
                     .probability($probability.into())

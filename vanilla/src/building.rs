@@ -1,5 +1,7 @@
 //! Vanilla building definitions.
 
+use arcstr::literal;
+
 use crate::VANILLA_TEXTURE;
 use traffloat_types::def::{building, GameDefinition};
 use traffloat_types::{space, units};
@@ -53,16 +55,16 @@ macro_rules! buildings {
             $(
                 let $category_ident = def.add_building_category(
                     building::Category::builder()
-                        .title(String::from($category))
-                        .description(String::from($category_description))
+                        .title(literal!($category))
+                        .description(literal!($category_description))
                         .build()
                 );
                 $(
                     let $ident = def.add_building(
                         building::Type::builder()
-                            .name(String::from($name))
-                            .summary(String::from($summary))
-                            .description(String::from($description))
+                            .name(literal!($name))
+                            .summary(literal!($summary))
+                            .description(literal!($description))
                             .shape(building::Shape::builder()
                                 $(
                                     .transform(space::Matrix::new_scaling($cube_size))
@@ -73,8 +75,8 @@ macro_rules! buildings {
                                         space::Vector::new($cuboid_x2, $cuboid_y2, $cuboid_z2),
                                     ))
                                 )?
-                                .texture_src(String::from(VANILLA_TEXTURE))
-                                .texture_name(String::from($texture))
+                                .texture_src(literal!(VANILLA_TEXTURE))
+                                .texture_name(literal!($texture))
                                 .build())
                             .category($category_ident)
                             .reactions(vec![

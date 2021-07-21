@@ -1,5 +1,6 @@
 //! Vanilla mechanism definitions.
 
+use arcstr::literal;
 use smallvec::smallvec;
 
 use traffloat_types::def::{reaction, GameDefinition};
@@ -48,15 +49,15 @@ macro_rules! reactions {
             $(
                 let $category_ident = def.add_reaction_category(
                     reaction::Category::builder()
-                        .title(String::from($category))
-                        .description(String::from($category_description))
+                        .title(literal!($category))
+                        .description(literal!($category_description))
                         .build()
                 );
                 $(
                     let $ident = def.add_reaction(
                         reaction::Type::builder()
-                            .name(String::from($name))
-                            .description(String::from($description))
+                            .name(literal!($name))
+                            .description(literal!($description))
                             .catalysts(smallvec![
                                 $(
                                     reaction::Catalyst::builder()

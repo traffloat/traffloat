@@ -1,5 +1,6 @@
 //! Building definitions
 
+use arcstr::ArcStr;
 use typed_builder::TypedBuilder;
 
 use super::reaction;
@@ -15,13 +16,13 @@ pub struct TypeId(pub usize);
 pub struct Type {
     /// Name of the building type.
     #[getset(get = "pub")]
-    name: String,
+    name: ArcStr,
     /// Short summary of the building type.
     #[getset(get = "pub")]
-    summary: String,
+    summary: ArcStr,
     /// Long description of the building type.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
     /// Category of the building type.
     #[getset(get_copy = "pub")]
     category: CategoryId,
@@ -53,10 +54,10 @@ pub struct Shape {
     transform: Matrix,
     /// The texture source path of the building.
     #[getset(get = "pub")]
-    texture_src: String,
+    texture_src: ArcStr,
     /// The texture name of the building.
     #[getset(get = "pub")]
-    texture_name: String,
+    texture_name: ArcStr,
 }
 
 /// Reaction behaviour specific to this building.
@@ -146,8 +147,8 @@ pub struct CategoryId(pub usize);
 pub struct Category {
     /// Title of the building category.
     #[getset(get = "pub")]
-    title: String,
+    title: ArcStr,
     /// Description of the building category.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
 }

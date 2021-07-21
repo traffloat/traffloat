@@ -2,6 +2,7 @@
 
 use std::ops::Range;
 
+use arcstr::ArcStr;
 use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
@@ -45,10 +46,10 @@ pub enum InhabitantCriterion {
 pub struct Type {
     /// Name of the crime.
     #[getset(get = "pub")]
-    name: String,
+    name: ArcStr,
     /// Description of the crime.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
     /// The actual consequence of the crime.
     #[getset(get = "pub")]
     action: Action,

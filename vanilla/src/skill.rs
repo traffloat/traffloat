@@ -1,5 +1,7 @@
 //! Vanilla skill type definitions.
 
+use arcstr::literal;
+
 use traffloat_types::def::{skill, GameDefinition};
 
 macro_rules! skills {
@@ -21,8 +23,8 @@ macro_rules! skills {
             $(
                 let $ident = def.add_skill(
                     skill::Type::builder()
-                        .name(String::from($name))
-                        .description(String::from($description))
+                        .name(literal!($name))
+                        .description(literal!($description))
                         .build()
                 );
             )*

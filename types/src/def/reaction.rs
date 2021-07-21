@@ -2,6 +2,7 @@
 
 use std::ops::Range;
 
+use arcstr::ArcStr;
 use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
@@ -18,10 +19,10 @@ pub struct TypeId(pub usize);
 pub struct Type {
     /// Name of the reaction type.
     #[getset(get = "pub")]
-    name: String,
+    name: ArcStr,
     /// Description of the reaction type.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
     /// Category of the reaction type.
     #[getset(get_copy = "pub")]
     category: CategoryId,
@@ -184,8 +185,8 @@ pub struct CategoryId(pub usize);
 pub struct Category {
     /// Title of the reaction category.
     #[getset(get = "pub")]
-    title: String,
+    title: ArcStr,
     /// Description of the reaction category.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
 }

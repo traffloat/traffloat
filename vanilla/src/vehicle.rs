@@ -1,5 +1,7 @@
 //! Vanilla vehicle type definitions.
 
+use arcstr::literal;
+
 use super::skill;
 use traffloat_types::def::{reaction, vehicle, GameDefinition};
 
@@ -38,8 +40,8 @@ macro_rules! vehicles {
             $(
                 let $ident = def.add_vehicle(
                     vehicle::Type::builder()
-                        .name(String::from($name))
-                        .description(String::from($description))
+                        .name(literal!($name))
+                        .description(literal!($description))
                         .speed($speed.into())
                         .capacity($capacity.into())
                         .passengers($passengers)
@@ -53,7 +55,7 @@ macro_rules! vehicles {
                                    .overflow($skill_overflow_mul)
                                    .build())
                                .build())
-                        .texture(String::from($texture))
+                        .texture(literal!($texture))
                         .build()
                 );
             )*

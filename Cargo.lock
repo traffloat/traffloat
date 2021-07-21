@@ -33,6 +33,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arcstr"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "514f4b246c9aa8f35393407c55f20df89cae359831c136cd4e61c97cd1dd5dfa"
+
+[[package]]
 name = "atomic_refcell"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -903,6 +909,7 @@ dependencies = [
 name = "traffloat-common"
 version = "0.2.0"
 dependencies = [
+ "arcstr",
  "derive-new",
  "getset",
  "legion",
@@ -943,6 +950,7 @@ version = "0.2.0"
 name = "traffloat-types"
 version = "0.2.0"
 dependencies = [
+ "arcstr",
  "getset",
  "nalgebra",
  "smallvec",
@@ -953,6 +961,7 @@ dependencies = [
 name = "traffloat-vanilla"
 version = "0.2.0"
 dependencies = [
+ "arcstr",
  "derive-new",
  "getset",
  "indvec",

@@ -1,5 +1,6 @@
 //! Liquid definitions.
 
+use arcstr::ArcStr;
 use typed_builder::TypedBuilder;
 
 use crate::units;
@@ -13,17 +14,17 @@ pub struct TypeId(pub usize);
 pub struct Type {
     /// Name of the liquid type.
     #[getset(get = "pub")]
-    name: String,
+    name: ArcStr,
     /// Short summary of the liquid type.
     #[getset(get = "pub")]
-    summary: String,
+    summary: ArcStr,
     /// Long description of the liquid type.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
     /// Viscosity of a liquid.
     #[getset(get = "pub")]
     viscosity: units::LiquidViscosity,
     /// Name of the texture.
     #[getset(get = "pub")]
-    texture: String,
+    texture: ArcStr,
 }

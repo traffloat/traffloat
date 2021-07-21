@@ -32,7 +32,7 @@ pub fn gen_gases(
             let texture_path = opts
                 .client_dir
                 .join("textures")
-                .join(gas.texture())
+                .join(gas.texture().as_str())
                 .with_extension("png");
             let texture_path = texture_path
                 .canonicalize()
@@ -67,7 +67,7 @@ fn write_gas(
     let texture_path = opts
         .client_dir
         .join("textures")
-        .join(gas.texture())
+        .join(gas.texture().as_str())
         .with_extension("png");
     let texture_path = texture_path
         .canonicalize()

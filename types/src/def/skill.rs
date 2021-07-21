@@ -1,5 +1,6 @@
 //! Skill definitions.
 
+use arcstr::ArcStr;
 use typed_builder::TypedBuilder;
 
 /// Identifies a cargo category
@@ -11,8 +12,8 @@ pub struct TypeId(pub usize);
 pub struct Type {
     /// Name of the skill type.
     #[getset(get = "pub")]
-    name: String,
+    name: ArcStr,
     /// Long description of the skill type.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
 }

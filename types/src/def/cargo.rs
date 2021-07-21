@@ -1,5 +1,6 @@
 //! Cargo definitions.
 
+use arcstr::ArcStr;
 use typed_builder::TypedBuilder;
 
 /// Identifies a cargo category
@@ -11,19 +12,19 @@ pub struct TypeId(pub usize);
 pub struct Type {
     /// Name of the cargo type.
     #[getset(get = "pub")]
-    name: String,
+    name: ArcStr,
     /// Short summary of the cargo type.
     #[getset(get = "pub")]
-    summary: String,
+    summary: ArcStr,
     /// Long description of the cargo type.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
     /// Category of the cargo type.
     #[getset(get_copy = "pub")]
     category: CategoryId,
     /// Name of the texture.
     #[getset(get = "pub")]
-    texture: String,
+    texture: ArcStr,
 }
 
 /// Identifies a cargo category
@@ -35,8 +36,8 @@ pub struct CategoryId(pub usize);
 pub struct Category {
     /// Title of the cargo category.
     #[getset(get = "pub")]
-    title: String,
+    title: ArcStr,
     /// Description of the cargo category.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
 }

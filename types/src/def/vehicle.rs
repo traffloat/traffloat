@@ -2,6 +2,7 @@
 
 use std::ops::Range;
 
+use arcstr::ArcStr;
 use typed_builder::TypedBuilder;
 
 use crate::def::{reaction, skill};
@@ -16,10 +17,10 @@ pub struct TypeId(pub usize);
 pub struct Type {
     /// Name of the vehicle type.
     #[getset(get = "pub")]
-    name: String,
+    name: ArcStr,
     /// Long description of the vehicle type.
     #[getset(get = "pub")]
-    description: String,
+    description: ArcStr,
     /// Base speed of the vehicle.
     ///
     /// Subject to terminal force and operator skill.
@@ -36,7 +37,7 @@ pub struct Type {
     skill: Skill,
     /// Name of the texture.
     #[getset(get = "pub")]
-    texture: String,
+    texture: ArcStr,
 }
 
 /// A skill required for driving the vehicle.

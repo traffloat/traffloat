@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 
+use arcstr::ArcStr;
 use derive_new::new;
 use legion::Entity;
 
@@ -24,7 +25,7 @@ pub struct NodeName {
     /// Name of the node
     #[getset(get = "pub")]
     #[getset(set = "pub")]
-    name: String,
+    name: ArcStr,
 }
 
 /// Component storing the endpoints of an edge

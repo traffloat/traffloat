@@ -2,6 +2,7 @@
 
 use std::ops::RangeInclusive;
 
+use arcstr::ArcStr;
 use derive_new::new;
 use smallvec::{smallvec, SmallVec};
 use typed_builder::TypedBuilder;
@@ -333,10 +334,10 @@ mod tests {
 pub struct Texture {
     /// A URL to an image file
     #[getset(get = "pub")]
-    url: String,
+    url: ArcStr,
     /// The name of the texture.
     #[getset(get = "pub")]
-    name: String,
+    name: ArcStr,
 }
 
 /// Initializes systems

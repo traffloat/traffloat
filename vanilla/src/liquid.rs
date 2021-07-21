@@ -1,5 +1,7 @@
 //! Vanilla liquid type definitions.
 
+use arcstr::literal;
+
 use traffloat_types::def::{liquid, GameDefinition};
 
 macro_rules! liquids {
@@ -24,11 +26,11 @@ macro_rules! liquids {
             $(
                 let $ident = def.add_liquid(
                     liquid::Type::builder()
-                        .name(String::from($name))
-                        .summary(String::from($summary))
-                        .description(String::from($description))
+                        .name(literal!($name))
+                        .summary(literal!($summary))
+                        .description(literal!($description))
                         .viscosity($viscosity.into())
-                        .texture(String::from($texture))
+                        .texture(literal!($texture))
                         .build()
                 );
             )*

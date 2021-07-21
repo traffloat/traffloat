@@ -1,5 +1,7 @@
 //! Vanilla gas type definitions.
 
+use arcstr::literal;
+
 use traffloat_types::def::{gas, GameDefinition};
 
 macro_rules! gases {
@@ -23,10 +25,10 @@ macro_rules! gases {
             $(
                 let $ident = def.add_gas(
                     gas::Type::builder()
-                        .name(String::from($name))
-                        .summary(String::from($summary))
-                        .description(String::from($description))
-                        .texture(String::from($texture))
+                        .name(literal!($name))
+                        .summary(literal!($summary))
+                        .description(literal!($description))
+                        .texture(literal!($texture))
                         .build()
                 );
             )*
