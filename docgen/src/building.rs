@@ -6,6 +6,7 @@ use anyhow::{Context, Result};
 use heck::KebabCase;
 
 use super::{assets, manifest, opts};
+use crate::reaction;
 use traffloat_types::def::{building, GameDefinition};
 
 pub fn gen_buildings(
@@ -29,12 +30,7 @@ pub fn gen_buildings(
         writeln!(&mut fh, "## List of buildings")?;
 
         for (category_id, category) in def.building_cats().iter().enumerate() {
-            writeln!(
-                &mut fh,
-                "### [{}](../{}/)",
-                category.title(),
-                category.title().to_kebab_case()
-            )?;
+            writeln!(&mut fh, "### {}", category.title(),)?;
             writeln!(&mut fh, "{}", category.description())?;
             writeln!(&mut fh)?;
             for building in def.building() {
@@ -109,43 +105,37 @@ fn write_building(
     writeln!(&mut fh, "| Gas storage | {} |", building.storage().gas())?;
     writeln!(&mut fh)?;
 
-    if !building.features().is_empty() {
-        writeln!(&mut fh, "## Features")?;
-        for feature in building.features() {
-            write_feature(&mut fh, feature)?;
-        }
+    if !building.features().is_empty() || building.reactions().is_empty() {
+        writeln!(&mut fh, "## Mechanisms")?;
     }
 
-    if !building.reactions().is_empty() {
-        writeln!(&mut fh, "## Mechanisms")?;
-        for (reaction_id, policy) in building.reactions() {
-            let reaction = def.get_reaction(*reaction_id);
-            writeln!(
-                &mut fh,
-                "### [{}](../../reaction/{})",
-                reaction.name(),
-                reaction.name().to_kebab_case()
-            )?;
-            writeln!(&mut fh, "{}", reaction.description())?;
-            writeln!(&mut fh)?;
-            writeln!(
-                &mut fh,
-                "| Player can manually restrict rate | When inputs underflow | When outputs overflow |"
-            )?;
-            writeln!(&mut fh, "| :-: | :-: | :-: |")?;
-            writeln!(
-                &mut fh,
-                "| {} | {} | {} |",
-                if policy.configurable() { "Yes" } else { "No" },
-                match policy.on_underflow() {
-                    building::FlowPolicy::ReduceRate => "Reduce output rate",
-                },
-                match policy.on_overflow() {
-                    building::FlowPolicy::ReduceRate => "Reduce input rate",
-                },
-            )?;
-            writeln!(&mut fh)?;
-        }
+    for feature in building.features() {
+        write_feature(&mut fh, feature)?;
+    }
+
+    for (reaction_id, policy) in building.reactions() {
+        let reaction = def.get_reaction(*reaction_id);
+        reaction::write_reaction(opts, assets, reaction, def, &mut fh, "###")
+            .context("Writing reaction information")?;
+        writeln!(&mut fh)?;
+        writeln!(&mut fh, "#### Rate control")?;
+        writeln!(
+            &mut fh,
+            "| Player can manually restrict rate | When inputs underflow | When outputs overflow |"
+        )?;
+        writeln!(&mut fh, "| :-: | :-: | :-: |")?;
+        writeln!(
+            &mut fh,
+            "| {} | {} | {} |",
+            if policy.configurable() { "Yes" } else { "No" },
+            match policy.on_underflow() {
+                building::FlowPolicy::ReduceRate => "Reduce rate",
+            },
+            match policy.on_overflow() {
+                building::FlowPolicy::ReduceRate => "Reduce rate",
+            },
+        )?;
+        writeln!(&mut fh)?;
     }
 
     Ok(file)

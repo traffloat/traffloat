@@ -20,9 +20,12 @@ pub fn gen_electricity(
     writeln!(&mut fh, "{}", include_str!("electricity.md"))?;
 
     writeln!(&mut fh, "## Electricity generation")?;
-    writeln!(&mut fh, "| Mechanism | Power generation per second |")?;
-    writeln!(&mut fh, "| :-: | :-: |")?;
-    for reaction in def.reaction() {
+    writeln!(
+        &mut fh,
+        "| Mechanism | Power generation per second | Buildings |"
+    )?;
+    writeln!(&mut fh, "| :-: | :-: | :-: |")?;
+    for (reaction_id, reaction) in def.reaction().iter().enumerate() {
         let power: units::ElectricPower = reaction
             .puts()
             .iter()
@@ -32,12 +35,37 @@ pub fn gen_electricity(
             })
             .sum();
         if power.0 > 0. {
+            let buildings = def
+                .building()
+                .iter()
+                .filter(|building| {
+                    building
+                        .reactions()
+                        .iter()
+                        .any(|(id, _)| id.0 == reaction_id)
+                })
+                .map(|building| {
+                    let texture_dir = opts
+                        .client_dir
+                        .join("textures")
+                        .join(building.shape().texture_name().as_str());
+                    let texture_dir = texture_dir.canonicalize().with_context(|| {
+                        format!("Could not canonicalize {}", texture_dir.display())
+                    })?;
+                    Ok(format!(
+                        "[![]({})](../building/{})",
+                        assets.map(&texture_dir.join("xp.png"))?,
+                        building.name().to_kebab_case(),
+                    ))
+                })
+                .collect::<Result<Vec<String>>>()?;
+
             writeln!(
                 &mut fh,
-                "| [{}](../../reaction/{}) | {} |",
+                "| {} | {} | {} |",
                 reaction.name(),
-                reaction.name().to_kebab_case(),
                 power,
+                buildings.join(" "),
             )?;
         }
     }

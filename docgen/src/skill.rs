@@ -59,29 +59,72 @@ fn write_skill(
     writeln!(&mut fh, "{}", skill.description())?;
     writeln!(&mut fh)?;
 
-    fn is_skill_range(range: &reaction::CatalystRange, skill_id: usize) -> bool {
-        match range {
-            reaction::CatalystRange::Skill { ty, .. } => ty.0 == skill_id,
-            _ => false,
-        }
-    }
-
-    let reactions: Vec<_> = def
+    let reactions = def
         .reaction()
         .iter()
-        .filter(|reaction| {
-            reaction
-                .catalysts()
+        .enumerate()
+        .filter_map(|(reaction_id, reaction)| {
+            let catalyst =
+                reaction
+                    .catalysts()
+                    .iter()
+                    .find_map(|catalyst| match catalyst.range() {
+                        reaction::CatalystRange::Skill { ty, levels } if ty.0 == skill_id => {
+                            Some(levels)
+                        }
+                        _ => None,
+                    })?;
+            let buildings = def
+                .building()
                 .iter()
-                .any(|catalyst| is_skill_range(catalyst.range(), skill_id))
+                .filter(|building| {
+                    building
+                        .reactions()
+                        .iter()
+                        .any(|(id, _)| id.0 == reaction_id)
+                })
+                .map(|building| {
+                    let texture_dir = opts
+                        .client_dir
+                        .join("textures")
+                        .join(building.shape().texture_name().as_str());
+                    let texture_dir = texture_dir.canonicalize().with_context(|| {
+                        format!("Could not canonicalize {}", texture_dir.display())
+                    })?;
+                    Ok(format!(
+                        "[![](../{})](../../building/{})",
+                        assets.map(&texture_dir.join("xp.png"))?,
+                        building.name().to_kebab_case(),
+                    ))
+                })
+                .collect::<Result<Vec<String>>>();
+            let buildings = match buildings {
+                Ok(buildings) => buildings,
+                Err(err) => return Some(Err(err)),
+            };
+            Some(Ok(format!(
+                "| {} | {} | {} | {} |",
+                reaction.name(),
+                catalyst.start,
+                catalyst.end,
+                buildings.join(" "),
+            )))
         })
-        .collect();
+        .collect::<Result<Vec<_>>>()?;
 
-    writeln!(&mut fh, "## Required for")?;
-    for reaction in reactions {
-        writeln!(&mut fh, "- {}", reaction.name())?;
+    if !reactions.is_empty() {
+        writeln!(&mut fh, "## Mechanisms")?;
+        writeln!(
+            &mut fh,
+            "| Mechanism | Minimum {0} | Maximum {0} | Buildings |",
+            skill.name(),
+        )?;
+        writeln!(&mut fh, "| :-: | :-: | :-: | :-: |")?;
+        for reaction in reactions {
+            writeln!(&mut fh, "{}", reaction)?;
+        }
+        writeln!(&mut fh)?;
     }
-    writeln!(&mut fh)?;
 
     Ok(file)
 }

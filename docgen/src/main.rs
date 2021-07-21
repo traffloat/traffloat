@@ -38,8 +38,6 @@ fn main() -> Result<()> {
 
     let buildings_index = building::gen_buildings(&opts, &mut assets, relativize, &def)
         .context("Generating building guide")?;
-    let reactions_index = reaction::gen_reactions(&opts, &mut assets, relativize, &def)
-        .context("Generating reaction guide")?;
     let cargos_index = cargo::gen_cargos(&opts, &mut assets, relativize, &def)
         .context("Generating cargo guide")?;
     let gases_index =
@@ -88,10 +86,6 @@ fn main() -> Result<()> {
                     items: skills_index,
                 },
             ],
-        },
-        manifest::Nav::Index {
-            title: String::from("Mechanisms"),
-            items: reactions_index,
         },
         manifest::Nav::Index {
             title: String::from("Cargo"),
