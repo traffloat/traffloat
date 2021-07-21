@@ -38,10 +38,20 @@ jobs:
           echo "# API documentation" > target/doc/index.md
           cargo metadata --format-version 1 | \
             jq '.packages |
-              map(select(.manifest_path |
-              contains("registry") | not)) |
-              map(.targets[0].name | split("-") | join("_")) |
-              .[]' -r | \
+              map(
+                select(
+                  .manifest_path |
+                    contains("registry") |
+                    not
+                )
+              ) |
+              map(
+                .targets[0].name |
+                  split("-") |
+                  join("_")
+              ) |
+              .[]
+            ' -r | \
             while read crate; do
               echo "- [$crate](./$crate)"
             done \
@@ -51,6 +61,38 @@ jobs:
           echo '```' >> target/doc/index.md
           tokei -e "*lock*" >> target/doc/index.md
           echo '```' >> target/doc/index.md
+          echo >> target/doc/index.md
+          echo "## Dependency graph" >> target/doc/index.md
+          echo "![](./depgraph.png)"
+
+      - name: Create crate dependency graph
+        run: |
+          (
+            echo 'digraph G {'
+            echo '  rankdir="LR";'
+            cargo metadata --format-version 1 |
+              jq '.packages |
+                map(
+                  select(
+                    .manifest_path |
+                      contains("registry") |
+                      not
+                  )
+                ) |
+                map({
+                  name,
+                  dependencies: ("{" + (
+                    .dependencies |
+                      map("\"" + .name + "\"") |
+                      join(";")
+                  ) + "}")
+                }) |
+                map("\"" + .name + "\" -> " + .dependencies) |
+                join("\n")
+              ' -r
+            echo "}"
+          ) | \
+            dot -T png -o target/doc/depgraph.png
 
       - name: Set Git author
         run: git config --global user.name "github-actions[bot]" && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
