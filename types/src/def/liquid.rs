@@ -4,7 +4,7 @@ use typed_builder::TypedBuilder;
 
 use crate::units;
 
-/// Identifies a cargo category
+/// Identifies a liquid category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TypeId(pub usize);
 

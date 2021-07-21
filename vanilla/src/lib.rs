@@ -11,6 +11,7 @@ pub mod gas;
 pub mod liquid;
 pub mod reaction;
 pub mod skill;
+pub mod vehicle;
 
 pub const VANILLA_TEXTURE: &str = "textures.png";
 
@@ -22,6 +23,7 @@ pub fn get() -> (
 ) {
     let mut def = GameDefinition::default();
     let skill = skill::populate(&mut def);
+    let vehicle = vehicle::populate(&mut def, &skill);
     let liquid = liquid::populate(&mut def);
     let gas = gas::populate(&mut def);
     let cargo = cargo::populate(&mut def);

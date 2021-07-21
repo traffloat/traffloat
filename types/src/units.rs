@@ -16,7 +16,7 @@ units! {
     GasVolume("{} mol");
 
     /// The standard size for cargo.
-    CargoSize("{}");
+    CargoSize("{} dm\u{b3}");
 
     /// Dynamic electricity consumed immediately.
     ElectricPower("{} W");
@@ -30,14 +30,17 @@ units! {
     /// Skill level of an inhabitant.
     Skill("{} SP");
 
-    /// Driving force on a rail
+    /// Driving force on a rail.
     RailForce("{} T");
 
-    /// Pumping force on a liquid pipe
+    /// Pumping force on a liquid pipe.
     PipeForce("{} Pa");
 
-    /// Pumping force for gas diffusion
+    /// Pumping force for gas diffusion.
     FanForce("{} Pa");
+
+    /// Speed of a vehicle on a rail.
+    VehicleSpeed("{} m/s");
 
     /// Happiness value of an inhabitant.
     Happiness("{}%");

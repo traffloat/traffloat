@@ -7,6 +7,7 @@ pub mod gas;
 pub mod liquid;
 pub mod reaction;
 pub mod skill;
+pub mod vehicle;
 
 /// Game mechanism definition.
 #[derive(Default, getset::Getters, getset::MutGetters)]
@@ -26,6 +27,9 @@ pub struct GameDefinition {
     /// Skill types.
     #[getset(get = "pub", get_mut = "pub")]
     skill: Vec<skill::Type>,
+    /// Vehicle types.
+    #[getset(get = "pub", get_mut = "pub")]
+    vehicle: Vec<vehicle::Type>,
     /// Reaction types.
     #[getset(get = "pub", get_mut = "pub")]
     reaction: Vec<reaction::Type>,
@@ -68,6 +72,11 @@ impl GameDefinition {
     pub fn add_skill(&mut self, skill: skill::Type) -> skill::TypeId {
         self.skill.push(skill);
         skill::TypeId(self.skill.len() - 1)
+    }
+    /// Adds a vehicle type.
+    pub fn add_vehicle(&mut self, vehicle: vehicle::Type) -> vehicle::TypeId {
+        self.vehicle.push(vehicle);
+        vehicle::TypeId(self.vehicle.len() - 1)
     }
     /// Adds a reaction category.
     pub fn add_reaction_category(&mut self, cat: reaction::Category) -> reaction::CategoryId {

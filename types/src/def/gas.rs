@@ -2,7 +2,7 @@
 
 use typed_builder::TypedBuilder;
 
-/// Identifies a cargo category
+/// Identifies a gas category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TypeId(pub usize);
 

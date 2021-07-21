@@ -16,6 +16,7 @@ mod manifest;
 mod opts;
 mod reaction;
 mod skill;
+mod vehicle;
 
 fn main() -> Result<()> {
     let opts = opts::Opts::from_args();
@@ -46,6 +47,8 @@ fn main() -> Result<()> {
         .context("Generating liquid guide")?;
     let skills_index = skill::gen_skills(&opts, &mut assets, relativize, &def)
         .context("Generating skill guide")?;
+    let vehicles_index = vehicle::gen_vehicles(&opts, &mut assets, relativize, &def)
+        .context("Generating vehicle guide")?;
     electricity::gen_electricity(&opts, &mut assets, relativize, &def)
         .context("Generating electricity guide")?;
 
@@ -100,6 +103,10 @@ fn main() -> Result<()> {
             items: liquids_index,
         },
         manifest::Nav::Path(PathBuf::from("electricity.md")),
+        manifest::Nav::Index {
+            title: String::from("Vehicle"),
+            items: vehicles_index,
+        },
     ];
 
     let mkdocs_yml = opts.root_dir.join("mkdocs.yml");
