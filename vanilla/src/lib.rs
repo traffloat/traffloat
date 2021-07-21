@@ -23,7 +23,7 @@ pub fn get() -> (
 ) {
     let mut def = GameDefinition::default();
     let skill = skill::populate(&mut def);
-    let vehicle = vehicle::populate(&mut def, &skill);
+    let _vehicle = vehicle::populate(&mut def, &skill);
     let liquid = liquid::populate(&mut def);
     let gas = gas::populate(&mut def);
     let cargo = cargo::populate(&mut def);

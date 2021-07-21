@@ -3,13 +3,15 @@ use std::rc::Rc;
 
 use yew::prelude::*;
 
-use super::scene_object;
+use super::edge_preview;
+use super::node_preview;
 
 /// Wrapper for UI elements.
 pub struct Wrapper {
     props: Props,
     link: ComponentLink<Self>,
-    scene_object_info: Option<scene_object::Props>,
+    node_preview_info: Option<node_preview::Props>,
+    edge_preview_info: Option<edge_preview::Props>,
 }
 
 impl Component for Wrapper {
@@ -22,14 +24,29 @@ impl Component for Wrapper {
         Self {
             props,
             link,
-            scene_object_info: None,
+            node_preview_info: None,
+            edge_preview_info: None,
         }
     }
 
     fn update(&mut self, msg: Update) -> ShouldRender {
         match msg {
-            Update::SetSceneObject(info) => {
-                self.scene_object_info = info;
+            Update::SetNodePreview(props) => {
+                match (&self.node_preview_info, &props) {
+                    (None, None) => return false,
+                    (Some(old), Some(new)) if old.entity == new.entity => return false,
+                    _ => (),
+                }
+                self.node_preview_info = props;
+                true
+            }
+            Update::SetEdgePreview(props) => {
+                match (&self.edge_preview_info, &props) {
+                    (None, None) => return false,
+                    (Some(old), Some(new)) if old.entity == new.entity => return false,
+                    _ => (),
+                }
+                self.edge_preview_info = props;
                 true
             }
         }
@@ -50,10 +67,11 @@ impl Component for Wrapper {
                 pointer-events: none;
                 x: 0; y: 0;
             ">
-                { for self.scene_object_info.as_ref().map(|props| html! {
-                    <scene_object::Comp
-                        info=props.info.clone()
-                        />
+                { for self.node_preview_info.as_ref().map(|props| html! {
+                    <node_preview::Comp with props.clone() />
+                }) }
+                { for self.edge_preview_info.as_ref().map(|props| html! {
+                    <edge_preview::Comp with props.clone() />
                 }) }
             </div>
         }
@@ -62,8 +80,10 @@ impl Component for Wrapper {
 
 /// Events for [`Wrapper`].
 pub enum Update {
-    /// Sets the scene object info to display.
-    SetSceneObject(Option<scene_object::Props>),
+    /// Sets the node preview info to display.
+    SetNodePreview(Option<node_preview::Props>),
+    /// Sets the edge preview info to display.
+    SetEdgePreview(Option<edge_preview::Props>),
 }
 
 /// Yew properties for [`Wrapper`].

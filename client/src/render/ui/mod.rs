@@ -4,7 +4,8 @@ use derive_new::new;
 
 use super::Dimension;
 
-pub mod scene_object;
+pub mod edge_preview;
+pub mod node_preview;
 mod wrapper;
 pub use wrapper::*;
 
@@ -24,5 +25,7 @@ impl Canvas {
 
 /// Sets up legion ECS for UI rendering.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(scene_object::setup_ecs)
+    setup
+        .uses(node_preview::setup_ecs)
+        .uses(edge_preview::setup_ecs)
 }

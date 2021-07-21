@@ -1,14 +1,14 @@
-//! Renders scene object info.
+//! Renders edge info preview.
 
 use legion::world::SubWorld;
-use legion::EntityStore;
+use legion::{Entity, EntityStore};
 use yew::prelude::*;
 
 use super::{Update, UpdaterRef};
 use crate::input;
 use traffloat::graph;
 
-/// Displays basic info about a scene object.
+/// Displays basic info about an edge at a corner of the screen.
 pub struct Comp {
     props: Props,
     link: ComponentLink<Self>,
@@ -42,17 +42,10 @@ impl Component for Comp {
             background-color: white;
             font-size: large;
         ";
-        match &self.props.info {
-            Info::Node { node_name } => html! {
-                <div style=style>
-                    <p>{ node_name }</p>
-                </div>
-            },
-            Info::Edge {} => html! {
-                <div style=style>
-                    <p>{ "Corridor" }</p>
-                </div>
-            },
+        html! {
+            <div style=style>
+                <p>{ "Corridor" }</p>
+            </div>
         }
     }
 }
@@ -63,20 +56,8 @@ pub enum Msg {}
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
-    /// Node or edge info.
-    pub info: Info,
-}
-
-/// Node or edge info.
-#[derive(Clone)]
-pub enum Info {
-    /// Info for a node.
-    Node {
-        /// Name of the targeted node.
-        node_name: String,
-    },
-    /// Info for an edge.
-    Edge {},
+    /// Entity ID of the edge.
+    pub entity: Entity,
 }
 
 #[codegen::system]
@@ -93,30 +74,19 @@ fn draw(
         let entity_entry = world
             .entry_ref(entity)
             .expect("Target entity does not exist"); // TODO what if user is hovering over node while deleting it?
-        if let Ok(node_name) = entity_entry.get_component::<graph::NodeName>() {
-            log::debug!("Node {:?}", node_name);
-            Some(Props {
-                info: Info::Node {
-                    node_name: node_name.name().to_string(),
-                },
-            })
-        } else if let Ok(edge) = entity_entry.get_component::<graph::EdgeId>() {
-            log::debug!("Edge {:?}", edge);
-            Some(Props {
-                info: Info::Edge {},
-            })
+        if let Ok(_edge) = entity_entry.get_component::<graph::EdgeId>() {
+            Some(Props { entity })
         } else {
-            log::warn!("Target entity has unknown type");
             None
         }
     } else {
         None
     };
 
-    updater_ref.call(Update::SetSceneObject(info));
+    updater_ref.call(Update::SetEdgePreview(info));
 }
 
-/// Sets up legion ECS for scene object info rendering.
+/// Sets up legion ECS for edge info rendering.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     setup.uses(draw_setup)
 }
