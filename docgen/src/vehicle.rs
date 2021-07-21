@@ -80,6 +80,7 @@ fn write_vehicle(
         "![](../{}){{ width=64 align=right }}",
         assets.map(&texture_path)?
     )?;
+    writeln!(&mut fh)?;
 
     writeln!(&mut fh, "| Property | Value |")?;
     writeln!(&mut fh, "| :-: | :-: |")?;
