@@ -219,6 +219,33 @@ buildings! {
         }
     }
 
+    industrial "Industrial" ("Buildings for processing intermediates") {
+        filtration_plant {
+            name: "Filtration plant",
+            summary: "Filter insoluble impurities from water",
+            description: "Asteroidal water is often mixed with different sorts of junk. \
+                These solid impurities will clog and damage conduits if passed directly. \
+                A filtration plant can separate the solid junk from the water.
+
+                Although filtered water is still not edible for inhabitants, \
+                it demonstrates most of the physical properties of water, \
+                such as the high heat capacity and low viscosity. \
+                Therefore, filtered water is sufficient for most industrial uses.",
+                cube: 1.,
+                texture: "filtration-plant",
+                reactions: [
+                    asteroidal_water_filtration {configurable: true},
+                ],
+                hitpoint: 150.,
+                storage: {
+                    cargo: 3000.,
+                    liquid: 5000.,
+                    gas: 1000.,
+                },
+                features: [],
+        }
+    }
+
     education "Education" ("Buildings to train inhabitant skills") {
         driving_school {
             name: "Driving school",

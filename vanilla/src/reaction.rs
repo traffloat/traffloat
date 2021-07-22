@@ -119,6 +119,38 @@ reactions! {
         }
     }
 
+    industrial "Industrial" ("Industrial processes.") {
+        asteroidal_water_filtration {
+            name: "Asteroidal water filtration",
+            description: "Filters out rocks and other sediments in asteroidal water.",
+            catalysts: [
+                Skill {
+                    ty: skill.mechanic,
+                    levels: 0. .. 20.,
+                    multipliers: [1., 1., 2., 2.],
+                },
+            ],
+            puts: [
+                Liquid {
+                    ty: liquid.asteroidal_water,
+                    rate: -100.,
+                },
+                Liquid {
+                    ty: liquid.filtered_water,
+                    rate: 100.,
+                },
+                Cargo {
+                    ty: cargo.rock,
+                    rate: 10.,
+                },
+                Cargo {
+                    ty: cargo.sediment,
+                    rate: 10.,
+                },
+            ],
+        }
+    }
+
     education "Education" ("Train inhabitant skills.") {
         driving_lesson {
             name: "Driving lesson",
