@@ -75,7 +75,7 @@ macro_rules! cargos {
                         .description(literal!("Produced in gas bottlers and centrifuges, gas bottles can be used to \
                             transfer a small amount of gas to factories \
                             as a replacement of diffusing gas slowly through corridors."))
-                        .texture(format!("{}-liquid-bottle", gas.texture()))
+                        .texture(format!("{}-gas-bottle", gas.texture()))
                         .category($container)
                         .build()
                 );
@@ -102,14 +102,14 @@ cargos! {
             summary: "An organic mineral.",
             description: "Amino acids are found in small amounts in asteroids. \
                 Use them to synthesize food and DNA.",
-            texture: "dummy",
+            texture: "amino-acid",
         }
         rock {
             name: "Rock",
             summary: "Chunks of rocks from asteroids.",
             description: "Rocks are the cheapest type of material obtained from asteroids. \
                 They can be used as ammunition or disposed as junk.",
-            texture: "dummy",
+            texture: "rock",
         }
     }
 
@@ -118,9 +118,9 @@ cargos! {
             name: "DNA",
             summary: "Genetic material.",
             description: "DNA is used to produce inhabitants through asexual reproduction. \
-                Although morally challenged, this is the most effective way \
+                Although morally challenged, this is the only way \
                 to start a new colony from scratch.",
-            texture: "dummy",
+            texture: "dna",
         }
     }
 
@@ -130,7 +130,7 @@ cargos! {
             summary: "Stone pepples used as ammunition.",
             description: "Pepples are produced by decomposing rocks.\
                 They are the basic type of ammunition for defense.",
-            texture: "dummy",
+            texture: "pepples",
         }
     }
 
@@ -142,7 +142,7 @@ cargos! {
             description: "Sediments are waste produced during liquid processing. \
                 They cannot be used for anything, and should be ejected with junk launchers \
                 to avoid filling up storage space.",
-            texture: "dummy",
+            texture: "sediment",
         }
     }
 
@@ -153,7 +153,7 @@ cargos! {
             name: "Aluminium",
             summary: "A metal used for construction",
             description: "",
-            texture: "dummy",
+            texture: "aluminium",
         }
     }
 

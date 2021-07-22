@@ -81,7 +81,7 @@ vehicles! {
             levels: [0., 20.],
             multipliers: [1., 1., 2., 2.],
         },
-        texture: "dummy",
+        texture: "raptor",
     }
 
     freighter {
@@ -95,7 +95,7 @@ vehicles! {
             levels: [0., 20.],
             multipliers: [1., 1., 2., 2.],
         },
-        texture: "dummy",
+        texture: "freighter",
     }
 
     bus {
@@ -109,6 +109,6 @@ vehicles! {
             levels: [0., 20.],
             multipliers: [1., 1., 2., 2.],
         },
-        texture: "dummy",
+        texture: "bus",
     }
 }

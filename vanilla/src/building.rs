@@ -161,7 +161,7 @@ buildings! {
             summary: "Connects and drives corridors",
             description: "",
             cube: 0.2,
-            texture: "dummy-building",
+            texture: "terminal",
             reactions: [],
             hitpoint: 100.,
             storage: {
@@ -205,7 +205,7 @@ buildings! {
             summary: "Train inhabitants to drive better",
             description: "Train inhabitants to drive better.",
             cube: 1.,
-            texture: "dummy-building",
+            texture: "driving-school",
             reactions: [
                 driving_lesson {},
             ],
@@ -226,7 +226,7 @@ buildings! {
             description: "Inhabitants with negative happiness are imprisoned here \
                 to recultivate morality and restore happiness.",
             cube: 1.,
-            texture: "dummy-building",
+            texture: "prison",
             reactions: [
                 imprisonment {},
             ],

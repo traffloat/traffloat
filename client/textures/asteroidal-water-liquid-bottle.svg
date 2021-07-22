@@ -20,12 +20,12 @@
 </metadata>
 <defs>
 <linearGradient y1="962" id="LinearGradient" x1="512" y2="62" x2="512" gradientUnits="userSpaceOnUse" gradientTransform="matrix(1 0 0 1 150 -8.69117e-06)">
-<stop stop-color="#02649f" offset="0"/>
+<stop stop-color="#52646f" offset="0"/>
 <stop stop-opacity="0.25" stop-color="#46565e" offset="1"/>
 </linearGradient>
 <linearGradient y1="681.438" id="LinearGradient_2" x1="238.312" y2="930.344" x2="774.5" gradientUnits="userSpaceOnUse" gradientTransform="matrix(1 0 0 1 150 -8.69117e-06)">
-<stop stop-color="#b8a738" offset="0"/>
-<stop stop-color="#2b84f1" offset="1"/>
+<stop stop-color="#88a7b8" offset="0"/>
+<stop stop-color="#6b8491" offset="1"/>
 </linearGradient>
 </defs>
 <g id="Dust" vectornator:layerName="Dust">

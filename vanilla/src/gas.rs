@@ -48,7 +48,7 @@ gases! {
             Inhabitants cannot work in buildings with low oxygen content, \
             except for construction work, where \
             sufficient oxygen must be available in adjacent buildings.",
-        texture: "dummy",
+        texture: "oxygen",
     }
 
     carbon_dioxide {
@@ -57,7 +57,7 @@ gases! {
         description: "Carbon dioxide is produced in houses and consumed in oxygen farms. \
             While high carbon dioxide level is not necessarily fatal, \
             they reduce the levels of other gases in the air.",
-        texture: "dummy",
+        texture: "carbon-dioxide",
     }
 
     nitrogen {
@@ -66,6 +66,6 @@ gases! {
         description: "Nitrogen is found in abundant amounts. \
             Although chemically inactive, they are great for pressure regulation \
             and can be condensed to produce coolants.",
-        texture: "dummy",
+        texture: "nitrogen",
     }
 }

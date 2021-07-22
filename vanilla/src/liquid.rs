@@ -50,7 +50,7 @@ liquids! {
             Contaminated by asteroidal minerals, it must be filtered to be used in factories,
             or deionized so that it is drinkable by inhabitants.",
         viscosity: 1.,
-        texture: "dummy",
+        texture: "asteroidal-water",
     }
 
     filtered_water {
@@ -59,7 +59,7 @@ liquids! {
         description: "Filtered water is removed of insoluble impurities, \
             so they can be used in other factories without clogging up the pipes.",
         viscosity: 1.,
-        texture: "dummy",
+        texture: "filtered-water",
     }
 
     deionized_water {
@@ -68,7 +68,7 @@ liquids! {
         description: "Soluble impurities in water are removed from water during deionization. \
             This makes the water safe for inhabitant intake.",
         viscosity: 1.,
-        texture: "dummy",
+        texture: "deionized-water",
     }
 
     urine {
@@ -78,7 +78,7 @@ liquids! {
             Arrange sewage pipes to remove them from houses and \
             recycle them by distillation into drinking water.",
         viscosity: 5.,
-        texture: "dummy",
+        texture: "urine",
     }
 
     coolant {
@@ -87,6 +87,6 @@ liquids! {
         description: "Coolants are produced by condensation of nitrogen. \
             They are required in factories with highly exothermic reactions.",
         viscosity: 1.,
-        texture: "dummy",
+        texture: "coolant",
     }
 }
