@@ -61,7 +61,7 @@ jobs:
           echo >> target/doc/index.md
           echo "## Code statistics" >> target/doc/index.md
           echo '```' >> target/doc/index.md
-          tokei -e "*lock*" >> target/doc/index.md
+          tokei -e "*lock*" -e "*.svg" >> target/doc/index.md
           echo '```' >> target/doc/index.md
           echo >> target/doc/index.md
           echo "## Dependency graph" >> target/doc/index.md
