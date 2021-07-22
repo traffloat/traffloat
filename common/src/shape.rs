@@ -156,6 +156,7 @@ impl Unit {
     /// Computes the axis-aligned bounding box under the given transformation matrix
     ///
     /// The transformation matrix should transform the unit shape to the real coordinates.
+    #[allow(clippy::indexing_slicing)]
     pub fn bb_under(&self, transform: Matrix) -> (Point, Point) {
         use nalgebra::dimension as dim;
 
@@ -186,15 +187,14 @@ impl Unit {
                 )
             }
             Self::Sphere => {
-                // Extremize f(x,y,z) := ax+by+xz+d under g(x,y,z) := x^2+y^2+z^2-1 = 0
+                // Extremize f(x,y,z) := ax+by+cz+d under g(x,y,z) := x^2+y^2+z^2-1 = 0
                 // By Lagrange multipliers theorem,
                 // solving d/d[xyz] f(x,y,z) = lambda * d/d[xyz] g(x,y,z)
-                // gives the following equations for abc != 0:
+                // gives the following equations for a,b,c not all zero:
                 // x = \pm a / sqrt(a^2+b^2+c^2)
                 // y = \pm b / sqrt(a^2+b^2+c^2)
                 // z = \pm c / sqrt(a^2+b^2+c^2)
 
-                #[allow(clippy::indexing_slicing)]
                 let extrema: SmallVec<[(f64, f64); 3]> = (0_usize..3)
                     .map(|i| {
                         let row = transform.row(i);
@@ -225,7 +225,51 @@ impl Unit {
                 (min, max)
             }
             Self::Cylinder => {
-                todo!()
+                // Extremize f(x,y) := ax+by+cZ+d under g(x,y) := x^2+y^2-1 = 0,
+                // where Z is 0 or 1.
+                // solving d/d[xy] f(x,y) = lambda * d/d[xy] g(x,y)
+                // gives the following equations for a,b not all zero:
+                // x = \pm a / sqrt(a^2+b^2)
+                // y = \pm b / sqrt(a^2+b^2)
+
+                let extrema: SmallVec<[SmallVec<[f64; 4]>; 3]> = (0_usize..3)
+                    .map(|i| {
+                        let row = transform.row(i);
+
+                        let norm = row.fixed_slice::<1, 2>(0, 0).norm();
+                        if norm.abs() < 1e-10 {
+                            return smallvec![row[3], row[2] + row[3], row[3], row[2] + row[3]];
+                        }
+
+                        let points: SmallVec<[f64; 4]> = [-1_f64, 1.]
+                            .iter()
+                            .flat_map(|&sgn| [(sgn, 0_f64), (sgn, 1_f64)])
+                            .map(|(sgn, z)| {
+                                let unit = nalgebra::Vector4::new(
+                                    sgn * row[0] / norm,
+                                    sgn * row[1] / norm,
+                                    z,
+                                    1.,
+                                );
+                                (row * unit)[0]
+                            })
+                            .collect();
+                        points
+                    })
+                    .collect();
+
+                let min = Point::from(Vector::from_iterator(
+                    extrema
+                        .iter()
+                        .map(|array| array.iter().copied().fold(array[0], f64::min)),
+                ));
+                let max = Point::from(Vector::from_iterator(
+                    extrema
+                        .iter()
+                        .map(|array| array.iter().copied().fold(array[0], f64::max)),
+                ));
+
+                (min, max)
             }
         }
     }
@@ -233,56 +277,80 @@ impl Unit {
 
 #[cfg(test)]
 mod tests {
+    use std::f64::consts::{PI, SQRT_2};
+    use std::ops::Range;
+
     use super::Unit;
     use crate::space::{Matrix, Point, Vector};
 
+    fn assert_pt(pt: Point, [x, y, z]: [f64; 3]) {
+        let a = &pt.coords;
+        let b = &Vector::new(x, y, z);
+        let delta = (a - b).norm();
+
+        if !pt.coords.map(f64::is_finite).fold(true, |a, b| a && b) {
+            panic!("Point is not finite: {}", pt);
+        }
+
+        if delta > 1e-10 {
+            panic!("{} != {}", a, b);
+        }
+    }
+
+    fn assert_bb(unit: Unit, trans: Matrix, range: Range<[f64; 3]>) {
+        let bb = unit.bb_under(trans);
+        assert_pt(bb.0, range.start);
+        assert_pt(bb.1, range.end);
+    }
+
     #[test]
     pub fn sphere_bb() {
-        macro_rules! assert_pt {
-            ($pt:expr, ($x:expr, $y:expr, $z:expr)) => {
-                let a = &$pt.coords;
-                let b = &Vector::new($x, $y, $z);
-                let delta = (a - b).norm();
-                if delta > 1e-10 {
-                    panic!("{} != {}", a, b);
-                }
-            };
-        }
-        macro_rules! assert_bb {
-            ($trans:expr, ($x0:expr, $y0:expr, $z0:expr)..($x1:expr, $y1:expr, $z1:expr)) => {{
-                // type coercion
-                fn trans() -> impl FnOnce(Matrix) -> Matrix {
-                    $trans
-                }
-                let trans = trans();
-                let mut m = Matrix::identity();
-                m = trans(m);
-                let bb = Unit::Sphere.bb_under(m);
-                assert_pt!(bb.0, ($x0, $y0, $z0));
-                assert_pt!(bb.1, ($x1, $y1, $z1));
-            }};
-        }
-
-        assert_bb!(|m| m, (-1., -1., -1.)..(1., 1., 1.));
-        assert_bb!(
-            |m| m.append_translation(&Vector::new(0.5, 0.5, 0.5)),
-            (-0.5, -0.5, -0.5)..(1.5, 1.5, 1.5)
+        assert_bb(
+            Unit::Sphere,
+            Matrix::identity(),
+            [-1., -1., -1.]..[1., 1., 1.],
         );
-        assert_bb!(
-            |m| m.append_nonuniform_scaling(&Vector::new(0.5, 2., 5.)),
-            (-0.5, -2., -5.)..(0.5, 2., 5.)
+        assert_bb(
+            Unit::Sphere,
+            Matrix::new_translation(&Vector::new(0.5, 0.5, 0.5)),
+            [-0.5, -0.5, -0.5]..[1.5, 1.5, 1.5],
+        );
+        assert_bb(
+            Unit::Sphere,
+            Matrix::new_nonuniform_scaling(&Vector::new(0.5, 2., 5.)),
+            [-0.5, -2., -5.]..[0.5, 2., 5.],
         );
 
-        {
-            assert_bb!(
-                |m| {
-                    use std::f64::consts::PI;
-                    let rot = nalgebra::Rotation3::from_axis_angle(&Vector::x_axis(), PI / 2.);
-                    rot.matrix().to_homogeneous() * m.append_translation(&Vector::new(1., 1., 1.))
-                },
-                (0., -2., 0.)..(2., 0., 2.)
-            );
-        }
+        assert_bb(
+            Unit::Sphere,
+            nalgebra::Rotation3::from_axis_angle(&Vector::x_axis(), PI / 2.)
+                .to_homogeneous()
+                .prepend_translation(&Vector::new(1., 1., 1.)),
+            [0., -2., 0.]..[2., 0., 2.],
+        );
+    }
+
+    #[test]
+    pub fn cylinder_bb() {
+        assert_bb(
+            Unit::Cylinder,
+            Matrix::identity(),
+            [-1., -1., 0.]..[1., 1., 1.],
+        );
+        assert_bb(
+            Unit::Cylinder,
+            Matrix::new_translation(&Vector::new(0.5, 0.5, -0.5))
+                .append_nonuniform_scaling(&Vector::new(2., 3., 4.)),
+            [-1., -1.5, -2.]..[3., 4.5, 2.],
+        );
+        assert_bb(
+            Unit::Cylinder,
+            nalgebra::Rotation3::from_axis_angle(&Vector::x_axis(), PI / 4.)
+                .matrix()
+                .to_homogeneous()
+                .prepend_translation(&Vector::new(0., 0., -0.5)),
+            [-1., -0.75 * SQRT_2, -0.75 * SQRT_2]..[1., 0.75 * SQRT_2, 0.75 * SQRT_2],
+        );
     }
 
     #[test]
