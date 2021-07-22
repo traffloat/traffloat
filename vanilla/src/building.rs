@@ -199,6 +199,26 @@ buildings! {
         }
     }
 
+    storage "Storage" ("Buildings to store resources") {
+        vault {
+            name: "Vault",
+            summary: "Store lots of cargo",
+            description: "Large amounts of cargo can be stored here for future use. \
+                This can also be used as a temporary junkyard \
+                if junk launchers cannot catch up quickly enough.",
+            cube: 1.,
+            texture: "vault",
+            reactions: [],
+            hitpoint: 500.,
+            storage: {
+                cargo: 20000.,
+                liquid: 1000.,
+                gas: 1000.,
+            },
+            features: [],
+        }
+    }
+
     education "Education" ("Buildings to train inhabitant skills") {
         driving_school {
             name: "Driving school",
