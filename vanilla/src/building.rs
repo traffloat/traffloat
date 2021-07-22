@@ -1,4 +1,62 @@
 //! Vanilla building definitions.
+//!
+//! # Adding a new building
+//! 1. Open `vanilla/src/building.rs`.
+//! 2. Navigate to the `buildings! { ... }` block.
+//! 3. Each top-level block is in the format `snake_case_category "Real category name" ("Category description") { ...
+//!    }`. Find an appropriate category or add a new category for the new building.
+//! 4. Add a `snake_case` identifier for the building, then curly braces with the data fields
+//!     Every field is in the form `property: value,`. Do not forget to add the trailing comma.
+//! 5. Add the texture of the building to a new directory in `client/textures`.
+//!
+//! ## Data fields
+//! The following data fields are required in `vanilla/src/building.rs`:
+//! - `name`: The name of the building.
+//! - `summary`: A one-line short description of the building.
+//! - `description`: The full description in markdown format.
+//! - Shape of the building
+//!     - If the building is a cube, write `cube` with the half-length of each side.
+//!     - If the building is a cuboid, write `cuboid` with the two corners,
+//!         e.g. `cuboid: [-1., -2. -3.] .. [4., 5., 6.]` means that
+//!         the building is a cuboid with two opposite corners at (-1, -2, -3) and (4, 5, 6)
+//!         respectively.
+//! - `texture`: The directory name of the building texture.
+//!     Conventionally, this name should be the `kebab-case` of the building.
+//! - `reactions`: The list of reactions supported by the building.
+//!     The list is comma-separated and surrounded by a pair of `[]`.
+//!     See the documentation on [reactions][super::reaction] for adding new reaction types.
+//!     Each reaction is in the format `reaction_name { ... }`,
+//!     where `...` are building-specific options on the reaction.
+//!     See [`building::ReactionPolicy`] for possible options.
+//! - `hitpoint`: The full hitpoints of the building type.
+//! - `storage`: The maximum amount of cargo, liquid and gas stored in the building,
+//!     in the format `{cargo: 1000., liquid: 2000., gas: 3000.,}`.
+//!     - The storage is used as a temporary buffer for reaction input/output,
+//!         liquid transfer and gas diffusion.
+//!         The storage restricts the maximum amount of liquid and gas
+//!         that passes through the building per second.
+//!         Therefore, the storage size should be larger than
+//!         the total factory input/output per second,
+//!         and reasonably much larger than the amount of liquid/gas passing through per second,
+//!         otherwise the building would be the bottleneck for transfer.
+//!     - The gas storage is used to buffer oxygen that inhabitants breathe.
+//!         If the gas storage is too small, inhabitants without oxygen bottles may suffocate.
+//! - `features`: A list of extra features (in addition to reactions) supported by the building,
+//!     separated by comma and surrounded by `[]`.
+//!     See [`building::ExtraFeature`] for possible options.
+//!
+//! ## Texture
+//! ### Cube/Cuboid
+//! The texture directory contains 6 files: `xp.svg`, `xn.svg`, `yp.svg`, `yn.svg`, `zp.svg`,
+//! `zn.svg`.
+//! Each file represents the shape of the building in the +X/-X/+Y/-Y/+Z/-Z direction.
+//! While the dimension is not constrained,
+//! each file is rescaled to different sprites of
+//! 16&times;16, 64&times;64, 256&times;256 and 1024&times;1024 pixels
+//! during the texture preprocessing phase.
+//! It is fine to create an SVG file with a rectangular shape;
+//! it will be stretched to a square shape during preprocessing phase,
+//! then compressed back to a rectangle when it is rendered.
 
 use arcstr::literal;
 
