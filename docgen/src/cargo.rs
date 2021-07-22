@@ -39,7 +39,7 @@ pub fn gen_cargos(
                         .client_dir
                         .join("textures")
                         .join(cargo.texture().as_str())
-                        .with_extension("png");
+                        .with_extension("svg");
                     let texture_path = texture_path.canonicalize().with_context(|| {
                         format!("Could not canonicalize {}", texture_path.display())
                     })?;
@@ -76,7 +76,7 @@ fn write_cargo(
         .client_dir
         .join("textures")
         .join(cargo.texture().as_str())
-        .with_extension("png");
+        .with_extension("svg");
     let texture_path = texture_path
         .canonicalize()
         .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;

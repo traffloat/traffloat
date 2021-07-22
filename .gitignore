@@ -1,12 +1,11 @@
 target
-
 node_modules
+__pycache__
 
 /client/dist
 /client/pkg
-/client/static/textures.png
-/client/static/textures.png.json
 *.min.vert
 *.min.frag
+gen
 
 /docgen/output

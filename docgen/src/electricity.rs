@@ -53,8 +53,8 @@ pub fn gen_electricity(
                         format!("Could not canonicalize {}", texture_dir.display())
                     })?;
                     Ok(format!(
-                        "[![]({})](../building/{})",
-                        assets.map(&texture_dir.join("xp.png"))?,
+                        "[![]({})](../building/{}){{ width=20 }}",
+                        assets.map(&texture_dir.join("xp.svg"))?,
                         building.name().to_kebab_case(),
                     ))
                 })

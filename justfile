@@ -2,11 +2,11 @@ client-build: client-clean pp
 	cd client && $(npm bin)/webpack
 client-build-dev: client-clean pp
 	cd client && $(npm bin)/webpack --mode development
-client-watch: client-clean pp
+client-watch: client-clean
 	cd client && $(npm bin)/rimraf dist pkg
 	cd client && $(npm bin)/webpack serve --mode development --open
 
-doc: pp
+doc: client-glsl
 	cargo doc --lib
 
 guide: guide-clean
@@ -17,7 +17,7 @@ client-clean:
 	cd client && $(npm bin)/rimraf dist pkg
 pp: client-texture client-glsl
 client-texture:
-	python3 client/textures/combine.py
+	cd client/textures && python3 aggregate.py
 client-glsl:
 	cd client && ./glsl_min.rb
 guide-clean:

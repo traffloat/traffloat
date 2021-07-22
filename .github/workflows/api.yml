@@ -65,7 +65,7 @@ jobs:
           echo '```' >> target/doc/index.md
           echo >> target/doc/index.md
           echo "## Dependency graph" >> target/doc/index.md
-          echo "![](./depgraph.png)"
+          echo "![](./depgraph.png)" >> target/doc/index.md
 
       - name: Create crate dependency graph
         run: |

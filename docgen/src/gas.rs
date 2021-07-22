@@ -33,13 +33,13 @@ pub fn gen_gases(
                 .client_dir
                 .join("textures")
                 .join(gas.texture().as_str())
-                .with_extension("png");
+                .with_extension("svg");
             let texture_path = texture_path
                 .canonicalize()
                 .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;
             writeln!(
                 &mut fh,
-                "- [![]({}){{ width=24 }} {}]({})",
+                "- [![]({}){{ width=20 }} {}]({})",
                 assets.map(&texture_path)?,
                 gas.name(),
                 gas.name().to_kebab_case()
@@ -68,7 +68,7 @@ fn write_gas(
         .client_dir
         .join("textures")
         .join(gas.texture().as_str())
-        .with_extension("png");
+        .with_extension("svg");
     let texture_path = texture_path
         .canonicalize()
         .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;

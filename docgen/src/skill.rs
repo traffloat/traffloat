@@ -92,8 +92,8 @@ fn write_skill(
                         format!("Could not canonicalize {}", texture_dir.display())
                     })?;
                     Ok(format!(
-                        "[![](../{})](../../building/{})",
-                        assets.map(&texture_dir.join("xp.png"))?,
+                        "[![](../{}){{ width=20 }}](../../building/{})",
+                        assets.map(&texture_dir.join("xp.svg"))?,
                         building.name().to_kebab_case(),
                     ))
                 })

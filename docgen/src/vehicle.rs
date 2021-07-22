@@ -33,7 +33,7 @@ pub fn gen_vehicles(
                 .client_dir
                 .join("textures")
                 .join(vehicle.texture().as_str())
-                .with_extension("png");
+                .with_extension("svg");
             let texture_path = texture_path
                 .canonicalize()
                 .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;
@@ -71,7 +71,7 @@ fn write_vehicle(
         .client_dir
         .join("textures")
         .join(vehicle.texture().as_str())
-        .with_extension("png");
+        .with_extension("svg");
     let texture_path = texture_path
         .canonicalize()
         .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;
