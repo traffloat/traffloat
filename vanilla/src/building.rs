@@ -199,7 +199,7 @@ buildings! {
         }
     }
 
-    skill "Skill" ("Buildings to train inhabitant skills") {
+    education "Education" ("Buildings to train inhabitant skills") {
         driving_school {
             name: "Driving school",
             summary: "Train inhabitants to drive better",
@@ -219,7 +219,10 @@ buildings! {
         }
     }
 
-    happiness "Happiness" ("Buildings related to happiness and security") {
+    entertainment "Entertainment" ("Buildings to restore happiness") {
+    }
+
+    security "Security" ("Buildings related to crimes") {
         prison {
             name: "Prison",
             summary: "Correctional services for criminals",
@@ -240,6 +243,29 @@ buildings! {
                 SecureExit {
                     min_happiness: 10f64.into(),
                     breach_probability: 0.001,
+                },
+            ],
+        }
+        customs {
+            name: "Customs",
+            summary: "Disallow outlaws from intrusion",
+            description: "Customs is a security checkpoint at which \
+                operators check all inhabitants passing through. \
+                Surround important buildings with customs \
+                so that outlaws cannot grief them.",
+            cube: 1.,
+            texture: "customs",
+            reactions: [],
+            hitpoint: 300.,
+            storage: {
+                cargo: 1000.,
+                liquid: 1000.,
+                gas: 1000.,
+            },
+            features: [
+                SecureEntry {
+                    min_happiness: 10f64.into(),
+                    breach_probability: 0.005,
                 },
             ],
         }

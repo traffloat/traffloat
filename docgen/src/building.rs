@@ -30,7 +30,7 @@ pub fn gen_buildings(
         writeln!(&mut fh, "## List of buildings")?;
 
         for (category_id, category) in def.building_cats().iter().enumerate() {
-            writeln!(&mut fh, "### {}", category.title(),)?;
+            writeln!(&mut fh, "### {}", category.title())?;
             writeln!(&mut fh, "{}", category.description())?;
             writeln!(&mut fh)?;
             for building in def.building() {
