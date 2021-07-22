@@ -28,4 +28,5 @@ test:
 
 deps:
 	cd client && npm install
+	cd client/textures && npm install
 	pip3 install -r client/textures/requirements.txt 
