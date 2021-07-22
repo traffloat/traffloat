@@ -226,7 +226,7 @@ buildings! {
             description: "Asteroidal water is often mixed with different sorts of junk. \
                 These solid impurities will clog and damage conduits if passed directly. \
                 A filtration plant can separate the solid junk from the water.
-
+\n\
                 Although filtered water is still not edible for inhabitants, \
                 it demonstrates most of the physical properties of water, \
                 such as the high heat capacity and low viscosity. \
