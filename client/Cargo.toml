@@ -18,6 +18,7 @@ derive-new = "0.5.9"
 enum-map = "1.1.0"
 getrandom = {version = "0.2.3", features = ["js"]}
 getset = "0.1.1"
+itertools = "0.10.1"
 js-sys = "0.3.49"
 lazy_static = "1.4.0"
 legion = {version = "0.4.0", default-features = false, features = ["codegen", "extended-tuple-impls"]}
@@ -32,8 +33,8 @@ serde_json = "1.0.64"
 shrev = "1.1.1"
 traffloat-codegen = {version = "0.2.0", path = "../codegen-types", features = ["web-sys"]}
 traffloat-common = {version = "0.2.0", path = "../common"}
-traffloat-vanilla = {version = "0.2.0", path = "../vanilla"}
 traffloat-safety = {version = "0.2.0", path = "../safety"}
+traffloat-vanilla = {version = "0.2.0", path = "../vanilla"}
 typed-builder = "0.9.0"
 wasm-bindgen = {version = "0.2.72"}
 wasm-logger = "0.2.0"

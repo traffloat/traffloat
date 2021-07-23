@@ -13,7 +13,7 @@ pub mod reaction;
 pub mod skill;
 pub mod vehicle;
 
-pub const VANILLA_TEXTURE: &str = "textures-fancy.png"; // TODO allow customization of resolution
+pub const VANILLA_TEXTURE: &str = "textures-x-fancy.png"; // TODO allow customization of resolution
 
 /// Define vanilla game rules
 pub fn get() -> (

@@ -70,6 +70,8 @@ impl Program {
         rgba: [f32; 4],
         selected: bool,
     ) {
+        use mesh::AbstractPreparedMesh;
+
         gl.use_program(Some(&self.prog));
         self.u_trans.assign(gl, proj);
         self.u_trans_sun.assign(gl, sun);

@@ -200,69 +200,35 @@ lazy_static! {
     pub static ref CUBE: Mesh = {
         let mut mesh = Mesh::default();
 
-        let mut push_face = |face: Face| {
+        for (i, &face) in FACES.iter().enumerate() {
             mesh.positions_mut().extend(&face.upper_left_coords());
+            mesh.tex_pos_mut().push((i, 0., 0.));
+
             mesh.positions_mut().extend(&face.upper_right_coords());
+            mesh.tex_pos_mut().push((i, 1., 0.));
+
             mesh.positions_mut().extend(&face.lower_left_coords());
+            mesh.tex_pos_mut().push((i, 0., 1.));
+
             for _ in 0..3 {
                 mesh.normals_mut().extend(&face.normal());
             }
 
+
             mesh.positions_mut().extend(&face.upper_right_coords());
+            mesh.tex_pos_mut().push((i, 1., 0.));
+
             mesh.positions_mut().extend(&face.lower_right_coords());
+            mesh.tex_pos_mut().push((i, 1., 1.));
+
             mesh.positions_mut().extend(&face.lower_left_coords());
+            mesh.tex_pos_mut().push((i, 0., 1.));
+
             for _ in 0..3 {
                 mesh.normals_mut().extend(&face.normal());
             }
-        };
-
-        for face in FACES {
-            push_face(face);
         }
 
         mesh
     };
-}
-
-/// Computes the texture positions of the face.
-#[allow(clippy::indexing_slicing)]
-pub fn tex_pos(sprites: CubeSprites, width: f32, height: f32) -> [f32; 2 * 6 * 6] {
-    let mut ret = [0.; 2 * 6 * 6];
-    let mut next = 0usize;
-
-    for face in FACES {
-        let sprite = face.cube_sprite(sprites);
-
-        // upper left
-        ret[next] = sprite.x().small_float() / width;
-        ret[next + 1] = sprite.y().small_float() / height;
-        next += 2;
-
-        // upper right
-        ret[next] = (sprite.x() + sprite.width()).small_float() / width;
-        ret[next + 1] = sprite.y().small_float() / height;
-        next += 2;
-
-        // lower left
-        ret[next] = sprite.x().small_float() / width;
-        ret[next + 1] = (sprite.y() + sprite.height()).small_float() / height;
-        next += 2;
-
-        // upper right
-        ret[next] = (sprite.x() + sprite.width()).small_float() / width;
-        ret[next + 1] = sprite.y().small_float() / height;
-        next += 2;
-
-        // lower right
-        ret[next] = (sprite.x() + sprite.width()).small_float() / width;
-        ret[next + 1] = (sprite.y() + sprite.height()).small_float() / height;
-        next += 2;
-
-        // lower left
-        ret[next] = sprite.x().small_float() / width;
-        ret[next + 1] = (sprite.y() + sprite.height()).small_float() / height;
-        next += 2;
-    }
-
-    ret
 }

@@ -5,7 +5,7 @@ use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture};
 
-use crate::render::scene::mesh::cube::tex_pos;
+use crate::render::scene::mesh::{cube, cylinder};
 use crate::render::util::{AttrLocation, FloatBuffer, UniformLocation};
 use crate::util::ReifiedPromise;
 use safety::Safety;
@@ -83,24 +83,32 @@ pub struct PreparedTexture {
 impl PreparedTexture {
     pub fn apply(
         &self,
+        sprite_numbers: &[usize],
         buffer: &FloatBuffer,
         attr: AttrLocation,
-        unif: &UniformLocation<i32>,
+        tex_unif: &UniformLocation<i32>,
+        tex_dim_unif: &UniformLocation<[f32; 2]>,
         gl: &WebGlRenderingContext,
     ) {
         gl.active_texture(WebGlRenderingContext::TEXTURE0);
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&*self.gl_tex));
-        unif.assign(gl, 0);
+        tex_unif.assign(gl, 0);
+        tex_dim_unif.assign(gl, [self.width, self.height]);
 
-        match self.sprites {
-            ShapeSprites::Cube(cube) => {
-                buffer.update(gl, &tex_pos(cube, self.width, self.height));
-                attr.assign(gl, buffer);
-            }
-            ShapeSprites::Icon(sprite) => {
-                unimplemented!()
-            }
+        // do we need to optimize this allocation away?
+        let mut prebuf = Vec::with_capacity(sprite_numbers.len() * 4);
+        for &number in sprite_numbers {
+            let sprite = self.sprites.sprite_number(number);
+            prebuf.extend(&[
+                sprite.x.small_float(),
+                sprite.width.small_float(),
+                sprite.y.small_float(),
+                sprite.height.small_float(),
+            ]);
         }
+        buffer.update(gl, &prebuf);
+
+        attr.assign(gl, buffer);
     }
 }
 
@@ -210,10 +218,65 @@ impl Index {
 pub enum ShapeSprites {
     /// Cube
     Cube(CubeSprites),
+    /// Cylinder
+    Cylinder(CylinderSprites),
     /// An icon sprite with only one shape.
     Icon(RectSprite),
 }
 
+impl ShapeSprites {
+    /// Retrieves the sprite of the set by sprite number used in `tex_pos`.
+    pub fn sprite_number(self, number: usize) -> RectSprite {
+        match self {
+            Self::Cube(sprites) => sprites.sprite_number(number),
+            Self::Cylinder(sprites) => sprites.sprite_number(number),
+            Self::Icon(sprite) => {
+                assert!(number == 0, "undefined sprite number {}", number);
+                sprite
+            }
+        }
+    }
+}
+
+/// Sprites for a cylinder.
+#[derive(serde::Deserialize, getset::CopyGetters, Debug, Clone, Copy)]
+pub struct CylinderSprites {
+    /// Top face.
+    ///
+    /// - Position: `x^2 + y^2 <= 1, z = 1`
+    /// - Normal: (0, 0, 1)
+    /// - Texture-to-world mapping: `f(x, y) = (x, y, 1)`
+    #[getset(get_copy = "pub")]
+    top: RectSprite,
+    /// Bottom face.
+    ///
+    /// - Position: `x^2 + y^2 <= 1, z = 0`
+    /// - Normal: (0, 0, -1)
+    /// - Texture-to-world mapping: `f(x, y) = (x, y, 0)`
+    #[getset(get_copy = "pub")]
+    bottom: RectSprite,
+    /// Curved face.
+    ///
+    /// - Position: `x^2 + y^2 <= 1, z = 0`
+    /// - Normal: (0, 0, -1)
+    /// - Texture-to-world mapping: `f(x, y) = (cos(2pi x), sin(2pi x), y)`
+    #[getset(get_copy = "pub")]
+    curved: RectSprite,
+}
+
+impl CylinderSprites {
+    /// Retrieves a sprite by number.
+    pub fn sprite_number(self, number: usize) -> RectSprite {
+        match number {
+            cylinder::FACE_CURVED => self.curved,
+            cylinder::FACE_TOP => self.top,
+            cylinder::FACE_BOTTOM => self.bottom,
+            _ => panic!("Retrieving undefined sprite"),
+        }
+    }
+}
+
+/// Sprites for a cube.
 #[derive(serde::Deserialize, getset::CopyGetters, Debug, Clone, Copy)]
 pub struct CubeSprites {
     #[getset(get_copy = "pub")]
@@ -228,6 +291,14 @@ pub struct CubeSprites {
     zp: RectSprite,
     #[getset(get_copy = "pub")]
     zn: RectSprite,
+}
+
+impl CubeSprites {
+    /// Retrieves a sprite by number.
+    pub fn sprite_number(self, number: usize) -> RectSprite {
+        let face = cube::FACES.get(number).expect("undefined sprite number");
+        face.cube_sprite(self)
+    }
 }
 
 /// A rectangular sprite.
