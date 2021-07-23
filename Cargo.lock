@@ -34,9 +34,9 @@ dependencies = [
 
 [[package]]
 name = "arcstr"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "514f4b246c9aa8f35393407c55f20df89cae359831c136cd4e61c97cd1dd5dfa"
+checksum = "c3282d7e05e547d1cd54c83557021478ebedcbdbe1a5ad941d1a81182a97f5f6"
 
 [[package]]
 name = "atomic_refcell"
