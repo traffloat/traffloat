@@ -9,7 +9,7 @@ description = "Traffloat vanilla data definitions"
 license = "AGPL-3.0"
 
 [dependencies]
-arcstr = "1.0.0"
+arcstr = "1.1.0"
 derive-new = "0.5.9"
 getset = "0.1.1"
 indvec = "0.2.0"

@@ -9,7 +9,7 @@ description = "Traffloat unit definitions"
 license = "AGPL-3.0"
 
 [dependencies]
-arcstr = "1.0.0"
+arcstr = "1.1.0"
 getset = "0.1.1"
 nalgebra = "0.28.0"
 smallvec = "1.6.1"
