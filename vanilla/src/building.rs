@@ -282,7 +282,7 @@ buildings! {
             name: "Filtration plant",
             summary: "Filter insoluble impurities from water",
             description: "Asteroidal water is often mixed with different sorts of junk. \
-                These solid impurities will clog and damage pipes if passed directly. \
+                These solid impurities will clog and damage conduits if passed directly. \
                 A filtration plant can separate the solid junk from the water.
 \n\
                 Although filtered water is still not edible for inhabitants, \
