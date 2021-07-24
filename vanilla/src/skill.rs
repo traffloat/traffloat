@@ -46,6 +46,15 @@ skills! {
         name: "Health",
         description: "Physical well-being of the inhabitant. The inhabitant dies when health drops to zero.",
     }
+    happiness {
+        name: "Happiness",
+        description: "Inhabitants lose happiness when they work and gain happiness when they have entertainment.",
+    }
+    satisfaction {
+        name: "Satisfaction",
+        description: "Inhabitants lose satisfaction when they do not receive sufficient supplies in their house. \
+            If satisfaction drops too low, inhabitants become outlaws and commit crimes.",
+    }
     morality {
         name: "Morality",
         description: "Inhabitants are educated with morality values to reduce the probability of committing crimes.",

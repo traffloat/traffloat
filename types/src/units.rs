@@ -42,9 +42,6 @@ units! {
     /// Speed of a vehicle on a rail.
     VehicleSpeed("{} m/s");
 
-    /// Happiness value of an inhabitant.
-    Happiness("{}%");
-
     /// Hitpoint of a building.
     Hitpoint("{} HP");
 }

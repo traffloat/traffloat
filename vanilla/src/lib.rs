@@ -28,7 +28,7 @@ pub fn get() -> (
     let gas = gas::populate(&mut def);
     let cargo = cargo::populate(&mut def);
     let reaction = reaction::populate(&mut def, &cargo, &liquid, &gas, &skill);
-    let building = building::populate(&mut def, &reaction);
+    let building = building::populate(&mut def, &reaction, &skill);
     crime::populate(&mut def, &skill);
 
     let (nodes, edges) = default::default_setup(&def, &building);

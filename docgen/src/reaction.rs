@@ -139,13 +139,6 @@ pub fn write_reaction(
                             base.0 * mul,
                         )?;
                     }
-                    reaction::Put::Happiness { base } => {
-                        writeln!(
-                            &mut fh,
-                            "| [Happiness](../../happiness) | {} |",
-                            base.0 * mul,
-                        )?;
-                    }
                     reaction::Put::Skill { ty, base } => {
                         writeln!(
                             &mut fh,

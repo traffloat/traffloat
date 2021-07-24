@@ -11,22 +11,18 @@ The created inhabitants will be assigned any random available housing in the col
 
 Sexual reproduction is performed spontaneously in houses.
 Two inhabitants living in the same colony will
-randomly give birth to children based on their [happiness](../happiness).
-Higher happiness results in higher probability of giving birth.
+randomly give birth to children based on their skills like happiness.
 The child will be assigned to the same housing as its parents.
 
-## Growth
+## Lifecycle
 *Main article: [Skill](../skill)*
 
 Inhabitants are born with low skill points in each area.
-Skill points increase slowly as age increases,
+Skill points increase slowly as time passes,
 but can be boosted by attending [schools](../building#education).
 Inhabitants operate vehicles or buildings more effectively
 when they have higher skill points in the relevant areas.
 
-## Happiness
-*Main article: [Happiness](../happiness)*
-
-Each inhabitant has their own happiness value.
-Higher happiness results in higher effectiveness when operating buildings or vehicles.
-When happiness drops below zero, they become outlaws who cause destruction to the colony.
+Other attributes of an inhabitant are also generalized as skills,
+such as age, health and happiness.
+An inhabitant dies when its health reaches zero.

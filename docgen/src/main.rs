@@ -66,8 +66,6 @@ fn main() -> Result<()> {
         .context("Copying file")?;
         fs::write(docs_dir.join("housing.md"), include_str!("housing.md"))
             .context("Copying file")?;
-        fs::write(docs_dir.join("happiness.md"), include_str!("happiness.md"))
-            .context("Copying file")?;
     }
 
     let index = vec![
@@ -83,7 +81,6 @@ fn main() -> Result<()> {
             items: vec![
                 manifest::Nav::Path(PathBuf::from("population.md")),
                 manifest::Nav::Path(PathBuf::from("housing.md")),
-                manifest::Nav::Path(PathBuf::from("happiness.md")),
                 manifest::Nav::Index {
                     title: String::from("Skill"),
                     items: skills_index,

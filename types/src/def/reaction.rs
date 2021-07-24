@@ -135,11 +135,6 @@ pub enum Put {
         /// Base (unmultiplied) rate of electricity consumed/generated
         base: Rate<units::ElectricPower>,
     },
-    /// Change in happiness
-    Happiness {
-        /// Base (unmultiplied) rate of happiness change
-        base: Rate<units::Happiness>,
-    },
     /// Change in skill
     ///
     /// Operators used as catalyst do not receive the skill change.
@@ -160,7 +155,6 @@ impl Put {
             Self::Liquid { base, .. } => base.0.value(),
             Self::Gas { base, .. } => base.0.value(),
             Self::Electricity { base, .. } => base.0.value(),
-            Self::Happiness { base, .. } => base.0.value(),
             Self::Skill { base, .. } => base.0.value(),
         }
     }

@@ -24,7 +24,7 @@ pub enum Action {
     ///
     /// The parameter is the maximum amount of cargo that the inhabitant may steal.
     NodeTheft(units::CargoSize),
-    /// Reduce the happiness of other inhabitants.
+    /// Reduce the skill level of other inhabitants.
     Antagonize(InhabitantCriterion),
     /// Set a node on fire.
     Arson,
@@ -53,16 +53,16 @@ pub struct Type {
     /// The actual consequence of the crime.
     #[getset(get = "pub")]
     action: Action,
-    /// The happiness range at which this crime may happen.
+    /// The skill type to trigger the crime.
+    #[getset(get_copy = "pub")]
+    trigger_skill: skill::TypeId,
+    /// The skill range at which this crime may happen.
     #[getset(get = "pub")]
-    trigger_happiness_range: Range<units::Happiness>,
+    trigger_skill_range: Range<units::Skill>,
     /// The base (unmultiplied) probability per second that an inhabitant starts to commit this
     /// crime.
     #[getset(get_copy = "pub")]
     probability: f64,
-    /// The change in happiness after committing this crime.
-    #[getset(get_copy = "pub")]
-    happiness_change: units::Happiness,
     /// The change in skill levels after committing this crime.
     #[getset(get = "pub")]
     skill_change: SmallVec<[(skill::TypeId, units::Skill); 1]>,

@@ -183,7 +183,8 @@ reactions! {
                 },
             ],
             puts: [
-                Happiness {
+                Skill {
+                    ty: skill.satisfaction,
                     rate: 0.1,
                 },
                 Skill {

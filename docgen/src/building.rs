@@ -110,7 +110,7 @@ fn write_building(
     }
 
     for feature in building.features() {
-        write_feature(&mut fh, feature)?;
+        write_feature(&mut fh, feature, def)?;
     }
 
     for (reaction_id, policy) in building.reactions() {
@@ -141,7 +141,11 @@ fn write_building(
     Ok(file)
 }
 
-fn write_feature(mut fh: impl Write, feature: &building::ExtraFeature) -> Result<()> {
+fn write_feature(
+    mut fh: impl Write,
+    feature: &building::ExtraFeature,
+    def: &GameDefinition,
+) -> Result<()> {
     match feature {
         building::ExtraFeature::Core => {
             writeln!(&mut fh, "### Core")?;
@@ -155,16 +159,11 @@ fn write_feature(mut fh: impl Write, feature: &building::ExtraFeature) -> Result
             writeln!(&mut fh, "### Housing ({} inhabitants)", capacity)?;
             writeln!(
                 &mut fh,
-                "This building provides {} [housing capacity](../../happiness).",
+                "This building provides {} [housing capacity](../../housing). \
+                    Inhabitants assigned to this building will be affected by \
+                    the skill-related mechanisms of this building, such as food, \
+                    even if they are not currently inside the building.",
                 capacity
-            )?;
-            writeln!(
-                &mut fh,
-                "Inhabitants assigned to this building will be affected by"
-            )?;
-            writeln!(
-                &mut fh,
-                "the happiness-related mechanisms of this building, such as food."
             )?;
             writeln!(&mut fh)?;
         }
@@ -193,38 +192,44 @@ fn write_feature(mut fh: impl Write, feature: &building::ExtraFeature) -> Result
             writeln!(&mut fh)?;
         }
         building::ExtraFeature::SecureEntry {
-            min_happiness,
+            skill,
+            min_level,
             breach_probability,
         } => {
             writeln!(&mut fh, "### Entry security")?;
             writeln!(
                 &mut fh,
-                "Inhabitants entering the building must have at least {} happiness.",
-                min_happiness
+                "Inhabitants entering the building must have at least {} {}.",
+                min_level,
+                def.get_skill(*skill).name(),
             )?;
             if *breach_probability > 0. {
                 writeln!(
                     &mut fh,
-                    "However, inhabitants with low happiness may manage to sneak into the building with {} probability.",
+                    "However, inhabitants with low {} level may manage to sneak into the building with {} probability.",
+                    def.get_skill(*skill).name(),
                     breach_probability,
                 )?;
             }
             writeln!(&mut fh)?;
         }
         building::ExtraFeature::SecureExit {
-            min_happiness,
+            skill,
+            min_level,
             breach_probability,
         } => {
             writeln!(&mut fh, "### Exit security")?;
             writeln!(
                 &mut fh,
-                "Inhabitants exiting the building must have at least {} happiness.",
-                min_happiness
+                "Inhabitants exiting the building must have at least {} {}.",
+                min_level,
+                def.get_skill(*skill).name(),
             )?;
             if *breach_probability > 0. {
                 writeln!(
                     &mut fh,
-                    "However, inhabitants with low happiness may manage to sneak out of the building with {} probability.",
+                    "However, inhabitants with low {} level may manage to sneak out of the building with {} probability.",
+                    def.get_skill(*skill).name(),
                     breach_probability,
                 )?;
             }

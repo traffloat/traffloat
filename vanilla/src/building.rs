@@ -66,6 +66,8 @@ use traffloat_types::{space, units};
 
 macro_rules! buildings {
     (
+        $skill:ident;
+
         $($category_ident:ident $category:literal ($category_description:literal) {
             $($ident:ident {
                 name: $name:literal,
@@ -109,7 +111,7 @@ macro_rules! buildings {
         }
 
         /// Populates a [`GameDefinition`] with building definition.
-        pub fn populate(def: &mut GameDefinition, reactions: &super::reaction::Ids) -> Ids {
+        pub fn populate(def: &mut GameDefinition, reactions: &super::reaction::Ids, $skill: &super::skill::Ids) -> Ids {
             $(
                 let $category_ident = def.add_building_category(
                     building::Category::builder()
@@ -177,6 +179,8 @@ macro_rules! buildings {
 }
 
 buildings! {
+    skill;
+
     population "Population" ("Buildings to support inhabitant population") {
         core {
             name: "Core",
@@ -331,8 +335,8 @@ buildings! {
         prison {
             name: "Prison",
             summary: "Correctional services for criminals",
-            description: "Inhabitants with negative happiness are imprisoned here \
-                to recultivate morality and restore happiness.",
+            description: "Inhabitants with negative satisfaction are imprisoned here \
+                to recultivate morality and restore satisfaction.",
             cube: 1.,
             texture: "prison",
             reactions: [
@@ -346,7 +350,8 @@ buildings! {
             },
             features: [
                 SecureExit {
-                    min_happiness: 10f64.into(),
+                    skill: skill.satisfaction,
+                    min_level: 10f64.into(),
                     breach_probability: 0.001,
                 },
             ],
@@ -369,7 +374,8 @@ buildings! {
             },
             features: [
                 SecureEntry {
-                    min_happiness: 10f64.into(),
+                    skill: skill.satisfaction,
+                    min_level: 10f64.into(),
                     breach_probability: 0.005,
                 },
             ],
