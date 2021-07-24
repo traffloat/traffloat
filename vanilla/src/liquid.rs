@@ -57,7 +57,7 @@ liquids! {
         name: "Filtered water",
         summary: "Water without insoluble impurities.",
         description: "Filtered water is removed of insoluble impurities, \
-            so they can be used in other factories without clogging up the pipes.",
+            so they can be used in other factories without clogging up conduits.",
         viscosity: 1.,
         texture: "filtered-water",
     }
