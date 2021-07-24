@@ -283,6 +283,5 @@ fn flatten_tex_pos(slice: &[(usize, f32, f32)]) -> Vec<f32> {
         vec.push(x);
         vec.push(y);
     }
-    log::debug!("flatten_tex_offset() => {:?}", &vec);
     vec
 }

@@ -236,7 +236,7 @@ impl ShapeSprites {
             Self::Cube(sprites) => sprites.sprite_number(number),
             Self::Cylinder(sprites) => sprites.sprite_number(number),
             Self::Icon(sprite) => {
-                assert!(number == 0, "undefined sprite number {}", number);
+                assert!(number == 0, "Attempt to fetch sprite {:?} from an icon sprite. This may be caused by a texture or shape mismatch.", number);
                 sprite
             }
         }
@@ -276,7 +276,7 @@ impl CylinderSprites {
             cylinder::FACE_CURVED => self.curved,
             cylinder::FACE_TOP => self.top,
             cylinder::FACE_BOTTOM => self.bottom,
-            _ => panic!("Retrieving undefined sprite"),
+            _ => panic!("Attempt to fetch sprite {:?} from a cylinder sprite. This may be caused by a texture or shape mismatch.", number),
         }
     }
 }
@@ -307,7 +307,10 @@ pub struct CubeSprites {
 impl CubeSprites {
     /// Retrieves a sprite by number.
     pub fn sprite_number(self, number: usize) -> RectSprite {
-        let face = cube::FACES.get(number).expect("undefined sprite number");
+        let face = match cube::FACES.get(number) {
+            Some(face) => face,
+            _ => panic!("Attempt to fetch sprite {:?} from a cylinder sprite. This may be caused by a texture or shape mismatch.", number),
+        };
         face.cube_sprite(self)
     }
 }
