@@ -142,13 +142,15 @@ fn draw(
         let sprite = texture_pool.sprite(tex, &scene.gl);
 
         scene.node_prog.draw(
-            &scene.gl,
-            projection * unit_to_real,
-            sun_dir,
-            brightness,
-            selected,
-            &sprite,
-            shape.unit(),
+            node::DrawArgs::builder()
+                .gl(&scene.gl)
+                .proj(projection * unit_to_real)
+                .sun(sun_dir)
+                .brightness(brightness)
+                .selected(selected)
+                .texture(&sprite)
+                .shape_unit(shape.unit())
+                .build(),
         );
     }
 

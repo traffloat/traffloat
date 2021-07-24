@@ -47,7 +47,7 @@ pub fn gen_crimes(
 
 fn write_crime(
     opts: &opts::Opts,
-    assets: &mut assets::Pool,
+    _assets: &mut assets::Pool,
     crime: &crime::Type,
     def: &GameDefinition,
 ) -> Result<PathBuf> {

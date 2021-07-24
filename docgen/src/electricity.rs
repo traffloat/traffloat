@@ -12,7 +12,7 @@ use traffloat_types::units;
 pub fn gen_electricity(
     opts: &opts::Opts,
     assets: &mut assets::Pool,
-    relativize: impl Fn(&Path) -> Result<PathBuf>,
+    _relativize: impl Fn(&Path) -> Result<PathBuf>,
     def: &GameDefinition,
 ) -> Result<()> {
     let mut fh = fs::File::create(opts.root_dir.join("docs/electricity.md"))

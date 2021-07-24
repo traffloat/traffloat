@@ -53,7 +53,7 @@ pub fn gen_vehicles(
 fn write_vehicle(
     opts: &opts::Opts,
     assets: &mut assets::Pool,
-    vehicle_id: usize,
+    _vehicle_id: usize,
     vehicle: &vehicle::Type,
     def: &GameDefinition,
 ) -> Result<PathBuf> {

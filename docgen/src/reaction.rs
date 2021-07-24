@@ -7,8 +7,8 @@ use super::{assets, opts};
 use traffloat_types::def::{reaction, GameDefinition};
 
 pub fn write_reaction(
-    opts: &opts::Opts,
-    assets: &mut assets::Pool,
+    _opts: &opts::Opts,
+    _assets: &mut assets::Pool,
     reaction: &reaction::Type,
     def: &GameDefinition,
     mut fh: impl Write,

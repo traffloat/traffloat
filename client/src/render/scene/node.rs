@@ -1,5 +1,6 @@
 //! Node rendering
 
+use typed_builder::TypedBuilder;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::{mesh, texture};
@@ -66,13 +67,15 @@ impl Program {
     /// The projection matrix transforms unit model coordinates to projection coordinates directly.
     pub fn draw(
         &self,
-        gl: &WebGlRenderingContext,
-        proj: Matrix,
-        sun: Vector,
-        brightness: f64,
-        selected: bool,
-        texture: &texture::PreparedTexture,
-        shape_unit: shape::Unit,
+        DrawArgs {
+            gl,
+            proj,
+            sun,
+            brightness,
+            selected,
+            texture,
+            shape_unit,
+        }: DrawArgs<'_>,
     ) {
         use mesh::AbstractPreparedMesh;
 
@@ -114,4 +117,24 @@ impl Program {
         );
         mesh.draw(gl);
     }
+}
+
+/// Arguments for [`Program::draw`]
+#[derive(TypedBuilder)]
+pub struct DrawArgs<'t> {
+    /// The WebGL context.
+    gl: &'t WebGlRenderingContext,
+    /// The projection matrix transforming unit model coordinates to projection coordinates
+    /// directly.
+    proj: Matrix,
+    /// The world direction of the sun.
+    sun: Vector,
+    /// The brightness received by the node.
+    brightness: f64,
+    /// Whether this node is selected.
+    selected: bool,
+    /// The spritesheet for the shape.
+    texture: &'t texture::PreparedTexture,
+    /// The shape to draw.
+    shape_unit: shape::Unit,
 }
