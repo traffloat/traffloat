@@ -5,7 +5,7 @@ use typed_builder::TypedBuilder;
 
 use super::{reaction, skill};
 use crate::space::Matrix;
-use crate::units;
+use crate::{geometry, units};
 
 /// Identifies a building category
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,7 +49,10 @@ pub struct Type {
 /// Shape of a building.
 #[derive(TypedBuilder, getset::CopyGetters, getset::Getters)]
 pub struct Shape {
-    /// The transformation matrix from the unit cube [0, 1]^3 to this shape.
+    /// The unit model type.
+    #[getset(get_copy = "pub")]
+    unit: geometry::Unit,
+    /// The transformation matrix from the unit model to this shape.
     #[getset(get_copy = "pub")]
     transform: Matrix,
     /// The texture source path of the building.

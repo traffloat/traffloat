@@ -6,6 +6,7 @@
 mod ratio_def;
 
 pub mod def;
+pub mod geometry;
 pub mod space;
 pub mod time;
 pub mod units;

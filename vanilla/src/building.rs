@@ -62,7 +62,7 @@ use arcstr::literal;
 
 use crate::VANILLA_TEXTURE;
 use traffloat_types::def::{building, GameDefinition};
-use traffloat_types::{space, units};
+use traffloat_types::{geometry, space, units};
 
 macro_rules! buildings {
     (
@@ -83,6 +83,10 @@ macro_rules! buildings {
                     $cuboid_y2:literal,
                     $cuboid_z2:literal $(,)?
                 ],)?
+                $(cylinder: {
+                    height: [$cylinder_zn:literal, $cylinder_zp:literal],
+                    radius: [$cylinder_x:literal, $cylinder_y:literal],
+                },)?
                 texture: $texture:literal,
                 reactions: [
                     $(
@@ -127,12 +131,21 @@ macro_rules! buildings {
                             .description(literal!($description))
                             .shape(building::Shape::builder()
                                 $(
+                                    .unit(geometry::Unit::Cube)
                                     .transform(space::Matrix::new_scaling($cube_size))
                                 )?
                                 $(
+                                    .unit(geometry::Unit::Cube)
                                     .transform(space::transform_cuboid(
                                         space::Vector::new($cuboid_x1, $cuboid_y1, $cuboid_z1),
                                         space::Vector::new($cuboid_x2, $cuboid_y2, $cuboid_z2),
+                                    ))
+                                )?
+                                $(
+                                    .unit(geometry::Unit::Cylinder)
+                                    .transform(space::transform_cylinder(
+                                        $cylinder_x, $cylinder_y,
+                                        $cylinder_zn, $cylinder_zp,
                                     ))
                                 )?
                                 .texture_src(literal!(VANILLA_TEXTURE))
@@ -204,7 +217,10 @@ buildings! {
             name: "Hut",
             summary: "A small living quarter.",
             description: "",
-            cube: 1.,
+            cylinder: {
+                height: [0.4, 0.4],
+                radius: [0.6, 0.6],
+            },
             texture: "house",
             reactions: [],
             hitpoint: 150.,

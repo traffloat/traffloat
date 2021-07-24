@@ -150,7 +150,6 @@ pub fn create_node_components(
     def: &GameDefinition,
     id: building::TypeId,
     position: Position,
-    shape_unit: shape::Unit,
     rotation: Matrix,
 ) -> NodeComponents {
     let building = def.get_building(id);
@@ -160,7 +159,7 @@ pub fn create_node_components(
         NodeName::new(building.name().clone()),
         position,
         Shape::builder()
-            .unit(shape_unit)
+            .unit(building.shape().unit())
             .matrix(rotation * building.shape().transform())
             .texture(shape::Texture::new(
                 building.shape().texture_src().clone(),

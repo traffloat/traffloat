@@ -91,3 +91,11 @@ pub fn transform_cuboid(lower: Vector, upper: Vector) -> Matrix {
     let origin = (lower + upper) / 2.;
     Matrix::new_nonuniform_scaling(&(upper - origin)).append_translation(&origin)
 }
+
+/// Creates a transformation matrix from a unit cylinder cuboid
+/// to one with base center `(0, 0, -zn)` and top center `(0, 0, zn)`,
+/// with cross-section ellipse radii `x`, `y` on the X, Y axes.
+pub fn transform_cylinder(x: f64, y: f64, zn: f64, zp: f64) -> Matrix {
+    Matrix::new_nonuniform_scaling(&Vector::new(x, y, zn + zp))
+        .append_translation(&Vector::new(0., 0., -zn))
+}
