@@ -31,7 +31,7 @@ impl Program {
         let prog = create_program(gl, glsl!("node"));
 
         let cube = mesh::CUBE.prepare(gl);
-        let cylinder = mesh::CYLINDER.prepare(gl);
+        let cylinder = mesh::FUSED_CYLINDER.prepare(gl);
 
         let a_pos = AttrLocation::new(gl, &prog, "a_pos");
         let a_normal = AttrLocation::new(gl, &prog, "a_normal");
@@ -83,10 +83,6 @@ impl Program {
         self.u_inv_gain
             .assign(gl, if selected { 0.5f32 } else { 1f32 });
 
-        self.a_pos.assign(gl, self.cube.positions());
-        self.a_normal.assign(gl, self.cube.normals());
-        self.a_tex_pos.assign(gl, self.cube.tex_pos());
-
         // The dynamic dispatch here is roughly equialent to
         // an enum matching on the unit type and should not impact performance.
         let mesh: &dyn AbstractPreparedMesh = match shape_unit {
@@ -94,6 +90,9 @@ impl Program {
             shape::Unit::Cylinder => &self.cylinder,
             _ => todo!(),
         };
+        self.a_pos.assign(gl, mesh.positions());
+        self.a_normal.assign(gl, mesh.normals());
+        self.a_tex_pos.assign(gl, mesh.tex_pos());
         texture.apply(
             mesh.tex_sprite_number(),
             mesh.tex_offset(),

@@ -45,8 +45,8 @@ lazy_static! {
                 num * 2 + 2
             };
 
-            mesh.indices_mut().extend(&[this, this + 1, next]);
-            mesh.indices_mut().extend(&[next + 1, next, this + 1]);
+            mesh.indices_mut().extend(&[this + 1, this, next]);
+            mesh.indices_mut().extend(&[next, next + 1, this + 1]);
         }
 
         mesh
@@ -83,8 +83,8 @@ lazy_static! {
         for num in 0..NUM_VERTICES {
             let this = num * 2 + start_index;
             let next = (num * 2 + 2) % (NUM_VERTICES * 2) + start_index;
-            mesh.indices_mut().extend(&[this, next, top_index]);
-            mesh.indices_mut().extend(&[this + 1, next + 1, bottom_index]);
+            mesh.indices_mut().extend(&[next, this, bottom_index]);
+            mesh.indices_mut().extend(&[this + 1, next + 1, top_index]);
         }
 
         mesh
