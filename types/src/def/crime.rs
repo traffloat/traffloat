@@ -25,13 +25,9 @@ pub enum Action {
     /// The parameter is the maximum amount of cargo that the inhabitant may steal.
     NodeTheft(units::CargoSize),
     /// Reduce the skill level of other inhabitants.
-    Antagonize(InhabitantCriterion),
+    Antagonize(InhabitantCriterion, skill::TypeId, units::Skill),
     /// Set a node on fire.
     Arson,
-    /// Chase other inhabitants and delete them when located in the same node.
-    ///
-    /// The parameter is the criteria to select inhabitants to murder.
-    Murder(InhabitantCriterion),
 }
 
 /// A criterion to sort inhabitants with.

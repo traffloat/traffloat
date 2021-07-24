@@ -9,6 +9,7 @@ use structopt::StructOpt;
 mod assets;
 mod building;
 mod cargo;
+mod crime;
 mod electricity;
 mod gas;
 mod liquid;
@@ -47,6 +48,8 @@ fn main() -> Result<()> {
         .context("Generating liquid guide")?;
     let skills_index = skill::gen_skills(&opts, &mut assets, relativize, &def)
         .context("Generating skill guide")?;
+    let crimes_index = crime::gen_crimes(&opts, &mut assets, relativize, &def)
+        .context("Generating crime guide")?;
     let vehicles_index = vehicle::gen_vehicles(&opts, &mut assets, relativize, &def)
         .context("Generating vehicle guide")?;
     electricity::gen_electricity(&opts, &mut assets, relativize, &def)
@@ -84,6 +87,10 @@ fn main() -> Result<()> {
                 manifest::Nav::Index {
                     title: String::from("Skill"),
                     items: skills_index,
+                },
+                manifest::Nav::Index {
+                    title: String::from("Crime"),
+                    items: crimes_index,
                 },
             ],
         },

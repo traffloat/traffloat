@@ -54,7 +54,7 @@ crimes! {
         trigger: satisfaction(-500f64, 0f64),
         probability: 0.01,
         skill_changes: {
-            skill.happiness => -5.,
+            skill.infamy => 5.,
             skill.morality => -1.,
         },
     }
@@ -65,7 +65,7 @@ crimes! {
         trigger: satisfaction(-1000f64, -50f64),
         probability: 0.0001,
         skill_changes: {
-            skill.happiness => -20.,
+            skill.infamy => 20.,
             skill.morality => -1.5,
         },
     }
@@ -76,7 +76,7 @@ crimes! {
         trigger: satisfaction(-1000f64, -500f64),
         probability: 0.00005,
         skill_changes: {
-            skill.happiness => -100.,
+            skill.infamy => 100.,
             skill.morality => -2.5,
         },
     }

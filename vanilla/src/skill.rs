@@ -55,6 +55,13 @@ skills! {
         description: "Inhabitants lose satisfaction when they do not receive sufficient supplies in their house. \
             If satisfaction drops too low, inhabitants become outlaws and commit crimes.",
     }
+    infamy {
+        name: "Infamy",
+        description: "Inhabitants earn infamy when they perform crimes. \
+            Infamy values are used by security mechanisms to identify the crime threat of an inhabitant, \
+            such as movement control and police patrol. \
+            Inhabitants can lose infamy by imprisonment.",
+    }
     morality {
         name: "Morality",
         description: "Inhabitants are educated with morality values to reduce the probability of committing crimes.",
