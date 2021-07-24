@@ -45,7 +45,7 @@ pub fn gen_buildings(
                     writeln!(
                         &mut fh,
                         "- [![]({}){{ width=20 }} {}]({})",
-                        assets.map(&texture_dir.join("xp.svg"))?,
+                        assets.map(&super::building_texture(&texture_dir))?,
                         building.name(),
                         building.name().to_kebab_case()
                     )?;
@@ -82,7 +82,7 @@ fn write_building(
     writeln!(
         &mut fh,
         "![](../{}){{ width=64 align=right }}",
-        assets.map(&texture_dir.join("xp.svg"))?
+        assets.map(&super::building_texture(&texture_dir))?
     )?;
     writeln!(&mut fh, "> {}", building.summary())?;
     writeln!(&mut fh)?;

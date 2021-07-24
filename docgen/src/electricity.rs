@@ -54,7 +54,7 @@ pub fn gen_electricity(
                     })?;
                     Ok(format!(
                         "[![]({})](../building/{}){{ width=20 }}",
-                        assets.map(&texture_dir.join("xp.svg"))?,
+                        assets.map(&super::building_texture(&texture_dir))?,
                         building.name().to_kebab_case(),
                     ))
                 })

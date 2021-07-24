@@ -39,7 +39,8 @@ pub fn gen_vehicles(
                 .with_context(|| format!("Could not canonicalize {}", texture_path.display()))?;
             writeln!(
                 &mut fh,
-                "- [{}]({})",
+                "- [![]({}) {}]({})",
+                assets.map(&texture_path)?,
                 vehicle.name(),
                 vehicle.name().to_kebab_case()
             )?;

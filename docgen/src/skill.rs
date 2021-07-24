@@ -93,7 +93,7 @@ fn write_skill(
                     })?;
                     Ok(format!(
                         "[![](../{}){{ width=20 }}](../../building/{})",
-                        assets.map(&texture_dir.join("xp.svg"))?,
+                        assets.map(&super::building_texture(&texture_dir))?,
                         building.name().to_kebab_case(),
                     ))
                 })

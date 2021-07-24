@@ -156,3 +156,17 @@ fn main() -> Result<()> {
 
     Ok(())
 }
+
+fn building_texture(dir: &Path) -> PathBuf {
+    let mut file = dir.join("xp.svg");
+    if file.is_file() {
+        return file;
+    }
+
+    file.set_file_name("curved.svg");
+    if file.is_file() {
+        return file;
+    }
+
+    panic!("Building texture at {} is unsupported", dir.display())
+}
