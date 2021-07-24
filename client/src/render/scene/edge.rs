@@ -25,13 +25,7 @@ pub struct Program {
 impl Program {
     /// Initializes edge canvas resources.
     pub fn new(gl: &WebGlRenderingContext) -> Self {
-        let prog = create_program(
-            gl,
-            "edge.vert",
-            include_str!("edge.min.vert"),
-            "edge.frag",
-            include_str!("edge.min.frag"),
-        );
+        let prog = create_program(gl, glsl!("edge"));
         let cylinder = mesh::CYLINDER.prepare(gl);
 
         let a_pos = AttrLocation::new(gl, &prog, "a_pos");
@@ -70,6 +64,8 @@ impl Program {
         rgba: [f32; 4],
         selected: bool,
     ) {
+        use mesh::AbstractPreparedMesh;
+
         gl.use_program(Some(&self.prog));
         self.u_trans.assign(gl, proj);
         self.u_trans_sun.assign(gl, sun);

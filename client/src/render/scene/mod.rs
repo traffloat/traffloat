@@ -21,7 +21,7 @@ pub mod edge;
 pub mod node;
 pub mod reticle;
 
-mod texture;
+pub mod texture;
 
 /// Stores the setup data of the scene canvas.
 pub struct Canvas {
@@ -148,6 +148,7 @@ fn draw(
             brightness,
             selected,
             &sprite,
+            shape.unit(),
         );
     }
 

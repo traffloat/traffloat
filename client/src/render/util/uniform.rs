@@ -72,6 +72,10 @@ impl_uniform!(uniform2fv_with_f32_array, [f32; 2], as_ref, {});
 impl_uniform!(uniform3fv_with_f32_array, [f32; 3], as_ref, {});
 impl_uniform!(uniform4fv_with_f32_array, [f32; 4], as_ref, {});
 
+impl_uniform!(uniform2iv_with_i32_array, [i32; 2], as_ref, {});
+impl_uniform!(uniform3iv_with_i32_array, [i32; 3], as_ref, {});
+impl_uniform!(uniform4iv_with_i32_array, [i32; 4], as_ref, {});
+
 impl_uniform!(uniform_matrix2fv_with_f32_array, nalgebra::Matrix2<f32>, as_slice, {false, });
 impl_uniform!(uniform_matrix3fv_with_f32_array, nalgebra::Matrix3<f32>, as_slice, {false, });
 impl_uniform!(uniform_matrix4fv_with_f32_array, nalgebra::Matrix4<f32>, as_slice, {false, });

@@ -35,13 +35,7 @@ pub struct Program {
 impl Program {
     /// Initializes sun canvas resources.
     pub fn new(gl: &WebGlRenderingContext) -> Self {
-        let prog = create_program(
-            gl,
-            "sun.vert",
-            include_str!("sun.min.vert"),
-            "sun.frag",
-            include_str!("sun.min.frag"),
-        );
+        let prog = create_program(gl, glsl!("sun"));
 
         let pos_buf = FloatBuffer::create(gl, &*SUN_MODEL, 2, BufferUsage::WriteOnceReadMany);
         #[rustfmt::skip]

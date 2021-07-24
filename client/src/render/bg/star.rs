@@ -20,13 +20,7 @@ pub struct Program {
 impl Program {
     /// Initializes sun canvas resources.
     pub fn new(gl: &WebGlRenderingContext, seed: [u8; 32]) -> Self {
-        let prog = create_program(
-            gl,
-            "star.vert",
-            include_str!("star.min.vert"),
-            "star.frag",
-            include_str!("star.min.frag"),
-        );
+        let prog = create_program(gl, glsl!("star"));
 
         let pos_buf = FloatBuffer::create(
             gl,

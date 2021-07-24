@@ -111,7 +111,9 @@ class Atlas:
             dim = max(width, height) * math.ceil(math.sqrt(self.count))
             dim = least_power_of_two_gte(dim)
 
-            output = numpy.zeros((dim, dim, num_channels))
+            output = numpy.empty((dim, dim, num_channels))
+            output[:, :, (0, 1, 2)] = 0.0
+            output[:, :, 3] = 1.
 
             x = 0
             y = 0
@@ -133,16 +135,17 @@ class Atlas:
 
 class Index:
     def __init__(self, size: int):
-        self.svg_cache = SvgPool()
+        self.opaque_svg_cache = SvgPool()
+        self.alpha_svg_cache = SvgPool()
         self.atlas = Atlas(size, size)
         self.index: typing.List[typing.Tuple[str, dict]] = []
 
-    def add_dir(self, path: str, size: int):
+    def add_cube(self, path: str, size: int):
         subindex = {"shape": "cube"}
 
         for direction in ["x", "y", "z"]:
             for side in ["p", "n"]:
-                im = self.svg_cache.read(os.path.join(path, direction + side + ".svg"), size)
+                im = self.opaque_svg_cache.read(os.path.join(path, direction + side + ".svg"), size)
                 image_ord = self.atlas.put(im)
                 subindex[direction + side] = {
                     "x": image_ord,
@@ -153,8 +156,23 @@ class Index:
 
         self.index.append((os.path.basename(path), subindex))
 
+    def add_cylinder(self, path: str, size: int):
+        subindex = {"shape": "cylinder"}
+
+        for face in ["curved", "top", "bottom"]:
+            im = self.opaque_svg_cache.read(os.path.join(path, f"{face}.svg"), size)
+            image_ord = self.atlas.put(im)
+            subindex[face] = {
+                "x": image_ord,
+                "y": image_ord,
+                "width": size,
+                "height": size,
+            }
+
+        self.index.append((os.path.basename(path), subindex))
+
     def add_file(self, path: str, size: int):
-        im = self.svg_cache.read(path, size)
+        im = self.alpha_svg_cache.read(path, size)
         image_ord = self.atlas.put(im)
 
         self.index.append((os.path.basename(path)[:-4], {
@@ -168,19 +186,22 @@ class Index:
     def finalize(self):
         locs, im = self.atlas.finalize()
         output = {}
+
+        def resolve(d: dict, locs: typing.List[typing.Tuple[int, int]]):
+            d["x"] = locs[d["x"]][1]
+            d["y"] = locs[d["y"]][0]
+
         for name, dic in self.index:
             dic = dic.copy()
             if dic["shape"] == "cube":
                 for direction in ["x", "y", "z"]:
                     for side in ["p", "n"]:
-                        d = dic[direction + side]
-
-                        # For some reason, matplotlib always flips the two coordinates.
-                        d["x"] = locs[d["x"]][1]
-                        d["y"] = locs[d["y"]][0]
+                        resolve(dic[direction + side], locs)
+            elif dic["shape"] == "cylinder":
+                for sprite in ["curved", "top", "bottom"]:
+                    resolve(dic[sprite], locs)
             elif dic["shape"] == "icon":
-                dic["x"] = locs[dic["x"]][0]
-                dic["y"] = locs[dic["y"]][1]
+                resolve(dic, locs)
             output[name] = dic
 
         return output, im
@@ -201,10 +222,13 @@ def main():
 
             for path in os.listdir("."):
                 if os.path.isfile(os.path.join(path, "xp.svg")):
-                    with Timer(f"adding directory {path}"):
-                        index.add_dir(path, size)
+                    with Timer(f"adding cube {path}"):
+                        index.add_cube(path, size)
+                elif os.path.isfile(os.path.join(path, "curved.svg")):
+                    with Timer(f"adding cylinder {path}"):
+                        index.add_cylinder(path, size)
                 elif path.endswith(".svg") and os.path.isfile(path):
-                    with Timer(f"adding file {path}"):
+                    with Timer(f"adding icon {path}"):
                         index.add_file(path, size)
 
             index, im = index.finalize()

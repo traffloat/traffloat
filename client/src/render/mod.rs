@@ -1,5 +1,29 @@
 //! Manages client-side graphics rendering.
 
+#[cfg(debug_assertions)]
+macro_rules! glsl {
+    ($name:literal) => {
+        [
+            concat!($name, ".vert"),
+            include_str!(concat!($name, ".vert")),
+            concat!($name, ".frag"),
+            include_str!(concat!($name, ".frag")),
+        ]
+    };
+}
+
+#[cfg(not(debug_assertions))]
+macro_rules! glsl {
+    ($name:literal) => {
+        [
+            concat!($name, ".vert"),
+            include_str!(concat!($name, ".min.vert")),
+            concat!($name, ".frag"),
+            include_str!(concat!($name, ".min.frag")),
+        ]
+    };
+}
+
 mod layers;
 pub use layers::{Dimension, Layers, LayersStruct};
 mod comm;
