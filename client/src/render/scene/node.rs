@@ -28,13 +28,7 @@ pub struct Program {
 impl Program {
     /// Initializes node canvas resources.
     pub fn new(gl: &WebGlRenderingContext) -> Self {
-        let prog = create_program(
-            gl,
-            "node.vert",
-            include_str!("node.min.vert"),
-            "node.frag",
-            include_str!("node.min.frag"),
-        );
+        let prog = create_program(gl, glsl!("node"));
 
         let cube = mesh::CUBE.prepare(gl);
         let cylinder = mesh::CYLINDER.prepare(gl);
@@ -91,6 +85,7 @@ impl Program {
 
         self.a_pos.assign(gl, self.cube.positions());
         self.a_normal.assign(gl, self.cube.normals());
+        self.a_tex_pos.assign(gl, self.cube.tex_pos());
 
         // The dynamic dispatch here is roughly equialent to
         // an enum matching on the unit type and should not impact performance.

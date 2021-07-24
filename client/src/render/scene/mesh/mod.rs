@@ -14,6 +14,7 @@ pub use cube::CUBE;
 pub mod cylinder;
 pub use cylinder::{CYLINDER, FUSED_CYLINDER};
 
+/// A generic mesh prepared for WebGL rendering.
 pub trait AbstractPreparedMesh {
     /// Buffer storing vertex positions.
     ///
@@ -149,14 +150,14 @@ impl Mesh {
                 2,
                 util::BufferUsage::WriteOnceReadMany,
             ))
-            .tex_sprite_number(flatten_tex_offset(self.tex_pos()))
+            .tex_sprite_number(flatten_sprite_number(self.tex_pos()))
             .tex_offset(util::FloatBuffer::create(
                 gl,
-                &[0.; 4],
+                &vec![0.; 4 * len],
                 4,
                 util::BufferUsage::WriteManyReadMany,
             ))
-            .len(self.positions.len() / 3)
+            .len(len)
             .build()
     }
 }
@@ -240,6 +241,7 @@ impl IndexedMesh {
 
     /// Loads the mesh onto a WebGL context.
     pub fn prepare(&self, gl: &WebGlRenderingContext) -> PreparedIndexedMesh {
+        let len = self.positions().len() / 3;
         PreparedIndexedMesh::builder()
             .positions(util::FloatBuffer::create(
                 gl,
@@ -259,10 +261,10 @@ impl IndexedMesh {
                 2,
                 util::BufferUsage::WriteOnceReadMany,
             ))
-            .tex_sprite_number(flatten_tex_offset(self.tex_pos()))
+            .tex_sprite_number(flatten_sprite_number(self.tex_pos()))
             .tex_offset(util::FloatBuffer::create(
                 gl,
-                &[0.; 4],
+                &vec![0.; 4 * len],
                 4,
                 util::BufferUsage::WriteManyReadMany,
             ))
@@ -271,7 +273,7 @@ impl IndexedMesh {
     }
 }
 
-fn flatten_tex_offset(slice: &[(usize, f32, f32)]) -> Vec<usize> {
+fn flatten_sprite_number(slice: &[(usize, f32, f32)]) -> Vec<usize> {
     slice.iter().map(|&(number, _, _)| number).collect()
 }
 

@@ -1,3 +1,5 @@
+//! Sprite sheet definition.
+
 use std::cell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
@@ -81,6 +83,9 @@ pub struct PreparedTexture {
 }
 
 impl PreparedTexture {
+    /// Applies a texture on the corresponding uniforms and attributes.
+    ///
+    /// This is mainly adapted for the `node.vert`/`node.frag` shaders.
     pub fn apply(
         &self,
         sprite_numbers: &[usize],
@@ -279,16 +284,22 @@ impl CylinderSprites {
 /// Sprites for a cube.
 #[derive(serde::Deserialize, getset::CopyGetters, Debug, Clone, Copy)]
 pub struct CubeSprites {
+    /// Positive X sprite.
     #[getset(get_copy = "pub")]
     xp: RectSprite,
+    /// Negative X sprite.
     #[getset(get_copy = "pub")]
     xn: RectSprite,
+    /// Positive Y sprite.
     #[getset(get_copy = "pub")]
     yp: RectSprite,
+    /// Negative Y sprite.
     #[getset(get_copy = "pub")]
     yn: RectSprite,
+    /// Positive Z sprite.
     #[getset(get_copy = "pub")]
     zp: RectSprite,
+    /// Negative Z sprite.
     #[getset(get_copy = "pub")]
     zn: RectSprite,
 }

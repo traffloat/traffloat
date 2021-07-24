@@ -4,7 +4,6 @@ use lazy_static::lazy_static;
 
 use super::Mesh;
 use crate::render::scene::texture::{CubeSprites, RectSprite};
-use safety::Safety;
 
 /// Positive or negative
 #[derive(Debug, Clone, Copy)]

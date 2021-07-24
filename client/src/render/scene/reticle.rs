@@ -22,13 +22,7 @@ pub struct Program {
 impl Program {
     /// Initializes reticle canvas resources.
     pub fn new(gl: &WebGlRenderingContext) -> Self {
-        let prog = create_program(
-            gl,
-            "reticle.vert",
-            include_str!("reticle.min.vert"),
-            "reticle.frag",
-            include_str!("reticle.min.frag"),
-        );
+        let prog = create_program(gl, glsl!("reticle"));
 
         let arrow_buf =
             FloatBuffer::create(gl, &mesh::ARROW[..], 3, BufferUsage::WriteOnceReadMany);

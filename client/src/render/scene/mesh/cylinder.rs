@@ -1,16 +1,14 @@
 //! This module generates geometry data for a cube.
 
+use std::convert::TryFrom;
 use std::f32::consts::PI;
 
 use lazy_static::lazy_static;
 
 use super::IndexedMesh;
-use crate::render::scene::texture::{CylinderSprites, RectSprite};
-use safety::Safety;
 
 /// Number of vertices on each circle of a cylinder
 pub const NUM_VERTICES: u16 = 32;
-const NUM_VERTICES_USIZE: usize = NUM_VERTICES as usize;
 
 /// Sprite number for the curved face.
 pub const FACE_CURVED: usize = 0;
@@ -58,9 +56,11 @@ lazy_static! {
     pub static ref FUSED_CYLINDER: IndexedMesh = {
         let mut mesh = CYLINDER.clone();
 
-        let start_index = mesh.positions().len() as u16 / 3;
+        let start_index = u16::try_from(mesh.positions().len())
+            .expect("usize >= u16") / 3;
         mesh.positions_mut().extend(CYLINDER.positions());
         mesh.normals_mut().extend(CYLINDER.normals());
+        #[allow(clippy::indexing_slicing)]
         for pos in CYLINDER.positions().chunks(3) {
             let sprite_no = if pos[2] > 0.5 { FACE_TOP } else { FACE_BOTTOM };
             let x = (pos[0] + 1.) / 2.;
@@ -68,12 +68,14 @@ lazy_static! {
             mesh.tex_pos_mut().push((sprite_no, x, y));
         }
 
-        let top_index = mesh.positions().len() as u16 / 3;
+        let top_index = u16::try_from(mesh.positions().len())
+            .expect("usize >= u16") / 3;
         mesh.positions_mut().extend(&[0., 0., 1.]);
         mesh.normals_mut().extend(&[0., 0., 1.]);
         mesh.tex_pos_mut().push((FACE_TOP, 0.5, 0.5));
 
-        let bottom_index = mesh.positions().len() as u16 / 3;
+        let bottom_index = u16::try_from(mesh.positions().len())
+            .expect("usize >= u16") / 3;
         mesh.positions_mut().extend(&[0., 0., 0.]);
         mesh.normals_mut().extend(&[0., 0., -1.]);
         mesh.tex_pos_mut().push((FACE_BOTTOM, 0.5, 0.5));

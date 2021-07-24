@@ -111,7 +111,9 @@ class Atlas:
             dim = max(width, height) * math.ceil(math.sqrt(self.count))
             dim = least_power_of_two_gte(dim)
 
-            output = numpy.zeros((dim, dim, num_channels))
+            output = numpy.empty((dim, dim, num_channels))
+            output[:, :, (0, 1, 2)] = 0.0
+            output[:, :, 3] = 1.
 
             x = 0
             y = 0
@@ -133,7 +135,8 @@ class Atlas:
 
 class Index:
     def __init__(self, size: int):
-        self.svg_cache = SvgPool()
+        self.dir_svg_cache = SvgPool()
+        self.file_svg_cache = SvgPool()
         self.atlas = Atlas(size, size)
         self.index: typing.List[typing.Tuple[str, dict]] = []
 
@@ -142,7 +145,7 @@ class Index:
 
         for direction in ["x", "y", "z"]:
             for side in ["p", "n"]:
-                im = self.svg_cache.read(os.path.join(path, direction + side + ".svg"), size)
+                im = self.dir_svg_cache.read(os.path.join(path, direction + side + ".svg"), size)
                 image_ord = self.atlas.put(im)
                 subindex[direction + side] = {
                     "x": image_ord,
@@ -154,7 +157,7 @@ class Index:
         self.index.append((os.path.basename(path), subindex))
 
     def add_file(self, path: str, size: int):
-        im = self.svg_cache.read(path, size)
+        im = self.file_svg_cache.read(path, size)
         image_ord = self.atlas.put(im)
 
         self.index.append((os.path.basename(path)[:-4], {

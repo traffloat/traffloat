@@ -25,10 +25,7 @@ pub fn create_shader(
 /// Creates a WebGL program.
 pub fn create_program(
     gl: &WebGlRenderingContext,
-    vert_file: &str,
-    vert_code: &str,
-    frag_file: &str,
-    frag_code: &str,
+    [vert_file, vert_code, frag_file, frag_code]: [&str; 4],
 ) -> WebGlProgram {
     let prog = gl
         .create_program()
