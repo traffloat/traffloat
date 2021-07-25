@@ -1,0 +1,18 @@
+[package]
+name = "traffloat-version"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.2.0"
+edition = "2018"
+repository = "https://github.com/traffloat/traffloat"
+homepage = "https://github.com/traffloat/traffloat"
+description = "Traffloat build version constants"
+license = "AGPL-3.0"
+
+build = "build.rs"
+
+[build-dependencies]
+anyhow = "1.0.42"
+git2 = "0.13.20"
+hex = "0.4.3"
+proc-macro2 = "1.0.27"
+quote = "1.0.9"

@@ -8,6 +8,7 @@ members = [
 	"docgen",
 	"common",
 	"client",
+	"version",
 ]
 
 [profile.dev]
