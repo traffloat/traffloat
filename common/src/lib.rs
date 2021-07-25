@@ -37,7 +37,9 @@ pub mod cargo;
 pub mod clock;
 pub mod config;
 pub mod factory;
+pub mod gas;
 pub mod graph;
+pub mod liquid;
 pub mod shape;
 pub mod sun;
 mod util;
@@ -54,5 +56,7 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
         .uses(shape::setup_ecs)
         .uses(graph::setup_ecs)
         .uses(cargo::setup_ecs)
+        .uses(liquid::setup_ecs)
+        .uses(gas::setup_ecs)
         .uses(sun::setup_ecs)
 }
