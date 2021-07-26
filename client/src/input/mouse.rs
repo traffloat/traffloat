@@ -5,7 +5,8 @@ use legion::Entity;
 use super::{keyboard, ScreenPosition};
 use crate::camera::Camera;
 use crate::render;
-use traffloat::graph;
+use traffloat::edge;
+use traffloat::node;
 use traffloat::shape::{self, Shape};
 use traffloat::space::Position;
 
@@ -96,9 +97,9 @@ pub struct HoverTarget {
 #[codegen::system]
 #[read_component(Position)]
 #[read_component(Shape)]
-#[read_component(graph::NodeId)]
-#[read_component(graph::EdgeId)]
-#[read_component(graph::EdgeSize)]
+#[read_component(node::Id)]
+#[read_component(edge::Id)]
+#[read_component(edge::Size)]
 fn trace_entity(
     world: &legion::world::SubWorld,
     #[resource] segment: &Segment,
@@ -125,8 +126,8 @@ fn trace_entity(
         }
     }
 
-    for (&entity, edge, size) in <(Entity, &graph::EdgeId, &graph::EdgeSize)>::query().iter(world) {
-        let unit = graph::edge_tf(edge, size, &*world, false);
+    for (&entity, edge, size) in <(Entity, &edge::Id, &edge::Size)>::query().iter(world) {
+        let unit = edge::tf(edge, size, &*world, false);
         let proximal = unit.transform_point(&segment.proximal.0);
         let distal = unit.transform_point(&segment.distal.0);
 

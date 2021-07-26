@@ -1,27 +1,27 @@
 use indvec::indvec;
 
 use traffloat::def::GameDefinition;
-use traffloat::graph;
+use traffloat::node;
 use traffloat_types::space::{Matrix, Position, Vector};
 
 pub fn default_setup(
     def: &GameDefinition,
     building: &super::building::Ids,
-) -> (Vec<graph::NodeComponents>, Vec<(usize, usize, f64)>) {
+) -> (Vec<node::Components>, Vec<(usize, usize, f64)>) {
     indvec![
-        nodes = core = graph::create_node_components(
+        nodes = core = node::create_components(
             def,
             building.core,
             Position::new(1., 2., 3.),
             Matrix::identity(),
         ),
-        hut = graph::create_node_components(
+        hut = node::create_components(
             def,
             building.hut,
             Position::new(1., -2., 3.),
             Matrix::new_scaling(0.4),
         ),
-        solar_panel = graph::create_node_components(
+        solar_panel = node::create_components(
             def,
             building.solar_panel,
             Position::new(-2., 0., 10.),

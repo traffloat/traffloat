@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 
 use crate::clock::Clock;
 use crate::config;
-use crate::graph::*;
+use crate::node;
 use crate::shape::Shape;
 use crate::space::{Position, Vector};
 use crate::units::Brightness;
@@ -72,8 +72,8 @@ pub struct LightStats {
 fn shadow_cast(
     world: &mut legion::world::SubWorld,
     #[state(true)] first: &mut bool,
-    #[subscriber] node_additions: impl Iterator<Item = NodeAddEvent>,
-    #[subscriber] node_post_removals: impl Iterator<Item = PostNodeRemoveEvent>,
+    #[subscriber] node_additions: impl Iterator<Item = node::AddEvent>,
+    #[subscriber] node_post_removals: impl Iterator<Item = node::PostRemoveEvent>,
 ) {
     // we must drain the whole iterator even though we just want to know if there is at least one
     // item!

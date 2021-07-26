@@ -6,7 +6,8 @@ use yew::prelude::*;
 
 use super::{Update, UpdaterRef};
 use crate::input;
-use traffloat::graph;
+use traffloat::edge;
+use traffloat::node;
 
 /// Displays basic info about a node at a corner of the screen.
 pub struct Comp {
@@ -63,8 +64,8 @@ pub struct Props {
 }
 
 #[codegen::system]
-#[read_component(graph::NodeName)]
-#[read_component(graph::EdgeId)]
+#[read_component(node::Name)]
+#[read_component(edge::Id)]
 #[thread_local]
 fn draw(
     #[resource] hover_target: &input::mouse::HoverTarget,
@@ -76,7 +77,7 @@ fn draw(
         let entity_entry = world
             .entry_ref(entity)
             .expect("Target entity does not exist"); // TODO what if user is hovering over node while deleting it?
-        if let Ok(node_name) = entity_entry.get_component::<graph::NodeName>() {
+        if let Ok(node_name) = entity_entry.get_component::<node::Name>() {
             Some(Props {
                 entity,
                 node_name: node_name.name().to_string(),

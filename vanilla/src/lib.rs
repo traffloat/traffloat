@@ -1,7 +1,7 @@
 //! Vanilla data definition
 
-use traffloat::graph;
-use traffloat_types::def::GameDefinition;
+use traffloat::def::GameDefinition;
+use traffloat::node;
 
 pub mod building;
 pub mod cargo;
@@ -18,7 +18,7 @@ pub const VANILLA_TEXTURE: &str = "textures-x-fancy.png"; // TODO allow customiz
 /// Define vanilla game rules
 pub fn get() -> (
     GameDefinition,
-    Vec<graph::NodeComponents>,
+    Vec<node::Components>,
     Vec<(usize, usize, f64)>,
 ) {
     let mut def = GameDefinition::default();

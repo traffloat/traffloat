@@ -76,5 +76,5 @@ fn update_storage(
 
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup
+    setup.uses(update_storage_setup)
 }

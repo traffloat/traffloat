@@ -36,10 +36,11 @@ pub use traffloat_types::{def, space, time, units};
 pub mod cargo;
 pub mod clock;
 pub mod config;
+pub mod edge;
 pub mod factory;
 pub mod gas;
-pub mod graph;
 pub mod liquid;
+pub mod node;
 pub mod shape;
 pub mod sun;
 mod util;
@@ -54,7 +55,8 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
         .uses(clock::setup_ecs)
         .uses(factory::setup_ecs)
         .uses(shape::setup_ecs)
-        .uses(graph::setup_ecs)
+        .uses(node::setup_ecs)
+        .uses(edge::setup_ecs)
         .uses(cargo::setup_ecs)
         .uses(liquid::setup_ecs)
         .uses(gas::setup_ecs)

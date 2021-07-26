@@ -9,7 +9,6 @@ use web_sys::WebGlRenderingContext;
 use super::{CursorType, RenderFlag};
 use crate::camera::Camera;
 use crate::input;
-use traffloat::graph;
 use traffloat::lerp;
 use traffloat::shape::{Shape, Texture};
 use traffloat::space::{Matrix, Position};
@@ -81,9 +80,9 @@ impl Canvas {
 #[read_component(Position)]
 #[read_component(Shape)]
 #[read_component(LightStats)]
-#[read_component(graph::NodeId)]
-#[read_component(graph::EdgeId)]
-#[read_component(graph::EdgeSize)]
+#[read_component(traffloat::node::Id)]
+#[read_component(traffloat::edge::Id)]
+#[read_component(traffloat::edge::Size)]
 #[thread_local]
 fn draw(
     world: &mut SubWorld,
@@ -121,7 +120,7 @@ fn draw(
 
     #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
     for (entity, &position, shape, light) in <(Entity, &Position, &Shape, &LightStats)>::query()
-        .filter(component::<graph::NodeId>())
+        .filter(component::<traffloat::node::Id>())
         .iter(world)
     {
         // projection matrix transforms real coordinates to canvas
@@ -154,8 +153,10 @@ fn draw(
         );
     }
 
-    for (entity, edge, size) in <(Entity, &graph::EdgeId, &graph::EdgeSize)>::query().iter(world) {
-        let unit = graph::edge_tf(edge, size, &*world, true);
+    for (entity, edge, size) in
+        <(Entity, &traffloat::edge::Id, &traffloat::edge::Size)>::query().iter(world)
+    {
+        let unit = traffloat::edge::tf(edge, size, &*world, true);
         let selected =
             hover_target.entity() == Some(*entity) || focus_target.entity() == Some(*entity);
 
