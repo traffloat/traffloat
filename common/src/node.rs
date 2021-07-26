@@ -99,7 +99,7 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
     setup.uses(delete_nodes_setup)
 }
 
-/// Return type of [`create_node_components`].
+/// Return type of [`create_components`].
 pub type Components = (Id, Name, Position, Shape, LightStats);
 
 /// Creates the components for a node entity.

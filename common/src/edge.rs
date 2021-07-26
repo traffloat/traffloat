@@ -5,6 +5,7 @@
 
 use derive_new::new;
 use legion::Entity;
+use typed_builder::TypedBuilder;
 
 use crate::space::{Matrix, Position, Vector};
 use crate::SetupEcs;
@@ -26,6 +27,45 @@ pub struct Size {
     /// The radius of the corridor
     #[getset(get_copy = "pub")]
     radius: f64,
+}
+
+/// A position on the cross section of an edge.
+#[derive(Debug, Clone, Copy, Default, new)]
+pub struct CrossSectionPosition(nalgebra::Vector2<f64>);
+
+impl CrossSectionPosition {
+    /// The vector from the center to the position.
+    pub fn vector(self) -> nalgebra::Vector2<f64> {
+        self.0
+    }
+}
+
+/// The geometric design of the edge.
+///
+/// This is only used for graphical user interaction.
+/// Simulation systems should depend on separate components on capacity
+/// instead of calculating from this data structure.
+#[derive(Debug, new, getset::Getters)]
+pub struct Design {
+    /// The ducts in the edge.
+    #[getset(get = "pub")]
+    ducts: Vec<Duct>,
+}
+
+/// A circular structure in an edge.
+///
+/// The actual content of the duct is stored in the referred entity.
+#[derive(Debug, TypedBuilder, getset::Getters, getset::CopyGetters)]
+pub struct Duct {
+    /// The center of a circle.
+    #[getset(get_copy = "pub")]
+    center: CrossSectionPosition,
+    /// The radius of a circle.
+    #[getset(get_copy = "pub")]
+    radius: f64,
+    /// The entity storing the duct attributes.
+    #[getset(get_copy = "pub")]
+    entity: Entity,
 }
 
 /// Indicates that an edge is added
@@ -84,4 +124,12 @@ pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bo
                 1. / dir.norm(),
             ))
     }
+}
+
+/// Return type of [`create_components`].
+pub type Components = (Id, Size, Design);
+
+/// Creates the components for a node entity.
+pub fn create_components(from: Entity, to: Entity, size: f64) -> Components {
+    (Id::new(from, to), Size::new(size), Design::new(Vec::new()))
 }

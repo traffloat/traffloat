@@ -14,10 +14,9 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
 
     #[allow(clippy::indexing_slicing)]
     for (from, to, size) in edges {
-        setup.world.push((
-            edge::Id::new(entities[from], entities[to]),
-            edge::Size::new(size),
-        ));
+        setup
+            .world
+            .push(edge::create_components(entities[from], entities[to], size));
     }
 
     setup
