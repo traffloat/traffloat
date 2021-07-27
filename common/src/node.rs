@@ -23,7 +23,7 @@ pub struct Id {
 }
 
 /// Component storing the name of the node
-#[derive(Debug, new, getset::Getters, getset::Setters, Serialize, Deserialize)]
+#[derive(Debug, Clone, new, getset::Getters, getset::Setters, Serialize, Deserialize)]
 pub struct Name {
     /// Name of the node
     #[getset(get = "pub")]

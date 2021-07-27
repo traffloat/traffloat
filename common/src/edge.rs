@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::space::{Matrix, Position, Vector};
+use crate::units;
 use crate::SetupEcs;
 
 /// Component storing the endpoints of an edge
@@ -212,6 +213,7 @@ pub mod save {
         pub(crate) to: node::Id,
         pub(crate) size: super::Size,
         pub(crate) design: Vec<SavedDuct>,
+        pub(crate) hitpoints: units::Portion<units::Hitpoint>,
     }
 
     /// Saves all data related to a duct.

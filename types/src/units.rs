@@ -51,7 +51,9 @@ units! {
 }
 
 /// A unit with a maximum capacity.
-#[derive(Debug, Clone, Copy, derive_new::new, getset::CopyGetters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, Default, derive_new::new, getset::CopyGetters, Serialize, Deserialize,
+)]
 pub struct Portion<U: Unit> {
     /// The current value.
     #[getset(get_copy = "pub")]

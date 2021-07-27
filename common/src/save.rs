@@ -1,5 +1,8 @@
 //! Saving game definition and state.
 
+use legion::world::SubWorld;
+use legion::EntityStore;
+use legion::IntoQuery;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
@@ -7,8 +10,11 @@ use crate::clock::Clock;
 use crate::def::GameDefinition;
 use crate::edge::save::Edge;
 use crate::node::save::Node;
+use crate::shape::Shape;
+use crate::space::Position;
 use crate::time::Instant;
 use crate::SetupEcs;
+use crate::{edge, node};
 
 /// The save schema version.
 ///
@@ -65,7 +71,15 @@ pub struct Response {
 }
 
 #[codegen::system]
+#[read_component(node::Id)]
+#[read_component(node::Name)]
+#[read_component(edge::Id)]
+#[read_component(edge::Size)]
+#[read_component(edge::Design)]
+#[read_component(Position)]
+#[read_component(Shape)]
 fn save(
+    world: &mut SubWorld,
     #[subscriber] requests: impl Iterator<Item = Request>,
     #[publisher] results: impl FnMut(Response),
     #[resource] clock: &Clock,
@@ -75,8 +89,43 @@ fn save(
         let file: SaveFile = SaveFile {
             def: def.clone(),
             state: GameState {
-                nodes: Vec::new(), // TODO
-                edges: Vec::new(), // TODO
+                nodes: <(&node::Id, &node::Name, &Position, &Shape)>::query()
+                    .iter(world)
+                    .map(|(&id, name, &position, shape)| {
+                        Node {
+                            id,
+                            name: name.clone(),
+                            position,
+                            shape: shape.clone(),
+                            hitpoints: Default::default(), // TODO
+                            cargo: Default::default(),     // TODO
+                            liquid: Default::default(),    // TODO
+                            gas: Default::default(),       // TODO
+                        }
+                    })
+                    .collect(),
+                edges: <(&edge::Id, &edge::Size, &edge::Design)>::query()
+                    .iter(world)
+                    .map(|(&id, &size, design)| {
+                        let &from = world
+                            .entry_ref(id.from())
+                            .expect("Edge points to nonexistent ID")
+                            .get_component::<node::Id>()
+                            .expect("Edge points to non-Node");
+                        let &to = world
+                            .entry_ref(id.to())
+                            .expect("Edge points to nonexistent ID")
+                            .get_component::<node::Id>()
+                            .expect("Edge points to non-Node");
+                        Edge {
+                            from,
+                            to,
+                            size,
+                            design: Default::default(),    // TODO
+                            hitpoints: Default::default(), // TODO
+                        }
+                    })
+                    .collect(), // TODO
                 clock: clock.now(),
             },
         };
