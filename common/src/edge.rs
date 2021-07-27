@@ -114,6 +114,25 @@ pub enum DuctType {
     Electricity(bool),
 }
 
+impl DuctType {
+    /// Whether the duct is active.
+    pub fn active(self) -> bool {
+        match self {
+            Self::Rail(option) => option.is_some(),
+            Self::Liquid(option) => option.is_some(),
+            Self::Electricity(enabled) => enabled,
+        }
+    }
+
+    /// The direction of the duct, if any.
+    pub fn direction(self) -> Option<Direction> {
+        match self {
+            Self::Rail(dir) | Self::Liquid(dir) => dir,
+            _ => None,
+        }
+    }
+}
+
 /// Indicates that an edge is added
 #[derive(Debug, new, getset::Getters)]
 pub struct AddEvent {

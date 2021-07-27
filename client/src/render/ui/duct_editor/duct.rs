@@ -1,5 +1,7 @@
 //! Renders a single duct.
 
+use std::f64::consts::FRAC_1_SQRT_2;
+
 use super::*;
 
 /// Displays an editor for ducts in an edge.
@@ -17,7 +19,10 @@ impl Component for Comp {
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
-        match msg {}
+        match msg {
+            Msg::MouseDown(_) => false,
+            Msg::MouseUp(_) => false,
+        }
     }
 
     fn change(&mut self, props: Props) -> ShouldRender {
@@ -26,20 +31,84 @@ impl Component for Comp {
     }
 
     fn view(&self) -> Html {
+        const DISABLED_RADIUS: f64 = 0.6;
+        const DISABLED_WIDTH: f64 = 0.15;
+
         html! {
-            <circle
-                cx=(self.props.origin + self.props.center.vector().x).to_string()
-                cy=(self.props.origin + self.props.center.vector().y).to_string()
-                r=self.props.radius.to_string()
-                fill=duct_fill(self.props.ty)
-                style="cursor: pointer;"
-                />
+            <>
+                <circle
+                    cx=(self.props.origin + self.props.center.vector().x).to_string()
+                    cy=(self.props.origin + self.props.center.vector().y).to_string()
+                    r=self.props.radius.to_string()
+                    fill=duct_fill(self.props.ty)
+                    style="cursor: pointer;"
+                    onmousedown=self.link.callback(Msg::MouseDown)
+                    onmouseup=self.link.callback(Msg::MouseUp)
+                    />
+                { for (!self.props.ty.active()).then(|| html! {
+                    <>
+                        <circle
+                            cx=(self.props.origin + self.props.center.vector().x).to_string()
+                            cy=(self.props.origin + self.props.center.vector().y).to_string()
+                            r=(self.props.radius * (DISABLED_RADIUS - DISABLED_WIDTH / 2.)).to_string()
+                            stroke="red"
+                            stroke-width=(self.props.radius * DISABLED_WIDTH).to_string()
+                            fill="none"
+                            style="pointer-events: none;"
+                            />
+                        <line
+                            x1=(self.props.origin + self.props.center.vector().x + self.props.radius * DISABLED_RADIUS * FRAC_1_SQRT_2).to_string()
+                            y1=(self.props.origin + self.props.center.vector().y + self.props.radius * DISABLED_RADIUS * FRAC_1_SQRT_2).to_string()
+                            x2=(self.props.origin + self.props.center.vector().x - self.props.radius * DISABLED_RADIUS * FRAC_1_SQRT_2).to_string()
+                            y2=(self.props.origin + self.props.center.vector().y - self.props.radius * DISABLED_RADIUS * FRAC_1_SQRT_2).to_string()
+                            stroke="red"
+                            stroke-width=(self.props.radius * DISABLED_WIDTH).to_string()
+                            style="pointer-events: none;"
+                            />
+                    </>
+                }) }
+                { for (self.props.ty.direction() == Some(edge::Direction::FromTo)).then(|| html! {
+                    <polygon
+                        points="\
+                            -4,3 -3,4 0,1 \
+                            3,4 4,3 1,0 \
+                            4,-3 3,-4 0,-1 \
+                            -3,-4 -4,-3 -1,0 \
+                        "
+                        fill="black"
+                        transform=format!(
+                            "\
+                                translate({} {}) \
+                                scale({}) \
+                            ",
+                            self.props.origin + self.props.center.vector().x,
+                            self.props.origin + self.props.center.vector().y,
+                            0.2 * FRAC_1_SQRT_2 * self.props.radius,
+                        )
+                        style="pointer-events: none;"
+                        />
+                }) }
+                { for (self.props.ty.direction() == Some(edge::Direction::ToFrom)).then(|| html! {
+                    <circle
+                        cx=(self.props.origin + self.props.center.vector().x).to_string()
+                        cy=(self.props.origin + self.props.center.vector().y).to_string()
+                        r=(self.props.radius * 0.25).to_string()
+                        fill="black"
+                        style="pointer-events: none;"
+                        />
+                }) }
+            </>
         }
     }
 }
 
 /// Events for [`Comp`].
-pub enum Msg {}
+pub enum Msg {
+    /// When the user presses down the circle.
+    MouseDown(MouseEvent),
+    /// When the user releases mouse on the circle.
+    MouseUp(MouseEvent),
+}
 
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
@@ -60,13 +129,8 @@ pub struct Props {
 
 fn duct_fill(ty: edge::DuctType) -> String {
     String::from(match ty {
-        edge::DuctType::Rail(Some(edge::Direction::FromTo)) => "#900090",
-        edge::DuctType::Rail(Some(edge::Direction::ToFrom)) => "#a000a0",
-        edge::DuctType::Rail(None) => "#700070",
-        edge::DuctType::Liquid(Some(edge::Direction::FromTo)) => "#000090",
-        edge::DuctType::Liquid(Some(edge::Direction::ToFrom)) => "#0000a0",
-        edge::DuctType::Liquid(None) => "#000070",
-        edge::DuctType::Electricity(true) => "#909000",
-        edge::DuctType::Electricity(false) => "#a0a000",
+        edge::DuctType::Rail(_) => "#aa44bb",
+        edge::DuctType::Liquid(_) => "#3322aa",
+        edge::DuctType::Electricity(_) => "#ccaa00",
     })
 }
