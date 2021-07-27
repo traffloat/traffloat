@@ -41,6 +41,7 @@ pub mod factory;
 pub mod gas;
 pub mod liquid;
 pub mod node;
+pub mod save;
 pub mod shape;
 pub mod sun;
 mod util;

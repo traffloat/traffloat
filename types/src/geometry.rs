@@ -2,12 +2,13 @@
 
 use std::ops::RangeInclusive;
 
+use serde::{Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
 
 use crate::space::{Matrix, Point, Vector};
 
 /// A unit shape variant
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Unit {
     /// A unit cube `[-1, 1]^3`
     Cube,

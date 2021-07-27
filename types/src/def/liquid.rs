@@ -1,16 +1,17 @@
 //! Liquid definitions.
 
 use arcstr::ArcStr;
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::units;
 
 /// Identifies a liquid category
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TypeId(pub usize);
 
 /// A type of liquid.
-#[derive(Clone, TypedBuilder, getset::Getters)]
+#[derive(Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]
 pub struct Type {
     /// Name of the liquid type.
     #[getset(get = "pub")]

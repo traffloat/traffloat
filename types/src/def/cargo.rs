@@ -1,14 +1,15 @@
 //! Cargo definitions.
 
 use arcstr::ArcStr;
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 /// Identifies a cargo category
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TypeId(pub usize);
 
 /// A type of cargo.
-#[derive(TypedBuilder, getset::CopyGetters, getset::Getters)]
+#[derive(TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize)]
 pub struct Type {
     /// Name of the cargo type.
     #[getset(get = "pub")]
@@ -28,11 +29,11 @@ pub struct Type {
 }
 
 /// Identifies a cargo category
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CategoryId(pub usize);
 
 /// A category of cargo.
-#[derive(TypedBuilder, getset::Getters)]
+#[derive(TypedBuilder, getset::Getters, Serialize, Deserialize)]
 pub struct Category {
     /// Title of the cargo category.
     #[getset(get = "pub")]

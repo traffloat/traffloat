@@ -5,6 +5,7 @@
 
 use derive_new::new;
 use legion::Entity;
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::space::{Matrix, Position, Vector};
@@ -22,7 +23,7 @@ pub struct Id {
 }
 
 /// Defines the size of an edge
-#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
+#[derive(Debug, Clone, Copy, new, getset::CopyGetters, Serialize, Deserialize)]
 pub struct Size {
     /// The radius of the corridor
     #[getset(get_copy = "pub")]
@@ -30,7 +31,7 @@ pub struct Size {
 }
 
 /// A direction across an edge.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Direction {
     /// A direction starting from [`Id::from`] and ending at [`Id::to`]
     FromTo,
@@ -39,7 +40,7 @@ pub enum Direction {
 }
 
 /// A position on the cross section of an edge.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct CrossSectionPosition(nalgebra::Vector2<f64>);
 
 impl CrossSectionPosition {
@@ -96,7 +97,7 @@ pub struct Duct {
 }
 
 /// The type of a duct.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DuctType {
     /// A rail that vehicles can move along.
     ///
@@ -197,4 +198,27 @@ pub type Components = (Id, Size, Design);
 /// Creates the components for a node entity.
 pub fn create_components(from: Entity, to: Entity, size: f64, design: Vec<Duct>) -> Components {
     (Id::new(from, to), Size::new(size), Design::new(design))
+}
+
+/// Save type for edges.
+pub mod save {
+    use super::*;
+    use crate::node;
+
+    /// Saves all data related to an edge.
+    #[derive(Serialize, Deserialize)]
+    pub struct Edge {
+        pub(crate) from: node::Id,
+        pub(crate) to: node::Id,
+        pub(crate) size: super::Size,
+        pub(crate) design: Vec<SavedDuct>,
+    }
+
+    /// Saves all data related to a duct.
+    #[derive(Serialize, Deserialize)]
+    pub struct SavedDuct {
+        pub(crate) center: CrossSectionPosition,
+        pub(crate) radius: f64,
+        pub(crate) ty: DuctType,
+    }
 }

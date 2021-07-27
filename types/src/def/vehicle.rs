@@ -3,17 +3,18 @@
 use std::ops::Range;
 
 use arcstr::ArcStr;
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::def::{reaction, skill};
 use crate::units;
 
 /// Identifies a vehicle category
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TypeId(pub usize);
 
 /// A type of vehicle.
-#[derive(Clone, TypedBuilder, getset::Getters, getset::CopyGetters)]
+#[derive(Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize)]
 pub struct Type {
     /// Name of the vehicle type.
     #[getset(get = "pub")]
@@ -41,7 +42,7 @@ pub struct Type {
 }
 
 /// A skill required for driving the vehicle.
-#[derive(Clone, TypedBuilder, getset::Getters, getset::CopyGetters)]
+#[derive(Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize)]
 pub struct Skill {
     /// The skill type.
     #[getset(get_copy = "pub")]

@@ -8,6 +8,7 @@ use std::num::NonZeroUsize;
 use arcstr::ArcStr;
 use derive_new::new;
 use legion::Entity;
+use serde::{Deserialize, Serialize};
 
 use crate::def::{building, GameDefinition};
 use crate::shape::{self, Shape};
@@ -16,13 +17,13 @@ use crate::sun::LightStats;
 use crate::SetupEcs;
 
 /// Component storing an identifier for a node
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new, Serialize, Deserialize)]
 pub struct Id {
     inner: u32,
 }
 
 /// Component storing the name of the node
-#[derive(Debug, new, getset::Getters, getset::Setters)]
+#[derive(Debug, new, getset::Getters, getset::Setters, Serialize, Deserialize)]
 pub struct Name {
     /// Name of the node
     #[getset(get = "pub")]
@@ -101,7 +102,6 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
 
 /// Return type of [`create_components`].
 pub type Components = (Id, Name, Position, Shape, LightStats);
-
 /// Creates the components for a node entity.
 pub fn create_components(
     def: &GameDefinition,
@@ -125,4 +125,26 @@ pub fn create_components(
             .build(),
         LightStats::default(),
     )
+}
+
+/// Save type for nodes.
+pub mod save {
+    use std::collections::BTreeMap;
+
+    use super::*;
+    use crate::def;
+    use crate::units;
+
+    /// Saves all data related to a node.
+    #[derive(Serialize, Deserialize)]
+    pub struct Node {
+        pub(crate) id: super::Id,
+        pub(crate) name: super::Name,
+        pub(crate) position: Position,
+        pub(crate) shape: Shape,
+        pub(crate) cargo: BTreeMap<def::cargo::TypeId, units::Portion<units::CargoSize>>,
+        pub(crate) liquid: BTreeMap<def::liquid::TypeId, units::Portion<units::LiquidVolume>>,
+        pub(crate) gas: BTreeMap<def::gas::TypeId, units::Portion<units::GasVolume>>,
+        pub(crate) hitpoints: units::Portion<units::Hitpoint>,
+    }
 }

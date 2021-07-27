@@ -1,6 +1,7 @@
 //! Building definitions
 
 use arcstr::ArcStr;
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use super::{reaction, skill};
@@ -8,11 +9,11 @@ use crate::space::Matrix;
 use crate::{geometry, units};
 
 /// Identifies a building category
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TypeId(pub usize);
 
 /// A type of building.
-#[derive(TypedBuilder, getset::CopyGetters, getset::Getters)]
+#[derive(TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize)]
 pub struct Type {
     /// Name of the building type.
     #[getset(get = "pub")]
@@ -47,7 +48,7 @@ pub struct Type {
 }
 
 /// Shape of a building.
-#[derive(TypedBuilder, getset::CopyGetters, getset::Getters)]
+#[derive(TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize)]
 pub struct Shape {
     /// The unit model type.
     #[getset(get_copy = "pub")]
@@ -64,7 +65,7 @@ pub struct Shape {
 }
 
 /// Reaction behaviour specific to this building.
-#[derive(TypedBuilder, getset::CopyGetters)]
+#[derive(TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
 #[builder(field_defaults(default))]
 pub struct ReactionPolicy {
     /// Whethre the reaction rate can be configured by the players.
@@ -79,7 +80,7 @@ pub struct ReactionPolicy {
 }
 
 /// behaviour when inputs underflow or outputs overflow.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum FlowPolicy {
     /// Reduce the rate of reaction such that the input/output capacity is just enough.
     ReduceRate,
@@ -95,7 +96,7 @@ impl Default for FlowPolicy {
 ///
 /// This storage is also used as a buffer for liquid and gas transfer.
 /// The storage size is the maximum amount of liquid and gas that
-#[derive(TypedBuilder, getset::CopyGetters)]
+#[derive(TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
 pub struct Storage {
     /// Cargo storage provided
     #[getset(get_copy = "pub")]
@@ -109,7 +110,7 @@ pub struct Storage {
 }
 
 /// Extra features of a building (in addition to reactions)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExtraFeature {
     /// The building is a core and must not be destroyed.
     Core,
@@ -146,11 +147,11 @@ pub enum ExtraFeature {
 }
 
 /// Identifies a building category
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CategoryId(pub usize);
 
 /// A category of building.
-#[derive(TypedBuilder, getset::Getters)]
+#[derive(TypedBuilder, getset::Getters, Serialize, Deserialize)]
 pub struct Category {
     /// Title of the building category.
     #[getset(get = "pub")]

@@ -2,6 +2,8 @@
 
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
+use serde::{Deserialize, Serialize};
+
 /// Standard vector type
 pub type Vector = nalgebra::Vector3<f64>;
 
@@ -16,7 +18,7 @@ pub type LinearMatrix = nalgebra::Matrix3<f64>;
 /// A component storing the world position of an object.
 ///
 /// This must not be used to represent canvas coordinates.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Position(pub Point);
 
 impl Position {

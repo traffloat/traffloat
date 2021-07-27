@@ -2,11 +2,13 @@
 
 use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
+use serde::{Deserialize, Serialize};
+
 units! {
     /// Internal trait just because declarative macros are stupid.
     _TimeTrait(Clone + Copy);
 
-    #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)] u32:
+    #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)] u32:
 
     /// Synchronized time span.
     ///
@@ -35,7 +37,7 @@ impl Time {
 
 /// A specific point of time,
 /// represented as a duration since game epoch.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Instant(pub Time);
 
 impl Instant {
@@ -84,7 +86,7 @@ impl SubAssign<Time> for Instant {
 /// The rate of change.
 ///
 /// The inner value is the amount of change over one second.
-#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct Rate<T>(pub T);
 
 impl<T: Mul<f64, Output = T>> std::ops::Mul<Time> for Rate<T> {

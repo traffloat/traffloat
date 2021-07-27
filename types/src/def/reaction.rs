@@ -3,6 +3,7 @@
 use std::ops::Range;
 
 use arcstr::ArcStr;
+use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
@@ -11,11 +12,11 @@ use crate::time::Rate;
 use crate::units;
 
 /// Identifies a reaction category
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TypeId(pub usize);
 
 /// A type of reaction.
-#[derive(TypedBuilder, getset::CopyGetters, getset::Getters)]
+#[derive(TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize)]
 pub struct Type {
     /// Name of the reaction type.
     #[getset(get = "pub")]
@@ -35,7 +36,7 @@ pub struct Type {
 }
 
 /// A condition or catalyst which affects the rate of a reaction.
-#[derive(Clone, TypedBuilder, getset::Getters, getset::CopyGetters)]
+#[derive(Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize)]
 pub struct Catalyst {
     /// The lerp endpoints of the catalyst.
     #[getset(get = "pub")]
@@ -46,7 +47,7 @@ pub struct Catalyst {
 }
 
 /// A type of resource whose existence affects a reaction.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum CatalystRange {
     /// Existence of cargo
     Cargo {
@@ -91,7 +92,7 @@ pub enum CatalystRange {
 }
 
 /// The multipliers associated with a catalyst.
-#[derive(Clone, Copy, TypedBuilder, getset::CopyGetters)]
+#[derive(Clone, Copy, TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
 pub struct Multipliers {
     /// Multiplier to the reaction rate when the catalyst is in deficiency.
     #[getset(get_copy = "pub")]
@@ -108,6 +109,7 @@ pub struct Multipliers {
 }
 
 /// The inputs and outputs of a reaction.
+#[derive(Serialize, Deserialize)]
 pub enum Put {
     /// Consumption or production of cargo
     Cargo {
@@ -171,11 +173,11 @@ impl Put {
 }
 
 /// Identifies a reaction category
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CategoryId(pub usize);
 
 /// A category of reaction.
-#[derive(TypedBuilder, getset::Getters)]
+#[derive(TypedBuilder, getset::Getters, Serialize, Deserialize)]
 pub struct Category {
     /// Title of the reaction category.
     #[getset(get = "pub")]

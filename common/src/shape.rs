@@ -2,6 +2,7 @@
 
 use arcstr::ArcStr;
 use derive_new::new;
+use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::space::{Matrix, Position};
@@ -9,7 +10,7 @@ use crate::SetupEcs;
 pub use traffloat_types::geometry::Unit;
 
 /// Describes the shape and appearance of an object
-#[derive(TypedBuilder, getset::CopyGetters, getset::Getters)]
+#[derive(TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize)]
 pub struct Shape {
     #[getset(get_copy = "pub")]
     /// Unit shape variant
@@ -41,7 +42,7 @@ impl Shape {
 }
 
 /// The texture of a rendered object
-#[derive(Debug, new, getset::Getters)]
+#[derive(Debug, new, getset::Getters, Serialize, Deserialize)]
 pub struct Texture {
     /// A URL to an image file
     #[getset(get = "pub")]
