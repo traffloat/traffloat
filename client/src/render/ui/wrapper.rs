@@ -19,7 +19,7 @@ impl Component for Wrapper {
     type Properties = Props;
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        props.updater_ref.set(link.callback(|update| update));
+        props.updater_ref().set(link.callback(|update| update));
 
         Self {
             props,
@@ -58,7 +58,7 @@ impl Component for Wrapper {
     }
 
     fn change(&mut self, props: Props) -> ShouldRender {
-        props.updater_ref.set(self.link.callback(|update| update));
+        props.updater_ref().set(self.link.callback(|update| update));
         self.props = props;
         false // we just modified the setter, but there is nothing to render yet
     }
@@ -99,8 +99,19 @@ pub enum Update {
 /// Yew properties for [`Wrapper`].
 #[derive(Clone, Properties)]
 pub struct Props {
-    /// An interiorly-mutable reference to update the yew callback for UI messages [`Update`].
-    pub updater_ref: UpdaterRef,
+    /// The legion setup.
+    pub legion: Rc<RefCell<traffloat::Legion>>,
+}
+
+impl Props {
+    fn updater_ref(&self) -> UpdaterRef {
+        let legion = self.legion.borrow();
+        let updater_ref: &UpdaterRef = &*legion
+            .resources
+            .get()
+            .expect("UpdaterRef was not initialized");
+        updater_ref.clone()
+    }
 }
 
 /// An interiorly-mutable reference to update the yew callback for UI messages [`Update`].

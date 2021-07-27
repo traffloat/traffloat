@@ -284,8 +284,6 @@ impl Component for Game {
     }
 
     fn view(&self) -> Html {
-        let legion = self.legion();
-
         html! {
             <div style="margin: 0; background-color: black;">
                 <canvas
@@ -312,11 +310,7 @@ impl Component for Game {
                         x: 0; y: 0;
                     " />
 
-                <render::ui::Wrapper
-                    updater_ref=legion.resources.get::<render::ui::UpdaterRef>()
-                        .expect("UpdaterRef was not initialized")
-                        .clone()
-                />
+                <render::ui::Wrapper legion=Rc::clone(&self.legion) />
 
                 <div
                     ref=self.debug_ref.clone()
