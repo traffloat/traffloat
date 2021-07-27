@@ -66,6 +66,10 @@ skills! {
         name: "Morality",
         description: "Inhabitants are educated with morality values to reduce the probability of committing crimes.",
     }
+    athletic {
+        name: "Athletic skill",
+        description: "Inhabitants with good athletic skill can walk faster outside a vehicle.",
+    }
     driving {
         name: "Driving skill",
         description: "When an inhabitant with good driving skill operates a vehicle, it can move faster across rails.",

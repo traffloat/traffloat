@@ -218,8 +218,8 @@ buildings! {
             summary: "A small living quarter.",
             description: "",
             cylinder: {
-                height: [0.4, 0.4],
-                radius: [0.6, 0.6],
+                height: [0.8, 0.8],
+                radius: [1., 1.],
             },
             texture: "house",
             reactions: [],
@@ -345,6 +345,26 @@ buildings! {
     }
 
     entertainment "Entertainment" ("Buildings to restore happiness") {
+        stadium {
+            name: "Stadium",
+            summary: "Inhabitants can exercise here",
+            description: "Inhabitants do exercise here, recovering happiness and improve athletic skills.",
+            cylinder: {
+                height: [1.2, 1.2],
+                radius: [0.8, 1.4],
+            },
+            texture: "stadium",
+            reactions: [
+                stadium {},
+            ],
+            hitpoint: 150.,
+            storage: {
+                cargo: 1000.,
+                liquid: 1000.,
+                gas: 1000.,
+            },
+            features: [],
+        }
     }
 
     security "Security" ("Buildings related to crimes") {

@@ -193,5 +193,21 @@ reactions! {
                 },
             ],
         }
+
+        stadium {
+            name: "Stadium",
+            description: "Inhabitants can improve athletic skills slowly but gain happiness.",
+            catalysts: [],
+            puts: [
+                Skill {
+                    ty: skill.happiness,
+                    rate: 0.2,
+                },
+                Skill {
+                    ty: skill.athletic,
+                    rate: 0.02,
+                },
+            ],
+        }
     }
 }
