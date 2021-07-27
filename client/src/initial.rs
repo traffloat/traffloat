@@ -1,7 +1,5 @@
 use legion::Entity;
 
-use traffloat::edge;
-
 /// Sets up legion ECS.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     let (def, nodes, edges) = traffloat_vanilla::get();
