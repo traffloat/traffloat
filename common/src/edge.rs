@@ -29,14 +29,38 @@ pub struct Size {
     radius: f64,
 }
 
+/// A direction across an edge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Direction {
+    /// A direction starting from [`Id::from`] and ending at [`Id::to`]
+    FromTo,
+    /// A direction starting from [`Id::to`] and ending at [`Id::from`]
+    ToFrom,
+}
+
 /// A position on the cross section of an edge.
-#[derive(Debug, Clone, Copy, Default, new)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct CrossSectionPosition(nalgebra::Vector2<f64>);
 
 impl CrossSectionPosition {
+    /// Create a new position from the two components.
+    pub fn new(x: f64, y: f64) -> Self {
+        Self(nalgebra::Vector2::new(x, y))
+    }
+
     /// The vector from the center to the position.
     pub fn vector(self) -> nalgebra::Vector2<f64> {
         self.0
+    }
+
+    /// The X-coordinate of [`Self::vector`].
+    pub fn x(self) -> f64 {
+        self.0.x
+    }
+
+    /// The Y-coordinate of [`Self::vector`].
+    pub fn y(self) -> f64 {
+        self.0.y
     }
 }
 
@@ -63,9 +87,31 @@ pub struct Duct {
     /// The radius of a circle.
     #[getset(get_copy = "pub")]
     radius: f64,
+    /// The type of duct.
+    #[getset(get_copy = "pub")]
+    ty: DuctType,
     /// The entity storing the duct attributes.
     #[getset(get_copy = "pub")]
     entity: Entity,
+}
+
+/// The type of a duct.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DuctType {
+    /// A rail that vehicles can move along.
+    ///
+    /// The first parameter is the direction of the rail,
+    /// or [`None`] if the rail is disabled.
+    Rail(Option<Direction>),
+    /// A pipe that liquids can be transferred through.
+    ///
+    /// The first parameter is the direction of the pipe,
+    /// or [`None`] if the rail is disabled.
+    Liquid(Option<Direction>),
+    /// A cable that electricity can pass through.
+    ///
+    /// The first parameter specifies whether the cable is enabled.
+    Electricity(bool),
 }
 
 /// Indicates that an edge is added
@@ -130,6 +176,6 @@ pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bo
 pub type Components = (Id, Size, Design);
 
 /// Creates the components for a node entity.
-pub fn create_components(from: Entity, to: Entity, size: f64) -> Components {
-    (Id::new(from, to), Size::new(size), Design::new(Vec::new()))
+pub fn create_components(from: Entity, to: Entity, size: f64, design: Vec<Duct>) -> Components {
+    (Id::new(from, to), Size::new(size), Design::new(design))
 }

@@ -6,7 +6,7 @@ use traffloat::node;
 pub mod building;
 pub mod cargo;
 pub mod crime;
-mod default;
+pub mod default;
 pub mod gas;
 pub mod liquid;
 pub mod reaction;
@@ -16,11 +16,7 @@ pub mod vehicle;
 pub const VANILLA_TEXTURE: &str = "textures-x-fancy.png"; // TODO allow customization of resolution
 
 /// Define vanilla game rules
-pub fn get() -> (
-    GameDefinition,
-    Vec<node::Components>,
-    Vec<(usize, usize, f64)>,
-) {
+pub fn get() -> (GameDefinition, Vec<node::Components>, default::EdgeSetup) {
     let mut def = GameDefinition::default();
     let skill = skill::populate(&mut def);
     let _vehicle = vehicle::populate(&mut def, &skill);

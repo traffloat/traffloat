@@ -69,6 +69,11 @@ fn main() -> Result<()> {
     )
     .context("Write out.rs")?;
 
+    println!(
+        "cargo:rerun-if-changed={}",
+        workspace.join(".git/HEAD").display()
+    );
+
     Ok(())
 }
 

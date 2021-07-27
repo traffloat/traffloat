@@ -32,9 +32,6 @@ pub struct Game {
 }
 
 impl Game {
-    fn legion(&self) -> cell::Ref<traffloat::Legion> {
-        self.legion.borrow()
-    }
     fn legion_mut(&self) -> cell::RefMut<traffloat::Legion> {
         self.legion.borrow_mut()
     }

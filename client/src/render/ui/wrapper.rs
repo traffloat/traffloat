@@ -73,13 +73,20 @@ impl Component for Wrapper {
                 x: 0; y: 0;
             ">
                 { for self.node_preview_args.as_ref().map(|args| html! {
-                    <node_preview::Comp args=args.clone() />
+                    <node_preview::Comp
+                        args=args.clone()
+                        />
                 }) }
                 { for self.edge_preview_args.as_ref().map(|args| html! {
-                    <edge_preview::Comp args=args.clone() edit_duct=self.link.callback(Update::SetDuctEditor) />
+                    <edge_preview::Comp
+                        args=args.clone() edit_duct=self.link.callback(Update::SetDuctEditor)
+                        />
                 }) }
                 { for self.duct_editor_args.as_ref().map(|args| html! {
-                    <duct_editor::Comp args=args.clone() />
+                    <duct_editor::Comp
+                        args=args.clone()
+                        legion=Rc::clone(&self.props.legion)
+                        />
                 }) }
             </div>
         }
