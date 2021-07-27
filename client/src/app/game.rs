@@ -1,3 +1,4 @@
+use std::cell::{self, RefCell};
 use std::rc::Rc;
 use std::time::Duration;
 
@@ -17,7 +18,7 @@ use traffloat::SetupEcs;
 pub struct Game {
     _props: Props,
     link: ComponentLink<Self>,
-    legion: traffloat::Legion,
+    legion: Rc<RefCell<traffloat::Legion>>,
     _resize_task: resize::ResizeTask,
     _render_task: render_srv::RenderTask,
     _simulation_task: interval::IntervalTask,
@@ -31,10 +32,17 @@ pub struct Game {
 }
 
 impl Game {
+    fn legion(&self) -> cell::Ref<traffloat::Legion> {
+        self.legion.borrow()
+    }
+    fn legion_mut(&self) -> cell::RefMut<traffloat::Legion> {
+        self.legion.borrow_mut()
+    }
+
     fn simulate(&mut self) {
         {
-            let mut clock = self
-                .legion
+            let legion = self.legion_mut();
+            let mut clock = legion
                 .resources
                 .get_mut::<Clock>()
                 .expect("Clock was uninitialized");
@@ -43,7 +51,10 @@ impl Game {
             clock.set_time(Instant(Time(delta.trunc_int())));
         }
 
-        let time = util::measure(|| self.legion.run());
+        let time = util::measure(|| {
+            let mut legion = self.legion_mut();
+            legion.run()
+        });
         self.render_comm.perf.push_exec_us(time);
     }
 
@@ -52,19 +63,18 @@ impl Game {
             let layers = Rc::clone(layers);
             let dim = *dim;
 
-            let layers_ref = &mut *self
-                .legion
+            let legion = self.legion_mut();
+            let layers_ref = &mut *legion
                 .resources
                 .get_mut::<Option<render::Layers>>()
                 .expect("render::Layers resource not initialized");
             *layers_ref = Some(layers);
-            self.legion
+            legion
                 .resources
                 .get_mut::<shrev::EventChannel<render::RenderFlag>>()
                 .expect("RenderFlag EventChannel not initialized")
                 .single_write(render::RenderFlag);
-            let dim_ref = &mut *self
-                .legion
+            let dim_ref = &mut *legion
                 .resources
                 .get_mut::<render::Dimension>()
                 .expect("Uninitialized Dimension resource");
@@ -111,8 +121,8 @@ impl Game {
 
     fn on_resize(&mut self, dim: resize::WindowDimensions) {
         {
-            let mut dim = self
-                .legion
+            let legion = self.legion_mut();
+            let mut dim = legion
                 .resources
                 .get_mut::<render::Dimension>()
                 .expect("render::Dimension uninitialized");
@@ -139,7 +149,8 @@ impl Game {
             .key(input::keyboard::RawKey::Key(code.to_string()))
             .down(down)
             .build();
-        self.legion.publish(event);
+        let mut legion = self.legion_mut();
+        legion.publish(event);
     }
 
     fn on_mouse_move(&mut self, x: i32, y: i32) {
@@ -151,8 +162,8 @@ impl Game {
         let x = (x as f64) / (canvas.width() as f64);
         let y = (y as f64) / (canvas.height() as f64);
 
-        let mut pos = self
-            .legion
+        let legion = self.legion_mut();
+        let mut pos = legion
             .resources
             .get_mut::<input::mouse::CursorPosition>()
             .expect("CursorPosition is uninitialized");
@@ -164,18 +175,8 @@ impl Game {
             .key(input::keyboard::RawKey::Mouse(button))
             .down(down)
             .build();
-        self.legion.publish(event);
-        // TODO!("Send the event to ECS")
-        /*
-        if let Some(event) = input::keyboard::KeyEvent::new_mouse(button, down) {
-            let mut channel = self
-                .legion
-                .resources
-                .get_mut::<shrev::EventChannel<input::keyboard::KeyEvent>>()
-                .expect("EventChannel<KeyEvent> uninitialized");
-            channel.single_write(event);
-        }
-        */
+        let mut legion = self.legion_mut();
+        legion.publish(event);
     }
 
     fn on_wheel(&mut self, _delta: f64) {
@@ -228,7 +229,7 @@ impl Component for Game {
 
         Self {
             _props: props,
-            legion,
+            legion: Rc::new(RefCell::new(legion)),
             _resize_task: resize::ResizeService::register(link.callback(Msg::Resize)),
             _render_task: render_srv::RenderService::request_animation_frame(
                 link.callback(Msg::RenderFrame),
@@ -283,6 +284,8 @@ impl Component for Game {
     }
 
     fn view(&self) -> Html {
+        let legion = self.legion();
+
         html! {
             <div style="margin: 0; background-color: black;">
                 <canvas
@@ -310,7 +313,7 @@ impl Component for Game {
                     " />
 
                 <render::ui::Wrapper
-                    updater_ref=self.legion.resources.get::<render::ui::UpdaterRef>()
+                    updater_ref=legion.resources.get::<render::ui::UpdaterRef>()
                         .expect("UpdaterRef was not initialized")
                         .clone()
                 />
