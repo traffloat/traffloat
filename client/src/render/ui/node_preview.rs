@@ -24,7 +24,12 @@ impl Component for Comp {
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
-        match msg {}
+        match msg {
+            Msg::HelpButton(_) => {
+                // TODO display node details
+                true
+            }
+        }
     }
 
     fn change(&mut self, props: Props) -> ShouldRender {
@@ -45,14 +50,22 @@ impl Component for Comp {
         ";
         html! {
             <div style=style>
-                <p>{ &self.props.args.node_name }</p>
+                <p
+                    onclick=self.link.callback(Msg::HelpButton)
+                    style="cursor: help;"
+                >
+                    { &self.props.args.node_name }
+                </p>
             </div>
         }
     }
 }
 
 /// Events for [`Comp`].
-pub enum Msg {}
+pub enum Msg {
+    /// The user clicks the help button.
+    HelpButton(MouseEvent),
+}
 
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]

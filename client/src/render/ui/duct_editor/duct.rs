@@ -20,8 +20,14 @@ impl Component for Comp {
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
-            Msg::MouseDown(_) => false,
-            Msg::MouseUp(_) => false,
+            Msg::MouseDown(event) => {
+                self.props.mouse_down.emit(event);
+                false
+            }
+            Msg::MouseUp(event) => {
+                self.props.mouse_up.emit(event);
+                false
+            }
         }
     }
 
@@ -125,6 +131,11 @@ pub struct Props {
     ///
     /// This is the *new* index, not the old index as in [`super::Circle::original_index`].
     pub index: usize,
+
+    /// When the user presses down the circle.
+    pub mouse_down: Callback<MouseEvent>,
+    /// When the user releases mouse on the circle.
+    pub mouse_up: Callback<MouseEvent>,
 }
 
 fn duct_fill(ty: edge::DuctType) -> String {
