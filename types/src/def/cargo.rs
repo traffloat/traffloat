@@ -9,7 +9,9 @@ use typed_builder::TypedBuilder;
 pub struct TypeId(pub usize);
 
 /// A type of cargo.
-#[derive(TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize,
+)]
 pub struct Type {
     /// Name of the cargo type.
     #[getset(get = "pub")]
@@ -33,7 +35,7 @@ pub struct Type {
 pub struct CategoryId(pub usize);
 
 /// A category of cargo.
-#[derive(TypedBuilder, getset::Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]
 pub struct Category {
     /// Title of the cargo category.
     #[getset(get = "pub")]

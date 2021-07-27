@@ -13,7 +13,9 @@ use crate::{geometry, units};
 pub struct TypeId(pub usize);
 
 /// A type of building.
-#[derive(TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize,
+)]
 pub struct Type {
     /// Name of the building type.
     #[getset(get = "pub")]
@@ -48,7 +50,9 @@ pub struct Type {
 }
 
 /// Shape of a building.
-#[derive(TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize,
+)]
 pub struct Shape {
     /// The unit model type.
     #[getset(get_copy = "pub")]
@@ -65,7 +69,7 @@ pub struct Shape {
 }
 
 /// Reaction behaviour specific to this building.
-#[derive(TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
+#[derive(Debug, Clone, TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
 #[builder(field_defaults(default))]
 pub struct ReactionPolicy {
     /// Whethre the reaction rate can be configured by the players.
@@ -96,7 +100,7 @@ impl Default for FlowPolicy {
 ///
 /// This storage is also used as a buffer for liquid and gas transfer.
 /// The storage size is the maximum amount of liquid and gas that
-#[derive(TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
+#[derive(Debug, Clone, TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
 pub struct Storage {
     /// Cargo storage provided
     #[getset(get_copy = "pub")]
@@ -151,7 +155,7 @@ pub enum ExtraFeature {
 pub struct CategoryId(pub usize);
 
 /// A category of building.
-#[derive(TypedBuilder, getset::Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]
 pub struct Category {
     /// Title of the building category.
     #[getset(get = "pub")]

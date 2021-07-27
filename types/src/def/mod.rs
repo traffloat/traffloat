@@ -12,7 +12,7 @@ pub mod skill;
 pub mod vehicle;
 
 /// Game mechanism definition.
-#[derive(Default, getset::Getters, getset::MutGetters, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, getset::Getters, getset::MutGetters, Serialize, Deserialize)]
 pub struct GameDefinition {
     /// Cargo types.
     #[getset(get = "pub", get_mut = "pub")]

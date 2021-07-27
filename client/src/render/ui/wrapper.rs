@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use yew::prelude::*;
 
-use super::{duct_editor, edge_preview, node_preview};
+use super::{duct_editor, edge_preview, node_preview, toolbar};
 
 /// Wrapper for UI elements.
 pub struct Wrapper {
@@ -12,6 +12,7 @@ pub struct Wrapper {
     node_preview_args: Option<node_preview::Args>,
     edge_preview_args: Option<edge_preview::Args>,
     duct_editor_args: Option<duct_editor::Args>,
+    display_toolbar: bool,
 }
 
 impl Component for Wrapper {
@@ -27,6 +28,7 @@ impl Component for Wrapper {
             node_preview_args: None,
             edge_preview_args: None,
             duct_editor_args: None,
+            display_toolbar: true,
         }
     }
 
@@ -85,6 +87,11 @@ impl Component for Wrapper {
                 { for self.duct_editor_args.as_ref().map(|args| html! {
                     <duct_editor::Comp
                         args=args.clone()
+                        legion=Rc::clone(&self.props.legion)
+                        />
+                }) }
+                { for self.display_toolbar.then(|| html! {
+                    <toolbar::Comp
                         legion=Rc::clone(&self.props.legion)
                         />
                 }) }

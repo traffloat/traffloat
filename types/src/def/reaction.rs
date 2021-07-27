@@ -16,7 +16,9 @@ use crate::units;
 pub struct TypeId(pub usize);
 
 /// A type of reaction.
-#[derive(TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize,
+)]
 pub struct Type {
     /// Name of the reaction type.
     #[getset(get = "pub")]
@@ -36,7 +38,9 @@ pub struct Type {
 }
 
 /// A condition or catalyst which affects the rate of a reaction.
-#[derive(Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize,
+)]
 pub struct Catalyst {
     /// The lerp endpoints of the catalyst.
     #[getset(get = "pub")]
@@ -47,7 +51,7 @@ pub struct Catalyst {
 }
 
 /// A type of resource whose existence affects a reaction.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum CatalystRange {
     /// Existence of cargo
     Cargo {
@@ -92,7 +96,7 @@ pub enum CatalystRange {
 }
 
 /// The multipliers associated with a catalyst.
-#[derive(Clone, Copy, TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
 pub struct Multipliers {
     /// Multiplier to the reaction rate when the catalyst is in deficiency.
     #[getset(get_copy = "pub")]
@@ -109,7 +113,7 @@ pub struct Multipliers {
 }
 
 /// The inputs and outputs of a reaction.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Put {
     /// Consumption or production of cargo
     Cargo {
@@ -177,7 +181,7 @@ impl Put {
 pub struct CategoryId(pub usize);
 
 /// A category of reaction.
-#[derive(TypedBuilder, getset::Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]
 pub struct Category {
     /// Title of the reaction category.
     #[getset(get = "pub")]

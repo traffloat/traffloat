@@ -43,10 +43,15 @@ yew = {version = "0.18.0", default-features = false, features = ["services", "we
 [dependencies.web-sys]
 version = "0.3.50"
 features = [
+	"Blob",
+	"BlobPropertyBag",
 	"CanvasGradient",
 	"CanvasRenderingContext2d",
 	"CssStyleDeclaration",
 	"Document",
+	"Element",
+	"HtmlElement",
+	"HtmlAnchorElement",
 	"HtmlCanvasElement",
 	"HtmlImageElement",
 	"ImageBitmap",
@@ -55,6 +60,7 @@ features = [
 	"Text",
 	"Touch",
 	"TouchList",
+	"Url",
 	"WebGlBuffer",
 	"WebGlProgram",
 	"WebGlRenderingContext",

@@ -11,7 +11,7 @@ use crate::units;
 pub struct TypeId(pub usize);
 
 /// A type of liquid.
-#[derive(Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]
 pub struct Type {
     /// Name of the liquid type.
     #[getset(get = "pub")]

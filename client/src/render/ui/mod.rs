@@ -7,6 +7,7 @@ use super::Dimension;
 pub mod duct_editor;
 pub mod edge_preview;
 pub mod node_preview;
+pub mod toolbar;
 mod wrapper;
 pub use wrapper::*;
 
@@ -29,4 +30,5 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     setup
         .uses(node_preview::setup_ecs)
         .uses(edge_preview::setup_ecs)
+        .uses(toolbar::setup_ecs)
 }

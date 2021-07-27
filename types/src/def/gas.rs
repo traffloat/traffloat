@@ -9,7 +9,9 @@ use typed_builder::TypedBuilder;
 pub struct TypeId(pub usize);
 
 /// A type of gas.
-#[derive(Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize,
+)]
 pub struct Type {
     /// Name of the gas type.
     #[getset(get = "pub")]

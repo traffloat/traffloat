@@ -14,7 +14,9 @@ use crate::units;
 pub struct TypeId(pub usize);
 
 /// A type of vehicle.
-#[derive(Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize,
+)]
 pub struct Type {
     /// Name of the vehicle type.
     #[getset(get = "pub")]
@@ -42,7 +44,9 @@ pub struct Type {
 }
 
 /// A skill required for driving the vehicle.
-#[derive(Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize,
+)]
 pub struct Skill {
     /// The skill type.
     #[getset(get_copy = "pub")]

@@ -61,5 +61,6 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
         .uses(cargo::setup_ecs)
         .uses(liquid::setup_ecs)
         .uses(gas::setup_ecs)
+        .uses(save::setup_ecs)
         .uses(sun::setup_ecs)
 }

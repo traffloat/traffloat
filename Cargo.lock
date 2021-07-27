@@ -42,6 +42,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayvec"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be4dc07131ffa69b8072d35f5007352af944213cde02545e2103680baed38fcd"
+
+[[package]]
 name = "atomic_refcell"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -96,6 +102,12 @@ name = "bumpalo"
 version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c59e7af012c713f529e7a3ee57ce9b31ddd858d4b512923602f74608b009631"
+
+[[package]]
+name = "byteorder"
+version = "1.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "bytes"
@@ -817,6 +829,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "rmp"
+version = "0.8.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f55e5fa1446c4d5dd1f5daeed2a4fe193071771a2636274d0d7a3b082aa7ad6"
+dependencies = [
+ "byteorder",
+ "num-traits",
+]
+
+[[package]]
+name = "rmp-serde"
+version = "0.15.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "723ecff9ad04f4ad92fe1c8ca6c20d2196d9286e9c60727c4cb5511629260e9d"
+dependencies = [
+ "byteorder",
+ "rmp",
+ "serde",
+]
+
+[[package]]
 name = "ryu"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1071,13 +1104,16 @@ name = "traffloat-common"
 version = "0.2.0"
 dependencies = [
  "arcstr",
+ "arrayvec",
  "derive-new",
  "getset",
  "legion",
  "log",
  "nalgebra",
  "rand",
+ "rmp-serde",
  "serde",
+ "serde_yaml",
  "shrev",
  "smallvec",
  "traffloat-codegen",
