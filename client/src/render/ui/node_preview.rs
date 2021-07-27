@@ -45,7 +45,7 @@ impl Component for Comp {
         ";
         html! {
             <div style=style>
-                <p>{ &self.props.node_name }</p>
+                <p>{ &self.props.args.node_name }</p>
             </div>
         }
     }
@@ -57,6 +57,13 @@ pub enum Msg {}
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
+    /// The yew-independent properties.
+    pub args: Args,
+}
+
+/// Yew-independent properties.
+#[derive(Clone)]
+pub struct Args {
     /// Entity ID of the node.
     pub entity: Entity,
     /// Name of the targeted node.
@@ -78,7 +85,7 @@ fn draw(
             .entry_ref(entity)
             .expect("Target entity does not exist"); // TODO what if user is hovering over node while deleting it?
         if let Ok(node_name) = entity_entry.get_component::<node::Name>() {
-            Some(Props {
+            Some(Args {
                 entity,
                 node_name: node_name.name().to_string(),
             })

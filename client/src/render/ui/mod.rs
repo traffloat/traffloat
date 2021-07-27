@@ -4,6 +4,7 @@ use derive_new::new;
 
 use super::Dimension;
 
+pub mod duct_editor;
 pub mod edge_preview;
 pub mod node_preview;
 mod wrapper;

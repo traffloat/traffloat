@@ -4,7 +4,7 @@ use legion::world::SubWorld;
 use legion::{Entity, EntityStore};
 use yew::prelude::*;
 
-use super::{Update, UpdaterRef};
+use super::{duct_editor, Update, UpdaterRef};
 use crate::input;
 use traffloat::edge;
 use traffloat::node;
@@ -24,7 +24,14 @@ impl Component for Comp {
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
-        match msg {}
+        match msg {
+            Msg::EditDucts(_) => {
+                self.props.edit_duct.emit(Some(duct_editor::Args {
+                    entity: self.props.args.entity,
+                }));
+                true
+            }
+        }
     }
 
     fn change(&mut self, props: Props) -> ShouldRender {
@@ -46,17 +53,30 @@ impl Component for Comp {
         html! {
             <div style=style>
                 <p>{ "Corridor" }</p>
+                <button onclick=self.link.callback(Msg::EditDucts)>{ "Edit" }</button>
             </div>
         }
     }
 }
 
 /// Events for [`Comp`].
-pub enum Msg {}
+pub enum Msg {
+    /// Open the duct editor.
+    EditDucts(MouseEvent),
+}
 
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
+    /// The yew-independent properties.
+    pub args: Args,
+    /// Callback to start duct editor
+    pub edit_duct: Callback<Option<duct_editor::Args>>,
+}
+
+/// Yew-independent properties.
+#[derive(Clone)]
+pub struct Args {
     /// Entity ID of the edge.
     pub entity: Entity,
 }
@@ -76,7 +96,7 @@ fn draw(
             .entry_ref(entity)
             .expect("Target entity does not exist"); // TODO what if user is hovering over node while deleting it?
         if let Ok(_edge) = entity_entry.get_component::<edge::Id>() {
-            Some(Props { entity })
+            Some(Args { entity })
         } else {
             None
         }
