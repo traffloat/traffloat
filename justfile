@@ -3,7 +3,6 @@ client-build: client-clean pp
 client-build-dev: client-clean pp
 	cd client && $(npm bin)/webpack --mode development
 client-watch: client-clean
-	cd client && $(npm bin)/rimraf dist pkg
 	cd client && $(npm bin)/webpack serve --mode development --open
 
 doc: client-glsl
