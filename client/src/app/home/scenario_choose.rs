@@ -4,7 +4,7 @@ use std::convert::TryInto;
 
 use yew::prelude::*;
 
-pub const SCENARIO_OPTIONS: &[(&str, &str)] = &[("Vanilla", "/vanilla.tsvt")];
+pub const SCENARIO_OPTIONS: &[(&str, &str)] = &[("Vanilla", "vanilla.tsvt")];
 
 /// Displays a form for choosing a scenario.
 pub struct Comp {
