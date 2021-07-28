@@ -103,18 +103,23 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
     setup.uses(delete_nodes_setup)
 }
 
-/// Creates the components for a node entity.
+/// Initialize a new node entity.
+///
+/// Note that the caller should trigger [`AddEvent`] separately.
 pub fn create_components(
     world: &mut impl legion::PushEntity,
+    index: &mut Index,
     def: &GameDefinition,
-    id: building::TypeId,
+    type_id: building::TypeId,
     position: Position,
     rotation: Matrix,
 ) -> Entity {
-    let building = def.get_building(id);
+    let building = def.get_building(type_id);
 
-    world.push((
-        Id::new(rand::random()),
+    let id = Id::new(rand::random());
+
+    let entity = world.push((
+        id,
         Name::new(building.name().clone()),
         position,
         Shape::builder()
@@ -133,7 +138,72 @@ pub fn create_components(
         liquid::StorageCapacity::new(building.storage().liquid()),
         gas::StorageList::new(smallvec![]),
         gas::StorageCapacity::new(building.storage().gas()),
-    ))
+    ));
+    index.index.insert(id, entity);
+    entity
+}
+
+/// Creates the components for a saved node.
+///
+/// Note that the caller should trigger [`AddEvent`] separately.
+pub fn create_components_from_save(
+    world: &mut impl legion::PushEntity,
+    index: &mut Index,
+    save: save::Node,
+) -> Entity {
+    let cargo_list = save
+        .cargo
+        .iter()
+        .map(|(&id, &size)| {
+            let entity = world.push((
+                cargo::Storage::new(id),
+                cargo::StorageSize::new(size),
+                cargo::NextStorageSize::new(size),
+            ));
+            (id, entity)
+        })
+        .collect();
+    let liquid_list = save
+        .liquid
+        .iter()
+        .map(|(&id, &size)| {
+            let entity = world.push((
+                liquid::Storage::new(id),
+                liquid::StorageSize::new(size),
+                liquid::NextStorageSize::new(size),
+            ));
+            (id, entity)
+        })
+        .collect();
+    let gas_list = save
+        .gas
+        .iter()
+        .map(|(&id, &size)| {
+            let entity = world.push((
+                gas::Storage::new(id),
+                gas::StorageSize::new(size),
+                gas::NextStorageSize::new(size),
+            ));
+            (id, entity)
+        })
+        .collect();
+
+    let entity = world.push((
+        save.id,
+        save.name.clone(),
+        save.position,
+        save.shape,
+        LightStats::default(),
+        save.hitpoint,
+        cargo::StorageList::new(cargo_list),
+        cargo::StorageCapacity::new(save.cargo_capacity),
+        liquid::StorageList::new(liquid_list),
+        liquid::StorageCapacity::new(save.liquid_capacity),
+        gas::StorageList::new(gas_list),
+        gas::StorageCapacity::new(save.gas_capacity),
+    ));
+    index.index.insert(save.id, entity);
+    entity
 }
 
 /// Save type for nodes.
@@ -145,18 +215,18 @@ pub mod save {
     use crate::units;
 
     /// Saves all data related to a node.
-    #[derive(Serialize, Deserialize)]
+    #[derive(Clone, Serialize, Deserialize)]
     pub struct Node {
         pub(crate) id: super::Id,
         pub(crate) name: super::Name,
         pub(crate) position: Position,
         pub(crate) shape: Shape,
+        pub(crate) hitpoint: units::Portion<units::Hitpoint>,
         pub(crate) cargo: BTreeMap<def::cargo::TypeId, units::CargoSize>,
         pub(crate) cargo_capacity: units::CargoSize,
         pub(crate) liquid: BTreeMap<def::liquid::TypeId, units::LiquidVolume>,
         pub(crate) liquid_capacity: units::LiquidVolume,
         pub(crate) gas: BTreeMap<def::gas::TypeId, units::GasVolume>,
         pub(crate) gas_capacity: units::GasVolume,
-        pub(crate) hitpoints: units::Portion<units::Hitpoint>,
     }
 }

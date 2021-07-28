@@ -4,14 +4,15 @@ use std::convert::TryInto;
 
 use yew::prelude::*;
 
+pub const SCENARIO_OPTIONS: &[(&str, &str)] = &[("Vanilla", "/vanilla.tsvt")];
+
 /// Displays a form for choosing a scenario.
 pub struct Comp {
     props: Props,
     link: ComponentLink<Self>,
+    select_ref: NodeRef,
     choice: usize,
 }
-
-pub const SCENARIO_OPTIONS: &[(&str, &str)] = &[("Vanilla", "/vanilla.tsvt")];
 
 impl Component for Comp {
     type Message = Msg;
@@ -21,6 +22,7 @@ impl Component for Comp {
         Self {
             props,
             link,
+            select_ref: NodeRef::default(),
             choice: 0,
         }
     }
@@ -34,9 +36,6 @@ impl Component for Comp {
                 }
                 .try_into()
                 .expect("Index out of bounds");
-                if self.choice == index {
-                    return false;
-                }
                 self.choice = index;
                 self.props.choose_scenario.emit(
                     SCENARIO_OPTIONS
@@ -67,7 +66,7 @@ impl Component for Comp {
         html! {
             <div>
                 <label>{ "Select scenario" }</label>
-                <select onchange=self.link.callback(Msg::ChooseScenario)>
+                <select ref=self.select_ref.clone() onchange=self.link.callback(Msg::ChooseScenario)>
                     { for SCENARIO_OPTIONS.iter().enumerate().map(|(index, (name, _url))| html! {
                         <option selected=index == self.choice>
                             { name }
@@ -84,6 +83,17 @@ impl Component for Comp {
                         />
                 })}
             </div>
+        }
+    }
+
+    fn rendered(&mut self, first: bool) {
+        if first {
+            self.link
+                .send_message(Msg::ChooseScenario(ChangeData::Select(
+                    self.select_ref
+                        .cast()
+                        .expect("<select> is not HtmlSelectElement"),
+                )))
         }
     }
 }

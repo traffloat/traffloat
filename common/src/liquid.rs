@@ -29,7 +29,7 @@ pub struct StorageCapacity {
 }
 
 /// A component attached to storage entities.
-#[derive(getset::CopyGetters)]
+#[derive(new, getset::CopyGetters)]
 pub struct Storage {
     /// The type of liquid
     #[getset(get_copy = "pub")]
@@ -37,7 +37,7 @@ pub struct Storage {
 }
 
 /// The size of a liquid storage in the current simulation frame.
-#[derive(getset::CopyGetters)]
+#[derive(new, getset::CopyGetters)]
 pub struct StorageSize {
     /// The liquid size
     #[getset(get_copy = "pub")]
@@ -45,7 +45,7 @@ pub struct StorageSize {
 }
 
 /// The size of a liquid storage in the next simulation frame.
-#[derive(getset::CopyGetters, getset::MutGetters)]
+#[derive(new, getset::CopyGetters, getset::MutGetters)]
 pub struct NextStorageSize {
     /// The liquid size
     #[getset(get_copy = "pub")]

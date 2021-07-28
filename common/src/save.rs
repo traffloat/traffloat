@@ -20,6 +20,7 @@ use crate::units;
 use crate::SetupEcs;
 use crate::{cargo, gas, liquid};
 use crate::{edge, node};
+use safety::Safety;
 
 /// The save schema version.
 ///
@@ -126,7 +127,7 @@ fn save(
                         name,
                         &position,
                         shape,
-                        &hitpoints,
+                        &hitpoint,
                         cargo,
                         &cargo_capacity,
                         liquid,
@@ -139,7 +140,7 @@ fn save(
                             name: name.clone(),
                             position,
                             shape: shape.clone(),
-                            hitpoints,
+                            hitpoint,
                             cargo: cargo
                                 .storages()
                                 .iter()
@@ -259,7 +260,7 @@ fn save(
 }
 
 /// Loads a save file.
-pub fn load(mut setup: SetupEcs, mut buf: &[u8]) -> anyhow::Result<SetupEcs> {
+pub fn load(mut setup: SetupEcs, mut buf: &[u8], now: u64) -> anyhow::Result<SetupEcs> {
     use anyhow::Context;
 
     let (format, schema_version) = if buf.get(0) == Some(&0xFF) {
@@ -306,12 +307,36 @@ pub fn load(mut setup: SetupEcs, mut buf: &[u8]) -> anyhow::Result<SetupEcs> {
         Format::Binary => rmp_serde::from_slice(buf).context("Save format error"),
     }?;
 
-    setup.resources.insert(file.def.clone());
+    setup.resources.insert(file.def);
     setup
         .resources
         .get_mut_or_default::<Clock>()
-        .set_time(file.state.clock);
-    Ok(setup)
+        .reset_time(file.state.clock, now.homosign());
+
+    let SetupEcs {
+        server,
+        builder,
+        mut world,
+        resources,
+    } = setup;
+    {
+        let mut index = resources.get_mut().expect("Index not initialized yet");
+
+        for node in file.state.nodes {
+            node::create_components_from_save(&mut world, &mut *index, node);
+        }
+
+        for edge in file.state.edges {
+            edge::create_components_from_save(&mut world, &*index, edge)?;
+        }
+    }
+
+    Ok(SetupEcs {
+        server,
+        builder,
+        world,
+        resources,
+    })
 }
 
 /// Initializes ECS

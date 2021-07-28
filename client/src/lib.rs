@@ -35,7 +35,6 @@ use yew::prelude::*;
 mod app;
 pub mod camera;
 pub mod config;
-mod initial;
 pub mod input;
 pub mod render;
 pub mod util;
@@ -64,7 +63,6 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     setup
         .uses(traffloat::setup_ecs)
         .uses(camera::setup_ecs)
-        .uses(initial::setup_ecs)
         .uses(input::setup_ecs)
         .uses(render::setup_ecs)
 }

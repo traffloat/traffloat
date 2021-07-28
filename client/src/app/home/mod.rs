@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use yew::prelude::*;
 use yew::services::fetch;
 use yew::services::reader;
@@ -11,8 +13,8 @@ pub struct Home {
     props: Props,
     link: ComponentLink<Self>,
     game_mode: GameMode,
-    loader: Option<ScenarioLoader>,
-    scenario: Option<Vec<u8>>,
+    _loader: Option<ScenarioLoader>,
+    scenario: Option<Rc<[u8]>>,
 }
 
 impl Component for Home {
@@ -24,7 +26,7 @@ impl Component for Home {
             props,
             link,
             game_mode: GameMode::Single,
-            loader: None,
+            _loader: None,
             scenario: None,
         }
     }
@@ -74,25 +76,31 @@ impl Component for Home {
                     }
                     None => None,
                 };
-                self.loader = loader;
+                self._loader = loader;
                 true
             }
             Msg::ScenarioUrlLoaded(resp) => {
-                self.loader = None;
+                self._loader = None;
                 let (_meta, body) = resp.into_parts();
                 // TODO handle error if !meta.is_success() or body.is_err()
                 if let Ok(body) = body {
+                    let body = Rc::from(body);
                     self.scenario = Some(body);
                 }
                 true
             }
             Msg::ScenarioFileLoaded(file) => {
-                self.loader = None;
-                self.scenario = Some(file.content);
+                self._loader = None;
+                let body = Rc::from(file.content);
+                self.scenario = Some(body);
                 true
             }
             Msg::StartSingle(_) => {
-                self.props.start_single_hook.emit(SpGameArgs {});
+                let scenario = match &self.scenario {
+                    Some(scenario) => Rc::clone(scenario),
+                    None => return false, // or panic as unreachable?
+                };
+                self.props.start_single_hook.emit(SpGameArgs { scenario });
                 false
             }
         }

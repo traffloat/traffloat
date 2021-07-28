@@ -1,10 +1,16 @@
 //! Game clock management
 
+use std::convert::TryFrom;
+
 use crate::time::{Instant, Time};
 use crate::SetupEcs;
+use safety::Safety;
 
 /// The interval between simulation frames.
 pub const SIMULATION_PERIOD: Time = Time(100);
+
+/// Number of microseconds per discrete unit time.
+pub const MICROS_PER_TICK: u64 = 10000;
 
 /// A resource for time read/write.
 #[derive(Debug, Default, getset::CopyGetters)]
@@ -15,19 +21,29 @@ pub struct Clock {
     /// Time since the last frame
     #[getset(get_copy = "pub")]
     delta: Time,
+    /// The reference time value at epoch.
+    epoch_instant: Instant,
+    /// The epoch in microseconds used for calibration.
+    epoch_micros: i64,
 }
 
 impl Clock {
-    /// Increases the time for the specified span.
-    pub fn inc_time(&mut self, time: Time) {
-        self.now += time;
-        self.delta = time;
-    }
-
     /// Sets the time to the specified instant.
-    pub fn set_time(&mut self, now: Instant) {
+    pub fn update_micros(&mut self, micros: i64) {
+        let delta_micros = (micros - self.epoch_micros).homosign();
+        let delta_time =
+            Time(u32::try_from(delta_micros / MICROS_PER_TICK).expect("micros is not monotonic"));
+        let now = self.epoch_instant + delta_time;
         self.delta = now - self.now;
         self.now = now;
+    }
+
+    /// Reset the time without involving any simulation offset.
+    pub fn reset_time(&mut self, now: Instant, micros: i64) {
+        self.now = now;
+        self.delta = Time::zero();
+        self.epoch_instant = now;
+        self.epoch_micros = micros;
     }
 }
 

@@ -11,7 +11,6 @@ use crate::render;
 use crate::util;
 use safety::Safety;
 use traffloat::clock::Clock;
-use traffloat::time::{Instant, Time};
 use traffloat::SetupEcs;
 
 /// HTML interface of the game page
@@ -28,7 +27,6 @@ pub struct Game {
     scene_canvas_ref: NodeRef,
     debug_ref: NodeRef,
     layers_cache: Option<(render::Layers, render::Dimension)>,
-    clock_epoch: u64,
 }
 
 impl Game {
@@ -44,8 +42,7 @@ impl Game {
                 .get_mut::<Clock>()
                 .expect("Clock was uninitialized");
 
-            let delta = (util::high_res_time() - self.clock_epoch).small_float() / 10000.;
-            clock.set_time(Instant(Time(delta.trunc_int())));
+            clock.update_micros(util::high_res_time().homosign());
         }
 
         let time = util::measure(|| {
@@ -205,7 +202,7 @@ impl Component for Game {
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
         let render_comm = render::Comm::default();
 
-        let legion = SetupEcs::default()
+        let mut legion = SetupEcs::default()
             .resource(render_comm.clone())
             .resource({
                 let window = web_sys::window().expect("Failed to get window object");
@@ -215,8 +212,9 @@ impl Component for Game {
                     height: dim.height as u32,
                 }
             })
-            .uses(crate::setup_ecs)
-            .build(); // TODO setup depending on gamemode
+            .uses(crate::setup_ecs);
+        legion = props.args.init(legion);
+        let legion = legion.build();
 
         let body = body();
         let keyboard_task = [
@@ -241,7 +239,6 @@ impl Component for Game {
             scene_canvas_ref: NodeRef::default(),
             debug_ref: NodeRef::default(),
             layers_cache: None,
-            clock_epoch: util::high_res_time(),
             link,
         }
     }

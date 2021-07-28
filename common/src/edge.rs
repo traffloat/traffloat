@@ -3,11 +3,13 @@
 //! An edge is also called a "corridor".
 //! It connects two nodes together.
 
+use anyhow::Context;
 use derive_new::new;
 use legion::Entity;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
+use crate::node;
 use crate::space::{Matrix, Position, Vector};
 use crate::units;
 use crate::SetupEcs;
@@ -193,7 +195,7 @@ pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bo
     }
 }
 
-/// Creates the components for an edge entity.
+/// Initializes a new edge.
 pub fn create_components(
     world: &mut impl legion::PushEntity,
     from: Entity,
@@ -202,23 +204,46 @@ pub fn create_components(
     hp: units::Portion<units::Hitpoint>,
     design: impl IntoIterator<Item = save::SavedDuct>,
 ) -> legion::Entity {
-    let comps = (
+    let design = design
+        .into_iter()
+        .map(|duct| Duct {
+            center: duct.center,
+            radius: duct.radius,
+            ty: duct.ty,
+            entity: world.push(()),
+        })
+        .collect();
+    world.push((Id::new(from, to), Size::new(size), hp, Design::new(design)))
+}
+
+/// Initializes a saved edge.
+pub fn create_components_from_save(
+    world: &mut impl legion::PushEntity,
+    index: &node::Index,
+    save: save::Edge,
+) -> anyhow::Result<legion::Entity> {
+    let design = save
+        .design
+        .iter()
+        .map(|duct| Duct {
+            center: duct.center,
+            radius: duct.radius,
+            ty: duct.ty,
+            entity: world.push(()),
+        })
+        .collect();
+    let from = index
+        .get(save.from)
+        .context("Edge references nonexistent node")?;
+    let to = index
+        .get(save.to)
+        .context("Edge references nonexistent node")?;
+    Ok(world.push((
         Id::new(from, to),
-        Size::new(size),
-        hp,
-        Design::new(
-            design
-                .into_iter()
-                .map(|duct| Duct {
-                    center: duct.center,
-                    radius: duct.radius,
-                    ty: duct.ty,
-                    entity: world.push(()),
-                })
-                .collect(),
-        ),
-    );
-    world.push(comps)
+        save.size,
+        save.hitpoint,
+        Design::new(design),
+    )))
 }
 
 /// Save type for edges.
@@ -227,7 +252,7 @@ pub mod save {
     use crate::node;
 
     /// Saves all data related to an edge.
-    #[derive(Serialize, Deserialize)]
+    #[derive(Clone, Serialize, Deserialize)]
     pub struct Edge {
         pub(crate) from: node::Id,
         pub(crate) to: node::Id,
@@ -237,7 +262,7 @@ pub mod save {
     }
 
     /// Saves all data related to a duct.
-    #[derive(Serialize, Deserialize)]
+    #[derive(Clone, Serialize, Deserialize)]
     pub struct SavedDuct {
         /// Center position of the duct.
         pub center: CrossSectionPosition,
