@@ -25,7 +25,7 @@ impl Component for Comp {
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
-            Msg::EditDucts(_) => {
+            Msg::EditDucts => {
                 self.props.edit_duct.emit(Some(duct_editor::Args {
                     entity: self.props.args.entity,
                 }));
@@ -53,7 +53,7 @@ impl Component for Comp {
         html! {
             <div style=style>
                 <p>{ "Corridor" }</p>
-                <button onclick=self.link.callback(Msg::EditDucts)>{ "Edit" }</button>
+                <button onclick=self.link.callback(|_| Msg::EditDucts)>{ "Edit" }</button>
             </div>
         }
     }
@@ -62,7 +62,7 @@ impl Component for Comp {
 /// Events for [`Comp`].
 pub enum Msg {
     /// Open the duct editor.
-    EditDucts(MouseEvent),
+    EditDucts,
 }
 
 /// Yew properties for [`Comp`].

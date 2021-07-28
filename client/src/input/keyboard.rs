@@ -88,6 +88,10 @@ pub enum Command {
     MiddleClick,
     /// The generic right click command
     RightClick,
+    /// Edits the targeted entity.
+    Edit,
+    /// Exits the active dialog.
+    Cancel,
 }
 
 impl Command {
@@ -106,6 +110,8 @@ impl Command {
             RawKey::Mouse(0) => Command::LeftClick,
             RawKey::Mouse(1) => Command::MiddleClick,
             RawKey::Mouse(2) => Command::RightClick,
+            RawKey::Key("KeyE") => Command::Edit,
+            RawKey::Key("Escape") => Command::Cancel,
             _ => return None,
         })
     }

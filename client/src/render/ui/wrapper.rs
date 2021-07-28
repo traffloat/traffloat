@@ -4,6 +4,7 @@ use std::rc::Rc;
 use yew::prelude::*;
 
 use super::{duct_editor, edge_preview, node_preview, toolbar};
+use crate::input::keyboard;
 
 /// Wrapper for UI elements.
 pub struct Wrapper {
@@ -55,6 +56,15 @@ impl Component for Wrapper {
             Update::SetDuctEditor(args) => {
                 self.duct_editor_args = args;
                 true
+            }
+            Update::Edit => {
+                if let Some(args) = self.edge_preview_args.as_ref() {
+                    let args = duct_editor::Args {
+                        entity: args.entity,
+                    };
+                    self.link.send_message(Update::SetDuctEditor(Some(args)));
+                }
+                false
             }
             Update::Cancel => {
                 if let Some(args) = self.duct_editor_args.as_ref() {
@@ -117,7 +127,9 @@ pub enum Update {
     SetEdgePreview(Option<edge_preview::Args>),
     /// Sets the duct editor args to display.
     SetDuctEditor(Option<duct_editor::Args>),
-    /// Cancels the opened interfaces..
+    /// Trigger the edit action.
+    Edit,
+    /// Cancels the opened interfaces.
     Cancel,
 }
 
@@ -157,4 +169,39 @@ impl UpdaterRef {
             callback.emit(update);
         }
     }
+}
+
+#[codegen::system]
+#[thread_local]
+fn cancel_trigger(
+    #[subscriber] click_sub: impl Iterator<Item = keyboard::SingleClick>,
+    #[resource] updater_ref: &UpdaterRef,
+) {
+    let has_click = click_sub
+        .filter(|click| click.command() == keyboard::Command::Cancel)
+        .count()
+        > 0; // consume the whole iterator without short-circuiting
+    if has_click {
+        updater_ref.call(Update::Cancel);
+    }
+}
+
+#[codegen::system]
+#[thread_local]
+fn edit_trigger(
+    #[subscriber] click_sub: impl Iterator<Item = keyboard::SingleClick>,
+    #[resource] updater_ref: &UpdaterRef,
+) {
+    let has_click = click_sub
+        .filter(|click| click.command() == keyboard::Command::Edit)
+        .count()
+        > 0; // consume the whole iterator without short-circuiting
+    if has_click {
+        updater_ref.call(Update::Edit);
+    }
+}
+
+/// Sets up legion ECS for edge info rendering.
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    setup.uses(cancel_trigger_setup).uses(edit_trigger_setup)
 }

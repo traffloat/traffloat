@@ -28,6 +28,7 @@ impl Canvas {
 /// Sets up legion ECS for UI rendering.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     setup
+        .uses(wrapper::setup_ecs)
         .uses(node_preview::setup_ecs)
         .uses(edge_preview::setup_ecs)
         .uses(toolbar::setup_ecs)
