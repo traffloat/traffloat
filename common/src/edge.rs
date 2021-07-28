@@ -193,23 +193,32 @@ pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bo
     }
 }
 
-/// Return type of [`create_components`].
-pub type Components = (Id, Size, Design, units::Portion<units::Hitpoint>);
-
-/// Creates the components for a node entity.
+/// Creates the components for an edge entity.
 pub fn create_components(
+    world: &mut impl legion::PushEntity,
     from: Entity,
     to: Entity,
     size: f64,
-    design: Vec<Duct>,
-    hp: units::Hitpoint,
-) -> Components {
-    (
+    hp: units::Portion<units::Hitpoint>,
+    design: impl IntoIterator<Item = save::SavedDuct>,
+) -> legion::Entity {
+    let comps = (
         Id::new(from, to),
         Size::new(size),
-        Design::new(design),
-        units::Portion::full(hp),
-    )
+        hp,
+        Design::new(
+            design
+                .into_iter()
+                .map(|duct| Duct {
+                    center: duct.center,
+                    radius: duct.radius,
+                    ty: duct.ty,
+                    entity: world.push(()),
+                })
+                .collect(),
+        ),
+    );
+    world.push(comps)
 }
 
 /// Save type for edges.
@@ -230,8 +239,11 @@ pub mod save {
     /// Saves all data related to a duct.
     #[derive(Serialize, Deserialize)]
     pub struct SavedDuct {
-        pub(crate) center: CrossSectionPosition,
-        pub(crate) radius: f64,
-        pub(crate) ty: DuctType,
+        /// Center position of the duct.
+        pub center: CrossSectionPosition,
+        /// Radius of the duct.
+        pub radius: f64,
+        /// Type of the duct.
+        pub ty: DuctType,
     }
 }

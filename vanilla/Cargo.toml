@@ -12,10 +12,14 @@ license = "AGPL-3.0"
 arcstr = "1.1.0"
 derive-new = "0.5.9"
 getset = "0.1.1"
-indvec = "0.2.0"
 lazy_static = "1.4.0"
-legion = {version = "0.4.0", default-features = false}
 smallvec = "1.6.1"
 strum = {version = "0.21.0", features = ["derive"]}
 traffloat-common = {version = "0.2.0", path = "../common"}
 traffloat-types = {version = "0.2.0", path = "../types"}
+
+[dependencies.legion]
+version = "0.4.0"
+default-features = false
+git = "https://github.com/traffloat/legion"
+branch = "push-entity-trait"

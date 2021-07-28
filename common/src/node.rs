@@ -101,25 +101,17 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
     setup.uses(delete_nodes_setup)
 }
 
-/// Return type of [`create_components`].
-pub type Components = (
-    Id,
-    Name,
-    Position,
-    Shape,
-    LightStats,
-    units::Portion<units::Hitpoint>,
-);
 /// Creates the components for a node entity.
 pub fn create_components(
+    world: &mut impl legion::PushEntity,
     def: &GameDefinition,
     id: building::TypeId,
     position: Position,
     rotation: Matrix,
-) -> Components {
+) -> Entity {
     let building = def.get_building(id);
 
-    (
+    world.push((
         Id::new(rand::random()),
         Name::new(building.name().clone()),
         position,
@@ -133,7 +125,7 @@ pub fn create_components(
             .build(),
         LightStats::default(),
         units::Portion::full(building.hitpoint()),
-    )
+    ))
 }
 
 /// Save type for nodes.
