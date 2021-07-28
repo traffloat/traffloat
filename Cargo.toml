@@ -23,7 +23,7 @@ traffloat-client = {opt-level = 0}
 
 [profile.release]
 lto = true
-opt-level = 1
+opt-level = 3
 
 # [profile.release.package.traffloat-client]
 # opt-level = "s"
