@@ -148,6 +148,13 @@ pub struct Args {
     pub entity: Entity,
 }
 
+impl Args {
+    /// Saves the settings
+    pub fn save(&self, legion: &mut traffloat::Legion) {
+        // TODO
+    }
+}
+
 /// The temporary state of edges in the duct
 struct State {
     size: f64,

@@ -56,6 +56,14 @@ impl Component for Wrapper {
                 self.duct_editor_args = args;
                 true
             }
+            Update::Cancel => {
+                if let Some(args) = self.duct_editor_args.as_ref() {
+                    let mut legion = self.props.legion.borrow_mut();
+                    args.save(&mut *legion);
+                    self.duct_editor_args = None;
+                }
+                true
+            }
         }
     }
 
@@ -93,6 +101,7 @@ impl Component for Wrapper {
                 { for self.display_toolbar.then(|| html! {
                     <toolbar::Comp
                         legion=Rc::clone(&self.props.legion)
+                        cancel=self.duct_editor_args.is_some().then(|| self.link.callback(|_| Update::Cancel))
                         />
                 }) }
             </div>
@@ -108,6 +117,8 @@ pub enum Update {
     SetEdgePreview(Option<edge_preview::Args>),
     /// Sets the duct editor args to display.
     SetDuctEditor(Option<duct_editor::Args>),
+    /// Cancels the opened interfaces..
+    Cancel,
 }
 
 /// Yew properties for [`Wrapper`].

@@ -53,6 +53,12 @@ impl Component for Comp {
                     style="pointer-events: auto;"
                     onclick=self.link.callback(|_| Msg::SaveButton(save::Format::Binary))
                 >{ "Save as binary" }</button>
+                { for self.props.cancel.as_ref().map(|cancel| html! {
+                    <button
+                        style="pointer-events: auto;"
+                        onclick=cancel
+                    >{ "Cancel" }</button>
+                })}
             </nav>
         }
     }
@@ -69,6 +75,8 @@ pub enum Msg {
 pub struct Props {
     /// The legion setup.
     pub legion: Rc<RefCell<traffloat::Legion>>,
+    /// The cancel callback, or [`None`] if it should not be rendered.
+    pub cancel: Option<Callback<MouseEvent>>,
 }
 
 #[codegen::system]
