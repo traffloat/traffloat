@@ -1,5 +1,6 @@
 //! Defines the mechanism of a game.
 
+use derive_new::new;
 use serde::{Deserialize, Serialize};
 
 pub mod building;
@@ -12,39 +13,50 @@ pub mod skill;
 pub mod vehicle;
 
 /// Game mechanism definition.
-#[derive(Debug, Clone, Default, getset::Getters, getset::MutGetters, Serialize, Deserialize)]
+#[derive(Debug, Clone, new, getset::Getters, getset::MutGetters, Serialize, Deserialize)]
 pub struct GameDefinition {
     /// Cargo types.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     cargo: Vec<cargo::Type>,
     /// Cargo categories.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     cargo_cats: Vec<cargo::Category>,
     /// Liquid types.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     liquid: Vec<liquid::Type>,
     /// Gas types.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     gas: Vec<gas::Type>,
     /// Skill types.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     skill: Vec<skill::Type>,
     /// Vehicle types.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     vehicle: Vec<vehicle::Type>,
     /// Reaction types.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     reaction: Vec<reaction::Type>,
     /// Reaction categories.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     reaction_cats: Vec<reaction::Category>,
     /// Building types.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     building: Vec<building::Type>,
     /// Building categories.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     building_cats: Vec<building::Category>,
     /// List of possible crimes.
+    #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     crime: Vec<crime::Type>,
 }

@@ -8,11 +8,12 @@ use typed_builder::TypedBuilder;
 
 use crate::clock::Clock;
 use crate::def::GameDefinition;
-use crate::edge::save::Edge;
+use crate::edge::save::{Edge, SavedDuct};
 use crate::node::save::Node;
 use crate::shape::Shape;
 use crate::space::Position;
 use crate::time::Instant;
+use crate::units;
 use crate::SetupEcs;
 use crate::{edge, node};
 
@@ -78,54 +79,74 @@ pub struct Response {
 #[read_component(edge::Design)]
 #[read_component(Position)]
 #[read_component(Shape)]
+#[read_component(units::Portion<units::Hitpoint>)]
 fn save(
     world: &mut SubWorld,
     #[subscriber] requests: impl Iterator<Item = Request>,
     #[publisher] results: impl FnMut(Response),
     #[resource] clock: &Clock,
-    #[resource] def: &GameDefinition,
+    #[resource(no_init)] def: &GameDefinition,
 ) {
     for request in requests {
         let file: SaveFile = SaveFile {
             def: def.clone(),
             state: GameState {
-                nodes: <(&node::Id, &node::Name, &Position, &Shape)>::query()
-                    .iter(world)
-                    .map(|(&id, name, &position, shape)| {
-                        Node {
-                            id,
-                            name: name.clone(),
-                            position,
-                            shape: shape.clone(),
-                            hitpoints: Default::default(), // TODO
-                            cargo: Default::default(),     // TODO
-                            liquid: Default::default(),    // TODO
-                            gas: Default::default(),       // TODO
-                        }
-                    })
-                    .collect(),
-                edges: <(&edge::Id, &edge::Size, &edge::Design)>::query()
-                    .iter(world)
-                    .map(|(&id, &size, design)| {
-                        let &from = world
-                            .entry_ref(id.from())
-                            .expect("Edge points to nonexistent ID")
-                            .get_component::<node::Id>()
-                            .expect("Edge points to non-Node");
-                        let &to = world
-                            .entry_ref(id.to())
-                            .expect("Edge points to nonexistent ID")
-                            .get_component::<node::Id>()
-                            .expect("Edge points to non-Node");
-                        Edge {
-                            from,
-                            to,
-                            size,
-                            design: Default::default(),    // TODO
-                            hitpoints: Default::default(), // TODO
-                        }
-                    })
-                    .collect(), // TODO
+                nodes: <(
+                    &node::Id,
+                    &node::Name,
+                    &Position,
+                    &Shape,
+                    &units::Portion<units::Hitpoint>,
+                )>::query()
+                .iter(world)
+                .map(|(&id, name, &position, shape, &hitpoints)| {
+                    Node {
+                        id,
+                        name: name.clone(),
+                        position,
+                        shape: shape.clone(),
+                        hitpoints,
+                        cargo: Default::default(),  // TODO
+                        liquid: Default::default(), // TODO
+                        gas: Default::default(),    // TODO
+                    }
+                })
+                .collect(),
+                edges: <(
+                    &edge::Id,
+                    &edge::Size,
+                    &edge::Design,
+                    &units::Portion<units::Hitpoint>,
+                )>::query()
+                .iter(world)
+                .map(|(&id, &size, design, &hitpoint)| {
+                    let &from = world
+                        .entry_ref(id.from())
+                        .expect("Edge points to nonexistent ID")
+                        .get_component::<node::Id>()
+                        .expect("Edge points to non-Node");
+                    let &to = world
+                        .entry_ref(id.to())
+                        .expect("Edge points to nonexistent ID")
+                        .get_component::<node::Id>()
+                        .expect("Edge points to non-Node");
+                    Edge {
+                        from,
+                        to,
+                        size,
+                        design: design
+                            .ducts()
+                            .iter()
+                            .map(|duct| SavedDuct {
+                                center: duct.center(),
+                                radius: duct.radius(),
+                                ty: duct.ty(),
+                            })
+                            .collect(),
+                        hitpoint,
+                    }
+                })
+                .collect(),
                 clock: clock.now(),
             },
         };

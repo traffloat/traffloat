@@ -14,6 +14,7 @@ use crate::def::{building, GameDefinition};
 use crate::shape::{self, Shape};
 use crate::space::{Matrix, Position};
 use crate::sun::LightStats;
+use crate::units;
 use crate::SetupEcs;
 
 /// Component storing an identifier for a node
@@ -101,7 +102,14 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
 }
 
 /// Return type of [`create_components`].
-pub type Components = (Id, Name, Position, Shape, LightStats);
+pub type Components = (
+    Id,
+    Name,
+    Position,
+    Shape,
+    LightStats,
+    units::Portion<units::Hitpoint>,
+);
 /// Creates the components for a node entity.
 pub fn create_components(
     def: &GameDefinition,
@@ -124,6 +132,7 @@ pub fn create_components(
             ))
             .build(),
         LightStats::default(),
+        units::Portion::full(building.hitpoint()),
     )
 }
 

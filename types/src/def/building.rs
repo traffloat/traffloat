@@ -39,7 +39,7 @@ pub struct Type {
     ///
     /// The actual hitpoint is subject to asteroid and fire damage.
     /// It can be restored by construction work.
-    #[getset(get = "pub")]
+    #[getset(get_copy = "pub")]
     hitpoint: units::Hitpoint,
     /// Storage provided by a building
     #[getset(get = "pub")]

@@ -2,8 +2,9 @@ use indvec::indvec;
 use legion::Entity;
 
 use traffloat::def::GameDefinition;
+use traffloat::space::{Matrix, Position, Vector};
+use traffloat::units;
 use traffloat::{edge, node};
-use traffloat_types::space::{Matrix, Position, Vector};
 
 pub(crate) fn default_setup(
     def: &GameDefinition,
@@ -56,8 +57,15 @@ pub(crate) fn default_setup(
                         .entity(entities[0]) // TODO fix this
                         .build(),
                 ],
+                units::Hitpoint(100.),
             ),
-            edge::create_components(entities[core], entities[solar_panel], 0.1, vec![]),
+            edge::create_components(
+                entities[core],
+                entities[solar_panel],
+                0.1,
+                vec![],
+                units::Hitpoint(100.),
+            ),
         ]
     };
 

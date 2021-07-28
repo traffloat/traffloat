@@ -194,11 +194,22 @@ pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bo
 }
 
 /// Return type of [`create_components`].
-pub type Components = (Id, Size, Design);
+pub type Components = (Id, Size, Design, units::Portion<units::Hitpoint>);
 
 /// Creates the components for a node entity.
-pub fn create_components(from: Entity, to: Entity, size: f64, design: Vec<Duct>) -> Components {
-    (Id::new(from, to), Size::new(size), Design::new(design))
+pub fn create_components(
+    from: Entity,
+    to: Entity,
+    size: f64,
+    design: Vec<Duct>,
+    hp: units::Hitpoint,
+) -> Components {
+    (
+        Id::new(from, to),
+        Size::new(size),
+        Design::new(design),
+        units::Portion::full(hp),
+    )
 }
 
 /// Save type for edges.
@@ -213,7 +224,7 @@ pub mod save {
         pub(crate) to: node::Id,
         pub(crate) size: super::Size,
         pub(crate) design: Vec<SavedDuct>,
-        pub(crate) hitpoints: units::Portion<units::Hitpoint>,
+        pub(crate) hitpoint: units::Portion<units::Hitpoint>,
     }
 
     /// Saves all data related to a duct.

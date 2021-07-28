@@ -17,7 +17,7 @@ pub const VANILLA_TEXTURE: &str = "textures-x-fancy.png"; // TODO allow customiz
 
 /// Define vanilla game rules
 pub fn get() -> (GameDefinition, Vec<node::Components>, default::EdgeSetup) {
-    let mut def = GameDefinition::default();
+    let mut def = GameDefinition::new();
     let skill = skill::populate(&mut def);
     let _vehicle = vehicle::populate(&mut def, &skill);
     let liquid = liquid::populate(&mut def);
