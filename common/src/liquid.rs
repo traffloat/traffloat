@@ -1,5 +1,6 @@
 //! Management of liquid in buildings
 
+use derive_new::new;
 use legion::world::SubWorld;
 use legion::Entity;
 use smallvec::SmallVec;
@@ -11,37 +12,42 @@ use crate::units::LiquidVolume;
 use crate::util;
 use crate::SetupEcs;
 
-/// A component attached to entities that house cargo.
-#[derive(getset::Getters)]
+/// A component attached to entities that house liquid.
+#[derive(new, getset::Getters)]
 pub struct StorageList {
     /// The list of liquids stored in the entity.
     #[getset(get = "pub")]
     storages: SmallVec<[(def::liquid::TypeId, Entity); 4]>,
 }
 
+/// A component attached to nodes to inidcate cargo capacity of the node.
+#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
+pub struct StorageCapacity {
+    /// The maximum total cargo size.
+    #[getset(get_copy = "pub")]
+    total: LiquidVolume,
+}
+
 /// A component attached to storage entities.
 #[derive(getset::CopyGetters)]
 pub struct Storage {
-    /// The type of cargo
+    /// The type of liquid
     #[getset(get_copy = "pub")]
-    liquid: def::cargo::TypeId,
-    /// The maximum amount of the liquid in the storage
-    #[getset(get_copy = "pub")]
-    capacity: LiquidVolume,
+    liquid: def::liquid::TypeId,
 }
 
-/// The size of a cargo storage in the current simulation frame.
+/// The size of a liquid storage in the current simulation frame.
 #[derive(getset::CopyGetters)]
 pub struct StorageSize {
-    /// The cargo size
+    /// The liquid size
     #[getset(get_copy = "pub")]
     size: LiquidVolume,
 }
 
-/// The size of a cargo storage in the next simulation frame.
+/// The size of a liquid storage in the next simulation frame.
 #[derive(getset::CopyGetters, getset::MutGetters)]
 pub struct NextStorageSize {
-    /// The cargo size
+    /// The liquid size
     #[getset(get_copy = "pub")]
     #[getset(get_mut = "pub")]
     size: LiquidVolume,

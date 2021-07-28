@@ -1,5 +1,6 @@
 //! Management of gas in buildings
 
+use derive_new::new;
 use legion::world::SubWorld;
 use legion::Entity;
 use smallvec::SmallVec;
@@ -11,37 +12,42 @@ use crate::units::GasVolume;
 use crate::util;
 use crate::SetupEcs;
 
-/// A component attached to entities that house cargo.
-#[derive(getset::Getters)]
+/// A component attached to entities that house gas.
+#[derive(new, getset::Getters)]
 pub struct StorageList {
-    /// The list of cargos stored in the entity.
+    /// The list of gases stored in the entity.
     #[getset(get = "pub")]
-    storages: SmallVec<[(def::cargo::TypeId, Entity); 4]>,
+    storages: SmallVec<[(def::gas::TypeId, Entity); 4]>,
+}
+
+/// A component attached to nodes to inidcate cargo capacity of the node.
+#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
+pub struct StorageCapacity {
+    /// The maximum total cargo size.
+    #[getset(get_copy = "pub")]
+    total: GasVolume,
 }
 
 /// A component attached to storage entities.
 #[derive(getset::CopyGetters)]
 pub struct Storage {
-    /// The type of cargo
+    /// The type of gas
     #[getset(get_copy = "pub")]
-    cargo: def::cargo::TypeId,
-    /// The maximum amount of the cargo in the storage
-    #[getset(get_copy = "pub")]
-    capacity: GasVolume,
+    gas: def::gas::TypeId,
 }
 
-/// The size of a cargo storage in the current simulation frame.
+/// The size of a gas storage in the current simulation frame.
 #[derive(getset::CopyGetters)]
 pub struct StorageSize {
-    /// The cargo size
+    /// The gas size
     #[getset(get_copy = "pub")]
     size: GasVolume,
 }
 
-/// The size of a cargo storage in the next simulation frame.
+/// The size of a gas storage in the next simulation frame.
 #[derive(getset::CopyGetters, getset::MutGetters)]
 pub struct NextStorageSize {
-    /// The cargo size
+    /// The gas size
     #[getset(get_copy = "pub")]
     #[getset(get_mut = "pub")]
     size: GasVolume,

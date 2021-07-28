@@ -9,6 +9,7 @@ use arcstr::ArcStr;
 use derive_new::new;
 use legion::Entity;
 use serde::{Deserialize, Serialize};
+use smallvec::smallvec;
 
 use crate::def::{building, GameDefinition};
 use crate::shape::{self, Shape};
@@ -16,6 +17,7 @@ use crate::space::{Matrix, Position};
 use crate::sun::LightStats;
 use crate::units;
 use crate::SetupEcs;
+use crate::{cargo, gas, liquid};
 
 /// Component storing an identifier for a node
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new, Serialize, Deserialize)]
@@ -125,6 +127,12 @@ pub fn create_components(
             .build(),
         LightStats::default(),
         units::Portion::full(building.hitpoint()),
+        cargo::StorageList::new(smallvec![]),
+        cargo::StorageCapacity::new(building.storage().cargo()),
+        liquid::StorageList::new(smallvec![]),
+        liquid::StorageCapacity::new(building.storage().liquid()),
+        gas::StorageList::new(smallvec![]),
+        gas::StorageCapacity::new(building.storage().gas()),
     ))
 }
 
@@ -143,9 +151,12 @@ pub mod save {
         pub(crate) name: super::Name,
         pub(crate) position: Position,
         pub(crate) shape: Shape,
-        pub(crate) cargo: BTreeMap<def::cargo::TypeId, units::Portion<units::CargoSize>>,
-        pub(crate) liquid: BTreeMap<def::liquid::TypeId, units::Portion<units::LiquidVolume>>,
-        pub(crate) gas: BTreeMap<def::gas::TypeId, units::Portion<units::GasVolume>>,
+        pub(crate) cargo: BTreeMap<def::cargo::TypeId, units::CargoSize>,
+        pub(crate) cargo_capacity: units::CargoSize,
+        pub(crate) liquid: BTreeMap<def::liquid::TypeId, units::LiquidVolume>,
+        pub(crate) liquid_capacity: units::LiquidVolume,
+        pub(crate) gas: BTreeMap<def::gas::TypeId, units::GasVolume>,
+        pub(crate) gas_capacity: units::GasVolume,
         pub(crate) hitpoints: units::Portion<units::Hitpoint>,
     }
 }

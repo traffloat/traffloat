@@ -1,5 +1,6 @@
 //! Management of cargo in buildings
 
+use derive_new::new;
 use legion::world::SubWorld;
 use legion::Entity;
 use smallvec::SmallVec;
@@ -11,12 +12,20 @@ use crate::units::CargoSize;
 use crate::util;
 use crate::SetupEcs;
 
-/// A component attached to entities that house cargo.
-#[derive(getset::Getters)]
+/// A component attached to nodes to indicate cargo in the node.
+#[derive(new, getset::Getters)]
 pub struct StorageList {
     /// The list of cargos stored in the entity.
     #[getset(get = "pub")]
     storages: SmallVec<[(def::cargo::TypeId, Entity); 4]>,
+}
+
+/// A component attached to nodes to inidcate cargo capacity of the node.
+#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
+pub struct StorageCapacity {
+    /// The maximum total cargo size.
+    #[getset(get_copy = "pub")]
+    total: CargoSize,
 }
 
 /// A component attached to storage entities.
@@ -25,9 +34,6 @@ pub struct Storage {
     /// The type of cargo
     #[getset(get_copy = "pub")]
     cargo: def::cargo::TypeId,
-    /// The maximum amount of the cargo in the storage
-    #[getset(get_copy = "pub")]
-    capacity: CargoSize,
 }
 
 /// The size of a cargo storage in the current simulation frame.
