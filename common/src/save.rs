@@ -1,5 +1,8 @@
 //! Saving game definition and state.
 
+use std::convert::TryInto;
+
+use cfg_if::cfg_if;
 use legion::world::SubWorld;
 use legion::EntityStore;
 use legion::IntoQuery;
@@ -22,6 +25,8 @@ use crate::{edge, node};
 ///
 /// This value is only bumped when necessary to distinguish incompatible formats.
 pub const SCHEMA_VERSION: u32 = 0;
+
+const TEXT_PREFIX: &str = "### SCHEMA_VERSION=";
 
 /// The schema for a `.tsvt`/`.tsvb` file.
 #[derive(Serialize, Deserialize)]
@@ -231,7 +236,7 @@ fn save(
             Ok(mut data) => {
                 match request.format {
                     Format::Text => {
-                        let string = format!("### SCHEMA_VERSION={:08X}\n", SCHEMA_VERSION);
+                        let string = format!("{}{:08X}\n", TEXT_PREFIX, SCHEMA_VERSION);
                         data.splice(0..0, string.bytes());
                     }
                     Format::Binary => {
@@ -251,6 +256,62 @@ fn save(
             }
         }
     }
+}
+
+/// Loads a save file.
+pub fn load(mut setup: SetupEcs, mut buf: &[u8]) -> anyhow::Result<SetupEcs> {
+    use anyhow::Context;
+
+    let (format, schema_version) = if buf.get(0) == Some(&0xFF) {
+        cfg_if! {
+            if #[cfg(feature = "rmp-serde")] {
+                let format = Format::Binary;
+            } else {
+                anyhow::bail!("Not compiled with binary save support");
+            }
+        };
+
+        let bytes = buf.get(1..5).context("Checking schema version")?;
+        buf = buf.get(5..).expect("Checked in the previous line");
+        let version = u32::from_ne_bytes(bytes.try_into().expect("5 - 1 == 4"));
+        (format, version)
+    } else {
+        cfg_if! {
+            if #[cfg(feature = "serde_yaml")] {
+                let format = Format::Text;
+            } else {
+                anyhow::bail!("Not compiled with text save support");
+            }
+        };
+
+        buf = buf
+            .strip_prefix(TEXT_PREFIX.as_bytes())
+            .context("Schema version is missing")?;
+        let version = buf.get(0..8).context("Schema version underflows")?;
+        anyhow::ensure!(buf.get(8) == Some(&b'\n'), "Schema version is malformed");
+        buf = buf.get(9..).expect("Checked in the previous line");
+        let version = std::str::from_utf8(version).context("Schema version is malformed")?;
+        let version = u32::from_str_radix(version, 16).context("Schema version is malformed")?;
+        (format, version)
+    };
+
+    if schema_version != SCHEMA_VERSION {
+        anyhow::bail!("Update your client.");
+    }
+
+    let file: SaveFile = match format {
+        #[cfg(feature = "serde_yaml")]
+        Format::Text => serde_yaml::from_slice(buf).context("Save format error"),
+        #[cfg(feature = "rmp-serde")]
+        Format::Binary => rmp_serde::from_slice(buf).context("Save format error"),
+    }?;
+
+    setup.resources.insert(file.def.clone());
+    setup
+        .resources
+        .get_mut_or_default::<Clock>()
+        .set_time(file.state.clock);
+    Ok(setup)
 }
 
 /// Initializes ECS

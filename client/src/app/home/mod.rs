@@ -1,12 +1,18 @@
 use yew::prelude::*;
+use yew::services::fetch;
+use yew::services::reader;
 
 use super::SpGameArgs;
+
+mod scenario_choose;
 
 /// The homepage for selecting gamemode.
 pub struct Home {
     props: Props,
     link: ComponentLink<Self>,
     game_mode: GameMode,
+    loader: Option<ScenarioLoader>,
+    scenario: Option<Vec<u8>>,
 }
 
 impl Component for Home {
@@ -18,6 +24,8 @@ impl Component for Home {
             props,
             link,
             game_mode: GameMode::Single,
+            loader: None,
+            scenario: None,
         }
     }
 
@@ -31,6 +39,56 @@ impl Component for Home {
             Msg::ModeMulti(event) => {
                 event.prevent_default();
                 self.game_mode = GameMode::Multi;
+                true
+            }
+            Msg::ChooseScenario(scenario) => {
+                let loader = match scenario {
+                    Some(Scenario::Url(url)) => {
+                        let request = fetch::Request::get(url)
+                            .body(yew::format::Nothing)
+                            .expect("Failed to build request");
+                        match fetch::FetchService::fetch_binary(
+                            request,
+                            self.link.callback(Msg::ScenarioUrlLoaded),
+                        ) {
+                            Ok(task) => Some(ScenarioLoader::Url(task)),
+                            Err(err) => {
+                                log::error!("{:?}", err);
+                                // TODO display to user
+                                None
+                            }
+                        }
+                    }
+                    Some(Scenario::File(file)) => {
+                        match reader::ReaderService::read_file(
+                            file,
+                            self.link.callback(Msg::ScenarioFileLoaded),
+                        ) {
+                            Ok(task) => Some(ScenarioLoader::File(task)),
+                            Err(err) => {
+                                log::error!("{:?}", err);
+                                // TODO display to user
+                                None
+                            }
+                        }
+                    }
+                    None => None,
+                };
+                self.loader = loader;
+                true
+            }
+            Msg::ScenarioUrlLoaded(resp) => {
+                self.loader = None;
+                let (_meta, body) = resp.into_parts();
+                // TODO handle error if !meta.is_success() or body.is_err()
+                if let Ok(body) = body {
+                    self.scenario = Some(body);
+                }
+                true
+            }
+            Msg::ScenarioFileLoaded(file) => {
+                self.loader = None;
+                self.scenario = Some(file.content);
                 true
             }
             Msg::StartSingle(_) => {
@@ -84,13 +142,19 @@ impl Component for Home {
                 </div>
 
                 { for (self.game_mode == GameMode::Single).then(|| html! {
-                    <div>
-                        <button
-                            onclick=self.link.callback(Msg::StartSingle)
-                            tabindex=1 >
-                            { "Start" }
-                        </button>
-                    </div>
+                    <>
+                        <scenario_choose::Comp
+                            choose_scenario=self.link.callback(Msg::ChooseScenario)
+                            />
+                        <div>
+                            <button
+                                onclick=self.link.callback(Msg::StartSingle)
+                                disabled=self.scenario.is_none()
+                                tabindex=1 >
+                                { "Start" }
+                            </button>
+                        </div>
+                    </>
                 }) }
 
                 // TODO handle multiplayer
@@ -126,6 +190,12 @@ pub enum Msg {
     ModeSingle(MouseEvent),
     /// Selects the multi player mode.
     ModeMulti(MouseEvent),
+    /// Chooses a singleplayer scenario.
+    ChooseScenario(Option<Scenario>),
+    /// Scenario file has been uploaded.
+    ScenarioFileLoaded(reader::FileData),
+    /// Scenario URL has been downloaded.
+    ScenarioUrlLoaded(fetch::Response<yew::format::Binary>),
     /// Starts a singleplayer game.
     StartSingle(MouseEvent),
 }
@@ -143,4 +213,29 @@ pub struct Props {
 enum GameMode {
     Single,
     Multi,
+}
+
+/// A selection of scenario.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Scenario {
+    /// Load a scenario from a URL.
+    Url(&'static str),
+    /// Load a scenario from an uploaded file.
+    File(web_sys::File),
+}
+
+impl Default for Scenario {
+    fn default() -> Self {
+        Self::Url(
+            scenario_choose::SCENARIO_OPTIONS
+                .get(0)
+                .expect("SCENARIO_OPTIONS is empty")
+                .1,
+        )
+    }
+}
+
+enum ScenarioLoader {
+    Url(fetch::FetchTask),
+    File(reader::ReaderTask),
 }

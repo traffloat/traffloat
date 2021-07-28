@@ -79,7 +79,7 @@ pub struct SetupEcs {
 
 impl SetupEcs {
     /// Register a bundle
-    pub fn uses(self, setup_ecs: impl FnOnce(Self) -> Self) -> Self {
+    pub fn uses(self, setup_ecs: fn(Self) -> Self) -> Self {
         setup_ecs(self)
     }
 
