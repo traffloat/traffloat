@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
 use crate::def;
-use crate::time::Time;
+use crate::time::Instant;
 use crate::units::CargoSize;
 use crate::util;
 use crate::SetupEcs;
@@ -54,11 +54,11 @@ pub struct NextStorageSize {
 }
 
 /// Interpolates the current graphical size of a storage.
-pub fn lerp(current: &StorageSize, next: NextStorageSize, time: Time) -> CargoSize {
+pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> CargoSize {
     CargoSize(util::lerp(
         current.size.value(),
         next.size.value(),
-        (time % SIMULATION_PERIOD).as_secs() / SIMULATION_PERIOD.as_secs(),
+        (time.since_epoch() % SIMULATION_PERIOD).as_secs() / SIMULATION_PERIOD.as_secs(),
     ))
 }
 

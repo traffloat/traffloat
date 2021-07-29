@@ -14,6 +14,7 @@ name = "client"
 
 [dependencies]
 anyhow = "1.0.41"
+arcstr = "1.0.0"
 derive-new = "0.5.9"
 enum-map = "1.1.0"
 getrandom = {version = "0.2.3", features = ["js"]}
@@ -29,6 +30,7 @@ rand_xoshiro = "0.6.0"
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 shrev = "1.1.1"
+smallvec = "1.6.1"
 traffloat-codegen = {version = "0.2.0", path = "../codegen-types", features = ["web-sys"]}
 traffloat-common = {version = "0.2.0", path = "../common"}
 traffloat-safety = {version = "0.2.0", path = "../safety"}

@@ -52,7 +52,15 @@ units! {
 
 /// A unit with a maximum capacity.
 #[derive(
-    Debug, Clone, Copy, Default, derive_new::new, getset::CopyGetters, Serialize, Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    derive_new::new,
+    getset::CopyGetters,
+    Serialize,
+    Deserialize,
 )]
 pub struct Portion<U: Unit> {
     /// The current value.

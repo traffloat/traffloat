@@ -759,7 +759,10 @@ state:
       hitpoint:
         current: 3000.0
         max: 3000.0
-      cargo: {}
+      cargo:
+        2: 500.0
+        4: 200.0
+        1: 50.0
       cargo_capacity: 1000.0
       liquid: {}
       liquid_capacity: 1000.0
