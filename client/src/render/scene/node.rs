@@ -3,7 +3,8 @@
 use typed_builder::TypedBuilder;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
-use super::{mesh, texture};
+use crate::render::scene::mesh;
+use crate::render::texture;
 use crate::render::util::{create_program, AttrLocation, UniformLocation};
 use safety::Safety;
 use traffloat::shape;

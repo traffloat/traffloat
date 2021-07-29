@@ -7,7 +7,9 @@ use smallvec::SmallVec;
 use yew::prelude::*;
 
 use super::{Update, UpdaterRef};
+use crate::app::icon;
 use crate::input;
+use crate::render::texture;
 use traffloat::clock::Clock;
 use traffloat::def::GameDefinition;
 use traffloat::units;
@@ -66,11 +68,24 @@ impl Component for Comp {
                     { self.props.args.hitpoint }
                 </p>
                 <p>
-                    { for self.props.args.cargo.iter().map(|(size, name)| html! {
+                    { for self.props.args.cargo.iter().map(|(size, name, icon)| html! {
                         <>
                             { size }
                             { " " }
-                            { name }
+                            { for icon.as_ref().map(|icon| html! {
+                                <icon::Comp
+                                    atlas_path=icon.url.to_string()
+                                    atlas_width=icon.dim.0
+                                    atlas_height=icon.dim.1
+                                    x0=icon.pos.x()
+                                    y0=icon.pos.y()
+                                    x1=icon.pos.x() + icon.pos.width()
+                                    y1=icon.pos.y() + icon.pos.height()
+                                    out_width=24
+                                    out_height=24
+                                    />
+                            }) }
+                            { for icon.is_none().then(|| name) }
                             <br />
                         </>
                     }) }
@@ -103,11 +118,11 @@ pub struct Args {
     /// Hitpoint value of the targeted node.
     pub hitpoint: units::Portion<units::Hitpoint>,
     /// Cargo stored in the targeted node.
-    pub cargo: SmallVec<[(units::CargoSize, ArcStr); 4]>,
+    pub cargo: SmallVec<[(units::CargoSize, ArcStr, Option<texture::Icon>); 4]>,
     /// Liquids stored in the targeted node.
-    pub liquid: SmallVec<[(units::LiquidVolume, ArcStr); 4]>,
+    pub liquid: SmallVec<[(units::LiquidVolume, ArcStr, Option<texture::Icon>); 4]>,
     /// Gases stored in the targeted node.
-    pub gas: SmallVec<[(units::GasVolume, ArcStr); 4]>,
+    pub gas: SmallVec<[(units::GasVolume, ArcStr, Option<texture::Icon>); 4]>,
 }
 
 #[codegen::system]
@@ -131,6 +146,7 @@ fn draw(
     world: &mut SubWorld,
     #[resource] updater_ref: &UpdaterRef,
     #[resource] clock: &Clock,
+    #[resource] texture_pool: &Option<texture::Pool>,
 ) {
     let info = if let Some(entity) = focus_target.entity().or_else(|| hover_target.entity()) {
         let entity_entry = world
@@ -159,8 +175,12 @@ fn draw(
                                 .get_component::<$mod::NextStorageSize>()
                                 .expect("Storage has no next size");
                             let lerp_size = $mod::lerp(size, next_size, clock.now());
-                            let name = def.$get_def(id).name();
-                            (lerp_size, name.clone())
+                            let item = def.$get_def(id);
+                            let name = item.name();
+                            let icon = texture_pool
+                                .as_ref()
+                                .and_then(|pool| pool.search_icon(item.texture()));
+                            (lerp_size, name.clone(), icon)
                         })
                         .collect()
                 };

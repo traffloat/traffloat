@@ -5,6 +5,7 @@ use traffloat::SetupEcs;
 
 mod game;
 mod home;
+pub mod icon;
 mod mux;
 
 pub use mux::Mux;

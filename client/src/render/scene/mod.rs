@@ -20,8 +20,6 @@ pub mod edge;
 pub mod node;
 pub mod reticle;
 
-pub mod texture;
-
 /// Stores the setup data of the scene canvas.
 pub struct Canvas {
     gl: WebGlRenderingContext,
@@ -89,7 +87,7 @@ fn draw(
     #[resource] camera: &Camera,
     #[resource] layers: &Option<super::Layers>,
     #[resource] sun: &Sun,
-    #[resource] texture_pool: &mut Option<texture::Pool>,
+    #[resource] texture_pool: &mut Option<super::texture::Pool>,
     #[resource] hover_target: &input::mouse::HoverTarget,
     #[resource] focus_target: &input::FocusTarget,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
@@ -111,7 +109,7 @@ fn draw(
 
     let projection = camera.projection();
 
-    let texture_pool = texture_pool.get_or_insert_with(|| texture::Pool::new(&scene.gl));
+    let texture_pool = texture_pool.get_or_insert_with(|| super::texture::Pool::new(&scene.gl));
 
     let sun_dir = sun.direction();
 

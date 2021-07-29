@@ -4,6 +4,7 @@ use std::cell;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
+use arcstr::ArcStr;
 use wasm_bindgen::prelude::*;
 use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture};
 
@@ -52,7 +53,7 @@ impl Pool {
         }
     }
 
-    fn load(&self, url: &str) -> Rc<Atlas> {
+    fn load(&self, url: &ArcStr) -> Rc<Atlas> {
         let mut map = self.map.borrow_mut();
         let rc = map
             .entry(url.to_string())
@@ -71,6 +72,17 @@ impl Pool {
                 width: 1.,
                 height: 1.,
             })
+    }
+
+    /// Searches for an icon definition among all loaded atlas.
+    pub fn search_icon(&self, name: &str) -> Option<Icon> {
+        let map = self.map.borrow();
+        for atlas in map.values() {
+            if let Some(icon) = atlas.icon(name) {
+                return Some(icon);
+            }
+        }
+        None
     }
 }
 
@@ -122,10 +134,10 @@ pub struct Atlas(cell::RefCell<AtlasEnum>);
 
 impl Atlas {
     /// Loads an atlas from the given URL.
-    pub fn load(url: &str) -> Self {
-        let promise = load_textures(url);
+    pub fn load(url: &ArcStr) -> Self {
+        let promise = load_textures(url.as_str());
         let promise = ReifiedPromise::<JsValue>::new(promise, ());
-        Self(cell::RefCell::new(AtlasEnum::Pending(promise)))
+        Self(cell::RefCell::new(AtlasEnum::Pending(promise, url.clone())))
     }
 
     /// Gets information about a sprite if available.
@@ -134,6 +146,7 @@ impl Atlas {
         ae.update(gl);
         if let AtlasEnum::Ready {
             index,
+            url: _,
             texture,
             width,
             height,
@@ -150,12 +163,43 @@ impl Atlas {
             None
         }
     }
+
+    /// Retrieves an icon sprite.
+    pub fn icon(&self, name: &str) -> Option<Icon> {
+        let ae = self.0.borrow();
+        match &*ae {
+            AtlasEnum::Pending(_, _) => None,
+            AtlasEnum::Ready { index, url, .. } => {
+                let pos = match index.sprites(name) {
+                    Some(ShapeSprites::Icon(sprite)) => sprite,
+                    _ => return None,
+                };
+                Some(Icon {
+                    url: url.clone(),
+                    dim: (index.width, index.height),
+                    pos,
+                })
+            }
+        }
+    }
+}
+
+/// An icon struct ready for HTML use.
+#[derive(Clone, PartialEq)]
+pub struct Icon {
+    /// The URL of the atlas.
+    pub url: ArcStr,
+    /// The dimensions of the atlas.
+    pub dim: (u32, u32),
+    /// The position of the sprite.
+    pub pos: RectSprite,
 }
 
 enum AtlasEnum {
-    Pending(ReifiedPromise<JsValue>),
+    Pending(ReifiedPromise<JsValue>, ArcStr),
     Ready {
         index: Index,
+        url: ArcStr,
         texture: Rc<WebGlTexture>,
         width: f32,
         height: f32,
@@ -165,7 +209,7 @@ enum AtlasEnum {
 impl AtlasEnum {
     /// Ensures that the variant of the enum reflects the underlying [`ReifiedPromise`].
     fn update(&mut self, gl: &WebGlRenderingContext) {
-        if let Self::Pending(promise) = self {
+        if let Self::Pending(promise, url) = self {
             let resolve = promise.resolved_or_null().expect("Failed resolving atlas");
             if let Some(value) = resolve {
                 let (index, bitmap) = decompose_value(value);
@@ -185,6 +229,7 @@ impl AtlasEnum {
 
                 *self = Self::Ready {
                     index,
+                    url: url.clone(),
                     texture: Rc::new(texture),
                     width: bitmap.width().small_float(),
                     height: bitmap.height().small_float(),
@@ -205,7 +250,8 @@ fn decompose_value(value: &JsValue) -> (Index, ImageBitmap) {
 /// The loaded index of an atlas.
 #[derive(serde::Deserialize)]
 pub struct Index {
-    #[serde(flatten)]
+    width: u32,
+    height: u32,
     items: BTreeMap<String, ShapeSprites>,
 }
 
@@ -316,7 +362,7 @@ impl CubeSprites {
 }
 
 /// A rectangular sprite.
-#[derive(serde::Deserialize, getset::CopyGetters, Debug, Clone, Copy)]
+#[derive(serde::Deserialize, getset::CopyGetters, Debug, Clone, Copy, PartialEq)]
 pub struct RectSprite {
     /// Starting X-coordinate of the rectangle.
     #[getset(get_copy = "pub")]

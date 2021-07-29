@@ -204,7 +204,11 @@ class Index:
                 resolve(dic, locs)
             output[name] = dic
 
-        return output, im
+        return {
+            "width": im.shape[0],
+            "height": im.shape[1],
+            "items": output,
+        }, im
 
 if not os.path.isdir("../gen"):
     os.mkdir("../gen")

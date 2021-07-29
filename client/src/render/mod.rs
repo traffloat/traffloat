@@ -29,6 +29,8 @@ pub use layers::{Dimension, Layers, LayersStruct};
 mod comm;
 pub use comm::*;
 
+pub mod texture;
+
 pub mod bg;
 pub mod debug;
 pub mod scene;

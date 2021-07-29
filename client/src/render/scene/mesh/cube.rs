@@ -3,7 +3,7 @@
 use lazy_static::lazy_static;
 
 use super::Mesh;
-use crate::render::scene::texture::{CubeSprites, RectSprite};
+use crate::render::texture::{CubeSprites, RectSprite};
 
 /// Positive or negative
 #[derive(Debug, Clone, Copy)]
