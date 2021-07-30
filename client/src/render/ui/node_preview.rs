@@ -83,6 +83,7 @@ impl Component for Comp {
                                     y1=icon.pos.y() + icon.pos.height()
                                     out_width=24
                                     out_height=24
+                                    text=name.to_string()
                                     />
                             }) }
                             { for icon.is_none().then(|| name) }

@@ -32,24 +32,31 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         html! {
-            <span style=format!(
-                "
-                    background-image: url('{url}');
-                    background-repeat: no-repeat;
-                    display: inline-block;
-                    background-size: {atlas_x}px {atlas_y}px;
-                    width: {size_x}px;
-                    height: {size_y}px;
-                    background-position: {pos_x}px {pos_y}px;
-                ",
-                url=self.props.atlas_path,
-                atlas_x=self.props.scaled_atlas_x(),
-                atlas_y=self.props.scaled_atlas_y(),
-                size_x=self.props.scaled_size_x(),
-                size_y=self.props.scaled_size_y(),
-                pos_x=-self.props.scaled_pos_x().homosign(),
-                pos_y=-self.props.scaled_pos_y().homosign(),
-            ) />
+            <span
+                style=format!(
+                    "
+                        background-image: url('{url}');
+                        background-repeat: no-repeat;
+                        display: inline-block;
+                        background-size: {atlas_x}px {atlas_y}px;
+                        width: {size_x}px;
+                        height: {size_y}px;
+                        background-position: {pos_x}px {pos_y}px;
+                        font-size: 0;
+                        vertical-align: text-bottom;
+                    ",
+                    url=self.props.atlas_path,
+                    atlas_x=self.props.scaled_atlas_x(),
+                    atlas_y=self.props.scaled_atlas_y(),
+                    size_x=self.props.scaled_size_x(),
+                    size_y=self.props.scaled_size_y(),
+                    pos_x=-self.props.scaled_pos_x().homosign(),
+                    pos_y=-self.props.scaled_pos_y().homosign(),
+                )
+                title=self.props.text.clone()
+            >
+                { &self.props.text }
+            </span>
         }
     }
 }
@@ -78,6 +85,8 @@ pub struct Props {
     pub out_width: u32,
     /// Rendered height.
     pub out_height: u32,
+    /// Copyable text.
+    pub text: String,
 }
 
 impl Props {
