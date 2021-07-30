@@ -76,6 +76,7 @@ impl Component for Home {
                     }
                     None => None,
                 };
+                self.scenario = None;
                 self._loader = loader;
                 true
             }
