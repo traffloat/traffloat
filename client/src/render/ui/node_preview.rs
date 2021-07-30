@@ -177,9 +177,9 @@ fn draw(
                             let lerp_size = $mod::lerp(size, next_size, clock.now());
                             let item = def.$get_def(id);
                             let name = item.name();
-                            let icon = texture_pool
-                                .as_ref()
-                                .and_then(|pool| pool.search_icon(item.texture()));
+                            let icon = texture_pool.as_ref().and_then(|pool| {
+                                pool.icon(item.texture_src(), item.texture_name())
+                            });
                             (lerp_size, name.clone(), icon)
                         })
                         .collect()

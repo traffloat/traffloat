@@ -32,7 +32,7 @@ pub fn gen_liquids(
             let texture_path = opts
                 .client_dir
                 .join("textures")
-                .join(liquid.texture().as_str())
+                .join(liquid.texture_name().as_str())
                 .with_extension("svg");
             let texture_path = texture_path
                 .canonicalize()
@@ -67,7 +67,7 @@ fn write_liquid(
     let texture_path = opts
         .client_dir
         .join("textures")
-        .join(liquid.texture().as_str())
+        .join(liquid.texture_name().as_str())
         .with_extension("svg");
     let texture_path = texture_path
         .canonicalize()

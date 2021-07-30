@@ -38,9 +38,12 @@ pub struct Type {
     /// The skill required to operate this vehicle.
     #[getset(get = "pub")]
     skill: Skill,
-    /// Name of the texture.
+    /// The texture source path of the vehicle.
     #[getset(get = "pub")]
-    texture: ArcStr,
+    texture_src: ArcStr,
+    /// The texture name of the vehicle.
+    #[getset(get = "pub")]
+    texture_name: ArcStr,
 }
 
 /// A skill required for driving the vehicle.

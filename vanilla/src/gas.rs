@@ -1,6 +1,6 @@
 //! Vanilla gas type definitions.
 
-use arcstr::literal;
+use arcstr::{format, literal};
 
 use traffloat_types::def::{gas, GameDefinition};
 
@@ -28,7 +28,8 @@ macro_rules! gases {
                         .name(literal!($name))
                         .summary(literal!($summary))
                         .description(literal!($description))
-                        .texture(literal!($texture))
+                        .texture_src(format!("{}", crate::VANILLA_TEXTURE))
+                        .texture_name(literal!($texture))
                         .build()
                 );
             )*

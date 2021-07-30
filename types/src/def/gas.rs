@@ -22,7 +22,10 @@ pub struct Type {
     /// Long description of the gas type.
     #[getset(get = "pub")]
     description: ArcStr,
-    /// Name of the texture.
+    /// The texture source path of the gas.
     #[getset(get = "pub")]
-    texture: ArcStr,
+    texture_src: ArcStr,
+    /// The texture name of the gas.
+    #[getset(get = "pub")]
+    texture_name: ArcStr,
 }

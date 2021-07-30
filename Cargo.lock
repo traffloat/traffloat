@@ -1060,7 +1060,6 @@ dependencies = [
  "traffloat-codegen",
  "traffloat-common",
  "traffloat-safety",
- "traffloat-vanilla",
  "traffloat-version",
  "typed-builder",
  "wasm-bindgen",

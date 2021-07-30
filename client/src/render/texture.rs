@@ -74,15 +74,10 @@ impl Pool {
             })
     }
 
-    /// Searches for an icon definition among all loaded atlas.
-    pub fn search_icon(&self, name: &str) -> Option<Icon> {
-        let map = self.map.borrow();
-        for atlas in map.values() {
-            if let Some(icon) = atlas.icon(name) {
-                return Some(icon);
-            }
-        }
-        None
+    /// Retrieves a sprite for the given icon.
+    pub fn icon(&self, url: &ArcStr, name: &str) -> Option<Icon> {
+        let atlas = self.load(url);
+        atlas.icon(name)
     }
 }
 

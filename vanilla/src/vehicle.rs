@@ -1,6 +1,6 @@
 //! Vanilla vehicle type definitions.
 
-use arcstr::literal;
+use arcstr::{format, literal};
 
 use super::skill;
 use traffloat_types::def::{reaction, vehicle, GameDefinition};
@@ -55,7 +55,8 @@ macro_rules! vehicles {
                                    .overflow($skill_overflow_mul)
                                    .build())
                                .build())
-                        .texture(literal!($texture))
+                        .texture_src(format!("{}", crate::VANILLA_TEXTURE))
+                        .texture_name(literal!($texture))
                         .build()
                 );
             )*

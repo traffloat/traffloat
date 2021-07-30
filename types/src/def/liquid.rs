@@ -25,7 +25,10 @@ pub struct Type {
     /// Viscosity of a liquid.
     #[getset(get = "pub")]
     viscosity: units::LiquidViscosity,
-    /// Name of the texture.
+    /// The texture source path of the liquid.
     #[getset(get = "pub")]
-    texture: ArcStr,
+    texture_src: ArcStr,
+    /// The texture name of the liquid.
+    #[getset(get = "pub")]
+    texture_name: ArcStr,
 }

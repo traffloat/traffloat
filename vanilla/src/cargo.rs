@@ -42,7 +42,8 @@ macro_rules! cargos {
                             .name(literal!($name))
                             .summary(literal!($summary))
                             .description(literal!($description))
-                            .texture(literal!($texture))
+                            .texture_src(format!("{}", crate::VANILLA_TEXTURE))
+                            .texture_name(literal!($texture))
                             .category($category_ident)
                             .build()
                     );
@@ -59,7 +60,8 @@ macro_rules! cargos {
                         .description(literal!("Produced in liquid bottlers and centrifuges, liquid bottles can be used to \
                             transfer a small amount of liquid to factories \
                             as a replacement of constructing dedicated pipes through corridors."))
-                        .texture(format!("{}-liquid-bottle", liquid.texture()))
+                        .texture_src(format!("{}", crate::VANILLA_TEXTURE))
+                        .texture_name(format!("{}-liquid-bottle", liquid.texture_name()))
                         .category($container)
                         .build()
                 );
@@ -75,7 +77,8 @@ macro_rules! cargos {
                         .description(literal!("Produced in gas bottlers and centrifuges, gas bottles can be used to \
                             transfer a small amount of gas to factories \
                             as a replacement of diffusing gas slowly through corridors."))
-                        .texture(format!("{}-gas-bottle", gas.texture()))
+                        .texture_src(format!("{}", crate::VANILLA_TEXTURE))
+                        .texture_name(format!("{}-gas-bottle", gas.texture_name()))
                         .category($container)
                         .build()
                 );

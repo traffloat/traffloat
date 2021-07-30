@@ -32,7 +32,7 @@ pub fn gen_vehicles(
             let texture_path = opts
                 .client_dir
                 .join("textures")
-                .join(vehicle.texture().as_str())
+                .join(vehicle.texture_name().as_str())
                 .with_extension("svg");
             let texture_path = texture_path
                 .canonicalize()
@@ -71,7 +71,7 @@ fn write_vehicle(
     let texture_path = opts
         .client_dir
         .join("textures")
-        .join(vehicle.texture().as_str())
+        .join(vehicle.texture_name().as_str())
         .with_extension("svg");
     let texture_path = texture_path
         .canonicalize()

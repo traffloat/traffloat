@@ -1,6 +1,6 @@
 //! Vanilla liquid type definitions.
 
-use arcstr::literal;
+use arcstr::{format, literal};
 
 use traffloat_types::def::{liquid, GameDefinition};
 
@@ -30,7 +30,8 @@ macro_rules! liquids {
                         .summary(literal!($summary))
                         .description(literal!($description))
                         .viscosity($viscosity.into())
-                        .texture(literal!($texture))
+                        .texture_src(format!("{}", crate::VANILLA_TEXTURE))
+                        .texture_name(literal!($texture))
                         .build()
                 );
             )*
