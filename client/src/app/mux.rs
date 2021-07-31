@@ -3,19 +3,11 @@ use std::rc::Rc;
 use yew::prelude::*;
 
 use super::*;
-use crate::util::set_before_unload;
 
 /// Wrapper component for the site.
 pub struct Mux {
     link: ComponentLink<Self>,
     state: State,
-}
-
-impl Mux {
-    fn set_state(&mut self, state: State) {
-        set_before_unload(state.before_unload());
-        self.state = state;
-    }
 }
 
 impl Component for Mux {
@@ -32,15 +24,15 @@ impl Component for Mux {
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
             Msg::StartSingle(args) => {
-                self.set_state(State::Game(GameArgs::Sp(args)));
+                self.state = State::Game(GameArgs::Sp(args));
                 true
             }
             Msg::EditScenario(scenario) => {
-                self.set_state(State::Editor(scenario));
+                self.state = State::Editor(scenario);
                 true
             }
             Msg::Exit(error) => {
-                self.set_state(State::Home { error });
+                self.state = State::Home { error };
                 true
             }
         }
@@ -82,14 +74,4 @@ enum State {
     Home { error: Option<String> },
     Game(GameArgs),
     Editor(Rc<[u8]>),
-}
-
-impl State {
-    fn before_unload(&self) -> Option<&str> {
-        match self {
-            State::Home { .. } => None,
-            State::Game(GameArgs::Sp(_)) => Some("Remember to save the game before you quit."),
-            State::Editor(_) => None,
-        }
-    }
 }
