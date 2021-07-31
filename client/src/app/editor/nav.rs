@@ -32,7 +32,16 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         html! {
-            <nav style="overflow: auto;">
+            <nav style=format!("
+                overflow-x: hidden;
+                overflow-y: auto;
+                position: fixed;
+                left: 0;
+                width: {width}px;
+                height: 100vh;
+                padding: 5px {padding}px;
+                font-family: 'Helvetica', 'Arial', sans-serif;
+            ", width=super::SIDEBAR_WIDTH_PX, padding=super::SIDEBAR_PADDING_PX)>
                 <div
                     style="cursor: pointer;"
                     onclick=self.props.editor_home.reform(|_| ())

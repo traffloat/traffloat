@@ -46,7 +46,7 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         html! {
-            <nav>
+            <div>
                 <div
                     style="cursor: pointer;"
                     onclick=self.link.callback(Msg::Toggle)
@@ -74,7 +74,7 @@ impl Component for Comp {
                         })}
                     </div>
                 })}
-            </nav>
+            </div>
         }
     }
 }

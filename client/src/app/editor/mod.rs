@@ -10,6 +10,10 @@ use traffloat::save;
 pub mod building;
 pub mod nav;
 
+const SIDEBAR_WIDTH_PX: u32 = 200;
+const SIDEBAR_PADDING_PX: u32 = 10;
+const MAIN_WIDTH_PX: u32 = 750;
+
 /// Displays an editor for ducts in an edge.
 pub struct Comp {
     file: Rc<save::SaveFile>,
@@ -68,8 +72,21 @@ impl Component for Comp {
                     editor_home=self.link.callback(|()| Msg::EditorHome)
                     choose_building=self.link.callback(Msg::ChooseBuilding)
                     />
-                <main>
-                    { self.switch() }
+                <main style=format!("
+                    margin-left: {}px;
+                    border-left: 1px solid;
+                    padding: 5px 10px;
+                    height: 100vh;
+                    font-family: 'Helvetica', 'Arial', sans-serif;
+                ", SIDEBAR_WIDTH_PX + SIDEBAR_PADDING_PX)>
+                    <div style=format!("
+                        margin-left: auto;
+                        margin-right: auto;
+                        max-width: {}px;
+                        overflow: auto;
+                    ", MAIN_WIDTH_PX)>
+                        { self.switch() }
+                    </div>
                 </main>
             </>
         }
