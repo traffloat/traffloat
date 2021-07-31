@@ -99,9 +99,17 @@ impl Component for Home {
             Msg::StartSingle(_) => {
                 let scenario = match &self.scenario {
                     Some(scenario) => Rc::clone(scenario),
-                    None => return false, // or panic as unreachable?
+                    None => return false,
                 };
                 self.props.start_single_hook.emit(SpGameArgs { scenario });
+                false
+            }
+            Msg::EditScenario(_) => {
+                let scenario = match &self.scenario {
+                    Some(scenario) => Rc::clone(scenario),
+                    None => return false,
+                };
+                self.props.edit_scenario_hook.emit(scenario);
                 false
             }
         }
@@ -162,6 +170,12 @@ impl Component for Home {
                                 tabindex=1 >
                                 { "Start" }
                             </button>
+                            <button
+                                onclick=self.link.callback(Msg::EditScenario)
+                                disabled=self.scenario.is_none()
+                                tabindex=2 >
+                                { "Rules" }
+                            </button>
                         </div>
                     </>
                 }) }
@@ -207,6 +221,8 @@ pub enum Msg {
     ScenarioUrlLoaded(fetch::Response<yew::format::Binary>),
     /// Starts a singleplayer game.
     StartSingle(MouseEvent),
+    /// Edit a scenario.
+    EditScenario(MouseEvent),
 }
 
 /// yew properties for [`Home`][Home].
@@ -214,6 +230,8 @@ pub enum Msg {
 pub struct Props {
     /// Callback to start a singleplayer game.
     pub start_single_hook: Callback<SpGameArgs>,
+    /// Callback to edit a scenario.
+    pub edit_scenario_hook: Callback<Rc<[u8]>>,
     /// Displays an error message.
     pub error: Option<String>,
 }

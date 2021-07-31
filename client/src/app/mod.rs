@@ -3,6 +3,7 @@ use std::rc::Rc;
 use crate::util::high_res_time;
 use traffloat::SetupEcs;
 
+mod editor;
 mod game;
 mod home;
 pub mod icon;

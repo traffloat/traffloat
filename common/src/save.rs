@@ -36,8 +36,17 @@ pub struct SaveFile {
     state: GameState,
 }
 
+impl Default for SaveFile {
+    fn default() -> Self {
+        Self {
+            def: GameDefinition::new(),
+            state: GameState::default(),
+        }
+    }
+}
+
 /// The state of the game.
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct GameState {
     nodes: Vec<Node>,
     edges: Vec<Edge>,
@@ -259,8 +268,8 @@ fn save(
     }
 }
 
-/// Loads a save file.
-pub fn load(mut setup: SetupEcs, mut buf: &[u8], now: u64) -> anyhow::Result<SetupEcs> {
+/// Parses the buffer into a save file.
+pub fn parse(mut buf: &[u8]) -> anyhow::Result<SaveFile> {
     use anyhow::Context;
 
     let (format, schema_version) = if buf.get(0) == Some(&0xFF) {
@@ -306,6 +315,13 @@ pub fn load(mut setup: SetupEcs, mut buf: &[u8], now: u64) -> anyhow::Result<Set
         #[cfg(feature = "rmp-serde")]
         Format::Binary => rmp_serde::from_slice(buf).context("Save format error"),
     }?;
+
+    Ok(file)
+}
+
+/// Loads a save file.
+pub fn load(mut setup: SetupEcs, buf: &[u8], now: u64) -> anyhow::Result<SetupEcs> {
+    let file = parse(buf)?;
 
     setup.resources.insert(file.def);
     setup
