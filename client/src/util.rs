@@ -139,3 +139,18 @@ impl fmt::Write for DebugWriter {
         self.lines.write_fmt(args)
     }
 }
+
+#[wasm_bindgen(module = "/js/confirmUnload.js")]
+extern "C" {
+    unsafe fn set_message(message: &str);
+    unsafe fn unset_message();
+}
+
+/// Sets or unsets the `beforeunload` confirmation message.
+pub fn set_before_unload(message: Option<&str>) {
+    if let Some(message) = message {
+        set_message(message);
+    } else {
+        unset_message();
+    }
+}
