@@ -4,7 +4,7 @@ use yew::prelude::*;
 use yew::services::fetch;
 use yew::services::reader;
 
-use super::SpGameArgs;
+use super::{scenarios, SpGameArgs};
 
 mod scenario_choose;
 
@@ -254,10 +254,10 @@ pub enum Scenario {
 impl Default for Scenario {
     fn default() -> Self {
         Self::Url(
-            scenario_choose::SCENARIO_OPTIONS
+            scenarios::OPTIONS
                 .get(0)
-                .expect("SCENARIO_OPTIONS is empty")
-                .1,
+                .expect("scenarios::OPTIONS is empty")
+                .path,
         )
     }
 }

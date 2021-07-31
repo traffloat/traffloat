@@ -6,18 +6,16 @@ use super::*;
 
 /// Wrapper component for the site.
 pub struct Mux {
-    _props: Props,
     link: ComponentLink<Self>,
     state: State,
 }
 
 impl Component for Mux {
     type Message = Msg;
-    type Properties = Props;
+    type Properties = ();
 
-    fn create(props: Props, link: ComponentLink<Self>) -> Self {
+    fn create((): (), link: ComponentLink<Self>) -> Self {
         Self {
-            _props: props,
             link,
             state: State::Home { error: None },
         }
@@ -40,7 +38,7 @@ impl Component for Mux {
         }
     }
 
-    fn change(&mut self, (): Props) -> ShouldRender {
+    fn change(&mut self, (): ()) -> ShouldRender {
         unreachable!()
     }
 
@@ -71,7 +69,6 @@ pub enum Msg {
     /// Ends a game with an optional error message.
     Exit(Option<String>),
 }
-type Props = ();
 
 enum State {
     Home { error: Option<String> },

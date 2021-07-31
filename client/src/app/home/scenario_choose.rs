@@ -4,7 +4,7 @@ use std::convert::TryInto;
 
 use yew::prelude::*;
 
-pub const SCENARIO_OPTIONS: &[(&str, &str)] = &[("Vanilla", "vanilla.tsvt")];
+use crate::app::scenarios;
 
 /// Displays a form for choosing a scenario.
 pub struct Comp {
@@ -38,9 +38,9 @@ impl Component for Comp {
                 .expect("Index out of bounds");
                 self.choice = index;
                 self.props.choose_scenario.emit(
-                    SCENARIO_OPTIONS
+                    scenarios::OPTIONS
                         .get(index)
-                        .map(|(_, url)| super::Scenario::Url(url)),
+                        .map(|def| super::Scenario::Url(def.path)),
                 );
                 true
             }
@@ -67,16 +67,16 @@ impl Component for Comp {
             <div>
                 <label>{ "Select scenario" }</label>
                 <select ref=self.select_ref.clone() onchange=self.link.callback(Msg::ChooseScenario)>
-                    { for SCENARIO_OPTIONS.iter().enumerate().map(|(index, (name, _url))| html! {
+                    { for scenarios::OPTIONS.iter().enumerate().map(|(index, def)| html! {
                         <option selected=index == self.choice>
-                            { name }
+                            { def.name }
                         </option>
                     })}
                     <option>{ "Open\u{2026}" }</option>
                 </select>
 
 
-                { for (self.choice == SCENARIO_OPTIONS.len()).then(|| html! {
+                { for (self.choice == scenarios::OPTIONS.len()).then(|| html! {
                     <input
                         type="file"
                         onchange=self.link.callback(Msg::ChooseFile)
