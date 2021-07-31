@@ -10,15 +10,13 @@ use traffloat::save;
 /// Displays a list of buildings.
 pub struct Comp {
     props: Props,
-    link: ComponentLink<Self>,
 }
-
 impl Component for Comp {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        Self { props, link }
+    fn create(props: Props, _link: ComponentLink<Self>) -> Self {
+        Self { props }
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {

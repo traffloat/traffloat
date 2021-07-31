@@ -60,7 +60,7 @@ impl Component for Comp {
         }
     }
 
-    fn change(&mut self, props: Props) -> ShouldRender {
+    fn change(&mut self, _: Props) -> ShouldRender {
         unimplemented!("I don't know when editor::Comp would be re-rendered")
     }
 

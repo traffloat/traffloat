@@ -33,27 +33,32 @@ impl Component for Comp {
     fn view(&self) -> Html {
         let building = self.props.file.def().get_building(self.props.building_id);
 
+        fn table_entry(name: impl Into<Html>, value: impl Into<Html>) -> Html {
+            html! {
+                <tr>
+                    <td style="width: 4em; padding-right: 10px;">{ name }</td>
+                    <td style="width: 8em;">{ value }</td>
+                </tr>
+            }
+        }
+
         html! {
             <>
                 <h2>{ building.name() }</h2>
                 <p style="font-style: italic;">{ building.summary() }</p>
                 <p>{ building.description() }</p>
-                <p>
-                    { "Hitpoints: " }
-                    { building.hitpoint() }
-                </p>
-                <p>
-                    { "Cargo capacity: " }
-                    { building.storage().cargo() }
-                </p>
-                <p>
-                    { "Liquid capacity: " }
-                    { building.storage().liquid() }
-                </p>
-                <p>
-                    { "Gas capacity: " }
-                    { building.storage().gas() }
-                </p>
+                <div style="
+                    float: right;
+                ">
+                    <table>
+                        <tbody>
+                            { table_entry("Hitpoints", building.hitpoint()) }
+                            { table_entry("Cargo capacity", building.storage().cargo()) }
+                            { table_entry("Liquid capacity", building.storage().liquid()) }
+                            { table_entry("Gas capacity", building.storage().gas()) }
+                        </tbody>
+                    </table>
+                </div>
             </>
         }
     }
