@@ -30,9 +30,13 @@ pub const SCHEMA_VERSION: u32 = 0;
 const TEXT_PREFIX: &str = "### SCHEMA_VERSION=";
 
 /// The schema for a `.tsvt`/`.tsvb` file.
-#[derive(Serialize, Deserialize)]
+#[derive(getset::Getters, Serialize, Deserialize)]
 pub struct SaveFile {
+    /// Defines the game rules and mechanisms.
+    #[getset(get = "pub")]
     def: GameDefinition,
+    /// Defines the current state of the game.
+    #[getset(get = "pub")]
     state: GameState,
 }
 
