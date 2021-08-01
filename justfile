@@ -6,7 +6,7 @@ client-watch: client-clean
 	cd client && $(npm bin)/webpack serve --mode development --open
 
 doc: client-glsl
-	cargo doc --lib
+	cargo doc --lib --document-private-items
 
 guide: guide-clean
 	cd docgen && cargo run -- --site-url https://traffloat.github.io/guide/master/
@@ -28,10 +28,10 @@ test:
 deps:
 	cd client && npm install
 	cd client/textures && npm install
-	pip3 install -r client/textures/requirements.txt 
+	pip3 install -r client/textures/requirements.txt
 
 tokei:
-	tokei -e "*lock*" -e "*.svg" 
+	tokei -e "*lock*" -e "*.svg"
 depgraph:
 	#!/usr/bin/env sh
 	(

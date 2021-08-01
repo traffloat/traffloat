@@ -44,8 +44,8 @@ impl Component for Comp {
         };
 
         let mut state = State::default();
-        if let Some(route) = props.intent_route.as_ref() {
-            state.switch = Switch::from_route(route);
+        if let Some(switch) = props.intent_route.as_ref().and_then(Switch::from_route) {
+            state.switch = switch;
         }
 
         let ret = Self {
@@ -155,7 +155,7 @@ impl Switch {
         route.replace_state();
     }
 
-    pub fn from_route(route: &Route) -> Self {
+    pub fn from_route(route: &Route) -> Option<Self> {
         let rules = match route {
             Route::Scenario {
                 sp: SpRoute::Rules(rules),
@@ -164,12 +164,12 @@ impl Switch {
             Route::Custom {
                 sp: SpRoute::Rules(rules),
             } => rules,
-            _ => unreachable!(),
+            _ => return None,
         };
-        match rules {
+        Some(match rules {
             Rules::Home => Self::Home,
             Rules::Building(id) => Self::Building(*id),
-        }
+        })
     }
 }
 
