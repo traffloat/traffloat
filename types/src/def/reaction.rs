@@ -11,7 +11,7 @@ use super::{cargo, gas, liquid, skill};
 use crate::time::Rate;
 use crate::units;
 
-/// Identifies a reaction category
+/// Identifies a reaction type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TypeId(pub usize);
 
@@ -26,9 +26,6 @@ pub struct Type {
     /// Description of the reaction type.
     #[getset(get = "pub")]
     description: ArcStr,
-    /// Category of the reaction type.
-    #[getset(get_copy = "pub")]
-    category: CategoryId,
     /// Catalysts for the reaction.
     #[getset(get = "pub")]
     catalysts: SmallVec<[Catalyst; 2]>,
@@ -174,19 +171,4 @@ impl Put {
     pub fn is_input(&self) -> bool {
         self.base() < 0.
     }
-}
-
-/// Identifies a reaction category
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CategoryId(pub usize);
-
-/// A category of reaction.
-#[derive(Debug, Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]
-pub struct Category {
-    /// Title of the reaction category.
-    #[getset(get = "pub")]
-    title: ArcStr,
-    /// Description of the reaction category.
-    #[getset(get = "pub")]
-    description: ArcStr,
 }

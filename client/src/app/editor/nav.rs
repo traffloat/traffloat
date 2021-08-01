@@ -5,9 +5,10 @@ use std::rc::Rc;
 use yew::prelude::*;
 
 use traffloat::def::building;
+use traffloat::def::cargo;
 use traffloat::save;
 
-/// Displays a list of buildings.
+/// Container for all nav items.
 pub struct Comp {
     props: Props,
 }
@@ -50,6 +51,10 @@ impl Component for Comp {
                     file=Rc::clone(&self.props.file)
                     choose_building=self.props.choose_building.clone()
                     />
+                <super::cargo::nav::Comp
+                    file=Rc::clone(&self.props.file)
+                    choose_cargo=self.props.choose_cargo.clone()
+                    />
             </nav>
         }
     }
@@ -67,4 +72,6 @@ pub struct Props {
     pub editor_home: Callback<()>,
     /// Set the main body to a building.
     pub choose_building: Callback<building::TypeId>,
+    /// Set the main body to a cargo.
+    pub choose_cargo: Callback<cargo::TypeId>,
 }

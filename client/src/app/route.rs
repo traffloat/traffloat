@@ -37,6 +37,7 @@ pub enum SpRoute {
 pub enum Rules {
     Home,
     Building(def::building::TypeId),
+    Cargo(def::cargo::TypeId),
 }
 
 impl Default for Route {
@@ -60,6 +61,7 @@ impl Route {
             SpRoute::Home => prefix,
             SpRoute::Rules(Rules::Home) => format!("{}/rules", prefix),
             SpRoute::Rules(Rules::Building(id)) => format!("{}/rules/building/{}", prefix, id.0),
+            SpRoute::Rules(Rules::Cargo(id)) => format!("{}/rules/cargo/{}", prefix, id.0),
             SpRoute::Game => format!("{}/play", prefix),
         }
     }
@@ -79,6 +81,11 @@ impl Route {
                     path = path.trim_start_matches('/');
                     if let Ok(id) = path.parse::<usize>() {
                         return SpRoute::Rules(Rules::Building(def::building::TypeId(id)));
+                    }
+                } else if let Some(mut path) = path.strip_prefix("cargo") {
+                    path = path.trim_start_matches('/');
+                    if let Ok(id) = path.parse::<usize>() {
+                        return SpRoute::Rules(Rules::Cargo(def::cargo::TypeId(id)));
                     }
                 }
                 return SpRoute::Rules(Rules::Home);

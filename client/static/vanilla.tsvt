@@ -231,7 +231,7 @@ def:
       texture_name: bus
   reaction:
     - name: Solar power
-      description: "Generates [electricity](../../electricity) from sunlight."
+      description: "Generates electricity from sunlight."
       category: 0
       catalysts:
         - range:

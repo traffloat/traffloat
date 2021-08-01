@@ -43,10 +43,6 @@ pub struct GameDefinition {
     #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
     reaction: Vec<reaction::Type>,
-    /// Reaction categories.
-    #[new(default)]
-    #[getset(get = "pub", get_mut = "pub")]
-    reaction_cats: Vec<reaction::Category>,
     /// Building types.
     #[new(default)]
     #[getset(get = "pub", get_mut = "pub")]
@@ -91,11 +87,6 @@ impl GameDefinition {
     pub fn add_vehicle(&mut self, vehicle: vehicle::Type) -> vehicle::TypeId {
         self.vehicle.push(vehicle);
         vehicle::TypeId(self.vehicle.len() - 1)
-    }
-    /// Adds a reaction category.
-    pub fn add_reaction_category(&mut self, cat: reaction::Category) -> reaction::CategoryId {
-        self.reaction_cats.push(cat);
-        reaction::CategoryId(self.reaction_cats.len() - 1)
     }
     /// Adds a reaction type.
     pub fn add_reaction(&mut self, reaction: reaction::Type) -> reaction::TypeId {

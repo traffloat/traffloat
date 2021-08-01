@@ -32,7 +32,7 @@ units! {
     Brightness("{} m\u{b2}");
 
     /// Skill level of an inhabitant.
-    Skill("{} SP");
+    Skill("{}pt");
 
     /// Driving force on a rail.
     RailForce("{} T");

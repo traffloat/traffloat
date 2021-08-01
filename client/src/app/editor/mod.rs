@@ -9,6 +9,7 @@ use traffloat::def;
 use traffloat::save;
 
 pub mod building;
+pub mod cargo;
 pub mod nav;
 
 const SIDEBAR_WIDTH_PX: u32 = 200;
@@ -70,6 +71,11 @@ impl Component for Comp {
                 self.state.switch.replace_state(&self.props.name);
                 true
             }
+            Msg::ChooseCargo(id) => {
+                self.state.switch = Switch::Cargo(id);
+                self.state.switch.replace_state(&self.props.name);
+                true
+            }
         }
     }
 
@@ -84,6 +90,7 @@ impl Component for Comp {
                     file=Rc::clone(&self.file)
                     editor_home=self.link.callback(|()| Msg::EditorHome)
                     choose_building=self.link.callback(Msg::ChooseBuilding)
+                    choose_cargo=self.link.callback(Msg::ChooseCargo)
                     />
                 <main style=format!("
                     margin-left: {}px;
@@ -120,6 +127,12 @@ impl Comp {
                     building_id=building_id
                     />
             },
+            Switch::Cargo(cargo_id) => html! {
+                <cargo::detail::Comp
+                    file=Rc::clone(&self.file)
+                    cargo_id=cargo_id
+                    />
+            },
         }
     }
 }
@@ -136,6 +149,8 @@ pub enum Switch {
     Home,
     /// Information for a building.
     Building(def::building::TypeId),
+    /// Information for a cargo.
+    Cargo(def::cargo::TypeId),
 }
 
 impl Switch {
@@ -143,6 +158,7 @@ impl Switch {
         let rules = match self {
             Self::Home => Rules::Home,
             Self::Building(id) => Rules::Building(*id),
+            Self::Cargo(id) => Rules::Cargo(*id),
         };
         let sp = SpRoute::Rules(rules);
         let route = match name.as_ref() {
@@ -169,6 +185,7 @@ impl Switch {
         Some(match rules {
             Rules::Home => Self::Home,
             Rules::Building(id) => Self::Building(*id),
+            Rules::Cargo(id) => Self::Cargo(*id),
         })
     }
 }
@@ -185,6 +202,8 @@ pub enum Msg {
     EditorHome,
     /// Set the main body to a building.
     ChooseBuilding(def::building::TypeId),
+    /// Set the main body to a cargo.
+    ChooseCargo(def::cargo::TypeId),
 }
 
 /// Yew properties for [`Comp`].
