@@ -29,3 +29,33 @@ deps:
 	cd client && npm install
 	cd client/textures && npm install
 	pip3 install -r client/textures/requirements.txt 
+
+tokei:
+	tokei -e "*lock*" -e "*.svg" 
+depgraph:
+	#!/usr/bin/env sh
+	(
+		echo 'digraph G {'
+		echo '  rankdir="LR";'
+		cargo metadata --format-version 1 |
+			jq '.packages |
+				map(
+					select(
+						.name |
+							contains("traffloat")
+					)
+				) |
+				map({
+					name,
+					dependencies: ("{" + (
+						.dependencies |
+							map("\"" + .name + "\"") |
+							join(";")
+					) + "}")
+				}) |
+				map("\"" + .name + "\" -> " + .dependencies) |
+				join("\n")
+			' -r
+		echo "}"
+	) | \
+		dot -T png

@@ -61,40 +61,14 @@ jobs:
           echo >> target/doc/index.md
           echo "## Code statistics" >> target/doc/index.md
           echo '```' >> target/doc/index.md
-          tokei -e "*lock*" -e "*.svg" >> target/doc/index.md
+          just tokei >> target/doc/index.md
           echo '```' >> target/doc/index.md
           echo >> target/doc/index.md
           echo "## Dependency graph" >> target/doc/index.md
           echo "![](./depgraph.png)" >> target/doc/index.md
 
       - name: Create crate dependency graph
-        run: |
-          (
-            echo 'digraph G {'
-            echo '  rankdir="LR";'
-            cargo metadata --format-version 1 |
-              jq '.packages |
-                map(
-                  select(
-                    .manifest_path |
-                      contains("registry") |
-                      not
-                  )
-                ) |
-                map({
-                  name,
-                  dependencies: ("{" + (
-                    .dependencies |
-                      map("\"" + .name + "\"") |
-                      join(";")
-                  ) + "}")
-                }) |
-                map("\"" + .name + "\" -> " + .dependencies) |
-                join("\n")
-              ' -r
-            echo "}"
-          ) | \
-            dot -T png -o target/doc/depgraph.png
+        run: just depgraph > target/doc/depgraph.png
 
       - name: Set Git author
         run: git config --global user.name "github-actions[bot]" && git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
