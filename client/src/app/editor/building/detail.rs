@@ -10,15 +10,14 @@ use traffloat::save::SaveFile;
 /// Displays a list of buildings.
 pub struct Comp {
     props: Props,
-    link: ComponentLink<Self>,
 }
 
 impl Component for Comp {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        Self { props, link }
+    fn create(props: Props, _link: ComponentLink<Self>) -> Self {
+        Self { props }
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
@@ -45,8 +44,6 @@ impl Component for Comp {
         html! {
             <>
                 <h2>{ building.name() }</h2>
-                <p style="font-style: italic;">{ building.summary() }</p>
-                <p>{ building.description() }</p>
                 <div style="
                     float: right;
                 ">
@@ -59,6 +56,8 @@ impl Component for Comp {
                         </tbody>
                     </table>
                 </div>
+                <p style="font-style: italic;">{ building.summary() }</p>
+                <p>{ building.description() }</p>
             </>
         }
     }

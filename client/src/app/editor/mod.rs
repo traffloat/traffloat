@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use yew::prelude::*;
 
+use crate::app::route::*;
 use traffloat::def;
 use traffloat::save;
 
@@ -16,8 +17,9 @@ const MAIN_WIDTH_PX: u32 = 750;
 
 /// Displays an editor for ducts in an edge.
 pub struct Comp {
-    file: Rc<save::SaveFile>,
+    props: Props,
     link: ComponentLink<Self>,
+    file: Rc<save::SaveFile>,
     state: State,
 }
 
@@ -33,28 +35,39 @@ impl Component for Comp {
                     .close_hook
                     .emit(Some(format!("Error reading save file: {}", err)));
                 return Self {
-                    file: Default::default(), // this value shouldn't be used anyway.
+                    props,
                     link,
+                    file: Default::default(), // this value shouldn't be used anyway.
                     state: State::default(),
                 };
             }
         };
 
-        Self {
-            file,
-            link,
-            state: State::default(),
+        let mut state = State::default();
+        if let Some(route) = props.intent_route.as_ref() {
+            state.switch = Switch::from_route(route);
         }
+
+        let ret = Self {
+            props,
+            link,
+            file,
+            state,
+        };
+        ret.state.switch.replace_state(&ret.props.name);
+        ret
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
             Msg::EditorHome => {
                 self.state.switch = Switch::Home;
+                self.state.switch.replace_state(&self.props.name);
                 true
             }
             Msg::ChooseBuilding(id) => {
                 self.state.switch = Switch::Building(id);
+                self.state.switch.replace_state(&self.props.name);
                 true
             }
         }
@@ -125,6 +138,41 @@ pub enum Switch {
     Building(def::building::TypeId),
 }
 
+impl Switch {
+    pub fn replace_state(&self, name: &Option<String>) {
+        let rules = match self {
+            Self::Home => Rules::Home,
+            Self::Building(id) => Rules::Building(*id),
+        };
+        let sp = SpRoute::Rules(rules);
+        let route = match name.as_ref() {
+            Some(name) => Route::Scenario {
+                name: name.to_string(),
+                sp,
+            },
+            None => Route::Custom { sp },
+        };
+        route.replace_state();
+    }
+
+    pub fn from_route(route: &Route) -> Self {
+        let rules = match route {
+            Route::Scenario {
+                sp: SpRoute::Rules(rules),
+                ..
+            } => rules,
+            Route::Custom {
+                sp: SpRoute::Rules(rules),
+            } => rules,
+            _ => unreachable!(),
+        };
+        match rules {
+            Rules::Home => Self::Home,
+            Rules::Building(id) => Self::Building(*id),
+        }
+    }
+}
+
 impl Default for Switch {
     fn default() -> Self {
         Self::Home
@@ -140,8 +188,14 @@ pub enum Msg {
 }
 
 /// Yew properties for [`Comp`].
-#[derive(Clone, Properties, PartialEq)]
+#[derive(Clone, Properties)]
 pub struct Props {
+    /// Name of the scenario, if it is default.
+    pub name: Option<String>,
+    /// Buffer storing the tsv buffer.
     pub buf: Rc<[u8]>,
+    /// Callback to return to home.
     pub close_hook: Callback<Option<String>>,
+    /// The intended route to navigate to.
+    pub intent_route: Option<Route>,
 }

@@ -4,7 +4,9 @@ use yew::prelude::*;
 use yew::services::fetch;
 use yew::services::reader;
 
-use super::{scenarios, SpGameArgs};
+use super::route::{Route, SpRoute};
+use super::scenarios;
+use super::SpGameArgs;
 
 mod scenario_choose;
 
@@ -15,6 +17,7 @@ pub struct Home {
     game_mode: GameMode,
     _loader: Option<ScenarioLoader>,
     scenario: Option<Rc<[u8]>>,
+    chosen_scenario_name: Option<String>,
 }
 
 impl Component for Home {
@@ -22,12 +25,19 @@ impl Component for Home {
     type Properties = Props;
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
+        let (game_mode, chosen_scenario_name) = match &props.intent_route {
+            Some(Route::Scenario { name, .. }) => (GameMode::Single, Some(name.into())),
+            Some(Route::Custom { .. }) => (GameMode::Single, None),
+            Some(Route::Server) => (GameMode::Multi, None),
+            None => (GameMode::Single, Some("vanilla".into())),
+        };
         Self {
             props,
             link,
-            game_mode: GameMode::Single,
+            game_mode,
             _loader: None,
             scenario: None,
+            chosen_scenario_name,
         }
     }
 
@@ -43,12 +53,13 @@ impl Component for Home {
                 self.game_mode = GameMode::Multi;
                 true
             }
-            Msg::ChooseScenario(scenario) => {
-                let loader = match scenario {
+            Msg::ChooseScenario(event) => {
+                let loader = match event.scenario {
                     Some(Scenario::Url(url)) => {
                         let request = fetch::Request::get(url)
                             .body(yew::format::Nothing)
                             .expect("Failed to build request");
+                        log::debug!("Fetching scenario from URL: {}", url);
                         match fetch::FetchService::fetch_binary(
                             request,
                             self.link.callback(Msg::ScenarioUrlLoaded),
@@ -62,6 +73,7 @@ impl Component for Home {
                         }
                     }
                     Some(Scenario::File(file)) => {
+                        log::debug!("Reading scenario from uploaded file: {}", file.name());
                         match reader::ReaderService::read_file(
                             file,
                             self.link.callback(Msg::ScenarioFileLoaded),
@@ -78,15 +90,48 @@ impl Component for Home {
                 };
                 self.scenario = None;
                 self._loader = loader;
+
+                if event.explicit {
+                    let route = match event.name.as_ref() {
+                        Some(name) => Route::Scenario {
+                            name: name.to_string(),
+                            sp: SpRoute::Home,
+                        },
+                        None => Route::Custom { sp: SpRoute::Home },
+                    };
+                    route.replace_state();
+                }
+
+                self.chosen_scenario_name = event.name;
                 true
             }
             Msg::ScenarioUrlLoaded(resp) => {
-                self._loader = None;
-                let (_meta, body) = resp.into_parts();
-                // TODO handle error if !meta.is_success() or body.is_err()
-                if let Ok(body) = body {
-                    let body = Rc::from(body);
-                    self.scenario = Some(body);
+                let _loader = self._loader.take(); // drop when function return
+                let (meta, body) = resp.into_parts();
+                if !meta.status.is_success() {
+                    log::error!("Error fetching URL: {:?}", meta);
+                    return true;
+                }
+                match body {
+                    Ok(body) => {
+                        let body = Rc::from(body);
+                        self.scenario = Some(body);
+                        if let Some(Route::Scenario {
+                            sp: SpRoute::Game, ..
+                        }) = &self.props.intent_route
+                        {
+                            self.link.send_message(Msg::StartSingle);
+                        } else if let Some(Route::Scenario {
+                            sp: SpRoute::Rules(_),
+                            ..
+                        }) = &self.props.intent_route
+                        {
+                            self.link.send_message(Msg::EditScenario);
+                        }
+                    }
+                    Err(err) => {
+                        log::error!("Error reading scenario data: {:?}", err);
+                    }
                 }
                 true
             }
@@ -96,20 +141,24 @@ impl Component for Home {
                 self.scenario = Some(body);
                 true
             }
-            Msg::StartSingle(_) => {
+            Msg::StartSingle => {
                 let scenario = match &self.scenario {
                     Some(scenario) => Rc::clone(scenario),
                     None => return false,
                 };
-                self.props.start_single_hook.emit(SpGameArgs { scenario });
+                self.props
+                    .start_single_hook
+                    .emit((SpGameArgs { scenario }, self.chosen_scenario_name.clone()));
                 false
             }
-            Msg::EditScenario(_) => {
+            Msg::EditScenario => {
                 let scenario = match &self.scenario {
                     Some(scenario) => Rc::clone(scenario),
                     None => return false,
                 };
-                self.props.edit_scenario_hook.emit(scenario);
+                self.props
+                    .edit_scenario_hook
+                    .emit((self.chosen_scenario_name.clone(), scenario));
                 false
             }
         }
@@ -161,17 +210,18 @@ impl Component for Home {
                 { for (self.game_mode == GameMode::Single).then(|| html! {
                     <>
                         <scenario_choose::Comp
-                            choose_scenario=self.link.callback(Msg::ChooseScenario)
+                            choose_scenario=self.link.callback(Msg::ChooseScenario )
+                            intent_route=self.props.intent_route.clone()
                             />
                         <div>
                             <button
-                                onclick=self.link.callback(Msg::StartSingle)
+                                onclick=self.link.callback(|_| Msg::StartSingle)
                                 disabled=self.scenario.is_none()
                                 tabindex=1 >
                                 { "Start" }
                             </button>
                             <button
-                                onclick=self.link.callback(Msg::EditScenario)
+                                onclick=self.link.callback(|_| Msg::EditScenario)
                                 disabled=self.scenario.is_none()
                                 tabindex=2 >
                                 { "Rules" }
@@ -214,24 +264,37 @@ pub enum Msg {
     /// Selects the multi player mode.
     ModeMulti(MouseEvent),
     /// Chooses a singleplayer scenario.
-    ChooseScenario(Option<Scenario>),
+    ChooseScenario(ChooseScenario),
     /// Scenario file has been uploaded.
     ScenarioFileLoaded(reader::FileData),
     /// Scenario URL has been downloaded.
     ScenarioUrlLoaded(fetch::Response<yew::format::Binary>),
     /// Starts a singleplayer game.
-    StartSingle(MouseEvent),
+    StartSingle,
     /// Edit a scenario.
-    EditScenario(MouseEvent),
+    EditScenario,
+}
+
+/// An event of choosing a scenario.
+pub struct ChooseScenario {
+    /// The source of scenario.
+    pub scenario: Option<Scenario>,
+    /// The name of the scenario.
+    pub name: Option<String>,
+    /// Whether the scenario was explicit chosen
+    /// (`false` if inferred from URL).
+    pub explicit: bool,
 }
 
 /// yew properties for [`Home`][Home].
 #[derive(Clone, Properties)]
 pub struct Props {
     /// Callback to start a singleplayer game.
-    pub start_single_hook: Callback<SpGameArgs>,
+    pub start_single_hook: Callback<(SpGameArgs, Option<String>)>,
     /// Callback to edit a scenario.
-    pub edit_scenario_hook: Callback<Rc<[u8]>>,
+    pub edit_scenario_hook: Callback<(Option<String>, Rc<[u8]>)>,
+    /// The intended route to navigate to.
+    pub intent_route: Option<Route>,
     /// Displays an error message.
     pub error: Option<String>,
 }

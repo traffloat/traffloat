@@ -8,6 +8,7 @@ mod game;
 mod home;
 pub mod icon;
 mod mux;
+pub mod route;
 mod scenarios;
 
 pub use mux::Mux;

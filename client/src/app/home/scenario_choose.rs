@@ -4,13 +4,13 @@ use std::convert::TryInto;
 
 use yew::prelude::*;
 
+use crate::app::route::Route;
 use crate::app::scenarios;
 
 /// Displays a form for choosing a scenario.
 pub struct Comp {
     props: Props,
     link: ComponentLink<Self>,
-    select_ref: NodeRef,
     choice: usize,
 }
 
@@ -19,11 +19,51 @@ impl Component for Comp {
     type Properties = Props;
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
+        let choice = match &props.intent_route {
+            Some(Route::Scenario { name, .. }) => {
+                match scenarios::OPTIONS
+                    .iter()
+                    .enumerate()
+                    .find(|(_, def)| def.id == name)
+                {
+                    Some((ord, def)) => {
+                        props.choose_scenario.emit(super::ChooseScenario {
+                            scenario: Some(super::Scenario::Url(def.path)),
+                            name: Some(def.id.into()),
+                            explicit: false,
+                        });
+                        ord
+                    }
+                    None => 0,
+                }
+            }
+            Some(Route::Custom { .. }) => {
+                props.choose_scenario.emit(super::ChooseScenario {
+                    scenario: None,
+                    name: None,
+                    explicit: false,
+                });
+                scenarios::OPTIONS.len()
+            }
+            _ => {
+                props.choose_scenario.emit(super::ChooseScenario {
+                    scenario: Some(super::Scenario::Url(
+                        scenarios::OPTIONS
+                            .get(0)
+                            .expect("scenarios::OPTIONS is empty")
+                            .path,
+                    )),
+                    name: Some("vanilla".into()),
+                    explicit: false,
+                });
+                0
+            }
+        };
+
         Self {
             props,
             link,
-            select_ref: NodeRef::default(),
-            choice: 0,
+            choice,
         }
     }
 
@@ -37,11 +77,14 @@ impl Component for Comp {
                 .try_into()
                 .expect("Index out of bounds");
                 self.choice = index;
-                self.props.choose_scenario.emit(
-                    scenarios::OPTIONS
-                        .get(index)
-                        .map(|def| super::Scenario::Url(def.path)),
-                );
+                let def = scenarios::OPTIONS.get(index);
+                let scenario = def.as_ref().map(|def| super::Scenario::Url(def.path));
+                let name = def.as_ref().map(|def| def.id.into());
+                self.props.choose_scenario.emit(super::ChooseScenario {
+                    scenario,
+                    name,
+                    explicit: true,
+                });
                 true
             }
             Msg::ChooseFile(cd) => {
@@ -49,9 +92,11 @@ impl Component for Comp {
                     ChangeData::Files(files) => files.get(0),
                     _ => unreachable!(),
                 };
-                self.props
-                    .choose_scenario
-                    .emit(file.map(super::Scenario::File));
+                self.props.choose_scenario.emit(super::ChooseScenario {
+                    scenario: file.map(super::Scenario::File),
+                    name: None,
+                    explicit: true,
+                });
                 false
             }
         }
@@ -66,7 +111,7 @@ impl Component for Comp {
         html! {
             <div>
                 <label>{ "Select scenario" }</label>
-                <select ref=self.select_ref.clone() onchange=self.link.callback(Msg::ChooseScenario)>
+                <select onchange=self.link.callback(Msg::ChooseScenario)>
                     { for scenarios::OPTIONS.iter().enumerate().map(|(index, def)| html! {
                         <option selected=index == self.choice>
                             { def.name }
@@ -85,17 +130,6 @@ impl Component for Comp {
             </div>
         }
     }
-
-    fn rendered(&mut self, first: bool) {
-        if first {
-            self.link
-                .send_message(Msg::ChooseScenario(ChangeData::Select(
-                    self.select_ref
-                        .cast()
-                        .expect("<select> is not HtmlSelectElement"),
-                )))
-        }
-    }
 }
 
 /// Events for [`Comp`].
@@ -110,5 +144,7 @@ pub enum Msg {
 #[derive(Clone, Properties)]
 pub struct Props {
     /// The callback for updating chosen scenario.
-    pub choose_scenario: Callback<Option<super::Scenario>>,
+    pub choose_scenario: Callback<super::ChooseScenario>,
+    /// The intended route to navigate to.
+    pub intent_route: Option<Route>,
 }
