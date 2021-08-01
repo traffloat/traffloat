@@ -53,7 +53,7 @@ The following tools are used for compiling the client:
 - Ruby 2.7.0
 - Python 3.8.10
 - Node v14.16.0
-- Rust (default toolchain) nightly-2021-06-28
+- Rust (default toolchain) nightly-2021-08-01
 
 Ruby is used to minify the GLSL scripts,
 and Python is used for combining the texture images.

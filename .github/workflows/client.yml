@@ -15,7 +15,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-06-28
+          toolchain: nightly-2021-08-01
           profile: default
           default: true
       - name: Cache cargo tools
@@ -23,7 +23,7 @@ jobs:
         with:
           path: |
             ~/.cargo
-          key: wasm-pack-just
+          key: wasm-pack-just-08-01
       - run: test -f ~/.cargo/bin/just || cargo install wasm-pack just
 
       - name: Install toolchain dependencies
