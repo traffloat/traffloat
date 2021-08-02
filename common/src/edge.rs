@@ -3,9 +3,8 @@
 //! An edge is also called a "corridor".
 //! It connects two nodes together.
 
-use anyhow::Context;
 use derive_new::new;
-use legion::Entity;
+use legion::{systems::CommandBuffer, Entity};
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
@@ -137,12 +136,15 @@ impl DuctType {
     }
 }
 
-/// Indicates that an edge is added
+/// Indicates that an edge is added.
 #[derive(Debug, new, getset::Getters)]
 pub struct AddEvent {
-    /// The added edge
+    /// The added edge ID.
     #[getset(get = "pub")]
     edge: Id,
+    /// The added edge entity.
+    #[getset(get = "pub")]
+    entity: Entity,
 }
 
 /// Indicates that an edge is flagged for removal
@@ -151,10 +153,6 @@ pub struct RemoveEvent {
     /// The removed edge
     #[getset(get = "pub")]
     edge: Id,
-}
-/// Initializes ECS
-pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup
 }
 
 /// Computes the transformation matrix from or to the unit cylinder
@@ -195,55 +193,84 @@ pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bo
     }
 }
 
-/// Initializes a new edge.
-pub fn create_components(
-    world: &mut impl legion::PushEntity,
+/// An event to schedule requests to initialize new edges.
+#[derive(TypedBuilder)]
+pub struct CreateRequest {
     from: Entity,
     to: Entity,
     size: f64,
     hp: units::Portion<units::Hitpoint>,
-    design: impl IntoIterator<Item = save::SavedDuct>,
-) -> legion::Entity {
-    let design = design
-        .into_iter()
-        .map(|duct| Duct {
-            center: duct.center,
-            radius: duct.radius,
-            ty: duct.ty,
-            entity: world.push(()),
-        })
-        .collect();
-    world.push((Id::new(from, to), Size::new(size), hp, Design::new(design)))
+    design: Vec<save::SavedDuct>,
 }
 
-/// Initializes a saved edge.
-pub fn create_components_from_save(
-    world: &mut impl legion::PushEntity,
-    index: &node::Index,
-    save: save::Edge,
-) -> anyhow::Result<legion::Entity> {
-    let design = save
-        .design
-        .iter()
-        .map(|duct| Duct {
-            center: duct.center,
-            radius: duct.radius,
-            ty: duct.ty,
-            entity: world.push(()),
-        })
-        .collect();
-    let from = index
-        .get(save.from)
-        .context("Edge references nonexistent node")?;
-    let to = index
-        .get(save.to)
-        .context("Edge references nonexistent node")?;
-    Ok(world.push((
-        Id::new(from, to),
-        save.size,
-        save.hitpoint,
-        Design::new(design),
-    )))
+#[codegen::system]
+fn create_new_edge(
+    entities: &mut CommandBuffer,
+    #[subscriber] requests: impl Iterator<Item = CreateRequest>,
+    #[publisher] add_events: impl FnMut(AddEvent),
+) {
+    for request in requests {
+        let design = request
+            .design
+            .iter()
+            .map(|duct| Duct {
+                center: duct.center,
+                radius: duct.radius,
+                ty: duct.ty,
+                entity: entities.push(()),
+            })
+            .collect();
+        let id = Id::new(request.from, request.to);
+        let entity = entities.push((id, Size::new(request.size), request.hp, Design::new(design)));
+        add_events(AddEvent { edge: id, entity });
+    }
+}
+
+/// An event to schedule requests to initialize saved edges.
+#[derive(TypedBuilder)]
+pub struct LoadRequest {
+    /// The saved edge.
+    save: Box<save::Edge>,
+}
+
+#[codegen::system]
+fn create_saved_edge(
+    entities: &mut CommandBuffer,
+    #[subscriber] requests: impl Iterator<Item = LoadRequest>,
+    #[publisher] add_events: impl FnMut(AddEvent),
+    #[resource] index: &node::Index,
+) {
+    for LoadRequest { save } in requests {
+        let design = save
+            .design
+            .iter()
+            .map(|duct| Duct {
+                center: duct.center,
+                radius: duct.radius,
+                ty: duct.ty,
+                entity: entities.push(()), // TODO initialize ducts
+            })
+            .collect();
+
+        // FIXME how do we handle the error here properly?
+        let from = index
+            .get(save.from)
+            .expect("Edge references nonexistent node");
+        let to = index
+            .get(save.to)
+            .expect("Edge references nonexistent node");
+
+        let id = Id::new(from, to);
+        let entity = entities.push((id, save.size, save.hitpoint, Design::new(design)));
+        add_events(AddEvent { edge: id, entity });
+    }
+}
+
+/// Initializes ECS
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
+    setup
+        .uses(create_new_edge_setup)
+        .uses(create_saved_edge_setup)
 }
 
 /// Save type for edges.

@@ -47,8 +47,6 @@ features = [
 	"codegen",
 	"extended-tuple-impls",
 ]
-git = "https://github.com/traffloat/legion"
-branch = "push-entity-trait"
 
 [dependencies.web-sys]
 version = "0.3.50"

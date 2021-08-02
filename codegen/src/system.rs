@@ -216,7 +216,7 @@ pub(crate) fn imp(_system_attr: TokenStream, input: TokenStream) -> Result<Token
             ));
             state_values.push(quote!(#reader_var_name));
             assigns.push(quote! {
-                let #reader_var_name = setup.subscribe::<#event>();
+                let #reader_var_name = setup.subscriber::<#event>();
             });
             var_adapters.push(quote! {
                 let mut #pat = #channel_var_name.read(#reader_var_name);

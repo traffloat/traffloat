@@ -52,8 +52,11 @@ impl Default for SaveFile {
 /// The state of the game.
 #[derive(Default, Serialize, Deserialize)]
 pub struct GameState {
-    nodes: Vec<Node>,
-    edges: Vec<Edge>,
+    // we need to box Node and Edge because they will be passed as boxed later on.
+    #[allow(clippy::vec_box)]
+    nodes: Vec<Box<Node>>,
+    #[allow(clippy::vec_box)]
+    edges: Vec<Box<Edge>>,
     clock: Instant,
 }
 
@@ -148,7 +151,7 @@ fn save(
                         gas,
                         &gas_capacity,
                     )| {
-                        Node {
+                        Box::new(Node {
                             id,
                             name: name.clone(),
                             position,
@@ -196,7 +199,7 @@ fn save(
                                 })
                                 .collect(),
                             gas_capacity: gas_capacity.total(),
-                        }
+                        })
                     },
                 )
                 .collect(),
@@ -218,7 +221,7 @@ fn save(
                         .expect("Edge points to nonexistent ID")
                         .get_component::<node::Id>()
                         .expect("Edge points to non-Node");
-                    Edge {
+                    Box::new(Edge {
                         from,
                         to,
                         size,
@@ -232,7 +235,7 @@ fn save(
                             })
                             .collect(),
                         hitpoint,
-                    }
+                    })
                 })
                 .collect(),
                 clock: clock.now(),
@@ -333,30 +336,15 @@ pub fn load(mut setup: SetupEcs, buf: &[u8], now: u64) -> anyhow::Result<SetupEc
         .get_mut_or_default::<Clock>()
         .reset_time(file.state.clock, now.homosign());
 
-    let SetupEcs {
-        server,
-        builder,
-        mut world,
-        resources,
-    } = setup;
-    {
-        let mut index = resources.get_mut().expect("Index not initialized yet");
-
-        for node in file.state.nodes {
-            node::create_components_from_save(&mut world, &mut *index, node);
-        }
-
-        for edge in file.state.edges {
-            edge::create_components_from_save(&mut world, &*index, edge)?;
-        }
+    for node in file.state.nodes {
+        setup = setup.publish_event(node::LoadRequest::builder().save(node).build());
     }
 
-    Ok(SetupEcs {
-        server,
-        builder,
-        world,
-        resources,
-    })
+    for edge in file.state.edges {
+        setup = setup.publish_event(edge::LoadRequest::builder().save(edge).build());
+    }
+
+    Ok(setup)
 }
 
 /// Initializes ECS

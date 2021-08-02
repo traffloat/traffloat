@@ -39,8 +39,6 @@ features = [
 	"codegen",
 	"extended-tuple-impls",
 ]
-git = "https://github.com/traffloat/legion"
-branch = "push-entity-trait"
 
 [features]
 default = ["serde_yaml", "rmp-serde"]

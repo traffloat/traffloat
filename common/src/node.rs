@@ -7,11 +7,14 @@ use std::num::NonZeroUsize;
 
 use arcstr::ArcStr;
 use derive_new::new;
-use legion::Entity;
+use legion::{systems::CommandBuffer, Entity};
 use serde::{Deserialize, Serialize};
 use smallvec::smallvec;
+use typed_builder::TypedBuilder;
 
 use crate::def::{building, GameDefinition};
+use crate::defense;
+use crate::population;
 use crate::shape::{self, Shape};
 use crate::space::{Matrix, Position};
 use crate::sun::LightStats;
@@ -37,9 +40,12 @@ pub struct Name {
 /// Indicates that a node is added
 #[derive(Debug, new, getset::CopyGetters)]
 pub struct AddEvent {
-    /// The added node
+    /// The added node ID
     #[getset(get_copy = "pub")]
     node: Id,
+    /// The added node entity
+    #[getset(get_copy = "pub")]
+    entity: Entity,
 }
 
 /// Indicates that a node is flagged for removal
@@ -98,112 +104,158 @@ fn delete_nodes(
     }
 }
 
+/// An event to schedule requests to initialize new nodes.
+///
+/// Do not subscribe to this event for listening to node creation.
+/// Use [`AddEvent`] instead.
+#[derive(TypedBuilder)]
+pub struct CreationRequest {
+    /// Type ID of the building to create.
+    type_id: building::TypeId,
+    /// The position of the node.
+    position: Position,
+    /// The rotation matrix of the node.
+    rotation: Matrix,
+}
+
+#[codegen::system]
+fn create_new_node(
+    entities: &mut CommandBuffer,
+    #[subscriber] requests: impl Iterator<Item = CreationRequest>,
+    #[publisher] add_events: impl FnMut(AddEvent),
+    #[resource(no_init)] def: &GameDefinition,
+    #[resource] index: &mut Index,
+) {
+    for request in requests {
+        let building = def.get_building(request.type_id);
+
+        let id = Id::new(rand::random());
+
+        let entity = entities.push((
+            id,
+            Name::new(building.name().clone()),
+            request.position,
+            Shape::builder()
+                .unit(building.shape().unit())
+                .matrix(request.rotation * building.shape().transform())
+                .texture(shape::Texture::new(
+                    building.shape().texture_src().clone(),
+                    building.shape().texture_name().clone(),
+                ))
+                .build(),
+            LightStats::default(),
+            units::Portion::full(building.hitpoint()),
+            cargo::StorageList::new(smallvec![]),
+            cargo::StorageCapacity::new(building.storage().cargo()),
+            liquid::StorageList::new(smallvec![]),
+            liquid::StorageCapacity::new(building.storage().liquid()),
+            gas::StorageList::new(smallvec![]),
+            gas::StorageCapacity::new(building.storage().gas()),
+        ));
+        index.index.insert(id, entity);
+
+        for feature in building.features() {
+            match feature {
+                building::ExtraFeature::Core => {
+                    entities.add_component(entity, defense::Core);
+                }
+                building::ExtraFeature::ProvidesHousing(housing) => {
+                    entities.add_component(
+                        entity,
+                        population::Housing::builder().capacity(*housing).build(),
+                    );
+                }
+                _ => todo!(),
+            }
+        }
+
+        add_events(AddEvent { node: id, entity })
+    }
+}
+
+/// An event to schedule requests to initialize saved nodes.
+///
+/// Do not subscribe to this event for listening to node creation.
+/// Use [`AddEvent`] instead.
+#[derive(TypedBuilder)]
+pub struct LoadRequest {
+    /// The saved node.
+    save: Box<save::Node>,
+}
+
+#[codegen::system]
+fn create_saved_node(
+    entities: &mut CommandBuffer,
+    #[subscriber] requests: impl Iterator<Item = LoadRequest>,
+    #[publisher] add_events: impl FnMut(AddEvent),
+    #[resource] index: &mut Index,
+) {
+    for LoadRequest { save } in requests {
+        let cargo_list = save
+            .cargo
+            .iter()
+            .map(|(&id, &size)| {
+                let entity = entities.push((
+                    cargo::Storage::new(id),
+                    cargo::StorageSize::new(size),
+                    cargo::NextStorageSize::new(size),
+                ));
+                (id, entity)
+            })
+            .collect();
+        let liquid_list = save
+            .liquid
+            .iter()
+            .map(|(&id, &size)| {
+                let entity = entities.push((
+                    liquid::Storage::new(id),
+                    liquid::StorageSize::new(size),
+                    liquid::NextStorageSize::new(size),
+                ));
+                (id, entity)
+            })
+            .collect();
+        let gas_list = save
+            .gas
+            .iter()
+            .map(|(&id, &size)| {
+                let entity = entities.push((
+                    gas::Storage::new(id),
+                    gas::StorageSize::new(size),
+                    gas::NextStorageSize::new(size),
+                ));
+                (id, entity)
+            })
+            .collect();
+
+        let entity = entities.push((
+            save.id,
+            save.name.clone(),
+            save.position,
+            save.shape.clone(),
+            LightStats::default(),
+            save.hitpoint,
+            cargo::StorageList::new(cargo_list),
+            cargo::StorageCapacity::new(save.cargo_capacity),
+            liquid::StorageList::new(liquid_list),
+            liquid::StorageCapacity::new(save.liquid_capacity),
+            gas::StorageList::new(gas_list),
+            gas::StorageCapacity::new(save.gas_capacity),
+        ));
+        index.index.insert(save.id, entity);
+        add_events(AddEvent {
+            node: save.id,
+            entity,
+        })
+    }
+}
+
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.uses(delete_nodes_setup)
-}
-
-/// Initialize a new node entity.
-///
-/// Note that the caller should trigger [`AddEvent`] separately.
-pub fn create_components(
-    world: &mut impl legion::PushEntity,
-    index: &mut Index,
-    def: &GameDefinition,
-    type_id: building::TypeId,
-    position: Position,
-    rotation: Matrix,
-) -> Entity {
-    let building = def.get_building(type_id);
-
-    let id = Id::new(rand::random());
-
-    let entity = world.push((
-        id,
-        Name::new(building.name().clone()),
-        position,
-        Shape::builder()
-            .unit(building.shape().unit())
-            .matrix(rotation * building.shape().transform())
-            .texture(shape::Texture::new(
-                building.shape().texture_src().clone(),
-                building.shape().texture_name().clone(),
-            ))
-            .build(),
-        LightStats::default(),
-        units::Portion::full(building.hitpoint()),
-        cargo::StorageList::new(smallvec![]),
-        cargo::StorageCapacity::new(building.storage().cargo()),
-        liquid::StorageList::new(smallvec![]),
-        liquid::StorageCapacity::new(building.storage().liquid()),
-        gas::StorageList::new(smallvec![]),
-        gas::StorageCapacity::new(building.storage().gas()),
-    ));
-    index.index.insert(id, entity);
-    entity
-}
-
-/// Creates the components for a saved node.
-///
-/// Note that the caller should trigger [`AddEvent`] separately.
-pub fn create_components_from_save(
-    world: &mut impl legion::PushEntity,
-    index: &mut Index,
-    save: save::Node,
-) -> Entity {
-    let cargo_list = save
-        .cargo
-        .iter()
-        .map(|(&id, &size)| {
-            let entity = world.push((
-                cargo::Storage::new(id),
-                cargo::StorageSize::new(size),
-                cargo::NextStorageSize::new(size),
-            ));
-            (id, entity)
-        })
-        .collect();
-    let liquid_list = save
-        .liquid
-        .iter()
-        .map(|(&id, &size)| {
-            let entity = world.push((
-                liquid::Storage::new(id),
-                liquid::StorageSize::new(size),
-                liquid::NextStorageSize::new(size),
-            ));
-            (id, entity)
-        })
-        .collect();
-    let gas_list = save
-        .gas
-        .iter()
-        .map(|(&id, &size)| {
-            let entity = world.push((
-                gas::Storage::new(id),
-                gas::StorageSize::new(size),
-                gas::NextStorageSize::new(size),
-            ));
-            (id, entity)
-        })
-        .collect();
-
-    let entity = world.push((
-        save.id,
-        save.name.clone(),
-        save.position,
-        save.shape,
-        LightStats::default(),
-        save.hitpoint,
-        cargo::StorageList::new(cargo_list),
-        cargo::StorageCapacity::new(save.cargo_capacity),
-        liquid::StorageList::new(liquid_list),
-        liquid::StorageCapacity::new(save.liquid_capacity),
-        gas::StorageList::new(gas_list),
-        gas::StorageCapacity::new(save.gas_capacity),
-    ));
-    index.index.insert(save.id, entity);
-    entity
+    setup
+        .uses(delete_nodes_setup)
+        .uses(create_new_node_setup)
+        .uses(create_saved_node_setup)
 }
 
 /// Save type for nodes.

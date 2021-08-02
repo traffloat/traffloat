@@ -119,14 +119,24 @@ impl SetupEcs {
         self
     }
     /// Declare a published event
-    pub fn publish<T: shrev::Event>(mut self) -> Self {
+    pub fn publisher<T: shrev::Event>(mut self) -> Self {
         let _ = self
             .resources
             .get_or_insert_with(shrev::EventChannel::<T>::new);
         self
     }
+    /// Publish an event
+    pub fn publish_event<T: shrev::Event>(mut self, t: T) -> Self {
+        {
+            let mut channel = self
+                .resources
+                .get_mut_or_insert_with(shrev::EventChannel::<T>::new);
+            channel.single_write(t);
+        }
+        self
+    }
     /// Declare a subscribed event
-    pub fn subscribe<T: shrev::Event>(&mut self) -> shrev::ReaderId<T> {
+    pub fn subscriber<T: shrev::Event>(&mut self) -> shrev::ReaderId<T> {
         let mut channel = self
             .resources
             .get_mut_or_insert_with(shrev::EventChannel::<T>::new);
