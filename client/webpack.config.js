@@ -15,6 +15,8 @@ module.exports = {
 	},
 	devServer: {
 		contentBase: dist,
+		host: process.env.HTTP_HOST || "localhost",
+		port: parseInt(process.env.PORT || 8080),
 	},
 	experiments: {
 		asyncWebAssembly: true,
