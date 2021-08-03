@@ -29,11 +29,11 @@ pub struct StorageCapacity {
 }
 
 /// A component attached to storage entities.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, getset::Getters)]
 pub struct Storage {
-    /// The type of liquid
-    #[getset(get_copy = "pub")]
-    liquid: def::liquid::TypeId,
+    /// The type of liquid.
+    #[getset(get = "pub")]
+    liquid: def::liquid::TypeId, // TODO should we optimize this to a runtime integer ID?
 }
 
 /// The size of a liquid storage in the current simulation frame.

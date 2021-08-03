@@ -2,189 +2,231 @@
 ---
 def:
   cargo:
-    - name: Amino acid
+    amino-acid:
+      name: Amino acid
       summary: An organic mineral.
       description: Amino acids are found in small amounts in asteroids. Use them to synthesize food and DNA.
-      category: 0
+      category: raw-mineral
       texture_src: textures-x-fancy.png
       texture_name: amino-acid
-    - name: Rock
+    rock:
+      name: Rock
       summary: Chunks of rocks from asteroids.
       description: Rocks are the cheapest type of material obtained from asteroids. They can be used as ammunition or disposed as junk.
-      category: 0
+      category: raw-mineral
       texture_src: textures-x-fancy.png
       texture_name: rock
-    - name: DNA
+    dna:
+      name: DNA
       summary: Genetic material.
       description: "DNA is used to produce inhabitants through asexual reproduction. Although morally challenged, this is the only way to start a new colony from scratch."
-      category: 1
+      category: organic
       texture_src: textures-x-fancy.png
       texture_name: dna
-    - name: Pepples
+    pepples:
+      name: Pepples
       summary: Stone pepples used as ammunition.
       description: Pepples are produced by decomposing rocks.They are the basic type of ammunition for defense.
-      category: 2
+      category: ammunition
       texture_src: textures-x-fancy.png
       texture_name: pepples
-    - name: Sediment
+    sediment:
+      name: Sediment
       summary: Filtration and distillation residue.
       description: "Sediments are waste produced during liquid processing. They cannot be used for anything, and should be ejected with junk launchers to avoid filling up storage space."
-      category: 3
+      category: junk
       texture_src: textures-x-fancy.png
       texture_name: sediment
-    - name: Aluminium
+    aluminium:
+      name: Aluminium
       summary: A metal used for construction
       description: ""
-      category: 4
+      category: intermediate-material
       texture_src: textures-x-fancy.png
       texture_name: aluminium
-    - name: Battery
+    battery:
+      name: Battery
       summary: Stores a small amount of power
       description: "Charged in charging stations and discharged in discharging stations, batteries serve as an alternative method to transfer electricity between buildings. They are useful for avoiding construction of power cables into low-consumption regions and ensuring uninterrupted power supply in regions where cable often disconnects.\n                "
-      category: 5
+      category: container
       texture_src: textures-x-fancy.png
       texture_name: battery
-    - name: Liquid bottle (Asteroidal water)
+    asteroidal-water-bottle:
+      name: Liquid bottle (Asteroidal water)
       summary: Stores a small amount of Asteroidal water
       description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to transfer a small amount of liquid to factories as a replacement of constructing dedicated pipes through corridors."
-      category: 5
+      category: container
       texture_src: textures-x-fancy.png
       texture_name: asteroidal-water-liquid-bottle
-    - name: Liquid bottle (Filtered water)
+    filtered-water-bottle:
+      name: Liquid bottle (Filtered water)
       summary: Stores a small amount of Filtered water
       description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to transfer a small amount of liquid to factories as a replacement of constructing dedicated pipes through corridors."
-      category: 5
+      category: container
       texture_src: textures-x-fancy.png
       texture_name: filtered-water-liquid-bottle
-    - name: Liquid bottle (Deionized water)
+    deionized-water-bottle:
+      name: Liquid bottle (Deionized water)
       summary: Stores a small amount of Deionized water
       description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to transfer a small amount of liquid to factories as a replacement of constructing dedicated pipes through corridors."
-      category: 5
+      category: container
       texture_src: textures-x-fancy.png
       texture_name: deionized-water-liquid-bottle
-    - name: Liquid bottle (Urine)
+    urine-bottle:
+      name: Liquid bottle (Urine)
       summary: Stores a small amount of Urine
       description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to transfer a small amount of liquid to factories as a replacement of constructing dedicated pipes through corridors."
-      category: 5
+      category: container
       texture_src: textures-x-fancy.png
       texture_name: urine-liquid-bottle
-    - name: Liquid bottle (Coolant)
+    coolant-bottle:
+      name: Liquid bottle (Coolant)
       summary: Stores a small amount of Coolant
       description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to transfer a small amount of liquid to factories as a replacement of constructing dedicated pipes through corridors."
-      category: 5
+      category: container
       texture_src: textures-x-fancy.png
       texture_name: coolant-liquid-bottle
-    - name: Gas bottle (Oxygen)
+    oxygen-bottle:
+      name: Gas bottle (Oxygen)
       summary: Stores a small amount of Oxygen
       description: "Produced in gas bottlers and centrifuges, gas bottles can be used to transfer a small amount of gas to factories as a replacement of diffusing gas slowly through corridors."
-      category: 5
+      category: container
       texture_src: textures-x-fancy.png
       texture_name: oxygen-gas-bottle
-    - name: Gas bottle (Carbon dioxide)
+    carbon-dioxide-bottle:
+      name: Gas bottle (Carbon dioxide)
       summary: Stores a small amount of Carbon dioxide
       description: "Produced in gas bottlers and centrifuges, gas bottles can be used to transfer a small amount of gas to factories as a replacement of diffusing gas slowly through corridors."
-      category: 5
+      category: container
       texture_src: textures-x-fancy.png
       texture_name: carbon-dioxide-gas-bottle
-    - name: Gas bottle (Nitrogen)
+    nitrogen-bottle:
+      name: Gas bottle (Nitrogen)
       summary: Stores a small amount of Nitrogen
       description: "Produced in gas bottlers and centrifuges, gas bottles can be used to transfer a small amount of gas to factories as a replacement of diffusing gas slowly through corridors."
-      category: 5
+      category: container
       texture_src: textures-x-fancy.png
       texture_name: nitrogen-gas-bottle
   cargo_cats:
-    - title: Raw mineral
+    raw-mineral:
+      title: Raw mineral
       description: Raw minerals are obtained by receiving and decomposing incoming asteroids. Deflecting asteroids reduces the production of these minerals.
-    - title: Organic
+    organic:
+      title: Organic
       description: Organic cargo is used for inhabitant birth and survival.
-    - title: Ammunition
+    ammunition:
+      title: Ammunition
       description: Ammunition is ejected by defensive weapons to slow down or deflect asteroids.
-    - title: Junk
+    junk:
+      title: Junk
       description: Other forms of resources can be packaged as container cargo. This allows inhabitants to carry small amount of all resources to poorly developed regions.
-    - title: Intermediate material
+    intermediate-material:
+      title: Intermediate material
       description: Intermediate materials are derived from raw minerals or other intermediate materials to feed into other factories. They cannot be used in utility facilities.
-    - title: Container
+    container:
+      title: Container
       description: "Junk is the useless residue produced in other mechansims. They must be ejected out of the colony using junk launchers, otherwise they would fill up the space of the colony."
   liquid:
-    - name: Asteroidal water
+    asteroidal-water:
+      name: Asteroidal water
       summary: Water found on asteroids
       description: "Deposits of water can sometimes be found in asteroids. Contaminated by asteroidal minerals, it must be filtered to be used in factories,\n            or deionized so that it is drinkable by inhabitants."
       viscosity: 1.0
       texture_src: textures-x-fancy.png
       texture_name: asteroidal-water
-    - name: Filtered water
+    filtered-water:
+      name: Filtered water
       summary: Water without insoluble impurities.
       description: "Filtered water is removed of insoluble impurities, so they can be used in other factories without clogging up conduits."
       viscosity: 1.0
       texture_src: textures-x-fancy.png
       texture_name: filtered-water
-    - name: Deionized water
+    deionized-water:
+      name: Deionized water
       summary: Drinking water
       description: Soluble impurities in water are removed from water during deionization. This makes the water safe for inhabitant intake.
       viscosity: 1.0
       texture_src: textures-x-fancy.png
       texture_name: deionized-water
-    - name: Urine
+    urine:
+      name: Urine
       summary: Waste produced by inhabitants
       description: Urines are organic waste produced by inhabitants in houses. Arrange sewage pipes to remove them from houses and recycle them by distillation into drinking water.
       viscosity: 5.0
       texture_src: textures-x-fancy.png
       texture_name: urine
-    - name: Coolant
+    coolant:
+      name: Coolant
       summary: A liquid at very low temperature
       description: Coolants are produced by condensation of nitrogen. They are required in factories with highly exothermic reactions.
       viscosity: 1.0
       texture_src: textures-x-fancy.png
       texture_name: coolant
   gas:
-    - name: Oxygen
+    oxygen:
+      name: Oxygen
       summary: Needed for breathing
       description: "Oxygen is required for survival of inhabitants. Inhabitants cannot work in buildings with low oxygen content, except for construction work, where sufficient oxygen must be available in adjacent buildings."
       texture_src: textures-x-fancy.png
       texture_name: oxygen
-    - name: Carbon dioxide
+    carbon.dioxide:
+      name: Carbon dioxide
       summary: Photosynthesis material
       description: "Carbon dioxide is produced in houses and consumed in oxygen farms. While high carbon dioxide level is not necessarily fatal, they reduce the levels of other gases in the air."
       texture_src: textures-x-fancy.png
       texture_name: carbon-dioxide
-    - name: Nitrogen
+    nitrogen:
+      name: Nitrogen
       summary: "An abundant, safe gas for pressure regulation"
       description: "Nitrogen is found in abundant amounts. Although chemically inactive, they are great for pressure regulation and can be condensed to produce coolants."
       texture_src: textures-x-fancy.png
       texture_name: nitrogen
   skill:
-    - name: Age
+    age:
+      name: Age
       description: Age of the inhabitant. Some jobs require operators of a specific age range. A high age increases the probability of health decrease.
-    - name: Health
+    health:
+      name: Health
       description: Physical well-being of the inhabitant. The inhabitant dies when health drops to zero.
-    - name: Happiness
+    happiness:
+      name: Happiness
       description: Inhabitants lose happiness when they work and gain happiness when they have entertainment.
-    - name: Satisfaction
+    satisfaction:
+      name: Satisfaction
       description: "Inhabitants lose satisfaction when they do not receive sufficient supplies in their house. If satisfaction drops too low, inhabitants become outlaws and commit crimes."
-    - name: Infamy
+    infamy:
+      name: Infamy
       description: "Inhabitants earn infamy when they perform crimes. Infamy values are used by security mechanisms to identify the crime threat of an inhabitant, such as movement control and police patrol. Inhabitants can lose infamy by imprisonment."
-    - name: Morality
+    morality:
+      name: Morality
       description: Inhabitants are educated with morality values to reduce the probability of committing crimes.
-    - name: Athletic skill
+    athletic-skill:
+      name: Athletic skill
       description: Inhabitants with good athletic skill can walk faster outside a vehicle.
-    - name: Driving skill
+    driving-skill:
+      name: Driving skill
       description: "When an inhabitant with good driving skill operates a vehicle, it can move faster across rails."
-    - name: Mechanic skill
+    mechanic-skill:
+      name: Mechanic skill
       description: Inhabitants are trained as mechanics to operate factories more effectively.
-    - name: Construction skill
+    construction-skill:
+      name: Construction skill
       description: Inhabitants are trained as builders to construct new buildings faster.
-    - name: Teaching skill
+    teaching-skill:
+      name: Teaching skill
       description: Inhabitants are trained as teachers so that the next generation can learn better in schools.
-    - name: Military skill
+    military-skill:
+      name: Military skill
       description: "Inhabitants are trained as soldiers or police. Weapons they operate will be more effective, and they have higher chance of successfully arresting an outlaw."
   vehicle:
-    - name: Raptor
+    raptor:
+      name: Raptor
       description: "A fast, lightweight vehicle."
       speed: 20.0
       capacity: 0.0
       passengers: 0
       skill:
-        skill: 7
+        skill: driving-skill
         levels:
           start: 0.0
           end: 20.0
@@ -195,13 +237,14 @@ def:
           overflow: 2.0
       texture_src: textures-x-fancy.png
       texture_name: raptor
-    - name: Freighter
+    freighter:
+      name: Freighter
       description: A slow vehicle used to carry large amounts of cargo
       speed: 5.0
       capacity: 1000.0
       passengers: 0
       skill:
-        skill: 7
+        skill: driving-skill
         levels:
           start: 0.0
           end: 20.0
@@ -212,13 +255,14 @@ def:
           overflow: 2.0
       texture_src: textures-x-fancy.png
       texture_name: freighter
-    - name: Bus
+    bus:
+      name: Bus
       description: A slow vehicle used to carry many passengers
       speed: 5.0
       capacity: 0.0
       passengers: 16
       skill:
-        skill: 7
+        skill: driving-skill
         levels:
           start: 0.0
           end: 20.0
@@ -230,9 +274,9 @@ def:
       texture_src: textures-x-fancy.png
       texture_name: bus
   reaction:
-    - name: Solar power
+    solar-power:
+      name: Solar power
       description: "Generates electricity from sunlight."
-      category: 0
       catalysts:
         - range:
             Light:
@@ -247,13 +291,13 @@ def:
       puts:
         - Electricity:
             base: 100.0
-    - name: Asteroidal water filtration
+    asteroidal-water-filtration:
+      name: Asteroidal water filtration
       description: Filters out rocks and other sediments in asteroidal water.
-      category: 1
       catalysts:
         - range:
             Skill:
-              ty: 8
+              ty: mechanic-skill
               levels:
                 start: 0.0
                 end: 20.0
@@ -264,24 +308,24 @@ def:
             overflow: 2.0
       puts:
         - Liquid:
-            ty: 0
+            ty: asteroidal-water
             base: -100.0
         - Liquid:
-            ty: 1
+            ty: filtered-water
             base: 100.0
         - Cargo:
-            ty: 1
+            ty: rock
             base: 10.0
         - Cargo:
-            ty: 4
+            ty: junk
             base: 10.0
-    - name: Driving lesson
+    driving-lesson:
+      name: Driving lesson
       description: Assign an experienced driver to teach driving skills to other inhabitants.
-      category: 2
       catalysts:
         - range:
             Skill:
-              ty: 7
+              ty: driving-skill
               levels:
                 start: 10.0
                 end: 20.0
@@ -292,15 +336,15 @@ def:
             overflow: 1.0
       puts:
         - Skill:
-            ty: 7
+            ty: driving-skill
             base: 0.03
-    - name: Imprisonment
+    imprisonment:
+      name: Imprisonment
       description: Imprison criminals to recultivate their moral values and turn to a good citizen.
-      category: 3
       catalysts:
         - range:
             Skill:
-              ty: 10
+              ty: teaching-skill
               levels:
                 start: 5.0
                 end: 50.0
@@ -311,36 +355,28 @@ def:
             overflow: 1.0
       puts:
         - Skill:
-            ty: 3
+            ty: satisfaction
             base: 0.1
         - Skill:
-            ty: 5
+            ty: morality
             base: 0.01
-    - name: Stadium
+    stadium:
+      name: Stadium
       description: Inhabitants can improve athletic skills slowly but gain happiness.
-      category: 3
       catalysts: []
       puts:
         - Skill:
-            ty: 2
+            ty: happiness
             base: 0.2
         - Skill:
-            ty: 6
+            ty: athletic-skill
             base: 0.02
-  reaction_cats:
-    - title: Electricity
-      description: Electricity management.
-    - title: Industrial
-      description: Industrial processes.
-    - title: Education
-      description: Train inhabitant skills.
-    - title: Happiness
-      description: Entertainment and correctional services.
   building:
-    - name: Core
+    core:
+      name: Core
       summary: The center of the whole colony
       description: "The core is the ultimate building to protect. It provides basic resources, including a small amount of uninterrupted power, some oxygen generation and a few population housing. Destruction of the core ends the game."
-      category: 0
+      category: population
       shape:
         unit: Cube
         transform:
@@ -371,10 +407,11 @@ def:
       features:
         - Core
         - ProvidesHousing: 4
-    - name: Hut
+    hut:
+      name: Hut
       summary: A small living quarter.
       description: ""
-      category: 0
+      category: population
       shape:
         unit: Cylinder
         transform:
@@ -404,10 +441,11 @@ def:
         gas: 1000.0
       features:
         - ProvidesHousing: 3
-    - name: Terminal
+    terminal:
+      name: Terminal
       summary: Connects and drives corridors
       description: ""
-      category: 1
+      category: traffic
       shape:
         unit: Cube
         transform:
@@ -439,10 +477,11 @@ def:
         - RailTerminal: 100.0
         - LiquidPump: 100.0
         - GasPump: 100.0
-    - name: Solar panel
+    solar-panel:
+      name: Solar panel
       summary: Basic power production
       description: "Solar power is an effective power generation mechanism. Unobstructed by planetary atmosphere, solar panels are the primary source of power in early to mid game."
-      category: 2
+      category: electricity
       shape:
         unit: Cube
         transform:
@@ -465,8 +504,9 @@ def:
         texture_src: textures-x-fancy.png
         texture_name: solar-panel
       reactions:
-        - - 0
-          - configurable: true
+        - reaction: solar-power
+          policy:
+            configurable: true
             on_underflow: ReduceRate
             on_overflow: ReduceRate
       hitpoint: 200.0
@@ -475,10 +515,11 @@ def:
         liquid: 1000.0
         gas: 1000.0
       features: []
-    - name: Vault
+    vault:
+      name: Vault
       summary: Store lots of cargo
       description: Large amounts of cargo can be stored here for future use. This can also be used as a temporary junkyard if junk launchers cannot catch up quickly enough.
-      category: 3
+      category: storage
       shape:
         unit: Cube
         transform:
@@ -507,10 +548,11 @@ def:
         liquid: 1000.0
         gas: 1000.0
       features: []
-    - name: Filtration plant
+    filtration-plant:
+      name: Filtration plant
       summary: Filter insoluble impurities from water
       description: "Asteroidal water is often mixed with different sorts of junk. These solid impurities will clog and damage conduits if passed directly. A filtration plant can separate the solid junk from the water.\n\nAlthough filtered water is still not edible for inhabitants, it demonstrates most of the physical properties of water, such as the high heat capacity and low viscosity. Therefore, filtered water is sufficient for most industrial uses."
-      category: 4
+      category: industrial
       shape:
         unit: Cube
         transform:
@@ -533,8 +575,9 @@ def:
         texture_src: textures-x-fancy.png
         texture_name: filtration-plant
       reactions:
-        - - 1
-          - configurable: true
+        - reaction: asteroidal-water-filtration
+          policy:
+            configurable: true
             on_underflow: ReduceRate
             on_overflow: ReduceRate
       hitpoint: 150.0
@@ -543,10 +586,11 @@ def:
         liquid: 5000.0
         gas: 1000.0
       features: []
-    - name: Driving school
+    driving-school:
+      name: Driving school
       summary: Train inhabitants to drive better
       description: Train inhabitants to drive better.
-      category: 5
+      category: education
       shape:
         unit: Cube
         transform:
@@ -569,8 +613,9 @@ def:
         texture_src: textures-x-fancy.png
         texture_name: driving-school
       reactions:
-        - - 2
-          - configurable: false
+        - reaction: driving-lesson
+          policy:
+            configurable: false
             on_underflow: ReduceRate
             on_overflow: ReduceRate
       hitpoint: 150.0
@@ -579,10 +624,11 @@ def:
         liquid: 1000.0
         gas: 1000.0
       features: []
-    - name: Stadium
+    stadium:
+      name: Stadium
       summary: Inhabitants can exercise here
       description: "Inhabitants do exercise here, recovering happiness and improve athletic skills."
-      category: 6
+      category: entertainment
       shape:
         unit: Cylinder
         transform:
@@ -605,8 +651,9 @@ def:
         texture_src: textures-x-fancy.png
         texture_name: stadium
       reactions:
-        - - 4
-          - configurable: false
+        - reaction: stadium
+          policy:
+            configurable: false
             on_underflow: ReduceRate
             on_overflow: ReduceRate
       hitpoint: 150.0
@@ -615,10 +662,11 @@ def:
         liquid: 1000.0
         gas: 1000.0
       features: []
-    - name: Prison
+    prison:
+      name: Prison
       summary: Correctional services for criminals
       description: Inhabitants with negative satisfaction are imprisoned here to recultivate morality and restore satisfaction.
-      category: 7
+      category: security
       shape:
         unit: Cube
         transform:
@@ -641,8 +689,9 @@ def:
         texture_src: textures-x-fancy.png
         texture_name: prison
       reactions:
-        - - 3
-          - configurable: false
+        - reaction: imprisonment
+          policy:
+            configurable: false
             on_underflow: ReduceRate
             on_overflow: ReduceRate
       hitpoint: 200.0
@@ -652,13 +701,14 @@ def:
         gas: 1000.0
       features:
         - SecureExit:
-            skill: 3
+            skill: infamy
             min_level: 10.0
             breach_probability: 0.001
-    - name: Customs
+    customs:
+      name: Customs
       summary: Disallow outlaws from intrusion
       description: Customs is a security checkpoint at which operators check all inhabitants passing through. Surround important buildings with customs so that outlaws cannot grief them.
-      category: 7
+      category: security
       shape:
         unit: Cube
         transform:
@@ -688,68 +738,79 @@ def:
         gas: 1000.0
       features:
         - SecureEntry:
-            skill: 3
+            skill: infamy
             min_level: 10.0
             breach_probability: 0.005
   building_cats:
-    - title: Population
+    population:
+      title: Population
       description: Buildings to support inhabitant population
-    - title: Traffic
+    traffic:
+      title: Traffic
       description: Buildings for traffic control
-    - title: Electricity
+    electricity:
+      title: Electricity
       description: Buildings to manage electricity
-    - title: Storage
+    storage:
+      title: Storage
       description: Buildings to store resources
-    - title: Industrial
+    industrial:
+      title: Industrial
       description: Buildings for processing intermediates
-    - title: Education
+    education:
+      title: Education
       description: Buildings to train inhabitant skills
-    - title: Entertainment
+    entertainment:
+      title: Entertainment
       description: Buildings to restore happiness
-    - title: Security
+    security:
+      title: Security
       description: Buildings related to crimes
   crime:
-    - name: Pickpocket
+    pickpocket:
+      name: Pickpocket
       description: Steal cargo carried by other inhabitants
       action:
         InhabitantTheft: 5.0
-      trigger_skill: 3
+      trigger_skill: satisfaction
       trigger_skill_range:
         start: -500.0
         end: 0.0
       probability: 0.01
       skill_change:
-        - - 4
-          - 5.0
-        - - 5
-          - -1.0
-    - name: Robbery
+        - skill: infamy
+          change: 5.0
+        - skill: satisfaction
+          change: -1.0
+    robbery:
+      name: Robbery
       description: Rob a building and remove the cargo stored inside
       action:
         NodeTheft: 5.0
-      trigger_skill: 3
+      trigger_skill: satisfaction
       trigger_skill_range:
         start: -1000.0
         end: -50.0
       probability: 0.0001
       skill_change:
-        - - 4
-          - 20.0
-        - - 5
-          - -1.5
-    - name: Arson
+        - skill: infamy
+          change: 20.0
+        - skill: satisfaction
+          change: -1.5
+    arson:
+      name: Arson
       description: Set a building on fire
       action: Arson
-      trigger_skill: 3
+      trigger_skill: satisfaction
       trigger_skill_range:
         start: -1000.0
         end: -500.0
       probability: 0.00005
       skill_change:
-        - - 4
-          - 100.0
-        - - 5
-          - -2.5
+        - skill: infamy
+          change: 100.0
+        - skill: satisfaction
+          change: -2.5
 state:
   nodes:
     - id:
@@ -786,9 +847,9 @@ state:
         current: 3000.0
         max: 3000.0
       cargo:
-        2: 500.0
-        4: 200.0
-        1: 50.0
+        dna: 500.0
+        sediment: 200.0
+        rock: 50.0
       cargo_capacity: 1000.0
       liquid: {}
       liquid_capacity: 1000.0

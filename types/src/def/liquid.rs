@@ -6,9 +6,9 @@ use typed_builder::TypedBuilder;
 
 use crate::units;
 
-/// Identifies a liquid category
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct TypeId(pub usize);
+/// Identifies a liquid type.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct TypeId(pub ArcStr);
 
 /// A type of liquid.
 #[derive(Debug, Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]

@@ -79,18 +79,16 @@ impl Route {
                 path = path.trim_start_matches('/');
                 if let Some(mut path) = path.strip_prefix("building") {
                     path = path.trim_start_matches('/');
-                    if let Ok(id) = path.parse::<usize>() {
-                        return SpRoute::Rules(Rules::Building(def::building::TypeId(id)));
-                    }
+                    SpRoute::Rules(Rules::Building(def::building::TypeId(path.into())))
                 } else if let Some(mut path) = path.strip_prefix("cargo") {
                     path = path.trim_start_matches('/');
-                    if let Ok(id) = path.parse::<usize>() {
-                        return SpRoute::Rules(Rules::Cargo(def::cargo::TypeId(id)));
-                    }
+                    SpRoute::Rules(Rules::Cargo(def::cargo::TypeId(path.into())))
+                } else {
+                    SpRoute::Rules(Rules::Home)
                 }
-                return SpRoute::Rules(Rules::Home);
+            } else {
+                SpRoute::Home
             }
-            SpRoute::Home
         }
 
         if let Some(mut path) = path.strip_prefix("scenario") {

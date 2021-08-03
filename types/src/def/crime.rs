@@ -10,8 +10,12 @@ use typed_builder::TypedBuilder;
 use crate::def::skill;
 use crate::units;
 
+/// Identifies a crime type.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct TypeId(pub ArcStr);
+
 /// Consequence of a crime.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Action {
     /// Steal random cargo carried by inhabitants in the same node or vehicle.
     ///
@@ -32,7 +36,7 @@ pub enum Action {
 }
 
 /// A criterion to sort inhabitants with.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum InhabitantCriterion {
     /// Select the inhabitant with the highest skill.
     HighestSkill(skill::TypeId),
@@ -53,7 +57,7 @@ pub struct Type {
     #[getset(get = "pub")]
     action: Action,
     /// The skill type to trigger the crime.
-    #[getset(get_copy = "pub")]
+    #[getset(get = "pub")]
     trigger_skill: skill::TypeId,
     /// The skill range at which this crime may happen.
     #[getset(get = "pub")]
@@ -64,5 +68,18 @@ pub struct Type {
     probability: f64,
     /// The change in skill levels after committing this crime.
     #[getset(get = "pub")]
-    skill_change: SmallVec<[(skill::TypeId, units::Skill); 1]>,
+    skill_change: SmallVec<[SkillChange; 1]>,
+}
+
+/// A change in skill level.
+#[derive(
+    Debug, Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize,
+)]
+pub struct SkillChange {
+    /// The skill type to change.
+    #[getset(get = "pub")]
+    skill: skill::TypeId,
+    /// The amount changed.
+    #[getset(get_copy = "pub")]
+    change: units::Skill,
 }

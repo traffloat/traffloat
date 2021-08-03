@@ -33,7 +33,7 @@ impl Component for Comp {
                 true
             }
             Msg::ChooseBuilding(id) => {
-                self.props.choose_building.emit(building::TypeId(id));
+                self.props.choose_building.emit(id);
                 false
             }
         }
@@ -55,17 +55,19 @@ impl Component for Comp {
                 </div>
                 { for self.open.then(|| html! {
                     <div>
-                        { for self.props.file.def().building_cats().iter().enumerate()
+                        { for self.props.file.def().building_cats().iter()
                                 .map(|(category_id, category)| html! {
                             <div>
                                 <h4>{ category.title() }</h4>
                                 { for self.props.file.def().building().iter()
-                                        .enumerate()
-                                        .filter(|(_, building)| building.category().0 == category_id)
+                                        .filter(|(_, building)| building.category() == category_id)
                                         .map(|(building_id, building)| html! {
                                     <div
                                         style="cursor: pointer;"
-                                        onclick=self.link.callback(move |_| Msg::ChooseBuilding(building_id))
+                                        onclick=self.link.callback({
+                                            let building_id = building_id.clone();
+                                            move |_| Msg::ChooseBuilding(building_id.clone())
+                                        })
                                     >
                                         <p>{ building.name() }</p>
                                     </div>
@@ -84,7 +86,7 @@ pub enum Msg {
     /// Toggle the opening of this navbar component.
     Toggle(MouseEvent),
     /// The user chooses a building.
-    ChooseBuilding(usize),
+    ChooseBuilding(building::TypeId),
 }
 
 /// Yew properties for [`Comp`].

@@ -4,9 +4,9 @@ use arcstr::ArcStr;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
-/// Identifies a gas category
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct TypeId(pub usize);
+/// Identifies a gas type.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct TypeId(pub ArcStr);
 
 /// A type of gas.
 #[derive(

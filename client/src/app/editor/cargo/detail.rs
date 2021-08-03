@@ -31,7 +31,10 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         let def = self.props.file.def();
-        let cargo = def.get_cargo(self.props.cargo_id);
+        let cargo = def
+            .cargo()
+            .get(&self.props.cargo_id)
+            .expect("Route references undefined cargo");
 
         html! {
             <h1>{ cargo.name() }</h1>

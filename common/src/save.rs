@@ -160,42 +160,42 @@ fn save(
                             cargo: cargo
                                 .storages()
                                 .iter()
-                                .map(|&(id, entity)| {
+                                .map(|(id, entity)| {
                                     let entry = world
-                                        .entry_ref(entity)
+                                        .entry_ref(*entity)
                                         .expect("Cargo storage entity is nonexistent");
                                     let size: &cargo::StorageSize = entry
                                         .get_component()
                                         .expect("Cargo storage entity has no StorageSize");
-                                    (id, size.size())
+                                    (id.clone(), size.size())
                                 })
                                 .collect(),
                             cargo_capacity: cargo_capacity.total(),
                             liquid: liquid
                                 .storages()
                                 .iter()
-                                .map(|&(id, entity)| {
+                                .map(|(id, entity)| {
                                     let entry = world
-                                        .entry_ref(entity)
+                                        .entry_ref(*entity)
                                         .expect("liquid storage entity is nonexistent");
                                     let size: &liquid::StorageSize = entry
                                         .get_component()
                                         .expect("liquid storage entity has no StorageSize");
-                                    (id, size.size())
+                                    (id.clone(), size.size())
                                 })
                                 .collect(),
                             liquid_capacity: liquid_capacity.total(),
                             gas: gas
                                 .storages()
                                 .iter()
-                                .map(|&(id, entity)| {
+                                .map(|(id, entity)| {
                                     let entry = world
-                                        .entry_ref(entity)
+                                        .entry_ref(*entity)
                                         .expect("gas storage entity is nonexistent");
                                     let size: &gas::StorageSize = entry
                                         .get_component()
                                         .expect("gas storage entity has no StorageSize");
-                                    (id, size.size())
+                                    (id.clone(), size.size())
                                 })
                                 .collect(),
                             gas_capacity: gas_capacity.total(),

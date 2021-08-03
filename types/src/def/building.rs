@@ -8,9 +8,9 @@ use super::{reaction, skill};
 use crate::space::Matrix;
 use crate::{geometry, units};
 
-/// Identifies a building category
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct TypeId(pub usize);
+/// Identifies a building type.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct TypeId(pub ArcStr);
 
 /// A type of building.
 #[derive(
@@ -27,14 +27,14 @@ pub struct Type {
     #[getset(get = "pub")]
     description: ArcStr,
     /// Category of the building type.
-    #[getset(get_copy = "pub")]
+    #[getset(get = "pub")]
     category: CategoryId,
     /// Shape of the building.
     #[getset(get = "pub")]
     shape: Shape,
     /// Reactions associated with the building.
     #[getset(get = "pub")]
-    reactions: Vec<(reaction::TypeId, ReactionPolicy)>,
+    reactions: Vec<ReactionInstance>,
     /// Maximum hitpoint of a building.
     ///
     /// The actual hitpoint is subject to asteroid and fire damage.
@@ -66,6 +66,17 @@ pub struct Shape {
     /// The texture name of the building.
     #[getset(get = "pub")]
     texture_name: ArcStr,
+}
+
+/// An instance of reaction applied to a building.
+#[derive(Debug, Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]
+pub struct ReactionInstance {
+    /// The reaction ID.
+    #[getset(get = "pub")]
+    reaction: reaction::TypeId,
+    /// The instance-specific reaction behavior.
+    #[getset(get = "pub")]
+    policy: ReactionPolicy,
 }
 
 /// Reaction behaviour specific to this building.
@@ -151,8 +162,8 @@ pub enum ExtraFeature {
 }
 
 /// Identifies a building category
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CategoryId(pub usize);
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct CategoryId(pub ArcStr);
 
 /// A category of building.
 #[derive(Debug, Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]

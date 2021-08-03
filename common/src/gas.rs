@@ -29,11 +29,11 @@ pub struct StorageCapacity {
 }
 
 /// A component attached to storage entities.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, getset::Getters)]
 pub struct Storage {
-    /// The type of gas
-    #[getset(get_copy = "pub")]
-    gas: def::gas::TypeId,
+    /// The type of gas.
+    #[getset(get = "pub")]
+    gas: def::gas::TypeId, // TODO should we optimize this to a runtime integer ID?
 }
 
 /// The size of a gas storage in the current simulation frame.

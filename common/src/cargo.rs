@@ -29,11 +29,11 @@ pub struct StorageCapacity {
 }
 
 /// A component attached to storage entities.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, getset::Getters)]
 pub struct Storage {
-    /// The type of cargo
-    #[getset(get_copy = "pub")]
-    cargo: def::cargo::TypeId,
+    /// The type of cargo.
+    #[getset(get = "pub")]
+    cargo: def::cargo::TypeId, // TODO should we optimize this to a runtime integer ID?
 }
 
 /// The size of a cargo storage in the current simulation frame.

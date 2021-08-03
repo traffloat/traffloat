@@ -9,9 +9,9 @@ use typed_builder::TypedBuilder;
 use crate::def::{reaction, skill};
 use crate::units;
 
-/// Identifies a vehicle category
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct TypeId(pub usize);
+/// Identifies a vehicle type.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct TypeId(pub ArcStr);
 
 /// A type of vehicle.
 #[derive(
@@ -52,7 +52,7 @@ pub struct Type {
 )]
 pub struct Skill {
     /// The skill type.
-    #[getset(get_copy = "pub")]
+    #[getset(get = "pub")]
     skill: skill::TypeId,
     /// The skill level range of varying speed multipliers.
     #[getset(get = "pub")]

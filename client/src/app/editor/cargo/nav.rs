@@ -33,7 +33,7 @@ impl Component for Comp {
                 true
             }
             Msg::ChooseCargo(id) => {
-                self.props.choose_cargo.emit(cargo::TypeId(id));
+                self.props.choose_cargo.emit(id);
                 false
             }
         }
@@ -55,17 +55,19 @@ impl Component for Comp {
                 </div>
                 { for self.open.then(|| html! {
                     <div>
-                        { for self.props.file.def().cargo_cats().iter().enumerate()
+                        { for self.props.file.def().cargo_cats().iter()
                                 .map(|(category_id, category)| html! {
                             <div>
                                 <h4>{ category.title() }</h4>
                                 { for self.props.file.def().cargo().iter()
-                                        .enumerate()
-                                        .filter(|(_, cargo)| cargo.category().0 == category_id)
+                                        .filter(|(_, cargo)| cargo.category() == category_id)
                                         .map(|(cargo_id, cargo)| html! {
                                     <div
                                         style="cursor: pointer;"
-                                        onclick=self.link.callback(move |_| Msg::ChooseCargo(cargo_id))
+                                        onclick=self.link.callback({
+                                            let cargo_id = cargo_id.clone();
+                                            move |_| Msg::ChooseCargo(cargo_id.clone())
+                                        })
                                     >
                                         <p>{ cargo.name() }</p>
                                     </div>
@@ -84,7 +86,7 @@ pub enum Msg {
     /// Toggle the opening of this navbar component.
     Toggle(MouseEvent),
     /// The user chooses a cargo.
-    ChooseCargo(usize),
+    ChooseCargo(cargo::TypeId),
 }
 
 /// Yew properties for [`Comp`].

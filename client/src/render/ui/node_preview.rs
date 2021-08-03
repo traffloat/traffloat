@@ -161,13 +161,13 @@ fn draw(
             entity_entry.get_component::<gas::StorageList>(),
         ) {
             macro_rules! read_storage {
-                ($list:expr, $mod:ident, $get_def:ident) => {
+                ($list:expr, $mod:ident) => {
                     $list
                         .storages()
                         .iter()
-                        .map(|&(id, entity)| {
+                        .map(|(id, entity)| {
                             let storage_entry = world
-                                .entry_ref(entity)
+                                .entry_ref(*entity)
                                 .expect("Storage entity does not exist");
                             let size = storage_entry
                                 .get_component::<$mod::StorageSize>()
@@ -176,7 +176,7 @@ fn draw(
                                 .get_component::<$mod::NextStorageSize>()
                                 .expect("Storage has no next size");
                             let lerp_size = $mod::lerp(size, next_size, clock.now());
-                            let item = def.$get_def(id);
+                            let item = def.$mod().get(id).expect("Undefined reference");
                             let name = item.name();
                             let icon = texture_pool.as_ref().and_then(|pool| {
                                 pool.icon(item.texture_src(), item.texture_name())
@@ -187,9 +187,9 @@ fn draw(
                 };
             }
 
-            let cargo = read_storage!(cargo_list, cargo, get_cargo);
-            let liquid = read_storage!(liquid_list, liquid, get_liquid);
-            let gas = read_storage!(gas_list, gas, get_gas);
+            let cargo = read_storage!(cargo_list, cargo);
+            let liquid = read_storage!(liquid_list, liquid);
+            let gas = read_storage!(gas_list, gas);
 
             Some(Args {
                 entity,

@@ -115,7 +115,7 @@ impl Component for Comp {
 
 impl Comp {
     fn switch(&self) -> Html {
-        match self.state.switch {
+        match &self.state.switch {
             Switch::Home => html! {
                 <p>
                     { "Use buttons in the navbar to view/edit details." }
@@ -124,13 +124,13 @@ impl Comp {
             Switch::Building(building_id) => html! {
                 <building::detail::Comp
                     file=Rc::clone(&self.file)
-                    building_id=building_id
+                    building_id=building_id.clone()
                     />
             },
             Switch::Cargo(cargo_id) => html! {
                 <cargo::detail::Comp
                     file=Rc::clone(&self.file)
-                    cargo_id=cargo_id
+                    cargo_id=cargo_id.clone()
                     />
             },
         }
@@ -157,8 +157,8 @@ impl Switch {
     pub fn replace_state(&self, name: &Option<String>) {
         let rules = match self {
             Self::Home => Rules::Home,
-            Self::Building(id) => Rules::Building(*id),
-            Self::Cargo(id) => Rules::Cargo(*id),
+            Self::Building(id) => Rules::Building(id.clone()),
+            Self::Cargo(id) => Rules::Cargo(id.clone()),
         };
         let sp = SpRoute::Rules(rules);
         let route = match name.as_ref() {
@@ -184,8 +184,8 @@ impl Switch {
         };
         Some(match rules {
             Rules::Home => Self::Home,
-            Rules::Building(id) => Self::Building(*id),
-            Rules::Cargo(id) => Self::Cargo(*id),
+            Rules::Building(id) => Self::Building(id.clone()),
+            Rules::Cargo(id) => Self::Cargo(id.clone()),
         })
     }
 }

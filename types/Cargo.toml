@@ -11,7 +11,9 @@ license = "AGPL-3.0"
 [dependencies]
 arcstr = {version = "1.1.0", features = ["serde"]}
 derive-new = "0.5.9"
+fxhash = "0.2.1"
 getset = "0.1.1"
+indexmap = {version = "1.7.0", features = ["serde"]}
 nalgebra = {version = "0.28.0", features = ["serde-serialize"]}
 serde = {version = "1.0.126", features = ["derive"]}
 smallvec = {version = "1.6.1", features = ["serde"]}

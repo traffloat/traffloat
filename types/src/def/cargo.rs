@@ -4,9 +4,9 @@ use arcstr::ArcStr;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
-/// Identifies a cargo category
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct TypeId(pub usize);
+/// Identifies a cargo type.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct TypeId(pub ArcStr);
 
 /// A type of cargo.
 #[derive(
@@ -23,7 +23,7 @@ pub struct Type {
     #[getset(get = "pub")]
     description: ArcStr,
     /// Category of the cargo type.
-    #[getset(get_copy = "pub")]
+    #[getset(get = "pub")]
     category: CategoryId,
     /// The texture source path of the cargo.
     #[getset(get = "pub")]
@@ -33,9 +33,9 @@ pub struct Type {
     texture_name: ArcStr,
 }
 
-/// Identifies a cargo category
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CategoryId(pub usize);
+/// Identifies a cargo category.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct CategoryId(pub ArcStr);
 
 /// A category of cargo.
 #[derive(Debug, Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]

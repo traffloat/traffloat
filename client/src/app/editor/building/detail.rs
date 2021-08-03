@@ -31,7 +31,10 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         let def = self.props.file.def();
-        let building = def.get_building(self.props.building_id);
+        let building = def
+            .building()
+            .get(&self.props.building_id)
+            .expect("Route references undefined building");
 
         fn table_entry(name: impl Into<Html>, value: impl Into<Html>) -> Html {
             html! {
@@ -62,8 +65,13 @@ impl Component for Comp {
 
                 <h2>{ "Mechanisms" }</h2>
                 { for building.features().iter().map(|feature| render_feature(feature, def)) }
-                { for building.reactions().iter()
-                    .map(|(id, policy)| render_reaction(def.get_reaction(*id), policy, def)) }
+                { for building.reactions().iter().map(|instance| {
+                    render_reaction(
+                        def.reaction().get(instance.reaction()).expect("Save references undefined reaction"),
+                        instance.policy(),
+                        def,
+                    )
+                }) }
             </>
         }
     }
@@ -113,29 +121,32 @@ fn render_feature(feature: &building::ExtraFeature, def: &GameDefinition) -> Htm
                 </p>
             </div>
         },
-        &building::ExtraFeature::SecureEntry {
+        building::ExtraFeature::SecureEntry {
             skill,
             min_level,
             breach_probability,
         } => {
-            let skill = def.get_skill(skill);
+            let skill = def
+                .skill()
+                .get(skill)
+                .expect("Save references undefined skill");
             html! {
                 <div>
                     <h3>{ "Entry security" }</h3>
                     <p>
                         { format_args!(
                             "Inhabitants entering the building must have at least {} {}. ",
-                            min_level,
+                            *min_level,
                             skill.name(),
                         ) }
-                        { for (breach_probability > 0.).then(|| format!(
+                        { for (*breach_probability > 0.).then(|| format!(
                             "{}% of the ",
-                            breach_probability * 100.,
+                            *breach_probability * 100.,
                         )) }
-                        { for (breach_probability == 0.).then(|| "All ") }
+                        { for (*breach_probability == 0.).then(|| "All ") }
                         { format_args!(
                             "inhabitants trying to enter the building with less than {} {} ",
-                            min_level,
+                            *min_level,
                             skill.name(),
                         ) }
                         { "are immediately teleported back to the previous building, " }
@@ -143,29 +154,32 @@ fn render_feature(feature: &building::ExtraFeature, def: &GameDefinition) -> Htm
                 </div>
             }
         }
-        &building::ExtraFeature::SecureExit {
+        building::ExtraFeature::SecureExit {
             skill,
             min_level,
             breach_probability,
         } => {
-            let skill = def.get_skill(skill);
+            let skill = def
+                .skill()
+                .get(skill)
+                .expect("Save references undefined skill");
             html! {
                 <div>
                     <h3>{ "Exit security" }</h3>
                     <p>
                         { format_args!(
                             "Inhabitants leaving the building must have at least {} {}. ",
-                            min_level,
+                            *min_level,
                             skill.name(),
                         ) }
-                        { for (breach_probability > 0.).then(|| format!(
+                        { for (*breach_probability > 0.).then(|| format!(
                             "{}% of the ",
-                            breach_probability * 100.,
+                            *breach_probability * 100.,
                         )) }
-                        { for (breach_probability == 0.).then(|| "All ") }
+                        { for (*breach_probability == 0.).then(|| "All ") }
                         { format_args!(
                             "inhabitants trying to leave the building with less than {} {} ",
-                            min_level,
+                            *min_level,
                             skill.name(),
                         ) }
                         { "cannot perform any actions for one minute." }
@@ -212,7 +226,7 @@ fn render_reaction(
                             { match catalyst.range() {
                                     reaction::CatalystRange::Cargo { ty, levels } => html! {
                                         <>
-                                            <td>{ def.get_cargo(*ty).name() }</td>
+                                            <td>{ def.cargo().get(ty).expect("Save references undefined cargo").name() }</td>
                                             <td>{ format_args!(
                                                 "{} to {}",
                                                 levels.start,
@@ -222,7 +236,7 @@ fn render_reaction(
                                     },
                                     reaction::CatalystRange::Liquid { ty, levels } => html! {
                                         <>
-                                            <td>{ def.get_liquid(*ty).name() }</td>
+                                            <td>{ def.liquid().get(ty).expect("Save references undefined liquid").name() }</td>
                                             <td>{ format_args!(
                                                 "{} to {}",
                                                 levels.start,
@@ -232,7 +246,7 @@ fn render_reaction(
                                     },
                                     reaction::CatalystRange::Gas { ty, levels } => html! {
                                         <>
-                                            <td>{ def.get_gas(*ty).name() }</td>
+                                            <td>{ def.gas().get(ty).expect("Save references undefined gas").name() }</td>
                                             <td>{ format_args!(
                                                 "{} to {}",
                                                 levels.start,
@@ -264,7 +278,7 @@ fn render_reaction(
                                         <>
                                             <td>{ format_args!(
                                                 "Operator with {}",
-                                                def.get_skill(*ty).name(),
+                                                def.skill().get(ty).expect("Save references undefined skill").name(),
                                             ) }</td>
                                             <td>{ format_args!(
                                                 "{} to {}",

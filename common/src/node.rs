@@ -127,7 +127,10 @@ fn create_new_node(
     #[resource] index: &mut Index,
 ) {
     for request in requests {
-        let building = def.get_building(request.type_id);
+        let building = def
+            .building()
+            .get(&request.type_id)
+            .expect("Received invalid type ID");
 
         let id = Id::new(rand::random());
 
@@ -194,37 +197,37 @@ fn create_saved_node(
         let cargo_list = save
             .cargo
             .iter()
-            .map(|(&id, &size)| {
+            .map(|(id, &size)| {
                 let entity = entities.push((
-                    cargo::Storage::new(id),
+                    cargo::Storage::new(id.clone()),
                     cargo::StorageSize::new(size),
                     cargo::NextStorageSize::new(size),
                 ));
-                (id, entity)
+                (id.clone(), entity)
             })
             .collect();
         let liquid_list = save
             .liquid
             .iter()
-            .map(|(&id, &size)| {
+            .map(|(id, &size)| {
                 let entity = entities.push((
-                    liquid::Storage::new(id),
+                    liquid::Storage::new(id.clone()),
                     liquid::StorageSize::new(size),
                     liquid::NextStorageSize::new(size),
                 ));
-                (id, entity)
+                (id.clone(), entity)
             })
             .collect();
         let gas_list = save
             .gas
             .iter()
-            .map(|(&id, &size)| {
+            .map(|(id, &size)| {
                 let entity = entities.push((
-                    gas::Storage::new(id),
+                    gas::Storage::new(id.clone()),
                     gas::StorageSize::new(size),
                     gas::NextStorageSize::new(size),
                 ));
-                (id, entity)
+                (id.clone(), entity)
             })
             .collect();
 
