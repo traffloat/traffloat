@@ -91,6 +91,7 @@ impl Component for Comp {
                     editor_home=self.link.callback(|()| Msg::EditorHome)
                     choose_building=self.link.callback(Msg::ChooseBuilding)
                     choose_cargo=self.link.callback(Msg::ChooseCargo)
+                    route_prefix=self.route_prefix()
                     />
                 <main style=format!("
                     margin-left: {}px;
@@ -133,6 +134,13 @@ impl Comp {
                     cargo_id=cargo_id.clone()
                     />
             },
+        }
+    }
+
+    fn route_prefix(&self) -> String {
+        match self.props.name.as_ref() {
+            Some(name) => format!("scenario/{}", name),
+            None => String::from("custom"),
         }
     }
 }

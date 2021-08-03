@@ -32,7 +32,8 @@ impl Component for Comp {
                 self.open = !self.open;
                 true
             }
-            Msg::ChooseCargo(id) => {
+            Msg::ChooseCargo(event, id) => {
+                event.prevent_default();
                 self.props.choose_cargo.emit(id);
                 false
             }
@@ -62,14 +63,16 @@ impl Component for Comp {
                                 { for self.props.file.def().cargo().iter()
                                         .filter(|(_, cargo)| cargo.category() == category_id)
                                         .map(|(cargo_id, cargo)| html! {
-                                    <div
-                                        style="cursor: pointer;"
-                                        onclick=self.link.callback({
-                                            let cargo_id = cargo_id.clone();
-                                            move |_| Msg::ChooseCargo(cargo_id.clone())
-                                        })
-                                    >
-                                        <p>{ cargo.name() }</p>
+                                    <div>
+                                        <a
+                                            href=format!("#/{}/rules/cargo/{}", &self.props.route_prefix, &cargo_id.0)
+                                            onclick=self.link.callback({
+                                                let cargo_id = cargo_id.clone();
+                                                move |event| Msg::ChooseCargo(event, cargo_id.clone())
+                                            })
+                                        >
+                                            { cargo.name() }
+                                        </a>
                                     </div>
                                 })}
                             </div>
@@ -86,7 +89,7 @@ pub enum Msg {
     /// Toggle the opening of this navbar component.
     Toggle(MouseEvent),
     /// The user chooses a cargo.
-    ChooseCargo(cargo::TypeId),
+    ChooseCargo(MouseEvent, cargo::TypeId),
 }
 
 /// Yew properties for [`Comp`].
@@ -96,4 +99,6 @@ pub struct Props {
     pub file: Rc<save::SaveFile>,
     /// Set the main body to a cargo.
     pub choose_cargo: Callback<cargo::TypeId>,
+    /// The prefix in the hash-route, e.g. `scenario/vanilla`)
+    pub route_prefix: String,
 }

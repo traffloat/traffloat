@@ -32,7 +32,8 @@ impl Component for Comp {
                 self.open = !self.open;
                 true
             }
-            Msg::ChooseBuilding(id) => {
+            Msg::ChooseBuilding(event, id) => {
+                event.prevent_default();
                 self.props.choose_building.emit(id);
                 false
             }
@@ -58,18 +59,24 @@ impl Component for Comp {
                         { for self.props.file.def().building_cats().iter()
                                 .map(|(category_id, category)| html! {
                             <div>
-                                <h4>{ category.title() }</h4>
+                                <h4>
+                                    <span title=category.description().to_string()>
+                                        { category.title() }
+                                    </span>
+                                </h4>
                                 { for self.props.file.def().building().iter()
                                         .filter(|(_, building)| building.category() == category_id)
                                         .map(|(building_id, building)| html! {
-                                    <div
-                                        style="cursor: pointer;"
-                                        onclick=self.link.callback({
-                                            let building_id = building_id.clone();
-                                            move |_| Msg::ChooseBuilding(building_id.clone())
-                                        })
-                                    >
-                                        <p>{ building.name() }</p>
+                                    <div>
+                                        <a
+                                            href=format!("#/{}/rules/building/{}", &self.props.route_prefix, &building_id.0)
+                                            onclick=self.link.callback({
+                                                let building_id = building_id.clone();
+                                                move |event| Msg::ChooseBuilding(event, building_id.clone())
+                                            })
+                                        >
+                                            { building.name() }
+                                        </a>
                                     </div>
                                 })}
                             </div>
@@ -86,7 +93,7 @@ pub enum Msg {
     /// Toggle the opening of this navbar component.
     Toggle(MouseEvent),
     /// The user chooses a building.
-    ChooseBuilding(building::TypeId),
+    ChooseBuilding(MouseEvent, building::TypeId),
 }
 
 /// Yew properties for [`Comp`].
@@ -96,4 +103,6 @@ pub struct Props {
     pub file: Rc<save::SaveFile>,
     /// Set the main body to a building.
     pub choose_building: Callback<building::TypeId>,
+    /// The prefix in the hash-route, e.g. `scenario/vanilla`)
+    pub route_prefix: String,
 }

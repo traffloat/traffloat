@@ -50,10 +50,12 @@ impl Component for Comp {
                 <super::building::nav::Comp
                     file=Rc::clone(&self.props.file)
                     choose_building=self.props.choose_building.clone()
+                    route_prefix=self.props.route_prefix.clone()
                     />
                 <super::cargo::nav::Comp
                     file=Rc::clone(&self.props.file)
                     choose_cargo=self.props.choose_cargo.clone()
+                    route_prefix=self.props.route_prefix.clone()
                     />
             </nav>
         }
@@ -74,4 +76,6 @@ pub struct Props {
     pub choose_building: Callback<building::TypeId>,
     /// Set the main body to a cargo.
     pub choose_cargo: Callback<cargo::TypeId>,
+    /// The prefix in the hash-route, e.g. `scenario/vanilla`)
+    pub route_prefix: String,
 }
