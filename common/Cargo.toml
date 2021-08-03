@@ -22,7 +22,7 @@ log = "0.4.14"
 nalgebra = "0.28.0"
 rand = "0.8.4"
 rmp-serde = {version = "0.15.5", optional = true}
-serde = {version = "1.0.126", features = ["derive"]}
+serde = {version = "1.0.127", features = ["derive"]}
 serde_yaml = {version = "0.8.17", optional = true}
 shrev = "1.1.1"
 smallvec = "1.6.1"
