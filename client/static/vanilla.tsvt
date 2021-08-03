@@ -379,23 +379,12 @@ def:
       category: population
       shape:
         unit: Cube
-        transform:
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
+        transform: [
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0
+        ]
         texture_src: textures-x-fancy.png
         texture_name: core
       reactions: []
@@ -414,23 +403,12 @@ def:
       category: population
       shape:
         unit: Cylinder
-        transform:
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.6
-          - 0.0
-          - 0.0
-          - 0.0
-          - -0.8
-          - 1.0
+        transform: [
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.6, 0.0,
+          0.0, 0.0, -0.8, 1.0,
+        ]
         texture_src: textures-x-fancy.png
         texture_name: house
       reactions: []
@@ -448,23 +426,12 @@ def:
       category: traffic
       shape:
         unit: Cube
-        transform:
-          - 0.2
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.2
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.2
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
+        transform: [
+          0.2, 0.0, 0.0, 0.0,
+          0.0, 0.2, 0.0, 0.0,
+          0.0, 0.0, 0.2, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]
         texture_src: textures-x-fancy.png
         texture_name: terminal
       reactions: []
@@ -484,23 +451,12 @@ def:
       category: electricity
       shape:
         unit: Cube
-        transform:
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
+        transform: [
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]
         texture_src: textures-x-fancy.png
         texture_name: solar-panel
       reactions:
@@ -522,23 +478,12 @@ def:
       category: storage
       shape:
         unit: Cube
-        transform:
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
+        transform: [
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]
         texture_src: textures-x-fancy.png
         texture_name: vault
       reactions: []
@@ -555,23 +500,12 @@ def:
       category: industrial
       shape:
         unit: Cube
-        transform:
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
+        transform: [
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]
         texture_src: textures-x-fancy.png
         texture_name: filtration-plant
       reactions:
@@ -593,23 +527,12 @@ def:
       category: education
       shape:
         unit: Cube
-        transform:
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
+        transform: [
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]
         texture_src: textures-x-fancy.png
         texture_name: driving-school
       reactions:
@@ -631,23 +554,12 @@ def:
       category: entertainment
       shape:
         unit: Cylinder
-        transform:
-          - 0.8
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.4
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 2.4
-          - 0.0
-          - 0.0
-          - 0.0
-          - -1.2
-          - 1.0
+        transform: [
+          0.8, 0.0, 0.0, 0.0,
+          0.0, 1.4, 0.0, 0.0,
+          0.0, 0.0, 2.4, 0.0,
+          0.0, 0.0, -1.2, 1.0,
+        ]
         texture_src: textures-x-fancy.png
         texture_name: stadium
       reactions:
@@ -669,23 +581,12 @@ def:
       category: security
       shape:
         unit: Cube
-        transform:
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
+        transform: [
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]
         texture_src: textures-x-fancy.png
         texture_name: prison
       reactions:
@@ -711,23 +612,12 @@ def:
       category: security
       shape:
         unit: Cube
-        transform:
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
+        transform: [
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]
         texture_src: textures-x-fancy.png
         texture_name: customs
       reactions: []
@@ -823,23 +713,12 @@ state:
         - 3.0
       shape:
         unit: Cube
-        matrix:
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
+        matrix: [
+          1.0, 0.0, 0.0, 0.0,
+          0.0, 1.0, 0.0, 0.0,
+          0.0, 0.0, 1.0, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]
         texture:
           url: textures-x-fancy.png
           name: core
@@ -865,23 +744,12 @@ state:
         - 3.0
       shape:
         unit: Cylinder
-        matrix:
-          - 0.4
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.4
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.6400000000000001
-          - 0.0
-          - 0.0
-          - 0.0
-          - -0.32000000000000008
-          - 1.0
+        matrix: [
+          0.4, 0.0, 0.0, 0.0,
+          0.0, 0.4, 0.0, 0.0,
+          0.0, 0.0, 0.64, 0.0,
+          0.0, 0.0, -0.32, 1.0,
+        ]
         texture:
           url: textures-x-fancy.png
           name: house
@@ -904,23 +772,12 @@ state:
         - 10.0
       shape:
         unit: Cube
-        matrix:
-          - 0.1
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.5
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.5
-          - 0.0
-          - 0.0
-          - 0.0
-          - 0.0
-          - 1.0
+        matrix: [
+          0.1, 0.0, 0.0, 0.0,
+          0.0, 0.5, 0.0, 0.0,
+          0.0, 0.0, 1.5, 0.0,
+          0.0, 0.0, 0.0, 1.0,
+        ]
         texture:
           url: textures-x-fancy.png
           name: solar-panel
