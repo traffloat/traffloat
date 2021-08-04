@@ -1,5 +1,5 @@
-client-build: client-clean pp
-	cd client && trunk build --release release.html
+client-build path_prefix: client-clean pp
+	cd client && trunk build --public-url {{path_prefix}} --release release.html
 client-build-dev: client-clean pp
 	cd client && trunk build dev.html
 client-watch: client-clean
