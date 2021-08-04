@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link data-trunk rel="copy-file" href="static/vanilla.tsvt" />
+		<link data-trunk rel="copy-dir" href="./gen" />
+
+		<meta charset="UTF-8">
+		<meta property="og:title" content="Traffloat" />
+		<link rel="canonical" href="https://traffloat.github.io/master/" />
+		<link data-trunk rel="icon" href="static/favicon.ico" type="image/png" />
+		<meta property="og:url" content="https://traffloat.github.io/master/" />
+		<meta property="og:site_name" content="traffloat" />
+		<meta property="og:description" content="A cooperative web game with elements of City Building, Logistics and Diplomacy." />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Traffloat</title>
+		<style>
+			html, body {
+				overflow: hidden;
+				margin: 0;
+				height: 100%;
+			}
+		</style>
+
+		<link data-trunk rel="rust" data-wasm-opt="4" href="Cargo.toml" />
+	</head>
+	<body>
+		<div id="noscript">
+			The game module is loading.
+			<br/>
+			Enable JavaScript to play this game.
+			<br/>
+			If the page still does not load,
+			it may be because your browser does not support WebAssembly.
+			Please use an updated browser.
+		</div>
+	</body>
+</html>

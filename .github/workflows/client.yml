@@ -23,8 +23,8 @@ jobs:
         with:
           path: |
             ~/.cargo
-          key: wasm-pack-just-08-01
-      - run: test -f ~/.cargo/bin/just || cargo install wasm-pack just
+          key: trunk-just-08-01
+      - run: test -f ~/.cargo/bin/just || cargo install trunk just
 
       - name: Install toolchain dependencies
         run: just deps

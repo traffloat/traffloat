@@ -7,105 +7,105 @@ def:
       summary: An organic mineral.
       description: Amino acids are found in small amounts in asteroids. Use them to synthesize food and DNA.
       category: raw-mineral
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: amino-acid
     rock:
       name: Rock
       summary: Chunks of rocks from asteroids.
       description: Rocks are the cheapest type of material obtained from asteroids. They can be used as ammunition or disposed as junk.
       category: raw-mineral
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: rock
     dna:
       name: DNA
       summary: Genetic material.
       description: "DNA is used to produce inhabitants through asexual reproduction. Although morally challenged, this is the only way to start a new colony from scratch."
       category: organic
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: dna
     pepples:
       name: Pepples
       summary: Stone pepples used as ammunition.
       description: Pepples are produced by decomposing rocks.They are the basic type of ammunition for defense.
       category: ammunition
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: pepples
     sediment:
       name: Sediment
       summary: Filtration and distillation residue.
       description: "Sediments are waste produced during liquid processing. They cannot be used for anything, and should be ejected with junk launchers to avoid filling up storage space."
       category: junk
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: sediment
     aluminium:
       name: Aluminium
       summary: A metal used for construction
       description: ""
       category: intermediate-material
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: aluminium
     battery:
       name: Battery
       summary: Stores a small amount of power
       description: "Charged in charging stations and discharged in discharging stations, batteries serve as an alternative method to transfer electricity between buildings. They are useful for avoiding construction of power cables into low-consumption regions and ensuring uninterrupted power supply in regions where cable often disconnects.\n                "
       category: container
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: battery
     asteroidal-water-bottle:
       name: Liquid bottle (Asteroidal water)
       summary: Stores a small amount of Asteroidal water
       description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to transfer a small amount of liquid to factories as a replacement of constructing dedicated pipes through corridors."
       category: container
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: asteroidal-water-liquid-bottle
     filtered-water-bottle:
       name: Liquid bottle (Filtered water)
       summary: Stores a small amount of Filtered water
       description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to transfer a small amount of liquid to factories as a replacement of constructing dedicated pipes through corridors."
       category: container
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: filtered-water-liquid-bottle
     deionized-water-bottle:
       name: Liquid bottle (Deionized water)
       summary: Stores a small amount of Deionized water
       description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to transfer a small amount of liquid to factories as a replacement of constructing dedicated pipes through corridors."
       category: container
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: deionized-water-liquid-bottle
     urine-bottle:
       name: Liquid bottle (Urine)
       summary: Stores a small amount of Urine
       description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to transfer a small amount of liquid to factories as a replacement of constructing dedicated pipes through corridors."
       category: container
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: urine-liquid-bottle
     coolant-bottle:
       name: Liquid bottle (Coolant)
       summary: Stores a small amount of Coolant
       description: "Produced in liquid bottlers and centrifuges, liquid bottles can be used to transfer a small amount of liquid to factories as a replacement of constructing dedicated pipes through corridors."
       category: container
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: coolant-liquid-bottle
     oxygen-bottle:
       name: Gas bottle (Oxygen)
       summary: Stores a small amount of Oxygen
       description: "Produced in gas bottlers and centrifuges, gas bottles can be used to transfer a small amount of gas to factories as a replacement of diffusing gas slowly through corridors."
       category: container
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: oxygen-gas-bottle
     carbon-dioxide-bottle:
       name: Gas bottle (Carbon dioxide)
       summary: Stores a small amount of Carbon dioxide
       description: "Produced in gas bottlers and centrifuges, gas bottles can be used to transfer a small amount of gas to factories as a replacement of diffusing gas slowly through corridors."
       category: container
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: carbon-dioxide-gas-bottle
     nitrogen-bottle:
       name: Gas bottle (Nitrogen)
       summary: Stores a small amount of Nitrogen
       description: "Produced in gas bottlers and centrifuges, gas bottles can be used to transfer a small amount of gas to factories as a replacement of diffusing gas slowly through corridors."
       category: container
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: nitrogen-gas-bottle
   cargo_cats:
     raw-mineral:
@@ -132,54 +132,54 @@ def:
       summary: Water found on asteroids
       description: "Deposits of water can sometimes be found in asteroids. Contaminated by asteroidal minerals, it must be filtered to be used in factories,\n            or deionized so that it is drinkable by inhabitants."
       viscosity: 1.0
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: asteroidal-water
     filtered-water:
       name: Filtered water
       summary: Water without insoluble impurities.
       description: "Filtered water is removed of insoluble impurities, so they can be used in other factories without clogging up conduits."
       viscosity: 1.0
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: filtered-water
     deionized-water:
       name: Deionized water
       summary: Drinking water
       description: Soluble impurities in water are removed from water during deionization. This makes the water safe for inhabitant intake.
       viscosity: 1.0
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: deionized-water
     urine:
       name: Urine
       summary: Waste produced by inhabitants
       description: Urines are organic waste produced by inhabitants in houses. Arrange sewage pipes to remove them from houses and recycle them by distillation into drinking water.
       viscosity: 5.0
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: urine
     coolant:
       name: Coolant
       summary: A liquid at very low temperature
       description: Coolants are produced by condensation of nitrogen. They are required in factories with highly exothermic reactions.
       viscosity: 1.0
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: coolant
   gas:
     oxygen:
       name: Oxygen
       summary: Needed for breathing
       description: "Oxygen is required for survival of inhabitants. Inhabitants cannot work in buildings with low oxygen content, except for construction work, where sufficient oxygen must be available in adjacent buildings."
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: oxygen
     carbon.dioxide:
       name: Carbon dioxide
       summary: Photosynthesis material
       description: "Carbon dioxide is produced in houses and consumed in oxygen farms. While high carbon dioxide level is not necessarily fatal, they reduce the levels of other gases in the air."
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: carbon-dioxide
     nitrogen:
       name: Nitrogen
       summary: "An abundant, safe gas for pressure regulation"
       description: "Nitrogen is found in abundant amounts. Although chemically inactive, they are great for pressure regulation and can be condensed to produce coolants."
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: nitrogen
   skill:
     age:
@@ -235,7 +235,7 @@ def:
           min: 1.0
           max: 2.0
           overflow: 2.0
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: raptor
     freighter:
       name: Freighter
@@ -253,7 +253,7 @@ def:
           min: 1.0
           max: 2.0
           overflow: 2.0
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: freighter
     bus:
       name: Bus
@@ -271,7 +271,7 @@ def:
           min: 1.0
           max: 2.0
           overflow: 2.0
-      texture_src: textures-x-fancy.png
+      texture_src: gen/textures-x-fancy.png
       texture_name: bus
   reaction:
     solar-power:
@@ -385,7 +385,7 @@ def:
           0.0, 0.0, 1.0, 0.0,
           0.0, 0.0, 0.0, 1.0
         ]
-        texture_src: textures-x-fancy.png
+        texture_src: gen/textures-x-fancy.png
         texture_name: core
       reactions: []
       hitpoint: 3000.0
@@ -409,7 +409,7 @@ def:
           0.0, 0.0, 1.6, 0.0,
           0.0, 0.0, -0.8, 1.0,
         ]
-        texture_src: textures-x-fancy.png
+        texture_src: gen/textures-x-fancy.png
         texture_name: house
       reactions: []
       hitpoint: 150.0
@@ -432,7 +432,7 @@ def:
           0.0, 0.0, 0.2, 0.0,
           0.0, 0.0, 0.0, 1.0,
         ]
-        texture_src: textures-x-fancy.png
+        texture_src: gen/textures-x-fancy.png
         texture_name: terminal
       reactions: []
       hitpoint: 100.0
@@ -457,7 +457,7 @@ def:
           0.0, 0.0, 1.0, 0.0,
           0.0, 0.0, 0.0, 1.0,
         ]
-        texture_src: textures-x-fancy.png
+        texture_src: gen/textures-x-fancy.png
         texture_name: solar-panel
       reactions:
         - reaction: solar-power
@@ -484,7 +484,7 @@ def:
           0.0, 0.0, 1.0, 0.0,
           0.0, 0.0, 0.0, 1.0,
         ]
-        texture_src: textures-x-fancy.png
+        texture_src: gen/textures-x-fancy.png
         texture_name: vault
       reactions: []
       hitpoint: 500.0
@@ -506,7 +506,7 @@ def:
           0.0, 0.0, 1.0, 0.0,
           0.0, 0.0, 0.0, 1.0,
         ]
-        texture_src: textures-x-fancy.png
+        texture_src: gen/textures-x-fancy.png
         texture_name: filtration-plant
       reactions:
         - reaction: asteroidal-water-filtration
@@ -533,7 +533,7 @@ def:
           0.0, 0.0, 1.0, 0.0,
           0.0, 0.0, 0.0, 1.0,
         ]
-        texture_src: textures-x-fancy.png
+        texture_src: gen/textures-x-fancy.png
         texture_name: driving-school
       reactions:
         - reaction: driving-lesson
@@ -560,7 +560,7 @@ def:
           0.0, 0.0, 2.4, 0.0,
           0.0, 0.0, -1.2, 1.0,
         ]
-        texture_src: textures-x-fancy.png
+        texture_src: gen/textures-x-fancy.png
         texture_name: stadium
       reactions:
         - reaction: stadium
@@ -587,7 +587,7 @@ def:
           0.0, 0.0, 1.0, 0.0,
           0.0, 0.0, 0.0, 1.0,
         ]
-        texture_src: textures-x-fancy.png
+        texture_src: gen/textures-x-fancy.png
         texture_name: prison
       reactions:
         - reaction: imprisonment
@@ -618,7 +618,7 @@ def:
           0.0, 0.0, 1.0, 0.0,
           0.0, 0.0, 0.0, 1.0,
         ]
-        texture_src: textures-x-fancy.png
+        texture_src: gen/textures-x-fancy.png
         texture_name: customs
       reactions: []
       hitpoint: 300.0
@@ -720,7 +720,7 @@ state:
           0.0, 0.0, 0.0, 1.0,
         ]
         texture:
-          url: textures-x-fancy.png
+          url: gen/textures-x-fancy.png
           name: core
       hitpoint:
         current: 3000.0
@@ -751,7 +751,7 @@ state:
           0.0, 0.0, -0.32, 1.0,
         ]
         texture:
-          url: textures-x-fancy.png
+          url: gen/textures-x-fancy.png
           name: house
       hitpoint:
         current: 150.0
@@ -779,7 +779,7 @@ state:
           0.0, 0.0, 0.0, 1.0,
         ]
         texture:
-          url: textures-x-fancy.png
+          url: gen/textures-x-fancy.png
           name: solar-panel
       hitpoint:
         current: 200.0

@@ -56,6 +56,7 @@ impl Component for Home {
             Msg::ChooseScenario(event) => {
                 let loader = match event.scenario {
                     Some(Scenario::Url(url)) => {
+                        log::debug!("URL: {}", url);
                         let request = fetch::Request::get(url)
                             .body(yew::format::Nothing)
                             .expect("Failed to build request");

@@ -1,9 +1,9 @@
 client-build: client-clean pp
-	cd client && $(npm bin)/webpack
+	cd client && trunk build --release release.html
 client-build-dev: client-clean pp
-	cd client && $(npm bin)/webpack --mode development
+	cd client && trunk build dev.html
 client-watch: client-clean
-	cd client && $(npm bin)/webpack serve --mode development --open
+	cd client && trunk serve dev.html --watch .. --open
 
 doc: client-glsl
 	cargo doc --lib --document-private-items
@@ -13,7 +13,8 @@ guide: guide-clean
 	cd docgen/output && mkdocs build
 
 client-clean:
-	cd client && $(npm bin)/rimraf dist pkg
+	test ! -d client/dist || rm -r client/dist
+	test ! -d client/pkg || rm -r client/pkg
 pp: client-texture client-glsl
 client-texture:
 	cd client/textures && python3 aggregate.py
@@ -22,11 +23,7 @@ client-glsl:
 guide-clean:
 	test ! -d docgen/output || rm -r docgen/output
 
-test:
-	cargo test && wasm-pack test --headless
-
 deps:
-	cd client && npm install
 	cd client/textures && npm install
 	pip3 install -r client/textures/requirements.txt
 
