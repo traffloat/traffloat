@@ -111,7 +111,7 @@ impl Command {
             RawKey::Mouse(1) => Command::MiddleClick,
             RawKey::Mouse(2) => Command::RightClick,
             RawKey::Key("KeyE") => Command::Edit,
-            RawKey::Key("Escape") => Command::Cancel,
+            RawKey::Key("KeyQ") => Command::Cancel,
             _ => return None,
         })
     }
