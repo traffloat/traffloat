@@ -20,9 +20,8 @@ fn main() -> Result<()> {
     let (git_data, full_version) = match git_data(workspace) {
         Ok(data) => {
             let full_version = format!(
-                "{}{}{}",
+                "{}{}",
                 semver,
-                if data.dirty { "-dirty" } else { "" },
                 match (&data.sha, &data.branch) {
                     (Some(sha), Some(branch)) => format!("-{}@{}", branch, &sha[..7]),
                     _ => String::new(),
