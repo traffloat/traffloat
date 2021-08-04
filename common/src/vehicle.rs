@@ -8,6 +8,7 @@ use crate::SetupEcs;
 /// A component applied on a node that drives a rail.
 #[derive(TypedBuilder, getset::CopyGetters)]
 pub struct RailPump {
+    /// The force provided by the pump.
     #[getset(get_copy = "pub")]
     force: units::RailForce,
 }

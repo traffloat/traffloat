@@ -92,12 +92,13 @@ class Atlas:
             # Check if there is any x such that self.images[:, :, :, x] == im is all true
 
             im_cmp = im.reshape((width, height, num_channels, 1))
-            equal = numpy.equal(self.images[:, :, :, :self.count], im_cmp)
+            search_start = max(self.count - 12, 0)
+            equal = numpy.equal(self.images[:, :, :, search_start:self.count], im_cmp)
             equal = numpy.all(equal, axis=(0, 1, 2))
 
             equal_index = numpy.where(equal)[0]
             if equal_index.shape[0] > 0:
-                return equal_index[0]
+                return equal_index[0] + search_start
 
         with Timer("allocating new sprite"):
             index, region = self.allocate()

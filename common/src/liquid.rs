@@ -66,6 +66,7 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Liq
 /// A component applied on a node that drives a pipe.
 #[derive(TypedBuilder, getset::CopyGetters)]
 pub struct LiquidPump {
+    /// The force provided by the pump.
     #[getset(get_copy = "pub")]
     force: units::PipeForce,
 }
