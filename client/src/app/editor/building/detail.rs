@@ -141,7 +141,7 @@ fn render_feature(feature: &building::ExtraFeature, def: &GameDefinition) -> Htm
                         ) }
                         { for (*breach_probability > 0.).then(|| format!(
                             "{}% of the ",
-                            *breach_probability * 100.,
+                            (1. - *breach_probability) * 100.,
                         )) }
                         { for (*breach_probability == 0.).then(|| "All ") }
                         { format_args!(
@@ -174,7 +174,7 @@ fn render_feature(feature: &building::ExtraFeature, def: &GameDefinition) -> Htm
                         ) }
                         { for (*breach_probability > 0.).then(|| format!(
                             "{}% of the ",
-                            *breach_probability * 100.,
+                            (1. - *breach_probability) * 100.,
                         )) }
                         { for (*breach_probability == 0.).then(|| "All ") }
                         { format_args!(
