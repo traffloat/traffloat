@@ -24,6 +24,16 @@ pub struct Id {
     to: Entity,
 }
 
+codegen::component_depends! {
+    Id = (
+        Id,
+        Size,
+        units::Portion<units::Hitpoint>,
+        Design,
+    ) + ?(
+    )
+}
+
 /// Defines the size of an edge
 #[derive(Debug, Clone, Copy, new, getset::CopyGetters, Serialize, Deserialize)]
 pub struct Size {

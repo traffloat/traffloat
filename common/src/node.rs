@@ -39,6 +39,7 @@ pub struct Name {
 
 codegen::component_depends! {
     Id = (
+        Id,
         Name,
         Position,
         Shape,

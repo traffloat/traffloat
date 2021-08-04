@@ -213,9 +213,11 @@ pub trait OptionalComponent<T>: Sized {}
 macro_rules! component_depends {
     ($id:ty = ($($required:ty),* $(,)?) + ?($($optional:ty),* $(,)?)) => {
         $(
+            #[doc = concat!("[`", stringify!($required), "`] is a required component in the archetype of [`", stringify!($id), "`].")]
             impl $crate::RequiredComponent<$id> for $required {}
         )*
         $(
+            #[doc = concat!("[`", stringify!($optional), "`] is an optional component in the archetype of [`", stringify!($id), "`].")]
             impl $crate::OptionalComponent<$id> for $optional {}
         )*
     }
