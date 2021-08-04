@@ -31,7 +31,7 @@ serde = { version = "1.0.127", features = ["derive"] }
 serde_json = "1.0.66"
 shrev = "1.1.1"
 smallvec = "1.6.1"
-traffloat-codegen = {version = "0.2.0", path = "../codegen-types", features = ["web-sys"]}
+traffloat-codegen = {version = "0.2.0", path = "../codegen", features = ["web-sys"]}
 traffloat-common = {version = "0.2.0", path = "../common"}
 traffloat-safety = {version = "0.2.0", path = "../safety"}
 traffloat-version = {version = "0.2.0", path = "../version"}

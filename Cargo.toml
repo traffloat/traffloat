@@ -1,8 +1,8 @@
 [workspace]
 members = [
 	"safety",
+	"codegen-raw",
 	"codegen",
-	"codegen-types",
 	"types",
 	"common",
 	"client",

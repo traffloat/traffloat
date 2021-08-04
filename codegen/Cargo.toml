@@ -1,21 +1,32 @@
 [package]
-name = "traffloat-codegen-raw"
+name = "traffloat-codegen"
 authors = ["SOFe <sofe2038@gmail.com>"]
 version = "0.2.0"
 edition = "2018"
 repository = "https://github.com/traffloat/traffloat"
 homepage = "https://github.com/traffloat/traffloat"
-description = "Traffloat codegen library implementation"
+description = "Traffloat codegen library re-exports"
 license = "AGPL-3.0"
 
 [lib]
-proc-macro = true
+name = "codegen"
 
 [dependencies]
-crc64fast = "1.0.0"
-proc-macro2 = "1.0.28"
-quote = "1.0.8"
-syn = "1.0.74"
+getset = "0.1.1"
+lazy_static = "1.4.0"
+log = "0.4.14"
+shrev = "1.1.1"
+traffloat-codegen-raw = {version = "0.2.0", path = "../codegen-raw"}
+
+[dependencies.legion]
+version = "0.4.0"
+default-features = false
+features = [
+	"codegen",
+]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = {version = "0.3.52", features = ["Window", "Performance"], optional = true}
 
 [features]
-render-debug = []
+render-debug = ["traffloat-codegen-raw/render-debug"]

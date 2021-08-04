@@ -1,0 +1,21 @@
+[package]
+name = "traffloat-codegen-raw"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.2.0"
+edition = "2018"
+repository = "https://github.com/traffloat/traffloat"
+homepage = "https://github.com/traffloat/traffloat"
+description = "Traffloat codegen library implementation"
+license = "AGPL-3.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+crc64fast = "1.0.0"
+proc-macro2 = "1.0.28"
+quote = "1.0.8"
+syn = "1.0.74"
+
+[features]
+render-debug = []
