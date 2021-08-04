@@ -18,6 +18,7 @@ jobs:
           toolchain: nightly-2021-08-01
           profile: default
           default: true
+          target: wasm32-unknown-unknown
       - name: Cache cargo tools
         uses: actions/cache@v2
         with:
