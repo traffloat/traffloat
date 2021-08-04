@@ -48,6 +48,7 @@ pub mod shape;
 pub mod sun;
 mod util;
 pub use util::*;
+pub mod vehicle;
 
 pub use codegen::{Legion, SetupEcs};
 
@@ -65,6 +66,7 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
         .uses(liquid::setup_ecs)
         .uses(gas::setup_ecs)
         .uses(population::setup_ecs)
-        .uses(save::setup_ecs)
+        .uses(vehicle::setup_ecs)
         .uses(sun::setup_ecs)
+        .uses(save::setup_ecs)
 }

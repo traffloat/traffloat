@@ -4,11 +4,12 @@ use derive_new::new;
 use legion::world::SubWorld;
 use legion::Entity;
 use smallvec::SmallVec;
+use typed_builder::TypedBuilder;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
 use crate::def;
 use crate::time::Instant;
-use crate::units::LiquidVolume;
+use crate::units::{self, LiquidVolume};
 use crate::util;
 use crate::SetupEcs;
 
@@ -60,6 +61,13 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Liq
         next.size.value(),
         (time.since_epoch() % SIMULATION_PERIOD).as_secs() / SIMULATION_PERIOD.as_secs(),
     ))
+}
+
+/// A component applied on a node that drives a pipe.
+#[derive(TypedBuilder, getset::CopyGetters)]
+pub struct LiquidPump {
+    #[getset(get_copy = "pub")]
+    force: units::PipeForce,
 }
 
 #[codegen::system]

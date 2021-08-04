@@ -132,7 +132,7 @@ pub enum ExtraFeature {
     /// The building provides housing capacity, and inhabitants can be assigned to it.
     ProvidesHousing(u32),
     /// The building provides driving force for vehicles on adjacent rails.
-    RailTerminal(units::RailForce),
+    RailPump(units::RailForce),
     /// The building provides pumping force for adjacent liquid pipes.
     LiquidPump(units::PipeForce),
     /// The building provides pumping force for gas diffusion in adjacent corridors.

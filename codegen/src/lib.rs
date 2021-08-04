@@ -182,6 +182,45 @@ impl Legion {
     }
 }
 
+/// A marker trait for standard archetypes.
+///
+/// If `A: ReqiuredComponent<B>`,
+/// this means that all entities with `B`
+/// should also have `A`.
+///
+/// This dependency is not enforced anywhere.
+/// It merely serves for documentation purpose.
+/// This is used to annotate the standard component set of an entity,
+/// using the identification type as `B`.
+/// e.g. all required components for nodes implement `RequiredComponent<node::Id>`.
+pub trait RequiredComponent<T>: Sized {}
+
+/// A marker trait for standard archetypes.
+///
+/// If `A: OptionalComponent<B>`,
+/// this means that all entities with `B`
+/// should also have `A`.
+///
+/// This dependency is not enforced anywhere.
+/// It merely serves for documentation purpose.
+/// This is used to annotate the standard component set of an entity,
+/// using the identification type as `B`.
+/// e.g. all optional components for nodes implement `OptionalComponent<node::Id>`.
+pub trait OptionalComponent<T>: Sized {}
+
+/// Concise syntax to implement [`RequiredComponent`] and [`OptionalComponent`] for many types.
+#[macro_export]
+macro_rules! component_depends {
+    ($id:ty = ($($required:ty),* $(,)?) + ?($($optional:ty),* $(,)?)) => {
+        $(
+            impl $crate::RequiredComponent<$id> for $required {}
+        )*
+        $(
+            impl $crate::OptionalComponent<$id> for $optional {}
+        )*
+    }
+}
+
 /// Performance tracking
 #[derive(Default)]
 pub struct Perf {

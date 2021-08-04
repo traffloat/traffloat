@@ -14,13 +14,13 @@ use typed_builder::TypedBuilder;
 
 use crate::def::{building, GameDefinition};
 use crate::defense;
-use crate::population;
 use crate::shape::{self, Shape};
 use crate::space::{Matrix, Position};
 use crate::sun::LightStats;
 use crate::units;
 use crate::SetupEcs;
 use crate::{cargo, gas, liquid};
+use crate::{population, vehicle};
 
 /// Component storing an identifier for a node
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new, Serialize, Deserialize)]
@@ -35,6 +35,28 @@ pub struct Name {
     #[getset(get = "pub")]
     #[getset(set = "pub")]
     name: ArcStr,
+}
+
+codegen::component_depends! {
+    Id = (
+        Name,
+        Position,
+        Shape,
+        LightStats,
+        units::Portion<units::Hitpoint>,
+        cargo::StorageList,
+        cargo::StorageCapacity,
+        liquid::StorageList,
+        liquid::StorageCapacity,
+        gas::StorageList,
+        gas::StorageCapacity,
+    ) + ?(
+        defense::Core,
+        population::Housing,
+        vehicle::RailPump,
+        liquid::LiquidPump,
+        gas::GasPump,
+    )
 }
 
 /// Indicates that a node is added

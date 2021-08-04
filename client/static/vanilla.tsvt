@@ -441,7 +441,7 @@ def:
         liquid: 1000.0
         gas: 1000.0
       features:
-        - RailTerminal: 100.0
+        - RailPump: 100.0
         - LiquidPump: 100.0
         - GasPump: 100.0
     solar-panel:

@@ -96,7 +96,7 @@ fn render_feature(feature: &building::ExtraFeature, def: &GameDefinition) -> Htm
                 </p>
             </div>
         },
-        building::ExtraFeature::RailTerminal(force) => html! {
+        building::ExtraFeature::RailPump(force) => html! {
             <div>
                 <h3>{ "Rail terminal" }</h3>
                 <p>
