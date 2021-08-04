@@ -730,7 +730,8 @@ state:
         sediment: 200.0
         rock: 50.0
       cargo_capacity: 1000.0
-      liquid: {}
+      liquid:
+        deionized-water: 100.0
       liquid_capacity: 1000.0
       gas: {}
       gas_capacity: 1000.0

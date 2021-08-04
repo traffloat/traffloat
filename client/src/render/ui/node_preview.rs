@@ -46,50 +46,71 @@ impl Component for Comp {
     }
 
     fn view(&self) -> Html {
-        let style = "
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 15em; height: 10em;
-            color: black;
-            pointer-events: auto;
-            background-color: white;
-            font-size: large;
-        ";
+        use crate::render::texture::Icon;
+        use traffloat::units::RoundedUnit;
+
+        fn storage_display(
+            size: impl RoundedUnit + Into<Html>,
+            name: &ArcStr,
+            icon: &Option<Icon>,
+        ) -> Html {
+            html! {
+                <>
+                    { size.round(2) }
+                    { " " }
+                    { for icon.as_ref().map(|icon| html! {
+                        <icon::Comp
+                            atlas_path=icon.url.to_string()
+                            atlas_width=icon.dim.0
+                            atlas_height=icon.dim.1
+                            x0=icon.pos.x()
+                            y0=icon.pos.y()
+                            x1=icon.pos.x() + icon.pos.width()
+                            y1=icon.pos.y() + icon.pos.height()
+                            out_width=24
+                            out_height=24
+                            text=name.to_string()
+                            />
+                    }) }
+                    { for icon.is_none().then(|| name) }
+                    <br />
+                </>
+            }
+        }
+
         html! {
-            <div style=style>
+            <div style="
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 15em; height: 10em;
+                color: black;
+                pointer-events: auto;
+                background-color: white;
+                font-size: large;
+                padding: 1em 0.2em;
+                overflow-y: auto;
+            ">
                 <p
                     onclick=self.link.callback(Msg::HelpButton)
-                    style="cursor: help;"
+                    style="
+                        margin: 0.5em 0;
+                        cursor: help;
+                    "
                 >
                     { &self.props.args.node_name }
                 </p>
-                <p>
+                <p style="margin: 0.5em 0;">
                     { self.props.args.hitpoint }
                 </p>
-                <p>
-                    { for self.props.args.cargo.iter().map(|(size, name, icon)| html! {
-                        <>
-                            { size }
-                            { " " }
-                            { for icon.as_ref().map(|icon| html! {
-                                <icon::Comp
-                                    atlas_path=icon.url.to_string()
-                                    atlas_width=icon.dim.0
-                                    atlas_height=icon.dim.1
-                                    x0=icon.pos.x()
-                                    y0=icon.pos.y()
-                                    x1=icon.pos.x() + icon.pos.width()
-                                    y1=icon.pos.y() + icon.pos.height()
-                                    out_width=24
-                                    out_height=24
-                                    text=name.to_string()
-                                    />
-                            }) }
-                            { for icon.is_none().then(|| name) }
-                            <br />
-                        </>
-                    }) }
+                <p style="margin: 0.5em 0;">
+                    { for self.props.args.cargo.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
+                </p>
+                <p style="margin: 0.5em 0;">
+                    { for self.props.args.liquid.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
+                </p>
+                <p style="margin: 0.5em 0;">
+                    { for self.props.args.gas.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
                 </p>
             </div>
         }

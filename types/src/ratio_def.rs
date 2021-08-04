@@ -5,7 +5,9 @@ macro_rules! units {
         #[$derive:meta] $base:ty:
         $(
             $(#[$meta:meta])*
-            $tys:ident($fmt:literal);
+            $tys:ident($fmt_front:literal, $fmt_back:literal)
+            $((round: $round:ident))?
+            ;
         )*
         $(
             <$a:path> * <$b:path> = $c:path;
@@ -40,9 +42,26 @@ macro_rules! units {
                 }
             }
 
+            $(
+                impl RoundedUnit for $tys {
+                    /// Rounds the unit
+                    fn $round(mut self, precision: i32) -> Self {
+                        let ten: $base = 10.;
+                        let exp = ten.powi(precision);
+                        self.0 *= exp;
+                        self.0 = self.0.round();
+                        self.0 /= exp;
+                        self
+                    }
+                }
+            )?
+
             impl ::std::fmt::Display for $tys {
                 fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                    write!(f, $fmt, self.0)
+                    write!(f, $fmt_front)?;
+                    ::std::fmt::Display::fmt(&self.0, f)?;
+                    write!(f, $fmt_back)?;
+                    Ok(())
                 }
             }
 
@@ -182,7 +201,13 @@ mod tests {
         Blanket(std::fmt::Debug + Clone + Copy + Default + PartialEq + PartialOrd);
 
         #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)] f64:
-        Accel("{} ms^-2"); Veloc("{} ms^-1"); Length("{} m"); Time("{} m"); Mass("{} kg"); Force("{} N"); Energy("{} J");
+        Accel("", " ms^-2");
+        Veloc("", " ms^-1");
+        Length("", " m");
+        Time("", " m");
+        Mass("", " kg");
+        Force("", " N");
+        Energy("", " J");
 
         <Accel> * <Time> = Veloc;
         <Veloc> * <Time> = Length;

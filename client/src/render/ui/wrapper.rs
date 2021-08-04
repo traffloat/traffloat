@@ -91,6 +91,7 @@ impl Component for Wrapper {
                 width: 100vw; height: 100vh;
                 pointer-events: none;
                 x: 0; y: 0;
+                font-family: Helvetica, sans-serif;
             ">
                 { for self.node_preview_args.as_ref().map(|args| html! {
                     <node_preview::Comp

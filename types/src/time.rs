@@ -13,7 +13,7 @@ units! {
     /// Synchronized time span.
     ///
     /// The underlying integer is in 1/100 seconds.
-    Time("{:1} s");
+    Time("", " s");
 }
 
 impl Time {
