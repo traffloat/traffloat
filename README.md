@@ -56,9 +56,24 @@ The following tools are used for compiling the client:
 - Rust (default toolchain) nightly-2021-08-01
 
 Ruby is used to minify the GLSL scripts,
-and Python is used for combining the texture images.
-Node is used to run `webpack` and assemble the site.
+and Node and Python are used for combining the texture images.
 Rust is used to write the main game logic compiled to WebAssembly.
+
+This ptoject requites the wasm target for the Rust toolchain:
+
+```shell
+rustup target add wasm32-unknown-unknown --toolchain nightly-2021-08-01
+```
+
+This project uses [just](https://github.com/casey/just)
+to manage script commands,
+and [trunk](https://github.com/thedood/trunk)
+to manage WebAssembly and site building.
+To install these tools:
+
+```shell
+cargo install trunk just
+```
 
 See the [justfile](justfile) for common commands, in particular:
 
@@ -66,15 +81,23 @@ See the [justfile](justfile) for common commands, in particular:
 # Install other dependencies
 just deps
 # Preprocess assets
-just pp # Compile the client and start a dev server, and recompile if files changed just watch
+just pp
 # Compile the client for production
-just build
+just client-build
 ```
 
+To compile for development mode, use `just client-build-dev` instead.
+There is also `just client-watch`,
+which compiles the client and start a dev server,
+and recompiles if files have been modified.
+
 While development build claims to produce "optimized" output,
-LTO (link time optimization) is enabled in release build
-to further improve performance and reduce file size
+LTO (link time optimization) in release build
+can further improve performance and reduce file size
 at the cost of longer compile time.
+The release build also triggers `wasm-opt`
+with optimization level 4, which takes a long time to execute
+(more than 15 minutes of CPU time).
 
 ## Contribution
 The game is composed of multiple crates:
