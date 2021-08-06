@@ -106,6 +106,7 @@ pub struct Response {
 #[read_component(cargo::StorageList)]
 #[read_component(cargo::StorageCapacity)]
 #[read_component(cargo::StorageSize)]
+#[read_component(liquid::Storage)]
 #[read_component(liquid::StorageList)]
 #[read_component(liquid::StorageCapacity)]
 #[read_component(liquid::StorageSize)]
@@ -132,7 +133,6 @@ fn save(
                     &cargo::StorageList,
                     &cargo::StorageCapacity,
                     &liquid::StorageList,
-                    &liquid::StorageCapacity,
                     &gas::StorageList,
                     &gas::StorageCapacity,
                 )>::query()
@@ -147,7 +147,6 @@ fn save(
                         cargo,
                         &cargo_capacity,
                         liquid,
-                        &liquid_capacity,
                         gas,
                         &gas_capacity,
                     )| {
@@ -174,17 +173,26 @@ fn save(
                             liquid: liquid
                                 .storages()
                                 .iter()
-                                .map(|(id, entity)| {
+                                .map(|entity| {
                                     let entry = world
                                         .entry_ref(*entity)
                                         .expect("liquid storage entity is nonexistent");
+                                    let storage: &liquid::Storage = entry
+                                        .get_component()
+                                        .expect("liquid storage entity has no Storage");
+                                    let capacity: &liquid::StorageCapacity = entry
+                                        .get_component()
+                                        .expect("liquid storage entity has no StorageCapacity");
                                     let size: &liquid::StorageSize = entry
                                         .get_component()
                                         .expect("liquid storage entity has no StorageSize");
-                                    (id.clone(), size.size())
+                                    node::save::LiquidStorage {
+                                        ty: storage.liquid().clone(),
+                                        capacity: capacity.total(),
+                                        volume: size.size(),
+                                    }
                                 })
                                 .collect(),
-                            liquid_capacity: liquid_capacity.total(),
                             gas: gas
                                 .storages()
                                 .iter()

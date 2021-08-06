@@ -111,14 +111,16 @@ impl Default for FlowPolicy {
 ///
 /// This storage is also used as a buffer for liquid and gas transfer.
 /// The storage size is the maximum amount of liquid and gas that
-#[derive(Debug, Clone, TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize,
+)]
 pub struct Storage {
     /// Cargo storage provided
     #[getset(get_copy = "pub")]
     cargo: units::CargoSize,
     /// Liquid storage provided
-    #[getset(get_copy = "pub")]
-    liquid: units::LiquidVolume,
+    #[getset(get = "pub")]
+    liquid: Vec<units::LiquidVolume>,
     /// Gas storage provided
     #[getset(get_copy = "pub")]
     gas: units::GasVolume,

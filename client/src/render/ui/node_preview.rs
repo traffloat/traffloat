@@ -155,6 +155,7 @@ pub struct Args {
 #[read_component(cargo::StorageSize)]
 #[read_component(cargo::NextStorageSize)]
 #[read_component(liquid::StorageList)]
+#[read_component(liquid::Storage)]
 #[read_component(liquid::StorageSize)]
 #[read_component(liquid::NextStorageSize)]
 #[read_component(gas::StorageList)]
@@ -209,8 +210,36 @@ fn draw(
             }
 
             let cargo = read_storage!(cargo_list, cargo);
-            let liquid = read_storage!(liquid_list, liquid);
             let gas = read_storage!(gas_list, gas);
+
+            let liquid = liquid_list
+                .storages()
+                .iter()
+                .map(|entity| {
+                    let storage_entry = world
+                        .entry_ref(*entity)
+                        .expect("Storage entity does not exist");
+                    let storage = storage_entry
+                        .get_component::<liquid::Storage>()
+                        .expect("Storage has no storage");
+                    let size = storage_entry
+                        .get_component::<liquid::StorageSize>()
+                        .expect("Storage has no size");
+                    let next_size = storage_entry
+                        .get_component::<liquid::NextStorageSize>()
+                        .expect("Storage has no next size");
+                    let lerp_size = liquid::lerp(size, next_size, clock.now());
+                    let item = def
+                        .liquid()
+                        .get(storage.liquid())
+                        .expect("undefined reference");
+                    let name = item.name();
+                    let icon = texture_pool
+                        .as_ref()
+                        .and_then(|pool| pool.icon(item.texture_src(), item.texture_name()));
+                    (lerp_size, name.clone(), icon)
+                })
+                .collect();
 
             Some(Args {
                 entity,

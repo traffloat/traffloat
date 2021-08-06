@@ -8,6 +8,7 @@ use typed_builder::TypedBuilder;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
 use crate::def;
+use crate::edge;
 use crate::time::Instant;
 use crate::units::{self, LiquidVolume};
 use crate::util;
@@ -18,15 +19,7 @@ use crate::SetupEcs;
 pub struct StorageList {
     /// The list of liquids stored in the entity.
     #[getset(get = "pub")]
-    storages: SmallVec<[(def::liquid::TypeId, Entity); 4]>,
-}
-
-/// A component attached to nodes to inidcate cargo capacity of the node.
-#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
-pub struct StorageCapacity {
-    /// The maximum total cargo size.
-    #[getset(get_copy = "pub")]
-    total: LiquidVolume,
+    storages: SmallVec<[Entity; 4]>,
 }
 
 /// A component attached to storage entities.
@@ -35,6 +28,23 @@ pub struct Storage {
     /// The type of liquid.
     #[getset(get = "pub")]
     liquid: def::liquid::TypeId, // TODO should we optimize this to a runtime integer ID?
+}
+
+/// A component attached to storages to inidcate capacity.
+#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
+pub struct StorageCapacity {
+    /// The maximum liquid size.
+    #[getset(get_copy = "pub")]
+    total: LiquidVolume,
+}
+
+codegen::component_depends! {
+    Storage = (
+        Storage,
+        StorageCapacity,
+        StorageSize,
+        NextStorageSize,
+    ) + ?()
 }
 
 /// The size of a liquid storage in the current simulation frame.
@@ -61,6 +71,39 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Liq
         next.size.value(),
         (time.since_epoch() % SIMULATION_PERIOD).as_secs() / SIMULATION_PERIOD.as_secs(),
     ))
+}
+
+/// A liquid pipe entity.
+#[derive(TypedBuilder, getset::CopyGetters)]
+pub struct Pipe {
+    /// The edge
+    #[getset(get_copy = "pub")]
+    edge: edge::Id,
+    /// The resistance of the pipe.
+    #[getset(get_copy = "pub")]
+    resistance: f64,
+}
+
+/// A component storing the resistance of a pipe.
+#[derive(new, getset::CopyGetters)]
+pub struct Resistance {
+    /// The resistance value,
+    /// computed by `length / radius^2`
+    #[getset(get_copy = "pub")]
+    value: f64,
+}
+
+impl Resistance {
+    /// Computes the resistance of a pipe.
+    pub fn compute(length: f64, radius: f64) -> Self {
+        Self::new(length / radius.powi(2))
+    }
+}
+
+codegen::component_depends! {
+    Pipe = (
+        Resistance,
+    ) + ?()
 }
 
 /// A component applied on a node that drives a pipe.

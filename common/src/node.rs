@@ -48,7 +48,6 @@ codegen::component_depends! {
         cargo::StorageList,
         cargo::StorageCapacity,
         liquid::StorageList,
-        liquid::StorageCapacity,
         gas::StorageList,
         gas::StorageCapacity,
     ) + ?(
@@ -157,6 +156,21 @@ fn create_new_node(
 
         let id = Id::new(rand::random());
 
+        let arbitrary_liquid_type = def.liquid().first().expect("at least one liquid type").0;
+        let liquids = building
+            .storage()
+            .liquid()
+            .iter()
+            .map(|&volume| {
+                entities.push((
+                    liquid::Storage::new(arbitrary_liquid_type.clone()),
+                    liquid::StorageCapacity::new(volume),
+                    liquid::StorageSize::new(units::LiquidVolume(0.)),
+                    liquid::NextStorageSize::new(units::LiquidVolume(0.)),
+                ))
+            })
+            .collect();
+
         let entity = entities.push((
             id,
             Name::new(building.name().clone()),
@@ -173,8 +187,7 @@ fn create_new_node(
             units::Portion::full(building.hitpoint()),
             cargo::StorageList::new(smallvec![]),
             cargo::StorageCapacity::new(building.storage().cargo()),
-            liquid::StorageList::new(smallvec![]),
-            liquid::StorageCapacity::new(building.storage().liquid()),
+            liquid::StorageList::new(liquids),
             gas::StorageList::new(smallvec![]),
             gas::StorageCapacity::new(building.storage().gas()),
         ));
@@ -232,13 +245,13 @@ fn create_saved_node(
         let liquid_list = save
             .liquid
             .iter()
-            .map(|(id, &size)| {
-                let entity = entities.push((
-                    liquid::Storage::new(id.clone()),
-                    liquid::StorageSize::new(size),
-                    liquid::NextStorageSize::new(size),
-                ));
-                (id.clone(), entity)
+            .map(|storage| {
+                entities.push((
+                    liquid::Storage::new(storage.ty.clone()),
+                    liquid::StorageCapacity::new(storage.capacity),
+                    liquid::StorageSize::new(storage.volume),
+                    liquid::NextStorageSize::new(storage.volume),
+                ))
             })
             .collect();
         let gas_list = save
@@ -264,7 +277,6 @@ fn create_saved_node(
             cargo::StorageList::new(cargo_list),
             cargo::StorageCapacity::new(save.cargo_capacity),
             liquid::StorageList::new(liquid_list),
-            liquid::StorageCapacity::new(save.liquid_capacity),
             gas::StorageList::new(gas_list),
             gas::StorageCapacity::new(save.gas_capacity),
         ));
@@ -302,9 +314,15 @@ pub mod save {
         pub(crate) hitpoint: units::Portion<units::Hitpoint>,
         pub(crate) cargo: BTreeMap<def::cargo::TypeId, units::CargoSize>,
         pub(crate) cargo_capacity: units::CargoSize,
-        pub(crate) liquid: BTreeMap<def::liquid::TypeId, units::LiquidVolume>,
-        pub(crate) liquid_capacity: units::LiquidVolume,
+        pub(crate) liquid: Vec<LiquidStorage>,
         pub(crate) gas: BTreeMap<def::gas::TypeId, units::GasVolume>,
         pub(crate) gas_capacity: units::GasVolume,
+    }
+
+    #[derive(Clone, Serialize, Deserialize)]
+    pub(crate) struct LiquidStorage {
+        pub(crate) ty: def::liquid::TypeId,
+        pub(crate) volume: units::LiquidVolume,
+        pub(crate) capacity: units::LiquidVolume,
     }
 }

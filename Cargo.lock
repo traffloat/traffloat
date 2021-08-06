@@ -944,6 +944,7 @@ dependencies = [
  "enum-map",
  "getrandom",
  "getset",
+ "itertools",
  "js-sys",
  "lazy_static",
  "legion",

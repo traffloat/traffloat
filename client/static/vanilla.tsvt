@@ -391,7 +391,7 @@ def:
       hitpoint: 3000.0
       storage:
         cargo: 1000.0
-        liquid: 1000.0
+        liquid: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
         gas: 1000.0
       features:
         - Core
@@ -415,7 +415,7 @@ def:
       hitpoint: 150.0
       storage:
         cargo: 1000.0
-        liquid: 1000.0
+        liquid: [500.0, 500.0]
         gas: 1000.0
       features:
         - ProvidesHousing: 3
@@ -438,7 +438,7 @@ def:
       hitpoint: 100.0
       storage:
         cargo: 1000.0
-        liquid: 1000.0
+        liquid: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
         gas: 1000.0
       features:
         - RailPump: 100.0
@@ -468,7 +468,7 @@ def:
       hitpoint: 200.0
       storage:
         cargo: 1000.0
-        liquid: 1000.0
+        liquid: [100.0]
         gas: 1000.0
       features: []
     vault:
@@ -490,7 +490,7 @@ def:
       hitpoint: 500.0
       storage:
         cargo: 20000.0
-        liquid: 1000.0
+        liquid: [100.0, 100.0]
         gas: 1000.0
       features: []
     filtration-plant:
@@ -517,7 +517,7 @@ def:
       hitpoint: 150.0
       storage:
         cargo: 3000.0
-        liquid: 5000.0
+        liquid: [1000.0, 1000.0]
         gas: 1000.0
       features: []
     driving-school:
@@ -544,7 +544,7 @@ def:
       hitpoint: 150.0
       storage:
         cargo: 1000.0
-        liquid: 1000.0
+        liquid: [100.0, 100.0]
         gas: 1000.0
       features: []
     stadium:
@@ -571,7 +571,7 @@ def:
       hitpoint: 150.0
       storage:
         cargo: 1000.0
-        liquid: 1000.0
+        liquid: [100.0, 100.0]
         gas: 1000.0
       features: []
     prison:
@@ -598,7 +598,7 @@ def:
       hitpoint: 200.0
       storage:
         cargo: 1000.0
-        liquid: 1000.0
+        liquid: [100.0, 100.0]
         gas: 1000.0
       features:
         - SecureExit:
@@ -624,7 +624,7 @@ def:
       hitpoint: 300.0
       storage:
         cargo: 1000.0
-        liquid: 1000.0
+        liquid: [100.0, 100.0]
         gas: 1000.0
       features:
         - SecureEntry:
@@ -731,8 +731,36 @@ state:
         rock: 50.0
       cargo_capacity: 1000.0
       liquid:
-        deionized-water: 100.0
-      liquid_capacity: 1000.0
+        - ty: deionized-water
+          volume: 100.0
+          capacity: 100.0
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
       gas: {}
       gas_capacity: 1000.0
     - id:
@@ -759,7 +787,13 @@ state:
         max: 150.0
       cargo: {}
       cargo_capacity: 1000.0
-      liquid: {}
+      liquid:
+        - ty: deionized-water
+          volume: 50.0
+          capacity: 500.0
+        - ty: urine
+          volume: 0.0
+          capacity: 500.0
       liquid_capacity: 1000.0
       gas: {}
       gas_capacity: 1000.0
@@ -787,7 +821,13 @@ state:
         max: 200.0
       cargo: {}
       cargo_capacity: 1000.0
-      liquid: {}
+      liquid:
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
+        - ty: asteroidal-water # This is an arbitrary value that does not matter since volume is 0.
+          volume: 0.0
+          capacity: 100.0
       liquid_capacity: 1000.0
       gas: {}
       gas_capacity: 1000.0

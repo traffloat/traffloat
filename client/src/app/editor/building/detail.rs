@@ -2,6 +2,7 @@
 
 use std::rc::Rc;
 
+use itertools::Itertools;
 use yew::prelude::*;
 
 use traffloat::def::{building, reaction, GameDefinition};
@@ -55,7 +56,15 @@ impl Component for Comp {
                         <tbody>
                             { table_entry("Hitpoints", building.hitpoint()) }
                             { table_entry("Cargo capacity", building.storage().cargo()) }
-                            { table_entry("Liquid capacity", building.storage().liquid()) }
+                            { table_entry(
+                                "Liquid capacity",
+                                building
+                                    .storage()
+                                    .liquid()
+                                    .iter()
+                                    .map(|volume| volume.to_string())
+                                    .join(" + ")
+                            ) }
                             { table_entry("Gas capacity", building.storage().gas()) }
                         </tbody>
                     </table>
