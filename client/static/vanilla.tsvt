@@ -162,6 +162,28 @@ def:
       viscosity: 1.0
       texture_src: gen/textures-x-fancy.png
       texture_name: coolant
+    contaminated-liquid:
+      name: Contaminated liquid
+      summary: Unusable liquid
+      description: A useless liquid caused by mixing different types of liquids. This liquid type cannot be used for anything, damaging most factories it flows into.
+      viscosity: 2.0
+      texture_src: gen/textures-x-fancy.png
+      texture_name: contaminated-liquid
+  liquid_mixer:
+    default: contaminated-liquid
+    formulas:
+      - augend: deionized-water
+        addend: filtered-water
+        sum: filtered-water
+      - augend: filtered-water
+        addend: asteroidal-water
+        sum: asteroidal-water
+      - augend: deionized-water
+        addend: asteroidal-water
+        sum: asteroidal-water
+      - augend: deionized-water
+        addend: urine
+        sum: urine
   gas:
     oxygen:
       name: Oxygen
