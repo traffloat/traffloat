@@ -8,7 +8,7 @@ use typed_builder::TypedBuilder;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
 use crate::config;
-use crate::def;
+use crate::def::{self, liquid::TypeId};
 use crate::node;
 use crate::time::Instant;
 use crate::units::{self, LiquidVolume};
@@ -29,7 +29,7 @@ pub struct Storage {
     /// The type of liquid.
     #[getset(get = "pub")]
     #[getset(set = "pub")]
-    liquid: def::liquid::TypeId, // TODO should we optimize this to a runtime integer ID?
+    liquid: TypeId,
 }
 
 /// A component attached to storages to inidcate capacity.
@@ -54,7 +54,7 @@ codegen::component_depends! {
 /// The size of a liquid storage in the current simulation frame.
 #[derive(new, getset::CopyGetters)]
 pub struct StorageSize {
-    /// The liquid size
+    /// The liquid size.
     #[getset(get_copy = "pub")]
     size: LiquidVolume,
 }
@@ -62,14 +62,10 @@ pub struct StorageSize {
 /// The type of a liquid storage in the next simulation frame.
 #[derive(new, getset::Getters, getset::Setters)]
 pub struct NextStorageType {
-    /// The original type.
+    /// The liquid type.
     #[getset(get = "pub")]
     #[getset(set = "pub")]
-    augend: def::liquid::TypeId,
-    /// The inserted type.
-    #[getset(get = "pub")]
-    #[getset(set = "pub")]
-    addend: def::liquid::TypeId,
+    ty: TypeId,
 }
 
 /// The size of a liquid storage in the next simulation frame.
@@ -168,7 +164,7 @@ fn simulate_pipes(
     let (mut query_world, mut entry_world) = world.split_for_query(&query);
     for (pipe, resistance, flow) in query.iter_mut(&mut query_world) {
         struct FetchEndpoint {
-            ty: def::liquid::TypeId,
+            ty: TypeId,
             force: units::PipeForce,
             volume: units::LiquidVolume,
             empty: units::LiquidVolume,
@@ -224,6 +220,8 @@ fn simulate_pipes(
         let src = fetch_endpoint(pipe.src_entity());
         let dest = fetch_endpoint(pipe.dest_entity());
 
+        let sum_ty = def.liquid_mixer().mix(&src.ty, &dest.ty).clone();
+
         let force = src.force + dest.force;
 
         let mut rate = force.value() / resistance.value() / src.viscosity.value();
@@ -249,9 +247,7 @@ fn simulate_pipes(
                 let next = dest_entity
                     .get_component_mut::<NextStorageType>()
                     .expect("Pipe endpoint does not have NextStorageType component");
-                next.set_augend(dest.ty);
-                next.set_addend(src.ty);
-                // FIXME: what if multiple addend types?
+                next.set_ty(sum_ty);
                 // FIXME: don't mix if dest value is too small
             }
             {
@@ -267,12 +263,11 @@ fn simulate_pipes(
 #[codegen::system]
 #[write_component(Storage)]
 #[write_component(StorageSize)]
-#[write_component(NextStorageType)]
+#[read_component(NextStorageType)]
 #[write_component(NextStorageSize)]
 fn update_storage(
     world: &mut SubWorld,
     #[subscriber] sim_sub: impl Iterator<Item = SimulationEvent>,
-    #[resource(no_init)] def: &def::GameDefinition,
 ) {
     use legion::IntoQuery;
 
@@ -284,11 +279,7 @@ fn update_storage(
         current.size = next.size;
     }
     for (current, next) in <(&mut Storage, &NextStorageType)>::query().iter_mut(world) {
-        current.set_liquid(def.liquid_mixer().mix(next.augend(), next.addend()).clone());
-    }
-    for (current, next) in <(&Storage, &mut NextStorageType)>::query().iter_mut(world) {
-        next.set_augend(current.liquid().clone());
-        next.set_addend(current.liquid().clone());
+        current.set_liquid(next.ty.clone());
     }
 }
 
