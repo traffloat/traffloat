@@ -28,7 +28,7 @@ deps:
 	pip3 install -r client/textures/requirements.txt
 
 tokei:
-	tokei -e "*lock*" -e "*.svg"
+	tokei -C -e "*lock*" -e "*.svg"
 depgraph:
 	#!/usr/bin/env sh
 	(

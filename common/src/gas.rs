@@ -54,6 +54,14 @@ pub struct NextStorageSize {
     size: GasVolume,
 }
 
+codegen::component_depends! {
+    Storage = (
+        Storage,
+        StorageSize,
+        NextStorageSize,
+    ) + ?()
+}
+
 /// Interpolates the current graphical size of a storage.
 pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> GasVolume {
     GasVolume(util::lerp(
