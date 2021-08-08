@@ -7,8 +7,9 @@ use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
+use crate::config;
 use crate::def;
-use crate::edge;
+use crate::node;
 use crate::time::Instant;
 use crate::units::{self, LiquidVolume};
 use crate::util;
@@ -23,10 +24,11 @@ pub struct StorageList {
 }
 
 /// A component attached to storage entities.
-#[derive(new, getset::Getters)]
+#[derive(new, getset::Getters, getset::Setters)]
 pub struct Storage {
     /// The type of liquid.
     #[getset(get = "pub")]
+    #[getset(set = "pub")]
     liquid: def::liquid::TypeId, // TODO should we optimize this to a runtime integer ID?
 }
 
@@ -41,8 +43,10 @@ pub struct StorageCapacity {
 codegen::component_depends! {
     Storage = (
         Storage,
+        node::Child,
         StorageCapacity,
         StorageSize,
+        NextStorageType,
         NextStorageSize,
     ) + ?()
 }
@@ -53,6 +57,19 @@ pub struct StorageSize {
     /// The liquid size
     #[getset(get_copy = "pub")]
     size: LiquidVolume,
+}
+
+/// The type of a liquid storage in the next simulation frame.
+#[derive(new, getset::Getters, getset::Setters)]
+pub struct NextStorageType {
+    /// The original type.
+    #[getset(get = "pub")]
+    #[getset(set = "pub")]
+    augend: def::liquid::TypeId,
+    /// The inserted type.
+    #[getset(get = "pub")]
+    #[getset(set = "pub")]
+    addend: def::liquid::TypeId,
 }
 
 /// The size of a liquid storage in the next simulation frame.
@@ -76,50 +93,186 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Liq
 /// A liquid pipe entity.
 #[derive(TypedBuilder, getset::CopyGetters)]
 pub struct Pipe {
-    /// The edge
+    /// Entity of the source storage
     #[getset(get_copy = "pub")]
-    edge: edge::Id,
-    /// The resistance of the pipe.
+    src_entity: Entity,
+    /// Entity of the destination storage
     #[getset(get_copy = "pub")]
-    resistance: f64,
+    dest_entity: Entity,
 }
 
 /// A component storing the resistance of a pipe.
 #[derive(new, getset::CopyGetters)]
-pub struct Resistance {
+pub struct PipeResistance {
     /// The resistance value,
     /// computed by `length / radius^2`
     #[getset(get_copy = "pub")]
     value: f64,
 }
 
-impl Resistance {
+impl PipeResistance {
     /// Computes the resistance of a pipe.
     pub fn compute(length: f64, radius: f64) -> Self {
         Self::new(length / radius.powi(2))
     }
 }
 
+/// A component storing the current flow of a pipe.
+#[derive(new, getset::CopyGetters, getset::Setters)]
+pub struct PipeFlow {
+    /// The flow over the pipe in the current simulation frame.
+    #[getset(get_copy = "pub")]
+    #[getset(set = "pub")]
+    value: LiquidVolume,
+}
+
 codegen::component_depends! {
     Pipe = (
-        Resistance,
+        Pipe,
+        PipeResistance,
+        PipeFlow,
     ) + ?()
 }
 
 /// A component applied on a node that drives a pipe.
 #[derive(TypedBuilder, getset::CopyGetters)]
-pub struct LiquidPump {
+pub struct Pump {
     /// The force provided by the pump.
     #[getset(get_copy = "pub")]
     force: units::PipeForce,
 }
 
 #[codegen::system]
+#[read_component(Pipe)]
+#[read_component(PipeResistance)]
+#[read_component(Pump)]
+#[read_component(Storage)]
+#[read_component(StorageCapacity)]
+#[read_component(StorageSize)]
+#[write_component(NextStorageSize)]
+#[write_component(NextStorageType)]
+#[write_component(PipeFlow)]
+fn simulate_pipes(
+    world: &mut SubWorld,
+    #[resource] config: &config::Scalar,
+    #[resource(no_init)] def: &def::GameDefinition,
+    #[subscriber] sim_sub: impl Iterator<Item = SimulationEvent>,
+) {
+    use legion::{world::ComponentError, EntityStore, IntoQuery};
+
+    if sim_sub.next().is_none() {
+        return;
+    }
+
+    let mut query = <(&Pipe, &PipeResistance, &mut PipeFlow)>::query();
+    let (mut query_world, mut entry_world) = world.split_for_query(&query);
+    for (pipe, resistance, flow) in query.iter_mut(&mut query_world) {
+        struct FetchEndpoint {
+            ty: def::liquid::TypeId,
+            force: units::PipeForce,
+            volume: units::LiquidVolume,
+            empty: units::LiquidVolume,
+            viscosity: units::LiquidViscosity,
+        }
+
+        let fetch_endpoint = |storage_entity: Entity| {
+            let entry = entry_world
+                .entry_ref(storage_entity)
+                .expect("Pipe references nonexistent endpoint");
+
+            let storage = entry
+                .get_component::<Storage>()
+                .expect("Pipe endpoint does not have Storage component");
+            let ty = storage.liquid();
+
+            let parent = entry
+                .get_component::<node::Child>()
+                .expect("Pipe endpoint does not have node::Child component");
+            let parent_entry = entry_world
+                .entry_ref(parent.parent())
+                .expect("Storage references nonexistent parent");
+            let pump = parent_entry.get_component::<Pump>();
+            let force = match pump {
+                Ok(pump) => pump.force(),
+                Err(ComponentError::NotFound { .. }) => units::PipeForce(0.),
+                Err(ComponentError::Denied { .. }) => unreachable!(),
+            };
+            // TODO multiply force by power
+
+            let size = entry
+                .get_component::<StorageSize>()
+                .expect("Pipe endpoint does not have StorageSize component");
+            let capacity = entry
+                .get_component::<StorageCapacity>()
+                .expect("Pipe endpoint does not have StorageCapacity component");
+
+            let viscosity = def
+                .liquid()
+                .get(ty)
+                .expect("Storage references undefined liquid")
+                .viscosity();
+
+            FetchEndpoint {
+                ty: ty.clone(),
+                force,
+                volume: size.size(),
+                empty: capacity.total() - size.size(),
+                viscosity,
+            }
+        };
+
+        let src = fetch_endpoint(pipe.src_entity());
+        let dest = fetch_endpoint(pipe.dest_entity());
+
+        let force = src.force + dest.force;
+
+        let mut rate = force.value() / resistance.value() / src.viscosity.value();
+        rate = rate.min(src.volume.value()).min(dest.empty.value());
+        let rate = units::LiquidVolume(rate);
+
+        flow.set_value(rate);
+
+        {
+            let mut src_entity = entry_world
+                .entry_mut(pipe.src_entity())
+                .expect("Pipe references nonexistent endpoint");
+            let next = src_entity
+                .get_component_mut::<NextStorageSize>()
+                .expect("Pipe endpoint does not have NextStorageSize component");
+            *next.size_mut() -= rate;
+        }
+        {
+            let mut dest_entity = entry_world
+                .entry_mut(pipe.dest_entity())
+                .expect("Pipe references nonexistent endpoint");
+            {
+                let next = dest_entity
+                    .get_component_mut::<NextStorageType>()
+                    .expect("Pipe endpoint does not have NextStorageType component");
+                next.set_augend(dest.ty);
+                next.set_addend(src.ty);
+                // FIXME: what if multiple addend types?
+                // FIXME: don't mix if dest value is too small
+            }
+            {
+                let next = dest_entity
+                    .get_component_mut::<NextStorageSize>()
+                    .expect("Pipe endpoint does not have NextStorageSize component");
+                *next.size_mut() += rate;
+            }
+        }
+    }
+}
+
+#[codegen::system]
+#[write_component(Storage)]
 #[write_component(StorageSize)]
-#[read_component(NextStorageSize)]
+#[write_component(NextStorageType)]
+#[write_component(NextStorageSize)]
 fn update_storage(
     world: &mut SubWorld,
     #[subscriber] sim_sub: impl Iterator<Item = SimulationEvent>,
+    #[resource(no_init)] def: &def::GameDefinition,
 ) {
     use legion::IntoQuery;
 
@@ -130,9 +283,16 @@ fn update_storage(
     for (current, next) in <(&mut StorageSize, &NextStorageSize)>::query().iter_mut(world) {
         current.size = next.size;
     }
+    for (current, next) in <(&mut Storage, &NextStorageType)>::query().iter_mut(world) {
+        current.set_liquid(def.liquid_mixer().mix(next.augend(), next.addend()).clone());
+    }
+    for (current, next) in <(&Storage, &mut NextStorageType)>::query().iter_mut(world) {
+        next.set_augend(current.liquid().clone());
+        next.set_addend(current.liquid().clone());
+    }
 }
 
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.uses(update_storage_setup)
+    setup.uses(simulate_pipes_setup).uses(update_storage_setup)
 }

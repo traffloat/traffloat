@@ -40,15 +40,6 @@ pub struct SaveFile {
     state: GameState,
 }
 
-impl Default for SaveFile {
-    fn default() -> Self {
-        Self {
-            def: GameDefinition::new(),
-            state: GameState::default(),
-        }
-    }
-}
-
 /// The state of the game.
 #[derive(Default, Serialize, Deserialize)]
 pub struct GameState {

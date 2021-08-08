@@ -20,7 +20,7 @@ const MAIN_WIDTH_PX: u32 = 750;
 pub struct Comp {
     props: Props,
     link: ComponentLink<Self>,
-    file: Rc<save::SaveFile>,
+    file: Option<Rc<save::SaveFile>>,
     state: State,
 }
 
@@ -38,7 +38,7 @@ impl Component for Comp {
                 return Self {
                     props,
                     link,
-                    file: Default::default(), // this value shouldn't be used anyway.
+                    file: None, // this value shouldn't be used anyway.
                     state: State::default(),
                 };
             }
@@ -52,7 +52,7 @@ impl Component for Comp {
         let ret = Self {
             props,
             link,
-            file,
+            file: Some(file),
             state,
         };
         ret.state.switch.replace_state(&ret.props.name);
@@ -87,7 +87,7 @@ impl Component for Comp {
         html! {
             <>
                 <nav::Comp
-                    file=Rc::clone(&self.file)
+                    file=Rc::clone(self.file.as_ref().expect("Error case is unreachable"))
                     editor_home=self.link.callback(|()| Msg::EditorHome)
                     choose_building=self.link.callback(Msg::ChooseBuilding)
                     choose_cargo=self.link.callback(Msg::ChooseCargo)
@@ -124,13 +124,13 @@ impl Comp {
             },
             Switch::Building(building_id) => html! {
                 <building::detail::Comp
-                    file=Rc::clone(&self.file)
+                    file=Rc::clone(self.file.as_ref().expect("Error case is unreacahable"))
                     building_id=building_id.clone()
                     />
             },
             Switch::Cargo(cargo_id) => html! {
                 <cargo::detail::Comp
-                    file=Rc::clone(&self.file)
+                    file=Rc::clone(self.file.as_ref().expect("Error case is unreacahable"))
                     cargo_id=cargo_id.clone()
                     />
             },

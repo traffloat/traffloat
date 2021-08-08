@@ -9,7 +9,7 @@ use arcstr::ArcStr;
 use derive_new::new;
 use legion::{systems::CommandBuffer, Entity};
 use serde::{Deserialize, Serialize};
-use smallvec::smallvec;
+use smallvec::{smallvec, SmallVec};
 use typed_builder::TypedBuilder;
 
 use crate::def::{building, GameDefinition};
@@ -26,15 +26,6 @@ use crate::{population, vehicle};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new, Serialize, Deserialize)]
 pub struct Id {
     inner: u32,
-}
-
-/// Component storing the name of the node
-#[derive(Debug, Clone, new, getset::Getters, getset::Setters, Serialize, Deserialize)]
-pub struct Name {
-    /// Name of the node
-    #[getset(get = "pub")]
-    #[getset(set = "pub")]
-    name: ArcStr,
 }
 
 codegen::component_depends! {
@@ -54,9 +45,26 @@ codegen::component_depends! {
         defense::Core,
         population::Housing,
         vehicle::RailPump,
-        liquid::LiquidPump,
+        liquid::Pump,
         gas::GasPump,
     )
+}
+
+/// Component storing the name of the node
+#[derive(Debug, Clone, new, getset::Getters, getset::Setters, Serialize, Deserialize)]
+pub struct Name {
+    /// Name of the node
+    #[getset(get = "pub")]
+    #[getset(set = "pub")]
+    name: ArcStr,
+}
+
+/// A component applied to child entities of a node.
+#[derive(Debug, Clone, new, getset::CopyGetters)]
+pub struct Child {
+    /// The entity ID of the parent node entity.
+    #[getset(get_copy = "pub")]
+    parent: Entity,
 }
 
 /// Indicates that a node is added
@@ -157,7 +165,7 @@ fn create_new_node(
         let id = Id::new(rand::random());
 
         let arbitrary_liquid_type = def.liquid().first().expect("at least one liquid type").0;
-        let liquids = building
+        let liquids: SmallVec<_> = building
             .storage()
             .liquid()
             .iter()
@@ -187,10 +195,15 @@ fn create_new_node(
             units::Portion::full(building.hitpoint()),
             cargo::StorageList::new(smallvec![]),
             cargo::StorageCapacity::new(building.storage().cargo()),
-            liquid::StorageList::new(liquids),
+            liquid::StorageList::new(liquids.clone()),
             gas::StorageList::new(smallvec![]),
             gas::StorageCapacity::new(building.storage().gas()),
         ));
+
+        for liquid in liquids {
+            entities.add_component(liquid, Child::new(entity));
+        }
+
         index.index.insert(id, entity);
 
         for feature in building.features() {
@@ -242,7 +255,7 @@ fn create_saved_node(
                 (id.clone(), entity)
             })
             .collect();
-        let liquid_list = save
+        let liquid_list: SmallVec<_> = save
             .liquid
             .iter()
             .map(|storage| {
@@ -276,10 +289,15 @@ fn create_saved_node(
             save.hitpoint,
             cargo::StorageList::new(cargo_list),
             cargo::StorageCapacity::new(save.cargo_capacity),
-            liquid::StorageList::new(liquid_list),
+            liquid::StorageList::new(liquid_list.clone()),
             gas::StorageList::new(gas_list),
             gas::StorageCapacity::new(save.gas_capacity),
         ));
+
+        for liquid in liquid_list {
+            entities.add_component(liquid, Child::new(entity));
+        }
+
         index.index.insert(save.id, entity);
         add_events(AddEvent {
             node: save.id,
