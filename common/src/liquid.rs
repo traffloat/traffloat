@@ -220,7 +220,11 @@ fn simulate_pipes(
         let src = fetch_endpoint(pipe.src_entity());
         let dest = fetch_endpoint(pipe.dest_entity());
 
-        let sum_ty = def.liquid_mixer().mix(&src.ty, &dest.ty).clone();
+        let sum_ty = if src.volume < config.negligible_volume {
+            dest.ty.clone()
+        } else {
+            def.liquid_mixer().mix(&src.ty, &dest.ty).clone()
+        };
 
         let force = src.force + dest.force;
 
@@ -248,7 +252,6 @@ fn simulate_pipes(
                     .get_component_mut::<NextStorageType>()
                     .expect("Pipe endpoint does not have NextStorageType component");
                 next.set_ty(sum_ty);
-                // FIXME: don't mix if dest value is too small
             }
             {
                 let next = dest_entity
