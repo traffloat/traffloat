@@ -7,6 +7,7 @@ members = [
 	"common",
 	"client",
 	"version",
+	"tsvtool",
 ]
 
 [profile.dev]

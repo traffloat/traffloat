@@ -241,37 +241,43 @@ fn save(
             },
         };
 
-        let ret = match request.format {
-            #[cfg(feature = "serde_yaml")]
-            Format::Text => serde_yaml::to_vec(&file).map_err(|err| err.to_string()),
-            #[cfg(feature = "rmp-serde")]
-            Format::Binary => rmp_serde::to_vec_named(&file).map_err(|err| err.to_string()),
-        };
-
-        match ret {
-            Ok(mut data) => {
-                match request.format {
-                    Format::Text => {
-                        let string = format!("{}{:08X}\n", TEXT_PREFIX, SCHEMA_VERSION);
-                        data.splice(0..0, string.bytes());
-                    }
-                    Format::Binary => {
-                        let mut vec = arrayvec::ArrayVec::<u8, 5>::new();
-                        vec.push(0xFF);
-                        vec.extend(SCHEMA_VERSION.to_le_bytes());
-                        data.splice(0..0, vec);
-                    }
-                }
-                results(Response {
-                    format: request.format,
-                    data,
-                });
-            }
-            Err(err) => {
-                log::error!("Error saving game: {}", err);
-            }
+        match emit(&file, request) {
+            Ok(data) => results(Response {
+                data,
+                format: request.format,
+            }),
+            Err(err) => log::error!("Error saving game: {:?}", err),
         }
     }
+}
+
+/// Encodes a save file into a buffer.
+pub fn emit(file: &SaveFile, request: &Request) -> anyhow::Result<Vec<u8>> {
+    use anyhow::Context;
+
+    let mut data = match request.format {
+        #[cfg(feature = "serde_yaml")]
+        Format::Text => serde_yaml::to_vec(&file).context("Save data are not compatible with YAML"),
+        #[cfg(feature = "rmp-serde")]
+        Format::Binary => {
+            rmp_serde::to_vec_named(&file).context("Save data are not compatible with RMP")
+        }
+    }?;
+
+    match request.format {
+        Format::Text => {
+            let string = format!("{}{:08X}\n", TEXT_PREFIX, SCHEMA_VERSION);
+            data.splice(0..0, string.bytes());
+        }
+        Format::Binary => {
+            let mut vec = arrayvec::ArrayVec::<u8, 5>::new();
+            vec.push(0xFF);
+            vec.extend(SCHEMA_VERSION.to_le_bytes());
+            data.splice(0..0, vec);
+        }
+    }
+
+    Ok(data)
 }
 
 /// Parses the buffer into a save file.

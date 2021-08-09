@@ -1,0 +1,14 @@
+[package]
+name = "tsvtool"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.2.0"
+edition = "2018"
+repository = "https://github.com/traffloat/traffloat"
+homepage = "https://github.com/traffloat/traffloat"
+description = "Traffloat save file toolkit"
+license = "AGPL-3.0"
+
+[dependencies]
+anyhow = "1.0.42"
+structopt = "0.3.22"
+traffloat-common = {version = "0.2.0", path = "../common"}

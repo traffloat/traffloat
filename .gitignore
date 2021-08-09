@@ -6,6 +6,7 @@ __pycache__
 /client/pkg
 *.min.vert
 *.min.frag
+*.tsv
 gen
 
 /docgen/output
