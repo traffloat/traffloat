@@ -121,7 +121,21 @@ pub enum DuctType {
     ///
     /// The first parameter is the direction of the pipe,
     /// or [`None`] if the rail is disabled.
-    Liquid(Option<Direction>),
+    ///
+    /// The second and third parameters are the liquid storage IDs in the endpoints.
+    /// They refer to the "from" and "to" IDs, and do not change when direction is flipped.
+    Liquid {
+        /// The direction that the pipe runs in
+        dir: Option<Direction>,
+        /// The storage ordinal in the "from" node.
+        ///
+        /// This value does **not** swap with [`to_storage`] when the direction is flipped.
+        from_storage: usize,
+        /// The storage ordinal in the "to" node.
+        ///
+        /// This value does **not** swap with [`from_storage`] when the direction is flipped.
+        to_storage: usize,
+    },
     /// A cable that electricity can pass through.
     ///
     /// The first parameter specifies whether the cable is enabled.
@@ -133,7 +147,7 @@ impl DuctType {
     pub fn active(self) -> bool {
         match self {
             Self::Rail(option) => option.is_some(),
-            Self::Liquid(option) => option.is_some(),
+            Self::Liquid { dir, .. } => dir.is_some(),
             Self::Electricity(enabled) => enabled,
         }
     }
@@ -141,7 +155,7 @@ impl DuctType {
     /// The direction of the duct, if any.
     pub fn direction(self) -> Option<Direction> {
         match self {
-            Self::Rail(dir) | Self::Liquid(dir) => dir,
+            Self::Rail(dir) | Self::Liquid { dir, .. } => dir,
             _ => None,
         }
     }
@@ -180,10 +194,30 @@ impl DuctType {
             DuctType::Rail(Some(direction)) => {
                 entities.push(()) // TODO
             }
-            DuctType::Liquid(Some(direction)) => entities.push({
+            DuctType::Liquid {
+                dir: Some(direction),
+                from_storage,
+                to_storage,
+            } => entities.push({
+                let from_list = from_entry
+                    .get_component::<liquid::StorageList>()
+                    .expect("The from node entity does not have liquid::StorageList");
+                let from_tank = *from_list
+                    .storages()
+                    .get(from_storage)
+                    .expect("Pipe definition references a nonexistent from-storage");
+
+                let to_list = to_entry
+                    .get_component::<liquid::StorageList>()
+                    .expect("The to node entity does not have liquid::StorageList");
+                let to_tank = *to_list
+                    .storages()
+                    .get(to_storage)
+                    .expect("Pipe definition references a nonexistent to-storage");
+
                 let (src, dest) = match direction {
-                    Direction::FromTo => (from, to),
-                    Direction::ToFrom => (to, from),
+                    Direction::FromTo => (from_tank, to_tank),
+                    Direction::ToFrom => (to_tank, from_tank),
                 };
 
                 let resistance = dist / radius.powi(2);
@@ -194,7 +228,9 @@ impl DuctType {
                     liquid::PipeFlow::default(),
                 )
             }),
-            DuctType::Electricity(false) | DuctType::Rail(None) | DuctType::Liquid(None) => {
+            DuctType::Electricity(false)
+            | DuctType::Rail(None)
+            | DuctType::Liquid { dir: None, .. } => {
                 entities.push(()) // dummy entity
             }
         }
@@ -270,6 +306,7 @@ pub struct CreateRequest {
 
 #[codegen::system]
 #[read_component(Position)]
+#[read_component(liquid::StorageList)]
 fn create_new_edge(
     entities: &mut CommandBuffer,
     world: &SubWorld,
@@ -308,6 +345,7 @@ pub struct LoadRequest {
 
 #[codegen::system]
 #[read_component(Position)]
+#[read_component(liquid::StorageList)]
 fn create_saved_edge(
     entities: &mut CommandBuffer,
     world: &SubWorld,

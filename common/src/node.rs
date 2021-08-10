@@ -172,6 +172,7 @@ fn create_new_node(
             .map(|&volume| {
                 entities.push((
                     liquid::Storage::new(arbitrary_liquid_type.clone()),
+                    liquid::NextStorageType::new(arbitrary_liquid_type.clone()),
                     liquid::StorageCapacity::new(volume),
                     liquid::StorageSize::new(units::LiquidVolume(0.)),
                     liquid::NextStorageSize::new(units::LiquidVolume(0.)),
@@ -261,6 +262,7 @@ fn create_saved_node(
             .map(|storage| {
                 entities.push((
                     liquid::Storage::new(storage.ty.clone()),
+                    liquid::NextStorageType::new(storage.ty.clone()),
                     liquid::StorageCapacity::new(storage.capacity),
                     liquid::StorageSize::new(storage.volume),
                     liquid::NextStorageSize::new(storage.volume),

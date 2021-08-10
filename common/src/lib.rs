@@ -61,6 +61,10 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
         .uses(factory::setup_ecs)
         .uses(shape::setup_ecs)
         .uses(node::setup_ecs)
+        .uses(|mut setup| {
+            setup.builder.flush();
+            setup
+        })
         .uses(edge::setup_ecs)
         .uses(cargo::setup_ecs)
         .uses(liquid::setup_ecs)

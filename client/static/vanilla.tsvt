@@ -872,7 +872,10 @@ state:
             - -0.03
           radius: 0.05
           ty:
-            Liquid: ToFrom
+            Liquid:
+              dir: ToFrom
+              from_storage: 0
+              to_storage: 0
         - center:
             - 0.07
             - -0.12

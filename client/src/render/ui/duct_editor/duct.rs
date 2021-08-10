@@ -140,8 +140,8 @@ pub struct Props {
 
 fn duct_fill(ty: edge::DuctType) -> String {
     String::from(match ty {
-        edge::DuctType::Rail(_) => "#aa44bb",
-        edge::DuctType::Liquid(_) => "#3322aa",
-        edge::DuctType::Electricity(_) => "#ccaa00",
+        edge::DuctType::Rail(..) => "#aa44bb",
+        edge::DuctType::Liquid { .. } => "#3322aa",
+        edge::DuctType::Electricity(..) => "#ccaa00",
     })
 }

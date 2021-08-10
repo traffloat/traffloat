@@ -87,6 +87,9 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Liq
 }
 
 /// A liquid pipe entity.
+///
+/// Note that [`src_entity`] and [`dest_entity`] are entities of the liquid storage, not the node
+/// itself.
 #[derive(new, getset::CopyGetters)]
 pub struct Pipe {
     /// Entity of the source storage
@@ -145,6 +148,7 @@ pub struct Pump {
 #[read_component(Storage)]
 #[read_component(StorageCapacity)]
 #[read_component(StorageSize)]
+#[read_component(node::Child)]
 #[write_component(NextStorageSize)]
 #[write_component(NextStorageType)]
 #[write_component(PipeFlow)]
