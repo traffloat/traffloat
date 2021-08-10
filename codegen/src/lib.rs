@@ -94,6 +94,12 @@ impl SetupEcs {
         self
     }
 
+    /// Forces systems before this call to be executed before systems after this call
+    pub fn system_partition(mut self) -> Self {
+        self.builder.flush();
+        self
+    }
+
     /// Add an entity
     pub fn entity<T>(mut self, components: T) -> Self
     where
