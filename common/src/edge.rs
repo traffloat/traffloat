@@ -4,7 +4,7 @@
 //! It connects two nodes together.
 
 use derive_new::new;
-use legion::{systems::CommandBuffer, Entity};
+use legion::{systems::CommandBuffer, world::SubWorld, Entity};
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
@@ -12,6 +12,7 @@ use crate::node;
 use crate::space::{Matrix, Position, Vector};
 use crate::units;
 use crate::SetupEcs;
+use crate::{cargo, gas, liquid};
 
 /// Component storing the endpoints of an edge
 #[derive(Debug, Clone, Copy, PartialEq, Eq, new, getset::CopyGetters, getset::Setters)]
@@ -144,6 +145,60 @@ impl DuctType {
             _ => None,
         }
     }
+
+    /// Creates a duct entity for this duct type.
+    fn create_entity(
+        self,
+        entities: &mut CommandBuffer,
+        world: &SubWorld,
+        from: Entity,
+        to: Entity,
+        radius: f64,
+    ) -> Entity {
+        use legion::EntityStore;
+
+        let from_entry = world
+            .entry_ref(from)
+            .expect("The from node entity does not exist");
+        let to_entry = world
+            .entry_ref(to)
+            .expect("The to node entity does not exist");
+
+        let from_pos = from_entry
+            .get_component::<Position>()
+            .expect("The from node entity does not have a position");
+        let to_pos = to_entry
+            .get_component::<Position>()
+            .expect("The to node entity does not have a position");
+
+        let dist = (*to_pos - *from_pos).norm();
+
+        match self {
+            DuctType::Electricity(true) => {
+                entities.push(()) // TODO
+            }
+            DuctType::Rail(Some(direction)) => {
+                entities.push(()) // TODO
+            }
+            DuctType::Liquid(Some(direction)) => entities.push({
+                let (src, dest) = match direction {
+                    Direction::FromTo => (from, to),
+                    Direction::ToFrom => (to, from),
+                };
+
+                let resistance = dist / radius.powi(2);
+
+                (
+                    liquid::Pipe::new(src, dest),
+                    liquid::PipeResistance::new(resistance),
+                    liquid::PipeFlow::default(),
+                )
+            }),
+            DuctType::Electricity(false) | DuctType::Rail(None) | DuctType::Liquid(None) => {
+                entities.push(()) // dummy entity
+            }
+        }
+    }
 }
 
 /// Indicates that an edge is added.
@@ -214,8 +269,10 @@ pub struct CreateRequest {
 }
 
 #[codegen::system]
+#[read_component(Position)]
 fn create_new_edge(
     entities: &mut CommandBuffer,
+    world: &SubWorld,
     #[subscriber] requests: impl Iterator<Item = CreateRequest>,
     #[publisher] add_events: impl FnMut(AddEvent),
 ) {
@@ -227,7 +284,13 @@ fn create_new_edge(
                 center: duct.center,
                 radius: duct.radius,
                 ty: duct.ty,
-                entity: entities.push(()),
+                entity: duct.ty.create_entity(
+                    entities,
+                    world,
+                    request.from,
+                    request.to,
+                    duct.radius,
+                ),
             })
             .collect();
         let id = Id::new(request.from, request.to);
@@ -244,13 +307,23 @@ pub struct LoadRequest {
 }
 
 #[codegen::system]
+#[read_component(Position)]
 fn create_saved_edge(
     entities: &mut CommandBuffer,
+    world: &SubWorld,
     #[subscriber] requests: impl Iterator<Item = LoadRequest>,
     #[publisher] add_events: impl FnMut(AddEvent),
     #[resource] index: &node::Index,
 ) {
     for LoadRequest { save } in requests {
+        let from = index
+            .get(save.from)
+            .expect("Edge references nonexistent node");
+        let to = index
+            .get(save.to)
+            .expect("Edge references nonexistent node");
+        // FIXME how do we handle the error here properly?
+
         let design = save
             .design
             .iter()
@@ -258,17 +331,11 @@ fn create_saved_edge(
                 center: duct.center,
                 radius: duct.radius,
                 ty: duct.ty,
-                entity: entities.push(()), // TODO initialize ducts
+                entity: duct
+                    .ty
+                    .create_entity(entities, world, from, to, duct.radius),
             })
             .collect();
-
-        // FIXME how do we handle the error here properly?
-        let from = index
-            .get(save.from)
-            .expect("Edge references nonexistent node");
-        let to = index
-            .get(save.to)
-            .expect("Edge references nonexistent node");
 
         let id = Id::new(from, to);
         let entity = entities.push((id, save.size, save.hitpoint, Design::new(design)));

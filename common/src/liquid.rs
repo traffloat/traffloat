@@ -87,7 +87,7 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Liq
 }
 
 /// A liquid pipe entity.
-#[derive(TypedBuilder, getset::CopyGetters)]
+#[derive(new, getset::CopyGetters)]
 pub struct Pipe {
     /// Entity of the source storage
     #[getset(get_copy = "pub")]
@@ -114,7 +114,7 @@ impl PipeResistance {
 }
 
 /// A component storing the current flow of a pipe.
-#[derive(new, getset::CopyGetters, getset::Setters)]
+#[derive(new, Default, getset::CopyGetters, getset::Setters)]
 pub struct PipeFlow {
     /// The flow over the pipe in the current simulation frame.
     #[getset(get_copy = "pub")]
