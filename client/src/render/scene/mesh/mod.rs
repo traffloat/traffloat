@@ -44,7 +44,7 @@ pub trait AbstractPreparedMesh {
 }
 
 macro_rules! impl_mesh {
-    ($ty:ty, |$mesh:pat, $gl:pat| $draw:tt) => {
+    ($ty:ty, |$mesh:pat, $gl:pat_param| $draw:tt) => {
         impl AbstractPreparedMesh for $ty {
             fn positions(&self) -> &util::FloatBuffer {
                 &self.positions
