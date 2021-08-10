@@ -237,7 +237,7 @@ impl Component for Home {
                     <ul style="text-align: center; display: block; padding: 0;">
                         { for [
                             ("Source code", "https://github.com/traffloat/traffloat"),
-                            ("User manual", "https://traffloat.github.io/guide/master/"),
+                            ("Bugs", "https://github.com/traffloat/traffloat/issues"),
                             ("Discussion", "https://github.com/traffloat/traffloat/discussions"),
                         ].iter().map(|&(name, url)| html! {
                             <li style="display: inline; margin: 0.5em;"><a href=url target="_blank">{ name }</a></li>
