@@ -41,5 +41,7 @@ features = [
 ]
 
 [features]
-default = ["serde_yaml", "rmp-serde"]
+default = ["save-binary"]
+save-binary = ["rmp-serde"]
+save-text = ["serde_yaml"]
 render-debug = ["traffloat-codegen/render-debug"]

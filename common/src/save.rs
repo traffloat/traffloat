@@ -65,12 +65,12 @@ pub enum Format {
     /// Text-based save format.
     ///
     /// Currently, this format uses [`serde_yaml`] as backend.
-    #[cfg(feature = "serde_yaml")]
+    #[cfg(feature = "save-text")]
     Text,
     /// Binary-based save format.
     ///
     /// Currently, this format uses [`rmp-serde`] as backend.
-    #[cfg(feature = "rmp-serde")]
+    #[cfg(feature = "save-binary")]
     Binary,
 }
 
@@ -256,19 +256,21 @@ pub fn emit(file: &SaveFile, request: &Request) -> anyhow::Result<Vec<u8>> {
     use anyhow::Context;
 
     let mut data = match request.format {
-        #[cfg(feature = "serde_yaml")]
+        #[cfg(feature = "save-text")]
         Format::Text => serde_yaml::to_vec(&file).context("Save data are not compatible with YAML"),
-        #[cfg(feature = "rmp-serde")]
+        #[cfg(feature = "save-binary")]
         Format::Binary => {
             rmp_serde::to_vec_named(&file).context("Save data are not compatible with RMP")
         }
     }?;
 
     match request.format {
+        #[cfg(feature = "save-text")]
         Format::Text => {
             let string = format!("{}{:08X}\n", TEXT_PREFIX, SCHEMA_VERSION);
             data.splice(0..0, string.bytes());
         }
+        #[cfg(feature = "save-binary")]
         Format::Binary => {
             let mut vec = arrayvec::ArrayVec::<u8, 5>::new();
             vec.push(0xFF);
@@ -286,7 +288,7 @@ pub fn parse(mut buf: &[u8]) -> anyhow::Result<SaveFile> {
 
     let (format, schema_version) = if buf.get(0) == Some(&0xFF) {
         cfg_if! {
-            if #[cfg(feature = "rmp-serde")] {
+            if #[cfg(feature = "save-binary")] {
                 let format = Format::Binary;
             } else {
                 anyhow::bail!("Not compiled with binary save support");
@@ -299,22 +301,22 @@ pub fn parse(mut buf: &[u8]) -> anyhow::Result<SaveFile> {
         (format, version)
     } else {
         cfg_if! {
-            if #[cfg(feature = "serde_yaml")] {
+            if #[cfg(feature = "save-text")] {
                 let format = Format::Text;
-            } else {
-                anyhow::bail!("Not compiled with text save support");
-            }
-        };
 
-        buf = buf
-            .strip_prefix(TEXT_PREFIX.as_bytes())
-            .context("Schema version is missing")?;
-        let version = buf.get(0..8).context("Schema version underflows")?;
-        anyhow::ensure!(buf.get(8) == Some(&b'\n'), "Schema version is malformed");
-        buf = buf.get(9..).expect("Checked in the previous line");
-        let version = std::str::from_utf8(version).context("Schema version is malformed")?;
-        let version = u32::from_str_radix(version, 16).context("Schema version is malformed")?;
-        (format, version)
+                buf = buf
+                    .strip_prefix(TEXT_PREFIX.as_bytes())
+                    .context("Schema version is missing")?;
+                let version = buf.get(0..8).context("Schema version underflows")?;
+                anyhow::ensure!(buf.get(8) == Some(&b'\n'), "Schema version is malformed");
+                buf = buf.get(9..).expect("Checked in the previous line");
+                let version = std::str::from_utf8(version).context("Schema version is malformed")?;
+                let version = u32::from_str_radix(version, 16).context("Schema version is malformed")?;
+                (format, version)
+            } else {
+                anyhow::bail!("Not compiled with text save support")
+            }
+        }
     };
 
     if schema_version != SCHEMA_VERSION {
@@ -322,9 +324,9 @@ pub fn parse(mut buf: &[u8]) -> anyhow::Result<SaveFile> {
     }
 
     let file: SaveFile = match format {
-        #[cfg(feature = "serde_yaml")]
+        #[cfg(feature = "save-text")]
         Format::Text => serde_yaml::from_slice(buf).context("Save format error"),
-        #[cfg(feature = "rmp-serde")]
+        #[cfg(feature = "save-binary")]
         Format::Binary => rmp_serde::from_slice(buf).context("Save format error"),
     }?;
 

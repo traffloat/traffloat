@@ -15,11 +15,14 @@ guide: guide-clean
 client-clean:
 	test ! -d client/dist || rm -r client/dist
 	test ! -d client/pkg || rm -r client/pkg
-pp: client-texture client-glsl
+pp: client-texture client-glsl client-tsv
 client-texture:
 	cd client/textures && python3 aggregate.py
 client-glsl:
 	cd client && ./glsl_min.rb
+client-tsv:
+	rm client/static/*.tsv || true
+	find client/static -name "*.tsvt" -exec cargo run --bin tsvtool to-binary {} \;
 guide-clean:
 	test ! -d docgen/output || rm -r docgen/output
 

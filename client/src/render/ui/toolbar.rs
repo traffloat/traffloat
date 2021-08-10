@@ -47,12 +47,8 @@ impl Component for Comp {
             <nav style=style>
                 <button
                     style="pointer-events: auto;"
-                    onclick=self.link.callback(|_| Msg::SaveButton(save::Format::Text))
-                >{ "Save as text" }</button>
-                <button
-                    style="pointer-events: auto;"
                     onclick=self.link.callback(|_| Msg::SaveButton(save::Format::Binary))
-                >{ "Save as binary" }</button>
+                >{ "Save" }</button>
                 { for self.props.cancel.as_ref().map(|cancel| html! {
                     <button
                         style="pointer-events: auto;"
@@ -106,7 +102,7 @@ fn post_save(#[subscriber] responses: impl Iterator<Item = save::Response>) {
         elem.set_href(&url);
         elem.set_download(match resp.format() {
             save::Format::Text => "save.tsvt",
-            save::Format::Binary => "save.tsvb",
+            save::Format::Binary => "save.tsv",
         });
         elem.click();
     }

@@ -7,5 +7,5 @@ pub struct ScenarioDef {
 pub const OPTIONS: &[ScenarioDef] = &[ScenarioDef {
     id: "vanilla",
     name: "Vanilla",
-    path: "vanilla.tsvt",
+    path: "vanilla.tsv",
 }];
