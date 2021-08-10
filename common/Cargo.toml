@@ -20,7 +20,7 @@ derive-new = "0.5.9"
 flate2 = {version = "1.0.20", optional = true}
 getset = "0.1.1"
 log = "0.4.14"
-nalgebra = "0.28.0"
+nalgebra = "0.29.0"
 rand = "0.8.4"
 rmp-serde = {version = "0.15.5", optional = true}
 serde = {version = "1.0.127", features = ["derive"]}
