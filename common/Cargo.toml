@@ -17,6 +17,7 @@ arcstr = "1.1.0"
 arrayvec = "0.7.1"
 cfg-if = "1.0.0"
 derive-new = "0.5.9"
+flate2 = {version = "1.0.20", optional = true}
 getset = "0.1.1"
 log = "0.4.14"
 nalgebra = "0.28.0"
@@ -42,6 +43,6 @@ features = [
 
 [features]
 default = ["save-binary"]
-save-binary = ["rmp-serde"]
+save-binary = ["rmp-serde", "flate2"]
 save-text = ["serde_yaml"]
 render-debug = ["traffloat-codegen/render-debug"]

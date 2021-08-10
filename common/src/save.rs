@@ -255,31 +255,31 @@ fn save(
 pub fn emit(file: &SaveFile, request: &Request) -> anyhow::Result<Vec<u8>> {
     use anyhow::Context;
 
-    let mut data = match request.format {
-        #[cfg(feature = "save-text")]
-        Format::Text => serde_yaml::to_vec(&file).context("Save data are not compatible with YAML"),
-        #[cfg(feature = "save-binary")]
-        Format::Binary => {
-            rmp_serde::to_vec_named(&file).context("Save data are not compatible with RMP")
-        }
-    }?;
-
-    match request.format {
+    Ok(match request.format {
         #[cfg(feature = "save-text")]
         Format::Text => {
             let string = format!("{}{:08X}\n", TEXT_PREFIX, SCHEMA_VERSION);
-            data.splice(0..0, string.bytes());
+
+            let mut vec = string.into_bytes();
+            serde_yaml::to_writer(&mut vec, file)
+                .context("Save data are not compatible with YAML")?;
+
+            vec
         }
         #[cfg(feature = "save-binary")]
         Format::Binary => {
-            let mut vec = arrayvec::ArrayVec::<u8, 5>::new();
-            vec.push(0xFF);
+            let mut vec = vec![0xFF_u8];
             vec.extend(SCHEMA_VERSION.to_le_bytes());
-            data.splice(0..0, vec);
-        }
-    }
 
-    Ok(data)
+            let mut write =
+                flate2::write::DeflateEncoder::new(&mut vec, flate2::Compression::best());
+            rmp_serde::encode::write_named(&mut write, file)
+                .context("Save data are not compatible with MessagePack")?;
+            write.finish().context("Cannot compress MessagePack data")?;
+
+            vec
+        }
+    })
 }
 
 /// Parses the buffer into a save file.
@@ -327,7 +327,8 @@ pub fn parse(mut buf: &[u8]) -> anyhow::Result<SaveFile> {
         #[cfg(feature = "save-text")]
         Format::Text => serde_yaml::from_slice(buf).context("Save format error"),
         #[cfg(feature = "save-binary")]
-        Format::Binary => rmp_serde::from_slice(buf).context("Save format error"),
+        Format::Binary => rmp_serde::from_read(flate2::read::DeflateDecoder::new(buf))
+            .context("Save format error"),
     }?;
 
     Ok(file)
