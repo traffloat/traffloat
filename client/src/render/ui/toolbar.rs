@@ -82,6 +82,7 @@ fn post_save(#[subscriber] responses: impl Iterator<Item = save::Response>) {
 
         let mut options = web_sys::BlobPropertyBag::new();
         options.type_(match resp.format() {
+            #[cfg(feature = "load-tsvt")]
             save::Format::Text => "text/yaml",
             save::Format::Binary => "application/octet-stream",
         });
@@ -101,6 +102,7 @@ fn post_save(#[subscriber] responses: impl Iterator<Item = save::Response>) {
             .expect("<a> is not HtmlAnchorElement");
         elem.set_href(&url);
         elem.set_download(match resp.format() {
+            #[cfg(feature = "load-tsvt")]
             save::Format::Text => "save.tsvt",
             save::Format::Binary => "save.tsv",
         });
