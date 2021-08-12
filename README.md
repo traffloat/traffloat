@@ -10,7 +10,6 @@
 A 3D traffic, factory, city building, tower defense web game.
 
 [Play the game](https://traffloat.github.io/master/) \|
-[User guide](https://traffloat.github.io/guide/master/) \|
 [Rust API docs](https://traffloat.github.io/api/master/) \|
 [Discuss](https://github.com/traffloat/traffloat/discussions) \|
 [Report bug](https://github.com/traffloat/traffloat/issues)
@@ -107,7 +106,7 @@ The game is composed of multiple crates:
 - [`vanilla`](./vanilla): Defines vanilla game configuration.
 - [`common`](./common): Implements game world simulation.
 - [`client`](./client): Implements a web game client.
-- [`docgen`](./docgen): Generates the markdown used to generate <https://traffloat.github.io/guide/master/>.
+- [`tsvtool`](./tsvtool): CLI tool to convert save files.
 
 Create a thread in [Discussions](https://github.com/traffloat/traffloat/discussions)
 if you would like to contribute and don't know where to start.

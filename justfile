@@ -8,10 +8,6 @@ client-watch: client-clean
 doc: client-glsl
 	cargo doc --lib --document-private-items
 
-guide: guide-clean
-	cd docgen && cargo run -- --site-url https://traffloat.github.io/guide/master/
-	cd docgen/output && mkdocs build
-
 client-clean:
 	test ! -d client/dist || rm -r client/dist
 	test ! -d client/pkg || rm -r client/pkg
@@ -23,8 +19,6 @@ client-glsl:
 client-tsv:
 	rm client/static/*.tsv || true
 	find client/static -name "*.tsvt" -exec cargo run --bin tsvtool to-binary {} \;
-guide-clean:
-	test ! -d docgen/output || rm -r docgen/output
 
 deps:
 	cd client/textures && npm install
