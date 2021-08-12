@@ -11,6 +11,7 @@ use crate::app::icon;
 use crate::input;
 use crate::render::texture;
 use traffloat::clock::Clock;
+use traffloat::config::Scalar;
 use traffloat::def::GameDefinition;
 use traffloat::units;
 use traffloat::{cargo, gas, liquid};
@@ -170,6 +171,7 @@ fn draw(
     #[resource] updater_ref: &UpdaterRef,
     #[resource] clock: &Clock,
     #[resource] texture_pool: &Option<texture::Pool>,
+    #[resource] config: &Scalar,
 ) {
     let info = if let Some(entity) = focus_target.entity().or_else(|| hover_target.entity()) {
         let entity_entry = world
@@ -215,7 +217,7 @@ fn draw(
             let liquid = liquid_list
                 .storages()
                 .iter()
-                .map(|entity| {
+                .filter_map(|entity| {
                     let storage_entry = world
                         .entry_ref(*entity)
                         .expect("Storage entity does not exist");
@@ -229,6 +231,11 @@ fn draw(
                         .get_component::<liquid::NextStorageSize>()
                         .expect("Storage has no next size");
                     let lerp_size = liquid::lerp(size, next_size, clock.now());
+
+                    if lerp_size < config.negligible_volume {
+                        return None;
+                    }
+
                     let item = def
                         .liquid()
                         .get(storage.liquid())
@@ -237,7 +244,8 @@ fn draw(
                     let icon = texture_pool
                         .as_ref()
                         .and_then(|pool| pool.icon(item.texture_src(), item.texture_name()));
-                    (lerp_size, name.clone(), icon)
+
+                    Some((lerp_size, name.clone(), icon))
                 })
                 .collect();
 
