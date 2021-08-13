@@ -785,6 +785,8 @@ state:
           capacity: 100.0
       gas: {}
       gas_capacity: 1000.0
+      is_core: true
+      housing_provision: 4
     - id:
         inner: 3757587574
       name:
@@ -819,6 +821,7 @@ state:
       liquid_capacity: 1000.0
       gas: {}
       gas_capacity: 1000.0
+      housing_provision: 3
     - id:
         inner: 698083718
       name:

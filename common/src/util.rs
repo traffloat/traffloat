@@ -44,3 +44,11 @@ impl Ord for Finite {
 pub fn lerp(a: f64, b: f64, ratio: f64) -> f64 {
     a + (b - a) * ratio
 }
+
+/// Checks if a value is different from the default of its type.
+///
+/// Used in serde fields: `#[serde(skip_serializing_if = "crate::is_default")]`
+#[inline(always)]
+pub fn is_default<T: PartialEq + Default>(value: &T) -> bool {
+    *value == T::default()
+}

@@ -19,6 +19,7 @@ traffloat-codegen-raw = {opt-level = 0}
 traffloat-types = {opt-level = 0}
 traffloat-common = {opt-level = 0}
 traffloat-client = {opt-level = 0}
+tsvtool = {opt-level = 0}
 
 [profile.release]
 lto = true

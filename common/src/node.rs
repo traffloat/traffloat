@@ -387,10 +387,15 @@ pub mod save {
         pub(crate) liquid: Vec<LiquidStorage>,
         pub(crate) gas: BTreeMap<def::gas::TypeId, units::GasVolume>,
         pub(crate) gas_capacity: units::GasVolume,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         pub(crate) is_core: bool,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         pub(crate) housing_provision: Option<u32>,
+        #[serde(skip_serializing_if = "crate::is_default")]
         pub(crate) rail_pump: Option<units::RailForce>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         pub(crate) liquid_pump: Option<units::PipeForce>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         pub(crate) gas_pump: Option<units::FanForce>,
     }
 
