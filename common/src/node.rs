@@ -46,7 +46,7 @@ codegen::component_depends! {
         population::Housing,
         vehicle::RailPump,
         liquid::Pump,
-        gas::GasPump,
+        gas::Pump,
     )
 }
 
@@ -218,7 +218,38 @@ fn create_new_node(
                         population::Housing::builder().capacity(*housing).build(),
                     );
                 }
-                _ => todo!(),
+                building::ExtraFeature::RailPump(force) => entities
+                    .add_component(entity, vehicle::RailPump::builder().force(*force).build()),
+                building::ExtraFeature::LiquidPump(force) => {
+                    entities.add_component(entity, liquid::Pump::builder().force(*force).build())
+                }
+                building::ExtraFeature::GasPump(force) => {
+                    entities.add_component(entity, gas::Pump::builder().force(*force).build())
+                }
+                building::ExtraFeature::SecureEntry {
+                    skill,
+                    min_level,
+                    breach_probability,
+                } => {
+                    todo!(
+                        "Create entity with {:?} {:?} {:?}",
+                        skill,
+                        min_level,
+                        breach_probability
+                    )
+                }
+                building::ExtraFeature::SecureExit {
+                    skill,
+                    min_level,
+                    breach_probability,
+                } => {
+                    todo!(
+                        "Create entity with {:?} {:?} {:?}",
+                        skill,
+                        min_level,
+                        breach_probability
+                    )
+                }
             }
         }
 
@@ -300,6 +331,25 @@ fn create_saved_node(
             entities.add_component(liquid, Child::new(entity));
         }
 
+        if save.is_core {
+            entities.add_component(entity, defense::Core);
+        }
+        if let Some(housing) = save.housing_provision {
+            entities.add_component(
+                entity,
+                population::Housing::builder().capacity(housing).build(),
+            );
+        }
+        if let Some(force) = save.rail_pump {
+            entities.add_component(entity, vehicle::RailPump::builder().force(force).build());
+        }
+        if let Some(force) = save.liquid_pump {
+            entities.add_component(entity, liquid::Pump::builder().force(force).build());
+        }
+        if let Some(force) = save.gas_pump {
+            entities.add_component(entity, gas::Pump::builder().force(force).build());
+        }
+
         index.index.insert(save.id, entity);
         add_events(AddEvent {
             node: save.id,
@@ -337,6 +387,11 @@ pub mod save {
         pub(crate) liquid: Vec<LiquidStorage>,
         pub(crate) gas: BTreeMap<def::gas::TypeId, units::GasVolume>,
         pub(crate) gas_capacity: units::GasVolume,
+        pub(crate) is_core: bool,
+        pub(crate) housing_provision: Option<u32>,
+        pub(crate) rail_pump: Option<units::RailForce>,
+        pub(crate) liquid_pump: Option<units::PipeForce>,
+        pub(crate) gas_pump: Option<units::FanForce>,
     }
 
     #[derive(Clone, Serialize, Deserialize)]

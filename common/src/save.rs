@@ -4,21 +4,22 @@ use std::convert::TryInto;
 
 use cfg_if::cfg_if;
 use legion::world::SubWorld;
-use legion::EntityStore;
-use legion::IntoQuery;
+use legion::{world::ComponentError, Entity, EntityStore, IntoQuery};
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::clock::Clock;
 use crate::def::GameDefinition;
+use crate::defense;
 use crate::edge::save::{Edge, SavedDuct};
 use crate::node::save::Node;
+use crate::population;
 use crate::shape::Shape;
 use crate::space::Position;
 use crate::time::Instant;
 use crate::units;
 use crate::SetupEcs;
-use crate::{cargo, gas, liquid};
+use crate::{cargo, gas, liquid, vehicle};
 use crate::{edge, node};
 use safety::Safety;
 
@@ -104,6 +105,7 @@ pub struct Response {
 #[read_component(gas::StorageList)]
 #[read_component(gas::StorageCapacity)]
 #[read_component(gas::StorageSize)]
+#[read_component(defense::Core)]
 fn save(
     world: &mut SubWorld,
     #[subscriber] requests: impl Iterator<Item = Request>,
@@ -116,6 +118,7 @@ fn save(
             def: def.clone(),
             state: GameState {
                 nodes: <(
+                    Entity,
                     &node::Id,
                     &node::Name,
                     &Position,
@@ -130,6 +133,7 @@ fn save(
                 .iter(world)
                 .map(
                     |(
+                        entity,
                         &id,
                         name,
                         &position,
@@ -141,6 +145,9 @@ fn save(
                         gas,
                         &gas_capacity,
                     )| {
+                        let entry = world
+                            .entry_ref(*entity)
+                            .expect("entity from query does not exist");
                         Box::new(Node {
                             id,
                             name: name.clone(),
@@ -198,6 +205,31 @@ fn save(
                                 })
                                 .collect(),
                             gas_capacity: gas_capacity.total(),
+                            is_core: match entry.get_component::<defense::Core>() {
+                                Ok(_) => true,
+                                Err(ComponentError::NotFound { .. }) => false,
+                                Err(err) => panic!("{:?}", err),
+                            },
+                            housing_provision: match entry.get_component::<population::Housing>() {
+                                Ok(housing) => Some(housing.capacity()),
+                                Err(ComponentError::NotFound { .. }) => None,
+                                Err(err) => panic!("{:?}", err),
+                            },
+                            rail_pump: match entry.get_component::<vehicle::RailPump>() {
+                                Ok(pump) => Some(pump.force()),
+                                Err(ComponentError::NotFound { .. }) => None,
+                                Err(err) => panic!("{:?}", err),
+                            },
+                            liquid_pump: match entry.get_component::<liquid::Pump>() {
+                                Ok(pump) => Some(pump.force()),
+                                Err(ComponentError::NotFound { .. }) => None,
+                                Err(err) => panic!("{:?}", err),
+                            },
+                            gas_pump: match entry.get_component::<gas::Pump>() {
+                                Ok(pump) => Some(pump.force()),
+                                Err(ComponentError::NotFound { .. }) => None,
+                                Err(err) => panic!("{:?}", err),
+                            },
                         })
                     },
                 )

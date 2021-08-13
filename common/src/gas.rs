@@ -73,7 +73,7 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Gas
 
 /// A component applied on a node that drives gas.
 #[derive(TypedBuilder, getset::CopyGetters)]
-pub struct GasPump {
+pub struct Pump {
     /// The force provided by the pump.
     #[getset(get_copy = "pub")]
     force: units::FanForce,
