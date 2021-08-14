@@ -118,6 +118,9 @@ fn trace_entity(
         let transform = shape.inv_transform(position);
         let proximal = transform.transform_point(&segment.proximal.0);
         let distal = transform.transform_point(&segment.distal.0);
+
+        log::debug!("Entity {:?}", entity);
+
         if let Some(depth) = shape.unit().between(proximal, distal) {
             if depth < last_depth {
                 last_depth = depth;

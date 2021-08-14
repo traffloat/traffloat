@@ -81,17 +81,29 @@ impl Unit {
                 self.contains(closest).then(|| w)
             }
             Self::Cylinder => {
+                log::debug!("Cylinder.between({}, {})", start, end);
+
+                // Tests whether the line intersects with the unit circle on the XY plane
+                // Formula: https://www.wolframalpha.com/input/?i=%28x_1%2Bx_3+w%29%5E2+%2B+%28y_1%2B+y_3+w+%29%5E2%3D1
+                // where `x1` = `start.x`, `x3` = `delta.x`
+                // where `y1` = `start.y`, `y3` = `delta.y`
                 let delta = end - start;
-                let d2 = delta.norm_squared();
-                let discrim = d2 - (start.x * end.y - start.y * end.x).powi(2);
+                let dxy2 = delta.x.powi(2) + delta.y.powi(2);
+                let discrim = (start.x * delta.x + start.y * delta.y).powi(2)
+                    - (start.x.powi(2) + start.y.powi(2) - 1.) * dxy2;
 
                 if discrim > 0. {
                     let dr = discrim.sqrt();
                     let base = start.x * delta.x + start.y * delta.y;
-                    let w1 = (-base - dr) / d2;
-                    let w2 = (-base + dr) / d2;
 
+                    // the less weight intersecting with the unit circle
+                    let w1 = (-base - dr) / dxy2;
+                    // the greater weight intersecting with the unit circle
+                    let w2 = (-base + dr) / dxy2;
+
+                    // the weight intersecting with the lower plane
                     let zw0 = -start.z / delta.z;
+                    // the weight intersecting with the higher plane
                     let zw1 = (1. - start.z) / delta.z;
 
                     fn intersect_ranges(
@@ -105,6 +117,8 @@ impl Unit {
                             f64::max(*a.start(), *b.start())..=f64::min(*a.end(), *b.end())
                         })
                     }
+
+                    codegen::wasm_dbg!((discrim, dxy2, w1, w2, zw0, zw1));
 
                     let range = intersect_ranges(
                         intersect_ranges(0. ..=1., w1..=w2)?,
@@ -353,11 +367,13 @@ mod tests {
         assert_between!((-1., -1., -0.5)..(1., 1., -0.5) => None);
         assert_between!((1., -1., 0.5)..(-1., 1., 0.5) => Some((2f64.sqrt() - 1.) / (2f64.sqrt() * 2.), 1e-6));
         assert_between!((-1., 1., 0.5)..(1., -1., 0.5) => Some((2f64.sqrt() - 1.) / (2f64.sqrt() * 2.), 1e-6));
-        assert_between!((-2., 0., 0.5)..(0., 0., 0.5) => Some(0.5, 1e-6));
-        assert_between!((0., 0., 0.5)..(2., 0., 0.5) => Some(0., 1e-6));
-        assert_between!((0., 0., 1.5)..(1., 0., 0.5) => Some(0.5, 1e-6));
-        assert_between!((1., 0., 1.5)..(0., 0., 0.5) => Some(0.5, 1e-6));
-        assert_between!((0., 0., 0.5)..(1., 0., 1.5) => Some(0., 1e-6));
-        assert_between!((1., 0., 0.5)..(0., 0., 1.5) => Some(0., 1e-6));
+        assert_between!((-2., 0., 0.5)..(0., 0., 0.5) => Some(0.5, 1e-10));
+        assert_between!((0., 0., 0.5)..(2., 0., 0.5) => Some(0., 1e-10));
+        assert_between!((0., 0., 1.5)..(1., 0., 0.5) => Some(0.5, 1e-10));
+        assert_between!((1., 0., 1.5)..(0., 0., 0.5) => Some(0.5, 1e-10));
+        assert_between!((0., 0., 0.5)..(1., 0., 1.5) => Some(0., 1e-10));
+        assert_between!((1., 0., 0.5)..(0., 0., 1.5) => Some(0., 1e-10));
+
+        assert_between!((0., 0., 11.)..(37., -12., -753.) => Some((1. - 11.) / (-753. - 11.), 1e-10));
     }
 }

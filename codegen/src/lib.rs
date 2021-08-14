@@ -7,6 +7,22 @@ use std::collections::btree_map;
 #[cfg(feature = "render-debug")]
 use std::sync::Arc;
 
+/// [`std::dbg!`] equivalent for wasm log
+#[macro_export]
+macro_rules! wasm_dbg {
+    ($expr:expr) => {{
+        #[cfg(test)]
+        {
+            dbg!($expr)
+        }
+        #[cfg(not(test))]
+        {
+            ::log::debug!("{} = {:#?}", stringify!($expr), &$expr);
+            $expr
+        }
+    }};
+}
+
 /// Generates legion system setup procedure for.
 ///
 /// Consider this example:

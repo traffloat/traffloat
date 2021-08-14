@@ -1177,9 +1177,11 @@ dependencies = [
  "fxhash",
  "getset",
  "indexmap",
+ "log",
  "nalgebra",
  "serde",
  "smallvec",
+ "traffloat-codegen",
  "typed-builder",
 ]
 
