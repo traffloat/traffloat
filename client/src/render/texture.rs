@@ -180,7 +180,7 @@ impl Atlas {
 }
 
 /// An icon struct ready for HTML use.
-#[derive(Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Icon {
     /// The URL of the atlas.
     pub url: ArcStr,

@@ -81,8 +81,6 @@ impl Unit {
                 self.contains(closest).then(|| w)
             }
             Self::Cylinder => {
-                log::debug!("Cylinder.between({}, {})", start, end);
-
                 // Tests whether the line intersects with the unit circle on the XY plane
                 // Formula: https://www.wolframalpha.com/input/?i=%28x_1%2Bx_3+w%29%5E2+%2B+%28y_1%2B+y_3+w+%29%5E2%3D1
                 // where `x1` = `start.x`, `x3` = `delta.x`
@@ -117,8 +115,6 @@ impl Unit {
                             f64::max(*a.start(), *b.start())..=f64::min(*a.end(), *b.end())
                         })
                     }
-
-                    codegen::wasm_dbg!((discrim, dxy2, w1, w2, zw0, zw1));
 
                     let range = intersect_ranges(
                         intersect_ranges(0. ..=1., w1..=w2)?,
