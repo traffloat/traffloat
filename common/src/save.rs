@@ -106,6 +106,10 @@ pub struct Response {
 #[read_component(gas::StorageCapacity)]
 #[read_component(gas::StorageSize)]
 #[read_component(defense::Core)]
+#[read_component(population::Housing)]
+#[read_component(vehicle::RailPump)]
+#[read_component(liquid::Pump)]
+#[read_component(gas::Pump)]
 fn save(
     world: &mut SubWorld,
     #[subscriber] requests: impl Iterator<Item = Request>,
