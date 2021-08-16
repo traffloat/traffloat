@@ -40,9 +40,9 @@ dependencies = [
 
 [[package]]
 name = "arcstr"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3282d7e05e547d1cd54c83557021478ebedcbdbe1a5ad941d1a81182a97f5f6"
+checksum = "207a708ac06a886d11fbdcafc8b63a52fb0b4e6f930fdc41030f628248a1458e"
 dependencies = [
  "serde",
 ]
