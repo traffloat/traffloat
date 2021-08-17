@@ -13,7 +13,7 @@ crate-type = ["cdylib"]
 name = "client"
 
 [dependencies]
-anyhow = "1.0.41"
+anyhow = "1.0.43"
 arcstr = "1.1.1"
 derive-new = "0.5.9"
 enum-map = "1.1.0"
