@@ -37,7 +37,7 @@ traffloat-common = {version = "0.2.0", path = "../common", default-features = fa
 traffloat-safety = {version = "0.2.0", path = "../safety"}
 traffloat-version = {version = "0.2.0", path = "../version"}
 typed-builder = "0.9.0"
-wasm-bindgen = {version = "0.2.72"}
+wasm-bindgen = {version = "0.2.76"}
 wasm-logger = "0.2.0"
 yew = {version = "0.18.0", default-features = false, features = ["services", "web_sys"]}
 
