@@ -50,7 +50,7 @@ features = [
 ]
 
 [dependencies.web-sys]
-version = "0.3.52"
+version = "0.3.53"
 features = [
 	"Blob",
 	"BlobPropertyBag",
