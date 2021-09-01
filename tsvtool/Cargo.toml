@@ -10,5 +10,5 @@ license = "AGPL-3.0"
 
 [dependencies]
 anyhow = "1.0.43"
-structopt = "0.3.22"
+structopt = "0.3.23"
 traffloat-common = {version = "0.2.0", path = "../common", features = ["save-binary", "save-text"]}
