@@ -74,9 +74,6 @@ macro_rules! wasm_dbg {
 /// apply the `#[thread_local]` attribute on the function.
 pub use traffloat_codegen_raw::system;
 
-/// Implements network layer serialization.
-pub use traffloat_codegen_raw::Gen;
-
 /// Whether debug info should be rendered.
 pub const RENDER_DEBUG: bool = cfg!(feature = "render-debug");
 
