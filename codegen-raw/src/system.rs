@@ -9,15 +9,8 @@ pub(crate) fn imp(_system_attr: TokenStream, input: TokenStream) -> Result<Token
     let body = &input.block;
 
     let mut attrs: Vec<_> = input.attrs.iter().collect();
-    let thread_local = attrs
-        .drain_filter(|attr| attr.path.is_ident("thread_local"))
-        .count()
-        > 0;
-    let setup_method = if thread_local {
-        quote!(system_local)
-    } else {
-        quote!(system)
-    };
+    let thread_local = attrs.drain_filter(|attr| attr.path.is_ident("thread_local")).count() > 0;
+    let setup_method = if thread_local { quote!(system_local) } else { quote!(system) };
 
     let system_name = format_ident!("{}_system", name);
     let setup_name = format_ident!("{}_setup", name);
@@ -32,12 +25,7 @@ pub(crate) fn imp(_system_attr: TokenStream, input: TokenStream) -> Result<Token
     let mut has_debug_entries_resource = false;
 
     'param_loop: for arg in &input.sig.inputs {
-        let syn::PatType {
-            pat,
-            ty,
-            attrs: arg_attrs,
-            ..
-        } = match arg {
+        let syn::PatType { pat, ty, attrs: arg_attrs, .. } = match arg {
             syn::FnArg::Receiver(recv) => {
                 return Err(syn::Error::new_spanned(recv, "receiver not allowed"))
             }
@@ -50,12 +38,7 @@ pub(crate) fn imp(_system_attr: TokenStream, input: TokenStream) -> Result<Token
             let mut is_perf = false;
             if let syn::Type::Reference(ty) = &**ty {
                 if let syn::Type::Path(path) = &*ty.elem {
-                    if path
-                        .path
-                        .segments
-                        .iter()
-                        .map(|segment| &segment.ident)
-                        .collect::<Vec<_>>()
+                    if path.path.segments.iter().map(|segment| &segment.ident).collect::<Vec<_>>()
                         == ["codegen", "Perf"]
                     {
                         is_perf = true;
@@ -86,10 +69,7 @@ pub(crate) fn imp(_system_attr: TokenStream, input: TokenStream) -> Result<Token
             }
         }
 
-        if let Some(attr) = arg_attrs
-            .drain_filter(|attr| attr.path.is_ident("state"))
-            .next()
-        {
+        if let Some(attr) = arg_attrs.drain_filter(|attr| attr.path.is_ident("state")).next() {
             let expr = attr.parse_args::<syn::Expr>()?;
             state_values.push(quote!(#expr));
             out_args.push((quote!(#[state]), quote!(#pat), quote!(#ty)));
@@ -142,11 +122,7 @@ pub(crate) fn imp(_system_attr: TokenStream, input: TokenStream) -> Result<Token
             }
         }
 
-        if arg_attrs
-            .drain_filter(|attr| attr.path.is_ident("subscriber"))
-            .next()
-            .is_some()
-        {
+        if arg_attrs.drain_filter(|attr| attr.path.is_ident("subscriber")).next().is_some() {
             let event = match &**ty {
                 syn::Type::ImplTrait(it) if it.bounds.len() == 1 => &it.bounds[0],
                 span => {
@@ -224,11 +200,7 @@ pub(crate) fn imp(_system_attr: TokenStream, input: TokenStream) -> Result<Token
             continue;
         }
 
-        if arg_attrs
-            .drain_filter(|attr| attr.path.is_ident("publisher"))
-            .next()
-            .is_some()
-        {
+        if arg_attrs.drain_filter(|attr| attr.path.is_ident("publisher")).next().is_some() {
             let event = match &**ty {
                 syn::Type::ImplTrait(it) if it.bounds.len() == 1 => &it.bounds[0],
                 span => {
@@ -357,9 +329,6 @@ impl parse::Parse for DebugName {
         let category = inner.parse::<syn::LitStr>()?;
         inner.parse::<syn::Token![,]>()?;
         let name = inner.parse::<syn::LitStr>()?;
-        Ok(Self {
-            category: category.value(),
-            name: name.value(),
-        })
+        Ok(Self { category: category.value(), name: name.value() })
     }
 }

@@ -13,9 +13,7 @@ fn main() -> Result<()> {
     let semver = env_var("CARGO_PKG_VERSION")?;
 
     let manifest_dir = PathBuf::from(env_var("CARGO_MANIFEST_DIR")?);
-    let workspace = manifest_dir
-        .parent()
-        .context("Could not detect cargo workspace")?;
+    let workspace = manifest_dir.parent().context("Could not detect cargo workspace")?;
 
     let (git_data, full_version) = match git_data(workspace) {
         Ok(data) => {
@@ -31,14 +29,7 @@ fn main() -> Result<()> {
         }
         Err(err) => {
             eprintln!("Failed to load git: {:?}", err);
-            (
-                GitData {
-                    sha: None,
-                    branch: None,
-                    dirty: true,
-                },
-                format!("{}-gitless", semver),
-            )
+            (GitData { sha: None, branch: None, dirty: true }, format!("{}-gitless", semver))
         }
     };
 
@@ -68,10 +59,7 @@ fn main() -> Result<()> {
     )
     .context("Write out.rs")?;
 
-    println!(
-        "cargo:rerun-if-changed={}",
-        workspace.join(".git/HEAD").display()
-    );
+    println!("cargo:rerun-if-changed={}", workspace.join(".git/HEAD").display());
 
     Ok(())
 }

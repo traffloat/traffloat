@@ -132,11 +132,7 @@ macro_rules! small_unsigned_int {
             #[allow(unused_comparisons)]
             fn small_unsigned(self) -> $to {
                 let target = self as $to;
-                debug_assert!(
-                    self >= 0 && target >= 0,
-                    "{} is not homogeneous over signs",
-                    self,
-                );
+                debug_assert!(self >= 0 && target >= 0, "{} is not homogeneous over signs", self,);
                 target
             }
         }

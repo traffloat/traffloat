@@ -59,9 +59,7 @@ impl Component for Wrapper {
             }
             Update::Edit => {
                 if let Some(args) = self.edge_preview_args.as_ref() {
-                    let args = duct_editor::Args {
-                        entity: args.entity,
-                    };
+                    let args = duct_editor::Args { entity: args.entity };
                     self.link.send_message(Update::SetDuctEditor(Some(args)));
                 }
                 false
@@ -144,10 +142,8 @@ pub struct Props {
 impl Props {
     fn updater_ref(&self) -> UpdaterRef {
         let legion = self.legion.borrow();
-        let updater_ref: &UpdaterRef = &*legion
-            .resources
-            .get()
-            .expect("UpdaterRef was not initialized");
+        let updater_ref: &UpdaterRef =
+            &*legion.resources.get().expect("UpdaterRef was not initialized");
         updater_ref.clone()
     }
 }
@@ -178,10 +174,8 @@ fn cancel_trigger(
     #[subscriber] click_sub: impl Iterator<Item = keyboard::SingleClick>,
     #[resource] updater_ref: &UpdaterRef,
 ) {
-    let has_click = click_sub
-        .filter(|click| click.command() == keyboard::Command::Cancel)
-        .count()
-        > 0; // consume the whole iterator without short-circuiting
+    let has_click =
+        click_sub.filter(|click| click.command() == keyboard::Command::Cancel).count() > 0; // consume the whole iterator without short-circuiting
     if has_click {
         updater_ref.call(Update::Cancel);
     }
@@ -193,10 +187,8 @@ fn edit_trigger(
     #[subscriber] click_sub: impl Iterator<Item = keyboard::SingleClick>,
     #[resource] updater_ref: &UpdaterRef,
 ) {
-    let has_click = click_sub
-        .filter(|click| click.command() == keyboard::Command::Edit)
-        .count()
-        > 0; // consume the whole iterator without short-circuiting
+    let has_click =
+        click_sub.filter(|click| click.command() == keyboard::Command::Edit).count() > 0; // consume the whole iterator without short-circuiting
     if has_click {
         updater_ref.call(Update::Edit);
     }

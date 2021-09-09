@@ -74,8 +74,7 @@ impl Program {
         self.u_diffuse.assign(gl, 0.2);
         self.u_specular.assign(gl, 1.0);
         self.u_specular_coef.assign(gl, 10.0);
-        self.u_inv_gain
-            .assign(gl, if selected { 0.5f32 } else { 1f32 });
+        self.u_inv_gain.assign(gl, if selected { 0.5f32 } else { 1f32 });
 
         self.a_pos.assign(gl, self.cylinder.positions());
         self.a_normal.assign(gl, self.cylinder.normals());

@@ -20,8 +20,7 @@ pub struct Canvas {
 impl Canvas {
     /// Resets the canvas.
     pub fn reset(&self, dim: &Dimension) {
-        self.context
-            .clear_rect(0., 0., dim.width.into(), dim.height.into());
+        self.context.clear_rect(0., 0., dim.width.into(), dim.height.into());
     }
 }
 

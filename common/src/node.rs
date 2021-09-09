@@ -116,10 +116,7 @@ fn delete_nodes(
     #[publisher] post_remove_pub: impl FnMut(PostRemoveEvent),
 ) {
     for &node in &index.deletion_queue {
-        let entity = index
-            .index
-            .remove(&node)
-            .expect("Removing nonexistent node entity");
+        let entity = index.index.remove(&node).expect("Removing nonexistent node entity");
         cmd_buf.remove(entity);
     }
     let count = index.deletion_queue.len();
@@ -157,10 +154,7 @@ fn create_new_node(
     #[resource] index: &mut Index,
 ) {
     for request in requests {
-        let building = def
-            .building()
-            .get(&request.type_id)
-            .expect("Received invalid type ID");
+        let building = def.building().get(&request.type_id).expect("Received invalid type ID");
 
         let id = Id::new(rand::random());
 
@@ -226,29 +220,11 @@ fn create_new_node(
                 building::ExtraFeature::GasPump(force) => {
                     entities.add_component(entity, gas::Pump::builder().force(*force).build())
                 }
-                building::ExtraFeature::SecureEntry {
-                    skill,
-                    min_level,
-                    breach_probability,
-                } => {
-                    todo!(
-                        "Create entity with {:?} {:?} {:?}",
-                        skill,
-                        min_level,
-                        breach_probability
-                    )
+                building::ExtraFeature::SecureEntry { skill, min_level, breach_probability } => {
+                    todo!("Create entity with {:?} {:?} {:?}", skill, min_level, breach_probability)
                 }
-                building::ExtraFeature::SecureExit {
-                    skill,
-                    min_level,
-                    breach_probability,
-                } => {
-                    todo!(
-                        "Create entity with {:?} {:?} {:?}",
-                        skill,
-                        min_level,
-                        breach_probability
-                    )
+                building::ExtraFeature::SecureExit { skill, min_level, breach_probability } => {
+                    todo!("Create entity with {:?} {:?} {:?}", skill, min_level, breach_probability)
                 }
             }
         }
@@ -335,10 +311,8 @@ fn create_saved_node(
             entities.add_component(entity, defense::Core);
         }
         if let Some(housing) = save.housing_provision {
-            entities.add_component(
-                entity,
-                population::Housing::builder().capacity(housing).build(),
-            );
+            entities
+                .add_component(entity, population::Housing::builder().capacity(housing).build());
         }
         if let Some(force) = save.rail_pump {
             entities.add_component(entity, vehicle::RailPump::builder().force(force).build());
@@ -351,19 +325,13 @@ fn create_saved_node(
         }
 
         index.index.insert(save.id, entity);
-        add_events(AddEvent {
-            node: save.id,
-            entity,
-        })
+        add_events(AddEvent { node: save.id, entity })
     }
 }
 
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup
-        .uses(delete_nodes_setup)
-        .uses(create_new_node_setup)
-        .uses(create_saved_node_setup)
+    setup.uses(delete_nodes_setup).uses(create_new_node_setup).uses(create_saved_node_setup)
 }
 
 /// Save type for nodes.

@@ -18,10 +18,7 @@ impl Finite {
     /// # Panic
     /// Panics if the parameter is not finite.
     pub fn new(f: f64) -> Self {
-        assert!(
-            f.is_finite(),
-            "Attempt to create Finite with non-finite float"
-        );
+        assert!(f.is_finite(), "Attempt to create Finite with non-finite float");
         Self(f)
     }
 

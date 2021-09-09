@@ -19,11 +19,7 @@ impl Component for Comp {
     type Properties = Props;
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        Self {
-            props,
-            link,
-            open: false,
-        }
+        Self { props, link, open: false }
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {

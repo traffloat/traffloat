@@ -259,10 +259,7 @@ fn move_camera(
             move_direction += Vector::new(0., 0., config::WASD_LINEAR_VELOCITY * dt);
         }
         if move_direction != Vector::new(0., 0., 0.) {
-            let dp = camera
-                .rotation()
-                .transpose()
-                .transform_vector(&move_direction);
+            let dp = camera.rotation().transpose().transform_vector(&move_direction);
             camera.set_focus(camera.focus() + dp);
         }
     }

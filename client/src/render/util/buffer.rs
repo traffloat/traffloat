@@ -61,10 +61,7 @@ impl FloatBuffer {
             usage.as_gl_usage(),
         );
 
-        Self {
-            buffer,
-            component_size,
-        }
+        Self { buffer, component_size }
     }
 
     /// Modifies the contents of a float buffer.
@@ -126,18 +123,12 @@ impl IndexBuffer {
             WebGlRenderingContext::STATIC_DRAW,
         );
 
-        Self {
-            buffer,
-            len: data.len().try_into().expect("Buffer is too large"),
-        }
+        Self { buffer, len: data.len().try_into().expect("Buffer is too large") }
     }
 
     /// Draws on a WebGL context using the indices in this buffer.
     pub fn draw(&self, gl: &WebGlRenderingContext) {
-        gl.bind_buffer(
-            WebGlRenderingContext::ELEMENT_ARRAY_BUFFER,
-            Some(&self.buffer),
-        );
+        gl.bind_buffer(WebGlRenderingContext::ELEMENT_ARRAY_BUFFER, Some(&self.buffer));
         gl.draw_elements_with_i32(
             WebGlRenderingContext::TRIANGLES,
             self.len,

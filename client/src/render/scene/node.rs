@@ -68,15 +68,7 @@ impl Program {
     /// The projection matrix transforms unit model coordinates to projection coordinates directly.
     pub fn draw(
         &self,
-        DrawArgs {
-            gl,
-            proj,
-            sun,
-            brightness,
-            selected,
-            texture,
-            shape_unit,
-        }: DrawArgs<'_>,
+        DrawArgs { gl, proj, sun, brightness, selected, texture, shape_unit }: DrawArgs<'_>,
     ) {
         use mesh::AbstractPreparedMesh;
 
@@ -84,8 +76,7 @@ impl Program {
         self.u_proj.assign(gl, proj);
         self.u_sun.assign(gl, sun);
         self.u_brightness.assign(gl, brightness.clamp(0.5, 1.));
-        self.u_inv_gain
-            .assign(gl, if selected { 0.5f32 } else { 1f32 });
+        self.u_inv_gain.assign(gl, if selected { 0.5f32 } else { 1f32 });
 
         // The dynamic dispatch here is roughly equialent to
         // an enum matching on the unit type and should not impact performance.

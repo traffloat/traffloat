@@ -130,15 +130,8 @@ fn render_feature(feature: &building::ExtraFeature, def: &GameDefinition) -> Htm
                 </p>
             </div>
         },
-        building::ExtraFeature::SecureEntry {
-            skill,
-            min_level,
-            breach_probability,
-        } => {
-            let skill = def
-                .skill()
-                .get(skill)
-                .expect("Save references undefined skill");
+        building::ExtraFeature::SecureEntry { skill, min_level, breach_probability } => {
+            let skill = def.skill().get(skill).expect("Save references undefined skill");
             html! {
                 <div>
                     <h3>{ "Entry security" }</h3>
@@ -163,15 +156,8 @@ fn render_feature(feature: &building::ExtraFeature, def: &GameDefinition) -> Htm
                 </div>
             }
         }
-        building::ExtraFeature::SecureExit {
-            skill,
-            min_level,
-            breach_probability,
-        } => {
-            let skill = def
-                .skill()
-                .get(skill)
-                .expect("Save references undefined skill");
+        building::ExtraFeature::SecureExit { skill, min_level, breach_probability } => {
+            let skill = def.skill().get(skill).expect("Save references undefined skill");
             html! {
                 <div>
                     <h3>{ "Exit security" }</h3>

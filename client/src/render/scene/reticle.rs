@@ -31,13 +31,7 @@ impl Program {
         let u_trans = UniformLocation::new(gl, &prog, "u_trans");
         let u_color = UniformLocation::new(gl, &prog, "u_color");
 
-        Self {
-            prog,
-            arrow_buf,
-            a_pos,
-            u_trans,
-            u_color,
-        }
+        Self { prog, arrow_buf, a_pos, u_trans, u_color }
     }
 
     /// Draws an arrow on the canvas.
@@ -50,9 +44,7 @@ impl Program {
         gl.draw_arrays(
             WebGlRenderingContext::TRIANGLES,
             0,
-            (mesh::ARROW.len() / 3)
-                .try_into()
-                .expect("Buffer is too large"),
+            (mesh::ARROW.len() / 3).try_into().expect("Buffer is too large"),
         );
     }
 }

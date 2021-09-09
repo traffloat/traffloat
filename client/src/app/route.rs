@@ -42,10 +42,7 @@ pub enum Rules {
 
 impl Default for Route {
     fn default() -> Self {
-        Self::Scenario {
-            name: String::from("vanilla"),
-            sp: SpRoute::Home,
-        }
+        Self::Scenario { name: String::from("vanilla"), sp: SpRoute::Home }
     }
 }
 
@@ -94,15 +91,9 @@ impl Route {
         if let Some(mut path) = path.strip_prefix("scenario") {
             path = path.trim_start_matches('/');
             if let Some((name, sp)) = path.split_once('/') {
-                Route::Scenario {
-                    name: name.to_string(),
-                    sp: parse_sp(sp),
-                }
+                Route::Scenario { name: name.to_string(), sp: parse_sp(sp) }
             } else {
-                Route::Scenario {
-                    name: path.to_string(),
-                    sp: SpRoute::Home,
-                }
+                Route::Scenario { name: path.to_string(), sp: SpRoute::Home }
             }
         } else if let Some(sp) = path.strip_prefix("custom") {
             Route::Custom { sp: parse_sp(sp) }

@@ -24,11 +24,7 @@ impl Canvas {
         let star_prog = star::Program::new(&gl, seed);
         let sun_prog = sun::Program::new(&gl);
 
-        Self {
-            gl,
-            star_prog,
-            sun_prog,
-        }
+        Self { gl, star_prog, sun_prog }
     }
 
     /// Resets the scene for the next rendering frame.
@@ -63,8 +59,7 @@ fn draw(
     let sun_pos = sun.direction();
     let screen_pos = camera.projection().transform_vector(&sun_pos);
 
-    bg.sun_prog
-        .draw(&bg.gl, screen_pos, dim.aspect().lossy_trunc());
+    bg.sun_prog.draw(&bg.gl, screen_pos, dim.aspect().lossy_trunc());
 
     bg.star_prog.draw(&bg.gl, camera.asymptotic_projection());
 }

@@ -120,168 +120,167 @@ fn save(
     for request in requests {
         let file: SaveFile = SaveFile {
             def: def.clone(),
-            state: GameState {
-                nodes: <(
-                    Entity,
-                    &node::Id,
-                    &node::Name,
-                    &Position,
-                    &Shape,
-                    &units::Portion<units::Hitpoint>,
-                    &cargo::StorageList,
-                    &cargo::StorageCapacity,
-                    &liquid::StorageList,
-                    &gas::StorageList,
-                    &gas::StorageCapacity,
-                )>::query()
-                .iter(world)
-                .map(
-                    |(
-                        entity,
-                        &id,
-                        name,
-                        &position,
-                        shape,
-                        &hitpoint,
-                        cargo,
-                        &cargo_capacity,
-                        liquid,
-                        gas,
-                        &gas_capacity,
-                    )| {
-                        let entry = world
-                            .entry_ref(*entity)
-                            .expect("entity from query does not exist");
-                        Box::new(Node {
-                            id,
-                            name: name.clone(),
-                            position,
-                            shape: shape.clone(),
-                            hitpoint,
-                            cargo: cargo
-                                .storages()
-                                .iter()
-                                .map(|(id, entity)| {
-                                    let entry = world
-                                        .entry_ref(*entity)
-                                        .expect("Cargo storage entity is nonexistent");
-                                    let size: &cargo::StorageSize = entry
-                                        .get_component()
-                                        .expect("Cargo storage entity has no StorageSize");
-                                    (id.clone(), size.size())
-                                })
-                                .collect(),
-                            cargo_capacity: cargo_capacity.total(),
-                            liquid: liquid
-                                .storages()
-                                .iter()
-                                .map(|entity| {
-                                    let entry = world
-                                        .entry_ref(*entity)
-                                        .expect("liquid storage entity is nonexistent");
-                                    let storage: &liquid::Storage = entry
-                                        .get_component()
-                                        .expect("liquid storage entity has no Storage");
-                                    let capacity: &liquid::StorageCapacity = entry
-                                        .get_component()
-                                        .expect("liquid storage entity has no StorageCapacity");
-                                    let size: &liquid::StorageSize = entry
-                                        .get_component()
-                                        .expect("liquid storage entity has no StorageSize");
-                                    node::save::LiquidStorage {
-                                        ty: storage.liquid().clone(),
-                                        capacity: capacity.total(),
-                                        volume: size.size(),
-                                    }
-                                })
-                                .collect(),
-                            gas: gas
-                                .storages()
-                                .iter()
-                                .map(|(id, entity)| {
-                                    let entry = world
-                                        .entry_ref(*entity)
-                                        .expect("gas storage entity is nonexistent");
-                                    let size: &gas::StorageSize = entry
-                                        .get_component()
-                                        .expect("gas storage entity has no StorageSize");
-                                    (id.clone(), size.size())
-                                })
-                                .collect(),
-                            gas_capacity: gas_capacity.total(),
-                            is_core: match entry.get_component::<defense::Core>() {
-                                Ok(_) => true,
-                                Err(ComponentError::NotFound { .. }) => false,
-                                Err(err) => panic!("{:?}", err),
-                            },
-                            housing_provision: match entry.get_component::<population::Housing>() {
-                                Ok(housing) => Some(housing.capacity()),
-                                Err(ComponentError::NotFound { .. }) => None,
-                                Err(err) => panic!("{:?}", err),
-                            },
-                            rail_pump: match entry.get_component::<vehicle::RailPump>() {
-                                Ok(pump) => Some(pump.force()),
-                                Err(ComponentError::NotFound { .. }) => None,
-                                Err(err) => panic!("{:?}", err),
-                            },
-                            liquid_pump: match entry.get_component::<liquid::Pump>() {
-                                Ok(pump) => Some(pump.force()),
-                                Err(ComponentError::NotFound { .. }) => None,
-                                Err(err) => panic!("{:?}", err),
-                            },
-                            gas_pump: match entry.get_component::<gas::Pump>() {
-                                Ok(pump) => Some(pump.force()),
-                                Err(ComponentError::NotFound { .. }) => None,
-                                Err(err) => panic!("{:?}", err),
-                            },
-                        })
-                    },
-                )
-                .collect(),
-                edges: <(
-                    &edge::Id,
-                    &edge::Size,
-                    &edge::Design,
-                    &units::Portion<units::Hitpoint>,
-                )>::query()
-                .iter(world)
-                .map(|(&id, &size, design, &hitpoint)| {
-                    let &from = world
-                        .entry_ref(id.from())
-                        .expect("Edge points to nonexistent ID")
-                        .get_component::<node::Id>()
-                        .expect("Edge points to non-Node");
-                    let &to = world
-                        .entry_ref(id.to())
-                        .expect("Edge points to nonexistent ID")
-                        .get_component::<node::Id>()
-                        .expect("Edge points to non-Node");
-                    Box::new(Edge {
-                        from,
-                        to,
-                        size,
-                        design: design
-                            .ducts()
-                            .iter()
-                            .map(|duct| SavedDuct {
-                                center: duct.center(),
-                                radius: duct.radius(),
-                                ty: duct.ty(),
+            state:
+                GameState {
+                    nodes: <(
+                        Entity,
+                        &node::Id,
+                        &node::Name,
+                        &Position,
+                        &Shape,
+                        &units::Portion<units::Hitpoint>,
+                        &cargo::StorageList,
+                        &cargo::StorageCapacity,
+                        &liquid::StorageList,
+                        &gas::StorageList,
+                        &gas::StorageCapacity,
+                    )>::query()
+                    .iter(world)
+                    .map(
+                        |(
+                            entity,
+                            &id,
+                            name,
+                            &position,
+                            shape,
+                            &hitpoint,
+                            cargo,
+                            &cargo_capacity,
+                            liquid,
+                            gas,
+                            &gas_capacity,
+                        )| {
+                            let entry =
+                                world.entry_ref(*entity).expect("entity from query does not exist");
+                            Box::new(Node {
+                                id,
+                                name: name.clone(),
+                                position,
+                                shape: shape.clone(),
+                                hitpoint,
+                                cargo: cargo
+                                    .storages()
+                                    .iter()
+                                    .map(|(id, entity)| {
+                                        let entry = world
+                                            .entry_ref(*entity)
+                                            .expect("Cargo storage entity is nonexistent");
+                                        let size: &cargo::StorageSize = entry
+                                            .get_component()
+                                            .expect("Cargo storage entity has no StorageSize");
+                                        (id.clone(), size.size())
+                                    })
+                                    .collect(),
+                                cargo_capacity: cargo_capacity.total(),
+                                liquid: liquid
+                                    .storages()
+                                    .iter()
+                                    .map(|entity| {
+                                        let entry = world
+                                            .entry_ref(*entity)
+                                            .expect("liquid storage entity is nonexistent");
+                                        let storage: &liquid::Storage = entry
+                                            .get_component()
+                                            .expect("liquid storage entity has no Storage");
+                                        let capacity: &liquid::StorageCapacity = entry
+                                            .get_component()
+                                            .expect("liquid storage entity has no StorageCapacity");
+                                        let size: &liquid::StorageSize = entry
+                                            .get_component()
+                                            .expect("liquid storage entity has no StorageSize");
+                                        node::save::LiquidStorage {
+                                            ty: storage.liquid().clone(),
+                                            capacity: capacity.total(),
+                                            volume: size.size(),
+                                        }
+                                    })
+                                    .collect(),
+                                gas: gas
+                                    .storages()
+                                    .iter()
+                                    .map(|(id, entity)| {
+                                        let entry = world
+                                            .entry_ref(*entity)
+                                            .expect("gas storage entity is nonexistent");
+                                        let size: &gas::StorageSize = entry
+                                            .get_component()
+                                            .expect("gas storage entity has no StorageSize");
+                                        (id.clone(), size.size())
+                                    })
+                                    .collect(),
+                                gas_capacity: gas_capacity.total(),
+                                is_core: match entry.get_component::<defense::Core>() {
+                                    Ok(_) => true,
+                                    Err(ComponentError::NotFound { .. }) => false,
+                                    Err(err) => panic!("{:?}", err),
+                                },
+                                housing_provision: match entry
+                                    .get_component::<population::Housing>()
+                                {
+                                    Ok(housing) => Some(housing.capacity()),
+                                    Err(ComponentError::NotFound { .. }) => None,
+                                    Err(err) => panic!("{:?}", err),
+                                },
+                                rail_pump: match entry.get_component::<vehicle::RailPump>() {
+                                    Ok(pump) => Some(pump.force()),
+                                    Err(ComponentError::NotFound { .. }) => None,
+                                    Err(err) => panic!("{:?}", err),
+                                },
+                                liquid_pump: match entry.get_component::<liquid::Pump>() {
+                                    Ok(pump) => Some(pump.force()),
+                                    Err(ComponentError::NotFound { .. }) => None,
+                                    Err(err) => panic!("{:?}", err),
+                                },
+                                gas_pump: match entry.get_component::<gas::Pump>() {
+                                    Ok(pump) => Some(pump.force()),
+                                    Err(ComponentError::NotFound { .. }) => None,
+                                    Err(err) => panic!("{:?}", err),
+                                },
                             })
-                            .collect(),
-                        hitpoint,
+                        },
+                    )
+                    .collect(),
+                    edges: <(
+                        &edge::Id,
+                        &edge::Size,
+                        &edge::Design,
+                        &units::Portion<units::Hitpoint>,
+                    )>::query()
+                    .iter(world)
+                    .map(|(&id, &size, design, &hitpoint)| {
+                        let &from = world
+                            .entry_ref(id.from())
+                            .expect("Edge points to nonexistent ID")
+                            .get_component::<node::Id>()
+                            .expect("Edge points to non-Node");
+                        let &to = world
+                            .entry_ref(id.to())
+                            .expect("Edge points to nonexistent ID")
+                            .get_component::<node::Id>()
+                            .expect("Edge points to non-Node");
+                        Box::new(Edge {
+                            from,
+                            to,
+                            size,
+                            design: design
+                                .ducts()
+                                .iter()
+                                .map(|duct| SavedDuct {
+                                    center: duct.center(),
+                                    radius: duct.radius(),
+                                    ty: duct.ty(),
+                                })
+                                .collect(),
+                            hitpoint,
+                        })
                     })
-                })
-                .collect(),
-                clock: clock.now(),
-            },
+                    .collect(),
+                    clock: clock.now(),
+                },
         };
 
         match emit(&file, request) {
-            Ok(data) => results(Response {
-                data,
-                format: request.format,
-            }),
+            Ok(data) => results(Response { data, format: request.format }),
             Err(err) => log::error!("Error saving game: {:?}", err),
         }
     }
@@ -375,10 +374,7 @@ pub fn load(mut setup: SetupEcs, buf: &[u8], now: u64) -> anyhow::Result<SetupEc
     let file = parse(buf)?;
 
     setup.resources.insert(file.def);
-    setup
-        .resources
-        .get_mut_or_default::<Clock>()
-        .reset_time(file.state.clock, now.homosign());
+    setup.resources.get_mut_or_default::<Clock>().reset_time(file.state.clock, now.homosign());
 
     for node in file.state.nodes {
         setup = setup.publish_event(node::LoadRequest::builder().save(node).build());

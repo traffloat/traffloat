@@ -156,10 +156,7 @@ impl Unit {
                 let max: SmallVec<[f64; 3]> = (0_usize..3).map(|i| points.row(i).max()).collect();
 
                 #[allow(clippy::indexing_slicing)]
-                (
-                    Point::new(min[0], min[1], min[2]),
-                    Point::new(max[0], max[1], max[2]),
-                )
+                (Point::new(min[0], min[1], min[2]), Point::new(max[0], max[1], max[2]))
             }
             Self::Sphere => {
                 // Extremize f(x,y,z) := ax+by+cz+d under g(x,y,z) := x^2+y^2+z^2-1 = 0
@@ -190,12 +187,10 @@ impl Unit {
                     })
                     .collect();
 
-                let min = Point::from(Vector::from_iterator(
-                    extrema.iter().map(|&(i, j)| i.min(j)),
-                ));
-                let max = Point::from(Vector::from_iterator(
-                    extrema.iter().map(|&(i, j)| i.max(j)),
-                ));
+                let min =
+                    Point::from(Vector::from_iterator(extrema.iter().map(|&(i, j)| i.min(j))));
+                let max =
+                    Point::from(Vector::from_iterator(extrema.iter().map(|&(i, j)| i.max(j))));
 
                 (min, max)
             }
@@ -234,14 +229,10 @@ impl Unit {
                     .collect();
 
                 let min = Point::from(Vector::from_iterator(
-                    extrema
-                        .iter()
-                        .map(|array| array.iter().copied().fold(array[0], f64::min)),
+                    extrema.iter().map(|array| array.iter().copied().fold(array[0], f64::min)),
                 ));
                 let max = Point::from(Vector::from_iterator(
-                    extrema
-                        .iter()
-                        .map(|array| array.iter().copied().fold(array[0], f64::max)),
+                    extrema.iter().map(|array| array.iter().copied().fold(array[0], f64::max)),
                 ));
 
                 (min, max)
@@ -280,11 +271,7 @@ mod tests {
 
     #[test]
     pub fn sphere_bb() {
-        assert_bb(
-            Unit::Sphere,
-            Matrix::identity(),
-            [-1., -1., -1.]..[1., 1., 1.],
-        );
+        assert_bb(Unit::Sphere, Matrix::identity(), [-1., -1., -1.]..[1., 1., 1.]);
         assert_bb(
             Unit::Sphere,
             Matrix::new_translation(&Vector::new(0.5, 0.5, 0.5)),
@@ -307,11 +294,7 @@ mod tests {
 
     #[test]
     pub fn cylinder_bb() {
-        assert_bb(
-            Unit::Cylinder,
-            Matrix::identity(),
-            [-1., -1., 0.]..[1., 1., 1.],
-        );
+        assert_bb(Unit::Cylinder, Matrix::identity(), [-1., -1., 0.]..[1., 1., 1.]);
         assert_bb(
             Unit::Cylinder,
             Matrix::new_translation(&Vector::new(0.5, 0.5, -0.5))
@@ -336,10 +319,7 @@ mod tests {
                 let v1 = Point::new($x1, $y1, $z1);
                 let option = Unit::Cylinder.between(v0, v1);
                 if let Some(w) = option {
-                    panic!(
-                        "{}..{} should not intersect cylinder, got Some({})",
-                        v0, v1, w
-                    );
+                    panic!("{}..{} should not intersect cylinder, got Some({})", v0, v1, w);
                 }
             };
             (($x0:expr, $y0:expr, $z0:expr)..($x1:expr, $y1:expr, $z1:expr) => Some($w:expr, $eps:expr)) => {

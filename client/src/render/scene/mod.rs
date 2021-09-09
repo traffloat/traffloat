@@ -43,12 +43,7 @@ impl Canvas {
         let edge_prog = edge::Program::new(&gl);
         let reticle_prog = reticle::Program::new(&gl);
 
-        Self {
-            gl,
-            node_prog,
-            edge_prog,
-            reticle_prog,
-        }
+        Self { gl, node_prog, edge_prog, reticle_prog }
     }
 
     /// Clears the canvas.
@@ -67,10 +62,7 @@ impl Canvas {
             .expect("UI does not have a canvas")
             .dyn_into()
             .expect("Canvas is not a HtmlCanvasElement");
-        canvas
-            .style()
-            .set_property("cursor", name)
-            .expect("Failed to set canvas cursor property");
+        canvas.style().set_property("cursor", name).expect("Failed to set canvas cursor property");
     }
 }
 
@@ -187,15 +179,9 @@ fn draw(
 
     scene.gl.disable(WebGlRenderingContext::CULL_FACE);
     scene.gl.disable(WebGlRenderingContext::BLEND);
-    scene
-        .reticle_prog
-        .draw(&scene.gl, arrow_projection, [1., 0., 0.]);
-    scene
-        .reticle_prog
-        .draw(&scene.gl, arrow_projection * rot_y, [0., 1., 0.]);
-    scene
-        .reticle_prog
-        .draw(&scene.gl, arrow_projection * rot_z, [0., 0., 1.]);
+    scene.reticle_prog.draw(&scene.gl, arrow_projection, [1., 0., 0.]);
+    scene.reticle_prog.draw(&scene.gl, arrow_projection * rot_y, [0., 1., 0.]);
+    scene.reticle_prog.draw(&scene.gl, arrow_projection * rot_z, [0., 0., 1.]);
 }
 
 #[codegen::system]

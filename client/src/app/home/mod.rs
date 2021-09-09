@@ -31,14 +31,7 @@ impl Component for Home {
             Some(Route::Server) => (GameMode::Multi, None),
             None => (GameMode::Single, Some("vanilla".into())),
         };
-        Self {
-            props,
-            link,
-            game_mode,
-            _loader: None,
-            scenario: None,
-            chosen_scenario_name,
-        }
+        Self { props, link, game_mode, _loader: None, scenario: None, chosen_scenario_name }
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
@@ -94,10 +87,7 @@ impl Component for Home {
 
                 if event.explicit {
                     let route = match event.name.as_ref() {
-                        Some(name) => Route::Scenario {
-                            name: name.to_string(),
-                            sp: SpRoute::Home,
-                        },
+                        Some(name) => Route::Scenario { name: name.to_string(), sp: SpRoute::Home },
                         None => Route::Custom { sp: SpRoute::Home },
                     };
                     route.replace_state();
@@ -117,15 +107,12 @@ impl Component for Home {
                     Ok(body) => {
                         let body = Rc::from(body);
                         self.scenario = Some(body);
-                        if let Some(Route::Scenario {
-                            sp: SpRoute::Game, ..
-                        }) = &self.props.intent_route
+                        if let Some(Route::Scenario { sp: SpRoute::Game, .. }) =
+                            &self.props.intent_route
                         {
                             self.link.send_message(Msg::StartSingle);
-                        } else if let Some(Route::Scenario {
-                            sp: SpRoute::Rules(_),
-                            ..
-                        }) = &self.props.intent_route
+                        } else if let Some(Route::Scenario { sp: SpRoute::Rules(_), .. }) =
+                            &self.props.intent_route
                         {
                             self.link.send_message(Msg::EditScenario);
                         }
@@ -157,9 +144,7 @@ impl Component for Home {
                     Some(scenario) => Rc::clone(scenario),
                     None => return false,
                 };
-                self.props
-                    .edit_scenario_hook
-                    .emit((self.chosen_scenario_name.clone(), scenario));
+                self.props.edit_scenario_hook.emit((self.chosen_scenario_name.clone(), scenario));
                 false
             }
         }
@@ -317,12 +302,7 @@ pub enum Scenario {
 
 impl Default for Scenario {
     fn default() -> Self {
-        Self::Url(
-            scenarios::OPTIONS
-                .get(0)
-                .expect("scenarios::OPTIONS is empty")
-                .path,
-        )
+        Self::Url(scenarios::OPTIONS.get(0).expect("scenarios::OPTIONS is empty").path)
     }
 }
 

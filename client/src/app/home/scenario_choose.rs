@@ -21,11 +21,7 @@ impl Component for Comp {
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
         let choice = match &props.intent_route {
             Some(Route::Scenario { name, .. }) => {
-                match scenarios::OPTIONS
-                    .iter()
-                    .enumerate()
-                    .find(|(_, def)| def.id == name)
-                {
+                match scenarios::OPTIONS.iter().enumerate().find(|(_, def)| def.id == name) {
                     Some((ord, def)) => {
                         props.choose_scenario.emit(super::ChooseScenario {
                             scenario: Some(super::Scenario::Url(def.path)),
@@ -48,10 +44,7 @@ impl Component for Comp {
             _ => {
                 props.choose_scenario.emit(super::ChooseScenario {
                     scenario: Some(super::Scenario::Url(
-                        scenarios::OPTIONS
-                            .get(0)
-                            .expect("scenarios::OPTIONS is empty")
-                            .path,
+                        scenarios::OPTIONS.get(0).expect("scenarios::OPTIONS is empty").path,
                     )),
                     name: Some("vanilla".into()),
                     explicit: false,
@@ -60,11 +53,7 @@ impl Component for Comp {
             }
         };
 
-        Self {
-            props,
-            link,
-            choice,
-        }
+        Self { props, link, choice }
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {

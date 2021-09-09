@@ -49,35 +49,17 @@ pub struct DirectedAxis {
 }
 
 /// Positive X direction.
-pub const POSITIVE_X: DirectedAxis = DirectedAxis {
-    axis: 0,
-    sign: Sign::Positive,
-};
+pub const POSITIVE_X: DirectedAxis = DirectedAxis { axis: 0, sign: Sign::Positive };
 /// Negative X direction.
-pub const NEGATIVE_X: DirectedAxis = DirectedAxis {
-    axis: 0,
-    sign: Sign::Negative,
-};
+pub const NEGATIVE_X: DirectedAxis = DirectedAxis { axis: 0, sign: Sign::Negative };
 /// Positive Y direction.
-pub const POSITIVE_Y: DirectedAxis = DirectedAxis {
-    axis: 1,
-    sign: Sign::Positive,
-};
+pub const POSITIVE_Y: DirectedAxis = DirectedAxis { axis: 1, sign: Sign::Positive };
 /// Negative Y direction.
-pub const NEGATIVE_Y: DirectedAxis = DirectedAxis {
-    axis: 1,
-    sign: Sign::Negative,
-};
+pub const NEGATIVE_Y: DirectedAxis = DirectedAxis { axis: 1, sign: Sign::Negative };
 /// Positive Z direction.
-pub const POSITIVE_Z: DirectedAxis = DirectedAxis {
-    axis: 2,
-    sign: Sign::Positive,
-};
+pub const POSITIVE_Z: DirectedAxis = DirectedAxis { axis: 2, sign: Sign::Positive };
 /// Negative Z direction.
-pub const NEGATIVE_Z: DirectedAxis = DirectedAxis {
-    axis: 2,
-    sign: Sign::Negative,
-};
+pub const NEGATIVE_Z: DirectedAxis = DirectedAxis { axis: 2, sign: Sign::Negative };
 
 /// The orientation of a face of a cube.
 #[derive(Debug, Clone, Copy)]
@@ -162,36 +144,12 @@ impl Face {
 /// ![](https://www.khronos.org/opengl/wiki_opengl/images/CubeMapAxes.png)
 pub const FACES: [Face; 6] = [
     // Reference: https://www.khronos.org/opengl/wiki/File:CubeMapAxes.png
-    Face {
-        normal: POSITIVE_X,
-        down: POSITIVE_Y,
-        right: NEGATIVE_Z,
-    },
-    Face {
-        normal: NEGATIVE_X,
-        down: POSITIVE_Y,
-        right: POSITIVE_Z,
-    },
-    Face {
-        normal: POSITIVE_Y,
-        down: NEGATIVE_Z,
-        right: POSITIVE_X,
-    },
-    Face {
-        normal: NEGATIVE_Y,
-        down: POSITIVE_Z,
-        right: POSITIVE_X,
-    },
-    Face {
-        normal: POSITIVE_Z,
-        down: POSITIVE_Y,
-        right: POSITIVE_X,
-    },
-    Face {
-        normal: NEGATIVE_Z,
-        down: POSITIVE_Y,
-        right: NEGATIVE_X,
-    },
+    Face { normal: POSITIVE_X, down: POSITIVE_Y, right: NEGATIVE_Z },
+    Face { normal: NEGATIVE_X, down: POSITIVE_Y, right: POSITIVE_Z },
+    Face { normal: POSITIVE_Y, down: NEGATIVE_Z, right: POSITIVE_X },
+    Face { normal: NEGATIVE_Y, down: POSITIVE_Z, right: POSITIVE_X },
+    Face { normal: POSITIVE_Z, down: POSITIVE_Y, right: POSITIVE_X },
+    Face { normal: NEGATIVE_Z, down: POSITIVE_Y, right: NEGATIVE_X },
 ];
 
 lazy_static! {

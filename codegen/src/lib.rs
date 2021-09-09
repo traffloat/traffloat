@@ -139,36 +139,26 @@ impl SetupEcs {
     }
     /// Declare a published event
     pub fn publisher<T: shrev::Event>(mut self) -> Self {
-        let _ = self
-            .resources
-            .get_or_insert_with(shrev::EventChannel::<T>::new);
+        let _ = self.resources.get_or_insert_with(shrev::EventChannel::<T>::new);
         self
     }
     /// Publish an event
     pub fn publish_event<T: shrev::Event>(mut self, t: T) -> Self {
         {
-            let mut channel = self
-                .resources
-                .get_mut_or_insert_with(shrev::EventChannel::<T>::new);
+            let mut channel = self.resources.get_mut_or_insert_with(shrev::EventChannel::<T>::new);
             channel.single_write(t);
         }
         self
     }
     /// Declare a subscribed event
     pub fn subscriber<T: shrev::Event>(&mut self) -> shrev::ReaderId<T> {
-        let mut channel = self
-            .resources
-            .get_mut_or_insert_with(shrev::EventChannel::<T>::new);
+        let mut channel = self.resources.get_mut_or_insert_with(shrev::EventChannel::<T>::new);
         channel.register_reader()
     }
 
     /// Build the setup into a legion
     pub fn build(mut self) -> Legion {
-        Legion {
-            world: self.world,
-            resources: self.resources,
-            schedule: self.builder.build(),
-        }
+        Legion { world: self.world, resources: self.resources, schedule: self.builder.build() }
     }
 }
 
@@ -192,10 +182,7 @@ impl Legion {
     pub fn publish<T: shrev::Event>(&mut self, event: T) {
         let mut channel = match self.resources.get_mut::<shrev::EventChannel<T>>() {
             Some(channel) => channel,
-            None => panic!(
-                "EventChannel<{}> has not been initialized",
-                std::any::type_name::<T>()
-            ),
+            None => panic!("EventChannel<{}> has not been initialized", std::any::type_name::<T>()),
         };
         channel.single_write(event);
     }

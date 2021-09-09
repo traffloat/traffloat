@@ -22,22 +22,13 @@ impl Program {
     pub fn new(gl: &WebGlRenderingContext, seed: [u8; 32]) -> Self {
         let prog = create_program(gl, glsl!("star"));
 
-        let pos_buf = FloatBuffer::create(
-            gl,
-            &generate_vertices(seed),
-            3,
-            BufferUsage::WriteOnceReadMany,
-        );
+        let pos_buf =
+            FloatBuffer::create(gl, &generate_vertices(seed), 3, BufferUsage::WriteOnceReadMany);
 
         let a_pos = AttrLocation::new(gl, &prog, "a_pos");
         let u_trans = UniformLocation::new(gl, &prog, "u_trans");
 
-        Self {
-            prog,
-            pos_buf,
-            a_pos,
-            u_trans,
-        }
+        Self { prog, pos_buf, a_pos, u_trans }
     }
 
     /// Draws the sun on the scene.

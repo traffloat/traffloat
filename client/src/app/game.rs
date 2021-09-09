@@ -37,10 +37,7 @@ impl Game {
     fn simulate(&mut self) {
         {
             let legion = self.legion_mut();
-            let mut clock = legion
-                .resources
-                .get_mut::<Clock>()
-                .expect("Clock was uninitialized");
+            let mut clock = legion.resources.get_mut::<Clock>().expect("Clock was uninitialized");
 
             clock.update_micros(util::high_res_time().homosign());
         }
@@ -120,10 +117,7 @@ impl Game {
                 .resources
                 .get_mut::<render::Dimension>()
                 .expect("render::Dimension uninitialized");
-            *dim = render::Dimension {
-                width: dim.width,
-                height: dim.height,
-            };
+            *dim = render::Dimension { width: dim.width, height: dim.height };
         }
 
         for node_ref in &[&self.bg_canvas_ref, &self.scene_canvas_ref] {
@@ -207,10 +201,7 @@ impl Component for Game {
             .resource({
                 let window = web_sys::window().expect("Failed to get window object");
                 let dim = resize::WindowDimensions::get_dimensions(&window);
-                render::Dimension {
-                    width: dim.width as u32,
-                    height: dim.height as u32,
-                }
+                render::Dimension { width: dim.width as u32, height: dim.height as u32 }
             })
             .uses(crate::setup_ecs);
         legion = props.args.init(legion);

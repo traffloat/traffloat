@@ -55,11 +55,7 @@ impl Sub<Position> for Position {
     type Output = Vector;
 
     fn sub(self, other: Self) -> Self::Output {
-        Vector::new(
-            self.x() - other.x(),
-            self.y() - other.y(),
-            self.z() - other.z(),
-        )
+        Vector::new(self.x() - other.x(), self.y() - other.y(), self.z() - other.z())
     }
 }
 

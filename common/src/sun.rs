@@ -110,10 +110,7 @@ fn shadow_cast(
             let (min, max) = shape.unit().bb_under(rot * trans);
 
             let priority = Finite::new(max.x);
-            let light = stats
-                .brightness
-                .get_mut(month)
-                .expect("month < MONTH_COUNT");
+            let light = stats.brightness.get_mut(month).expect("month < MONTH_COUNT");
             *light = Brightness(0.);
 
             let marker = Marker {
@@ -143,16 +140,12 @@ fn shadow_cast(
         for (marker_index, marker) in markers.iter().enumerate() {
             let min_grid_index: SmallVec<[usize; 2]> = (0_usize..2)
                 .map(|axis| {
-                    cuts[axis]
-                        .binary_search(&marker.min[axis])
-                        .expect("Cut was inserted to Vec")
+                    cuts[axis].binary_search(&marker.min[axis]).expect("Cut was inserted to Vec")
                 })
                 .collect();
             let max_grid_index: SmallVec<[usize; 2]> = (0_usize..2)
                 .map(|axis| {
-                    cuts[axis]
-                        .binary_search(&marker.max[axis])
-                        .expect("Cut was inserted to Vec")
+                    cuts[axis].binary_search(&marker.max[axis]).expect("Cut was inserted to Vec")
                 })
                 .collect();
 

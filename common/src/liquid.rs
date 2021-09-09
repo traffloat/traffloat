@@ -210,11 +210,8 @@ fn simulate_pipes(
                 .get_component::<StorageCapacity>()
                 .expect("Pipe endpoint does not have StorageCapacity component");
 
-            let viscosity = def
-                .liquid()
-                .get(ty)
-                .expect("Storage references undefined liquid")
-                .viscosity();
+            let viscosity =
+                def.liquid().get(ty).expect("Storage references undefined liquid").viscosity();
 
             FetchEndpoint {
                 ty: ty.clone(),

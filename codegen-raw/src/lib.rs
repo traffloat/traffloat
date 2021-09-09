@@ -9,7 +9,5 @@ pub fn system(
     attr: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    system::imp(attr.into(), input.into())
-        .unwrap_or_else(|err| err.to_compile_error())
-        .into()
+    system::imp(attr.into(), input.into()).unwrap_or_else(|err| err.to_compile_error()).into()
 }

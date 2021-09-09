@@ -146,11 +146,7 @@ impl Serialize for Mixer {
                 .iter()
                 .map(|(pair, sum)| {
                     let [augend, addend] = pair.types.clone();
-                    Entry {
-                        augend,
-                        addend,
-                        sum: sum.clone(),
-                    }
+                    Entry { augend, addend, sum: sum.clone() }
                 })
                 .collect(),
         };

@@ -171,12 +171,8 @@ impl DuctType {
     ) -> Entity {
         use legion::EntityStore;
 
-        let from_entry = world
-            .entry_ref(from)
-            .expect("The from node entity does not exist");
-        let to_entry = world
-            .entry_ref(to)
-            .expect("The to node entity does not exist");
+        let from_entry = world.entry_ref(from).expect("The from node entity does not exist");
+        let to_entry = world.entry_ref(to).expect("The to node entity does not exist");
 
         let from_pos = from_entry
             .get_component::<Position>()
@@ -194,11 +190,7 @@ impl DuctType {
             DuctType::Rail(Some(direction)) => {
                 entities.push(()) // TODO
             }
-            DuctType::Liquid {
-                dir: Some(direction),
-                from_storage,
-                to_storage,
-            } => entities.push({
+            DuctType::Liquid { dir: Some(direction), from_storage, to_storage } => entities.push({
                 let from_list = from_entry
                     .get_component::<liquid::StorageList>()
                     .expect("The from node entity does not have liquid::StorageList");
@@ -284,13 +276,9 @@ pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bo
         rot.prepend_nonuniform_scaling(&Vector::new(size.radius(), size.radius(), dir.norm()))
             .append_translation(&from.vector())
     } else {
-        rot.transpose()
-            .prepend_translation(&-from.vector())
-            .append_nonuniform_scaling(&Vector::new(
-                1. / size.radius(),
-                1. / size.radius(),
-                1. / dir.norm(),
-            ))
+        rot.transpose().prepend_translation(&-from.vector()).append_nonuniform_scaling(
+            &Vector::new(1. / size.radius(), 1. / size.radius(), 1. / dir.norm()),
+        )
     }
 }
 
@@ -354,12 +342,8 @@ fn create_saved_edge(
     #[resource] index: &node::Index,
 ) {
     for LoadRequest { save } in requests {
-        let from = index
-            .get(save.from)
-            .expect("Edge references nonexistent node");
-        let to = index
-            .get(save.to)
-            .expect("Edge references nonexistent node");
+        let from = index.get(save.from).expect("Edge references nonexistent node");
+        let to = index.get(save.to).expect("Edge references nonexistent node");
         // FIXME how do we handle the error here properly?
 
         let design = save
@@ -369,9 +353,7 @@ fn create_saved_edge(
                 center: duct.center,
                 radius: duct.radius,
                 ty: duct.ty,
-                entity: duct
-                    .ty
-                    .create_entity(entities, world, from, to, duct.radius),
+                entity: duct.ty.create_entity(entities, world, from, to, duct.radius),
             })
             .collect();
 
@@ -383,9 +365,7 @@ fn create_saved_edge(
 
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup
-        .uses(create_new_edge_setup)
-        .uses(create_saved_edge_setup)
+    setup.uses(create_new_edge_setup).uses(create_saved_edge_setup)
 }
 
 /// Save type for edges.

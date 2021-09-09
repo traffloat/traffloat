@@ -25,9 +25,7 @@ pub struct CommInner {
 
 impl Default for CommInner {
     fn default() -> Self {
-        Self {
-            perf: Perf::default(),
-        }
+        Self { perf: Perf::default() }
     }
 }
 

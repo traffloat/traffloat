@@ -23,9 +23,7 @@ impl CursorPosition {
     ///
     /// Parameters are identical to those of [`ScreenPosition::new`].
     pub fn new(x: f64, y: f64) -> Self {
-        Self {
-            position: ScreenPosition::new(x, y),
-        }
+        Self { position: ScreenPosition::new(x, y) }
     }
 }
 
@@ -48,10 +46,7 @@ pub struct Segment {
 
 impl Default for Segment {
     fn default() -> Self {
-        Self {
-            proximal: Position::new(0., 0., 0.),
-            distal: Position::new(0., 0., -1.),
-        }
+        Self { proximal: Position::new(0., 0., 0.), distal: Position::new(0., 0., -1.) }
     }
 }
 
@@ -146,16 +141,10 @@ fn trace_entity(
         codegen::update_debug!(target_debug, "None");
     }
 
-    cursor_type.set_name(if hover_target.entity().is_some() {
-        "pointer"
-    } else {
-        "initial"
-    });
+    cursor_type.set_name(if hover_target.entity().is_some() { "pointer" } else { "initial" });
 
-    let has_click = click_sub
-        .filter(|click| click.command() == keyboard::Command::LeftClick)
-        .count()
-        > 0; // consume the whole iterator without short-circuiting
+    let has_click =
+        click_sub.filter(|click| click.command() == keyboard::Command::LeftClick).count() > 0; // consume the whole iterator without short-circuiting
     if has_click {
         focus_target.set_entity(hover_target.entity());
     }

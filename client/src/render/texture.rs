@@ -47,31 +47,24 @@ impl Pool {
         )
         .expect("Failed to initialize to WebGL texture");
 
-        Self {
-            map: Default::default(),
-            dummy: Rc::new(texture),
-        }
+        Self { map: Default::default(), dummy: Rc::new(texture) }
     }
 
     fn load(&self, url: &ArcStr) -> Rc<Atlas> {
         let mut map = self.map.borrow_mut();
-        let rc = map
-            .entry(url.to_string())
-            .or_insert_with(|| Rc::new(Atlas::load(url)));
+        let rc = map.entry(url.to_string()).or_insert_with(|| Rc::new(Atlas::load(url)));
         Rc::clone(rc)
     }
 
     /// Retrieves a sprite for the given texture, or returns the dummy texture
     pub fn sprite(&self, texture: &shape::Texture, gl: &WebGlRenderingContext) -> PreparedTexture {
         let atlas = self.load(texture.url());
-        atlas
-            .get(texture.name(), gl)
-            .unwrap_or_else(|| PreparedTexture {
-                gl_tex: Rc::clone(&self.dummy),
-                sprites: ShapeSprites::Cube(DUMMY_CUBE_SPRITES),
-                width: 1.,
-                height: 1.,
-            })
+        atlas.get(texture.name(), gl).unwrap_or_else(|| PreparedTexture {
+            gl_tex: Rc::clone(&self.dummy),
+            sprites: ShapeSprites::Cube(DUMMY_CUBE_SPRITES),
+            width: 1.,
+            height: 1.,
+        })
     }
 
     /// Retrieves a sprite for the given icon.
@@ -139,14 +132,7 @@ impl Atlas {
     pub fn get(&self, name: &str, gl: &WebGlRenderingContext) -> Option<PreparedTexture> {
         let mut ae = self.0.borrow_mut();
         ae.update(gl);
-        if let AtlasEnum::Ready {
-            index,
-            url: _,
-            texture,
-            width,
-            height,
-        } = &*ae
-        {
+        if let AtlasEnum::Ready { index, url: _, texture, width, height } = &*ae {
             let sprites = index.sprites(name)?;
             Some(PreparedTexture {
                 gl_tex: Rc::clone(texture),
@@ -169,11 +155,7 @@ impl Atlas {
                     Some(ShapeSprites::Icon(sprite)) => sprite,
                     _ => return None,
                 };
-                Some(Icon {
-                    url: url.clone(),
-                    dim: (index.width, index.height),
-                    pos,
-                })
+                Some(Icon { url: url.clone(), dim: (index.width, index.height), pos })
             }
         }
     }
@@ -192,13 +174,7 @@ pub struct Icon {
 
 enum AtlasEnum {
     Pending(ReifiedPromise<JsValue>, ArcStr),
-    Ready {
-        index: Index,
-        url: ArcStr,
-        texture: Rc<WebGlTexture>,
-        width: f32,
-        height: f32,
-    },
+    Ready { index: Index, url: ArcStr, texture: Rc<WebGlTexture>, width: f32, height: f32 },
 }
 
 impl AtlasEnum {
@@ -373,12 +349,7 @@ pub struct RectSprite {
     height: u32,
 }
 
-const DUMMY_RECT_SPRITE: RectSprite = RectSprite {
-    x: 0,
-    y: 0,
-    width: 1,
-    height: 1,
-};
+const DUMMY_RECT_SPRITE: RectSprite = RectSprite { x: 0, y: 0, width: 1, height: 1 };
 
 const DUMMY_CUBE_SPRITES: CubeSprites = CubeSprites {
     xp: DUMMY_RECT_SPRITE,

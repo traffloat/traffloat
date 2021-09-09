@@ -32,9 +32,7 @@ impl Component for Comp {
         let file = match save::parse(&props.buf) {
             Ok(file) => Rc::new(file),
             Err(err) => {
-                props
-                    .close_hook
-                    .emit(Some(format!("Error reading save file: {}", err)));
+                props.close_hook.emit(Some(format!("Error reading save file: {}", err)));
                 return Self {
                     props,
                     link,
@@ -49,12 +47,7 @@ impl Component for Comp {
             state.switch = switch;
         }
 
-        let ret = Self {
-            props,
-            link,
-            file: Some(file),
-            state,
-        };
+        let ret = Self { props, link, file: Some(file), state };
         ret.state.switch.replace_state(&ret.props.name);
         ret
     }
@@ -170,10 +163,7 @@ impl Switch {
         };
         let sp = SpRoute::Rules(rules);
         let route = match name.as_ref() {
-            Some(name) => Route::Scenario {
-                name: name.to_string(),
-                sp,
-            },
+            Some(name) => Route::Scenario { name: name.to_string(), sp },
             None => Route::Custom { sp },
         };
         route.replace_state();
@@ -181,13 +171,8 @@ impl Switch {
 
     pub fn from_route(route: &Route) -> Option<Self> {
         let rules = match route {
-            Route::Scenario {
-                sp: SpRoute::Rules(rules),
-                ..
-            } => rules,
-            Route::Custom {
-                sp: SpRoute::Rules(rules),
-            } => rules,
+            Route::Scenario { sp: SpRoute::Rules(rules), .. } => rules,
+            Route::Custom { sp: SpRoute::Rules(rules) } => rules,
             _ => return None,
         };
         Some(match rules {

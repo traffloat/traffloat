@@ -25,26 +25,24 @@ impl Comp {
         self.state = None;
 
         if let Ok(entry) = legion.world.entry_ref(self.props.args.entity) {
-            self.state = match (
-                entry.get_component::<edge::Size>(),
-                entry.get_component::<edge::Design>(),
-            ) {
-                (Ok(size), Ok(design)) => Some(State {
-                    size: size.radius(),
-                    ducts: design
-                        .ducts()
-                        .iter()
-                        .enumerate()
-                        .map(|(index, duct)| Circle {
-                            center: duct.center(),
-                            radius: duct.radius(),
-                            ty: duct.ty(),
-                            original_index: Some(index),
-                        })
-                        .collect(),
-                }),
-                _ => None,
-            }
+            self.state =
+                match (entry.get_component::<edge::Size>(), entry.get_component::<edge::Design>()) {
+                    (Ok(size), Ok(design)) => Some(State {
+                        size: size.radius(),
+                        ducts: design
+                            .ducts()
+                            .iter()
+                            .enumerate()
+                            .map(|(index, duct)| Circle {
+                                center: duct.center(),
+                                radius: duct.radius(),
+                                ty: duct.ty(),
+                                original_index: Some(index),
+                            })
+                            .collect(),
+                    }),
+                    _ => None,
+                }
         }
     }
 }
@@ -54,11 +52,7 @@ impl Component for Comp {
     type Properties = Props;
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        let mut ret = Self {
-            props,
-            link,
-            state: None,
-        };
+        let mut ret = Self { props, link, state: None };
         ret.update_props();
         ret
     }

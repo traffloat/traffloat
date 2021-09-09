@@ -13,9 +13,7 @@ use wasm_bindgen::JsCast;
 /// Retrieves the time rom the system monotonic clock up to microsecond precision
 pub fn high_res_time() -> u64 {
     let window = web_sys::window().expect("Window uninitialized");
-    let perf = window
-        .performance()
-        .expect("window.performance uninitialized");
+    let perf = window.performance().expect("window.performance uninitialized");
 
     #[allow(clippy::cast_possible_truncation)]
     {

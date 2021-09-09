@@ -11,12 +11,7 @@
 )]
 #![cfg_attr(
     debug_assertions,
-    allow(
-        dead_code,
-        unused_imports,
-        unused_variables,
-        clippy::match_single_binding,
-    )
+    allow(dead_code, unused_imports, unused_variables, clippy::match_single_binding,)
 )]
 #![cfg_attr(any(doc, not(debug_assertions)), deny(missing_docs))]
 #![cfg_attr(

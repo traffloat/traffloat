@@ -73,11 +73,7 @@ fn update(
 
     codegen::update_debug!(graphics_debug, "{:.1}", render_fps);
     codegen::update_debug!(physics_debug, "{:.1}", simul_fps);
-    codegen::update_debug!(
-        cycle_time_debug,
-        "{:.2} \u{03bc}s",
-        comm.perf.average_exec_us()
-    );
+    codegen::update_debug!(cycle_time_debug, "{:.2} \u{03bc}s", comm.perf.average_exec_us());
 }
 
 /// Sets up legion ECS for debug info rendering.

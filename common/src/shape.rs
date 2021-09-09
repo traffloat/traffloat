@@ -39,11 +39,7 @@ impl<'de> Deserialize<'de> for Shape {
             texture: Texture,
         }
 
-        let Simple {
-            unit,
-            matrix,
-            texture,
-        } = Simple::deserialize(d)?;
+        let Simple { unit, matrix, texture } = Simple::deserialize(d)?;
         Ok(Self {
             unit,
             matrix,

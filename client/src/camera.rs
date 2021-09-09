@@ -123,9 +123,7 @@ mod unsafe_proj {
         pub fn inv_projection(&self) -> Matrix {
             let mut proj_inv = self.proj_inv.lock().expect("Lock poisoned");
             *proj_inv.get_or_insert_with(|| {
-                self.projection()
-                    .try_inverse()
-                    .expect("Projection matrix is singular")
+                self.projection().try_inverse().expect("Projection matrix is singular")
             })
         }
 
@@ -195,10 +193,7 @@ fn debug(
         camera.focus().z()
     );
 
-    let line_of_sight = camera
-        .rotation()
-        .transpose()
-        .transform_vector(&Vector::new(0., 0., -1.));
+    let line_of_sight = camera.rotation().transpose().transform_vector(&Vector::new(0., 0., -1.));
     codegen::update_debug!(
         dir_debug,
         "({:.1}, {:.1}, {:.1})",

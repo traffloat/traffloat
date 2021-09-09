@@ -174,9 +174,7 @@ fn draw(
     #[resource] config: &Scalar,
 ) {
     let info = if let Some(entity) = focus_target.entity().or_else(|| hover_target.entity()) {
-        let entity_entry = world
-            .entry_ref(entity)
-            .expect("Target entity does not exist"); // TODO what if user is hovering over node while deleting it?
+        let entity_entry = world.entry_ref(entity).expect("Target entity does not exist"); // TODO what if user is hovering over node while deleting it?
         if let (Ok(node_name), Ok(&hitpoint), Ok(cargo_list), Ok(liquid_list), Ok(gas_list)) = (
             entity_entry.get_component::<node::Name>(),
             entity_entry.get_component::<units::Portion<units::Hitpoint>>(),
@@ -190,9 +188,8 @@ fn draw(
                         .storages()
                         .iter()
                         .map(|(id, entity)| {
-                            let storage_entry = world
-                                .entry_ref(*entity)
-                                .expect("Storage entity does not exist");
+                            let storage_entry =
+                                world.entry_ref(*entity).expect("Storage entity does not exist");
                             let size = storage_entry
                                 .get_component::<$mod::StorageSize>()
                                 .expect("Storage has no size");
@@ -218,9 +215,8 @@ fn draw(
                 .storages()
                 .iter()
                 .filter_map(|entity| {
-                    let storage_entry = world
-                        .entry_ref(*entity)
-                        .expect("Storage entity does not exist");
+                    let storage_entry =
+                        world.entry_ref(*entity).expect("Storage entity does not exist");
                     let storage = storage_entry
                         .get_component::<liquid::Storage>()
                         .expect("Storage has no storage");
@@ -236,10 +232,7 @@ fn draw(
                         return None;
                     }
 
-                    let item = def
-                        .liquid()
-                        .get(storage.liquid())
-                        .expect("undefined reference");
+                    let item = def.liquid().get(storage.liquid()).expect("undefined reference");
                     let name = item.name();
                     let icon = texture_pool
                         .as_ref()
@@ -249,14 +242,7 @@ fn draw(
                 })
                 .collect();
 
-            Some(Args {
-                entity,
-                node_name: node_name.name().clone(),
-                hitpoint,
-                cargo,
-                liquid,
-                gas,
-            })
+            Some(Args { entity, node_name: node_name.name().clone(), hitpoint, cargo, liquid, gas })
         } else {
             None
         }

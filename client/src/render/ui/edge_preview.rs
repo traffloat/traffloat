@@ -31,9 +31,9 @@ impl Component for Comp {
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
             Msg::EditDucts => {
-                self.props.edit_duct.emit(Some(duct_editor::Args {
-                    entity: self.props.args.entity,
-                }));
+                self.props
+                    .edit_duct
+                    .emit(Some(duct_editor::Args { entity: self.props.args.entity }));
                 true
             }
         }
@@ -160,9 +160,7 @@ fn draw(
     #[resource(no_init)] def: &def::GameDefinition,
 ) {
     let info = if let Some(entity) = focus_target.entity().or_else(|| hover_target.entity()) {
-        let entity_entry = world
-            .entry_ref(entity)
-            .expect("Target entity does not exist"); // TODO what if user is hovering over node while deleting it?
+        let entity_entry = world.entry_ref(entity).expect("Target entity does not exist"); // TODO what if user is hovering over node while deleting it?
         if entity_entry.get_component::<edge::Id>().is_ok() {
             let ducts = entity_entry
                 .get_component::<edge::Design>()
@@ -172,9 +170,8 @@ fn draw(
                 #[allow(clippy::single_match)]
                 match duct.ty() {
                     edge::DuctType::Liquid { dir, .. } => {
-                        let duct_entry = world
-                            .entry_ref(duct.entity())
-                            .expect("Duct entity does not exist");
+                        let duct_entry =
+                            world.entry_ref(duct.entity()).expect("Duct entity does not exist");
                         let flow = duct_entry
                             .get_component::<liquid::PipeFlow>()
                             .expect("Liquid duct does not have pipe flow component");

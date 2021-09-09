@@ -21,10 +21,7 @@ impl<T: Uniform> UniformLocation<T> {
     /// Locates a uniform for a given program.
     pub fn new_optional(gl: &WebGlRenderingContext, program: &WebGlProgram, name: &str) -> Self {
         let loc = gl.get_uniform_location(program, name);
-        Self {
-            _ph: PhantomData,
-            loc,
-        }
+        Self { _ph: PhantomData, loc }
     }
 
     /// Assigns a value for the uniform.
@@ -49,24 +46,9 @@ macro_rules! impl_uniform {
     }
 }
 
-impl_uniform!(
-    uniform2fv_with_f32_array,
-    nalgebra::Vector2<f32>,
-    as_slice,
-    {}
-);
-impl_uniform!(
-    uniform3fv_with_f32_array,
-    nalgebra::Vector3<f32>,
-    as_slice,
-    {}
-);
-impl_uniform!(
-    uniform4fv_with_f32_array,
-    nalgebra::Vector4<f32>,
-    as_slice,
-    {}
-);
+impl_uniform!(uniform2fv_with_f32_array, nalgebra::Vector2<f32>, as_slice, {});
+impl_uniform!(uniform3fv_with_f32_array, nalgebra::Vector3<f32>, as_slice, {});
+impl_uniform!(uniform4fv_with_f32_array, nalgebra::Vector4<f32>, as_slice, {});
 
 impl_uniform!(uniform2fv_with_f32_array, [f32; 2], as_ref, {});
 impl_uniform!(uniform3fv_with_f32_array, [f32; 3], as_ref, {});

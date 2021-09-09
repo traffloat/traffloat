@@ -25,11 +25,7 @@ impl Component for Mux {
         let route = super::route::Route::parse_path(&hash);
         log::debug!("Path parsed as {:?}", route);
 
-        Self {
-            link,
-            state: State::Home { error: None },
-            intent_route: Some(route),
-        }
+        Self { link, state: State::Home { error: None }, intent_route: Some(route) }
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
@@ -91,10 +87,7 @@ impl Component for Mux {
 /// Switches the component state.
 pub enum Msg {
     /// Starts a singleplayer game.
-    StartSingle {
-        args: SpGameArgs,
-        scenario: Option<String>,
-    },
+    StartSingle { args: SpGameArgs, scenario: Option<String> },
     /// Edit a scenario..
     EditScenario(Option<String>, Rc<[u8]>),
     /// Ends a game with an optional error message.
