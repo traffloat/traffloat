@@ -9,6 +9,6 @@ description = "Traffloat save file toolkit"
 license = "AGPL-3.0"
 
 [dependencies]
-anyhow = "1.0.43"
+anyhow = "1.0.44"
 structopt = "0.3.23"
 traffloat-common = {version = "0.2.0", path = "../common", features = ["save-binary", "save-text"]}
