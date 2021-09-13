@@ -787,6 +787,7 @@ state:
       gas_capacity: 1000.0
       is_core: true
       housing_provision: 4
+      liquid_pump: 2000.0
     - id:
         inner: 3757587574
       name:
@@ -876,7 +877,7 @@ state:
           radius: 0.05
           ty:
             Liquid:
-              dir: ToFrom
+              dir: FromTo
               from_storage: 0
               to_storage: 0
         - center:

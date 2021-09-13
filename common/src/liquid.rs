@@ -138,7 +138,7 @@ codegen::component_depends! {
 }
 
 /// A component applied on a node that drives a pipe.
-#[derive(TypedBuilder, getset::CopyGetters)]
+#[derive(Debug, TypedBuilder, getset::CopyGetters)]
 pub struct Pump {
     /// The force provided by the pump.
     #[getset(get_copy = "pub")]
