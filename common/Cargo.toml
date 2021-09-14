@@ -17,7 +17,7 @@ arcstr = "1.1.1"
 arrayvec = "0.7.1"
 cfg-if = "1.0.0"
 derive-new = "0.5.9"
-flate2 = {version = "1.0.21", optional = true}
+flate2 = {version = "1.0.22", optional = true}
 getset = "0.1.1"
 log = "0.4.14"
 nalgebra = "0.29.0"
