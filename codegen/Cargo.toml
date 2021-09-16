@@ -26,7 +26,7 @@ features = [
 ]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys = {version = "0.3.54", features = ["Window", "Performance"], optional = true}
+web-sys = {version = "0.3.55", features = ["Window", "Performance"], optional = true}
 
 [features]
 render-debug = ["traffloat-codegen-raw/render-debug"]
