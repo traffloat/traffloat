@@ -148,7 +148,7 @@ pub struct Args {
     pub gas: SmallVec<[(units::GasVolume, ArcStr, Option<texture::Icon>); 4]>,
 }
 
-#[codegen::system]
+#[codegen::system(Visualize)]
 #[read_component(node::Name)]
 #[read_component(edge::Id)]
 #[read_component(units::Portion<units::Hitpoint>)]

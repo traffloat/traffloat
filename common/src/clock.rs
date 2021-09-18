@@ -55,7 +55,7 @@ impl Clock {
 /// ```no_run
 /// # use traffloat::clock::SimulationEvent;
 /// #
-/// #[codegen::system]
+/// #[codegen::system(Simulate)]
 /// fn execute(
 ///     #[subscriber] simul_sub: impl Iterator<Item = SimulationEvent>,
 /// ) {
@@ -66,7 +66,7 @@ impl Clock {
 /// ```
 pub struct SimulationEvent;
 
-#[codegen::system]
+#[codegen::system(Schedule)]
 fn sim_trigger(
     #[publisher] sim_pub: impl FnMut(SimulationEvent),
     #[resource] clock: &Clock,

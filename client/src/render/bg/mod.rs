@@ -34,7 +34,7 @@ impl Canvas {
     }
 }
 
-#[codegen::system]
+#[codegen::system(Visualize)]
 #[thread_local]
 fn draw(
     #[resource(no_init)] dim: &Dimension,

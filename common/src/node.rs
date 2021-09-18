@@ -98,7 +98,6 @@ pub struct PostRemoveEvent {
 #[derive(Default)]
 pub struct Index {
     index: BTreeMap<Id, Entity>,
-    deletion_queue: Vec<Id>,
 }
 
 impl Index {
@@ -108,26 +107,24 @@ impl Index {
     }
 }
 
-#[codegen::system]
+#[codegen::system(Command)]
 fn delete_nodes(
     cmd_buf: &mut legion::systems::CommandBuffer,
     #[resource] index: &mut Index,
     #[subscriber] removals: impl Iterator<Item = RemoveEvent>,
     #[publisher] post_remove_pub: impl FnMut(PostRemoveEvent),
 ) {
-    for &node in &index.deletion_queue {
-        let entity = index.index.remove(&node).expect("Removing nonexistent node entity");
-        cmd_buf.remove(entity);
-    }
-    let count = index.deletion_queue.len();
-    index.deletion_queue.clear();
-    if let Some(count) = NonZeroUsize::new(count) {
-        post_remove_pub(PostRemoveEvent { count });
-    }
+    let mut count = 0_usize;
 
     // queue deletion requests for the next event loop
     for removal in removals {
-        index.deletion_queue.push(removal.node);
+        let entity = index.index.remove(&removal.node).expect("Removing nonexistent node entity");
+        cmd_buf.remove(entity);
+        count += 1;
+    }
+
+    if let Some(count) = NonZeroUsize::new(count) {
+        post_remove_pub(PostRemoveEvent { count });
     }
 }
 
@@ -145,7 +142,7 @@ pub struct CreationRequest {
     rotation: Matrix,
 }
 
-#[codegen::system]
+#[codegen::system(Command)]
 fn create_new_node(
     entities: &mut CommandBuffer,
     #[subscriber] requests: impl Iterator<Item = CreationRequest>,
@@ -243,7 +240,7 @@ pub struct LoadRequest {
     save: Box<save::Node>,
 }
 
-#[codegen::system]
+#[codegen::system(Command)]
 fn create_saved_node(
     entities: &mut CommandBuffer,
     #[subscriber] requests: impl Iterator<Item = LoadRequest>,

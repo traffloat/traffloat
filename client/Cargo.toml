@@ -43,6 +43,7 @@ yew = {version = "0.18.0", default-features = false, features = ["services", "we
 
 [dependencies.legion]
 version = "0.4.0"
+git = "https://github.com/traffloat/legion"
 default-features = false
 features = [
 	"codegen",

@@ -7,6 +7,8 @@ use std::collections::btree_map;
 #[cfg(feature = "render-debug")]
 use std::sync::Arc;
 
+use enum_map::EnumMap;
+
 /// [`std::dbg!`] equivalent for wasm log
 #[macro_export]
 macro_rules! wasm_dbg {
@@ -22,6 +24,8 @@ macro_rules! wasm_dbg {
         }
     }};
 }
+
+use legion::systems::{ParallelRunnable, Runnable};
 
 /// Generates legion system setup procedure for.
 ///
@@ -39,7 +43,7 @@ macro_rules! wasm_dbg {
 /// #[derive(Default)]
 /// struct WaldoRes(u64);
 ///
-/// #[codegen::system]
+/// #[codegen::system(Simulate)]
 /// #[read_component(QuxComp)]
 /// #[write_component(CorgeComp)]
 /// fn example(
@@ -70,6 +74,8 @@ macro_rules! wasm_dbg {
 /// }
 /// ```
 ///
+/// The parameter in the attribute is the [`SystemClass`] for the system.
+///
 /// If some of the parameters need to be thread-unsafe,
 /// apply the `#[thread_local]` attribute on the function.
 pub use traffloat_codegen_raw::system;
@@ -88,6 +94,53 @@ pub struct SetupEcs {
     pub world: legion::World,
     /// The resource set storing legion resources
     pub resources: legion::Resources,
+    /// The schedule of each class of systems
+    classes: EnumMap<SystemClass, ClassSchedule>,
+}
+
+/// A discrete batch of systems to execute.
+#[derive(Debug, Clone, Copy, enum_map::Enum)]
+pub enum SystemClass {
+    /// Receive inputs.
+    Input,
+    /// Respond to inputs.
+    Response,
+    /// Setup scheduler signals.
+    Schedule,
+    /// Prepare for simulation by initializing states.
+    PreSimulate,
+    /// Simulate game logic.
+    Simulate,
+    /// Flush changes in the game logic.
+    Flush,
+    /// Handle events dispatched during game logic.
+    ///
+    /// Also handles deletion events, but not post-deletion events.
+    Handle,
+    /// Execute child entity deletion requests.
+    ///
+    /// This is used when parent and child entities are deleted in conjunction.
+    DeleteChild,
+    /// Execute entity creation/deletion requests.
+    Command,
+    /// Execute child entity creation requests.
+    ///
+    /// This is used when parent and child entities are created in conjunction.
+    CreateChild,
+    /// Execute entity post-creation/post-deletion requests.
+    PostCommand,
+    /// Prepare resources for visualization, including debug info.
+    PreVisualize,
+    /// Read-only access to core game logic.
+    ///
+    /// This is used for client rendering, backup creation process and other roundup systems.
+    Visualize,
+}
+
+#[derive(Default)]
+struct ClassSchedule {
+    sync: Vec<Box<dyn ParallelRunnable>>,
+    unsync: Vec<Box<dyn Runnable>>,
 }
 
 impl SetupEcs {
@@ -97,19 +150,23 @@ impl SetupEcs {
     }
 
     /// Add a system
-    pub fn system(mut self, sys: impl legion::systems::ParallelRunnable + 'static) -> Self {
-        self.builder.add_system(sys);
+    #[allow(clippy::indexing_slicing)]
+    pub fn system(
+        mut self,
+        sys: impl legion::systems::ParallelRunnable + 'static,
+        class: SystemClass,
+    ) -> Self {
+        self.classes[class].sync.push(Box::new(sys));
         self
     }
     /// Add a thread-local system
-    pub fn system_local(mut self, sys: impl legion::systems::Runnable + 'static) -> Self {
-        self.builder.add_thread_local(sys);
-        self
-    }
-
-    /// Forces systems before this call to be executed before systems after this call
-    pub fn system_partition(mut self) -> Self {
-        self.builder.flush();
+    #[allow(clippy::indexing_slicing)]
+    pub fn system_local(
+        mut self,
+        sys: impl legion::systems::Runnable + 'static,
+        class: SystemClass,
+    ) -> Self {
+        self.classes[class].unsync.push(Box::new(sys));
         self
     }
 
@@ -158,6 +215,16 @@ impl SetupEcs {
 
     /// Build the setup into a legion
     pub fn build(mut self) -> Legion {
+        for (_class, schedule) in self.classes {
+            for system in schedule.sync {
+                self.builder.add_system_boxed(system);
+            }
+            for system in schedule.unsync {
+                self.builder.add_thread_local_boxed(system);
+            }
+            self.builder.flush();
+        }
+
         Legion { world: self.world, resources: self.resources, schedule: self.builder.build() }
     }
 }

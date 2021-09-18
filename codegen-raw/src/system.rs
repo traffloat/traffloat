@@ -1,9 +1,11 @@
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::parse;
 use syn::Result;
 
-pub(crate) fn imp(_system_attr: TokenStream, input: TokenStream) -> Result<TokenStream> {
+pub(crate) fn imp(args: TokenStream, input: TokenStream) -> Result<TokenStream> {
+    let args = syn::parse2::<AttrArgs>(args)?;
+
     let input = syn::parse2::<syn::ItemFn>(input)?;
     let name = &input.sig.ident;
     let body = &input.block;
@@ -288,6 +290,8 @@ pub(crate) fn imp(_system_attr: TokenStream, input: TokenStream) -> Result<Token
     let out_arg_names: Vec<_> = out_args.iter().map(|tuple| &tuple.1).collect();
     let out_arg_types: Vec<_> = out_args.iter().map(|tuple| &tuple.2).collect();
 
+    let class = &args.class;
+
     let output = quote! {
         #[::legion::system]
         #[allow(clippy::too_many_arguments)]
@@ -311,7 +315,7 @@ pub(crate) fn imp(_system_attr: TokenStream, input: TokenStream) -> Result<Token
 
         fn #setup_name(mut setup: ::codegen::SetupEcs) -> ::codegen::SetupEcs {
             #(#assigns)*
-            setup.#setup_method(#system_name(#(#state_values),*))
+            setup.#setup_method(#system_name(#(#state_values),*), ::codegen::SystemClass::#class)
         }
     };
     Ok(output)
@@ -330,5 +334,16 @@ impl parse::Parse for DebugName {
         inner.parse::<syn::Token![,]>()?;
         let name = inner.parse::<syn::LitStr>()?;
         Ok(Self { category: category.value(), name: name.value() })
+    }
+}
+
+struct AttrArgs {
+    class: Ident,
+}
+
+impl parse::Parse for AttrArgs {
+    fn parse(buf: parse::ParseStream) -> parse::Result<Self> {
+        let class = buf.parse::<Ident>()?;
+        Ok(Self { class })
     }
 }

@@ -145,7 +145,7 @@ pub struct Pump {
     force: units::PipeForce,
 }
 
-#[codegen::system]
+#[codegen::system(Simulate)]
 #[read_component(Pipe)]
 #[read_component(PipeResistance)]
 #[read_component(Pump)]
@@ -269,7 +269,7 @@ fn simulate_pipes(
     }
 }
 
-#[codegen::system]
+#[codegen::system(PreSimulate)]
 #[write_component(Storage)]
 #[write_component(StorageSize)]
 #[read_component(NextStorageType)]

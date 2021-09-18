@@ -49,7 +49,7 @@ pub struct Render(
     pub Counter,
 );
 
-#[codegen::system]
+#[codegen::system(PreVisualize)]
 #[thread_local]
 fn update(
     #[resource] render_fps: &mut Render,

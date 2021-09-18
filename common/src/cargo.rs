@@ -70,7 +70,8 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Car
     ))
 }
 
-#[codegen::system]
+/// Copy next.size into current.size
+#[codegen::system(PreSimulate)]
 #[write_component(StorageSize)]
 #[read_component(NextStorageSize)]
 fn update_storage(

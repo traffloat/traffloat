@@ -86,7 +86,7 @@ pub struct Response {
     data: Vec<u8>,
 }
 
-#[codegen::system]
+#[codegen::system(Visualize)]
 #[read_component(node::Id)]
 #[read_component(node::Name)]
 #[read_component(edge::Id)]

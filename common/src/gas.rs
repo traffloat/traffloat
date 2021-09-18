@@ -79,7 +79,7 @@ pub struct Pump {
     force: units::FanForce,
 }
 
-#[codegen::system]
+#[codegen::system(PreSimulate)]
 #[write_component(StorageSize)]
 #[read_component(NextStorageSize)]
 fn update_storage(

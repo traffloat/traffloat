@@ -168,7 +168,7 @@ impl UpdaterRef {
     }
 }
 
-#[codegen::system]
+#[codegen::system(Response)]
 #[thread_local]
 fn cancel_trigger(
     #[subscriber] click_sub: impl Iterator<Item = keyboard::SingleClick>,
@@ -181,7 +181,7 @@ fn cancel_trigger(
     }
 }
 
-#[codegen::system]
+#[codegen::system(Response)]
 #[thread_local]
 fn edit_trigger(
     #[subscriber] click_sub: impl Iterator<Item = keyboard::SingleClick>,

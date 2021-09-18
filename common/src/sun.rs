@@ -30,7 +30,7 @@ impl Sun {
     }
 }
 
-#[codegen::system]
+#[codegen::system(Schedule)]
 fn move_sun(
     #[resource] sun: &mut Sun,
     #[resource] clock: &Clock,
@@ -65,7 +65,7 @@ pub struct LightStats {
     brightness: [Brightness; MONTH_COUNT],
 }
 
-#[codegen::system]
+#[codegen::system(PostCommand)]
 #[write_component(LightStats)]
 #[read_component(Position)]
 #[read_component(Shape)]

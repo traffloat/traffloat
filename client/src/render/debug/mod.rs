@@ -14,7 +14,7 @@ pub struct Canvas {
     writer: util::DebugWriter,
 }
 
-#[codegen::system]
+#[codegen::system(Visualize)]
 #[cfg(feature = "render-debug")]
 #[thread_local]
 fn draw(

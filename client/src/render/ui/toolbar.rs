@@ -75,7 +75,7 @@ pub struct Props {
     pub cancel: Option<Callback<MouseEvent>>,
 }
 
-#[codegen::system]
+#[codegen::system(Visualize)]
 fn post_save(#[subscriber] responses: impl Iterator<Item = save::Response>) {
     for resp in responses {
         let array = js_sys::Uint8Array::from(&resp.data()[..]);

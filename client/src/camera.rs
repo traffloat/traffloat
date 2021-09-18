@@ -176,7 +176,7 @@ impl Default for Camera {
     }
 }
 
-#[codegen::system]
+#[codegen::system(Visualize)]
 fn debug(
     #[resource] camera: &Camera,
 

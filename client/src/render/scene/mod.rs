@@ -66,7 +66,7 @@ impl Canvas {
     }
 }
 
-#[codegen::system]
+#[codegen::system(Visualize)]
 #[read_component(Position)]
 #[read_component(Shape)]
 #[read_component(LightStats)]
@@ -184,7 +184,7 @@ fn draw(
     scene.reticle_prog.draw(&scene.gl, arrow_projection * rot_z, [0., 0., 1.]);
 }
 
-#[codegen::system]
+#[codegen::system(Visualize)]
 #[thread_local]
 fn update_cursor(
     #[resource] canvas: &Option<super::Layers>,

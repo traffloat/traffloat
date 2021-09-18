@@ -145,7 +145,7 @@ pub struct LiquidFlow {
     pub dir: edge::Direction,
 }
 
-#[codegen::system]
+#[codegen::system(Visualize)]
 #[read_component(node::Name)]
 #[read_component(edge::Id)]
 #[read_component(edge::Design)]

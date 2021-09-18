@@ -178,7 +178,7 @@ pub struct DoubleClick {
     command: Command,
 }
 
-#[codegen::system]
+#[codegen::system(Input)]
 fn track_states(
     #[resource] states: &mut CommandStates,
     #[resource] clock: &Clock,
@@ -202,7 +202,7 @@ fn track_states(
     }
 }
 
-#[codegen::system]
+#[codegen::system(Response)]
 #[allow(clippy::indexing_slicing, clippy::too_many_arguments)]
 fn move_camera(
     #[resource] camera: &mut Camera,

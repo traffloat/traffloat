@@ -292,7 +292,7 @@ pub struct CreateRequest {
     design: Vec<save::SavedDuct>,
 }
 
-#[codegen::system]
+#[codegen::system(CreateChild)]
 #[read_component(Position)]
 #[read_component(liquid::StorageList)]
 fn create_new_edge(
@@ -331,7 +331,7 @@ pub struct LoadRequest {
     save: Box<save::Edge>,
 }
 
-#[codegen::system]
+#[codegen::system(CreateChild)]
 #[read_component(Position)]
 #[read_component(liquid::StorageList)]
 fn create_saved_edge(

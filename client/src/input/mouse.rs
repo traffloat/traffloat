@@ -50,7 +50,7 @@ impl Default for Segment {
     }
 }
 
-#[codegen::system]
+#[codegen::system(Input)]
 fn trace_segment(
     #[resource] cursor: &CursorPosition,
     #[resource] camera: &Camera,
@@ -89,7 +89,7 @@ pub struct HoverTarget {
     entity: Option<Entity>,
 }
 
-#[codegen::system]
+#[codegen::system(Response)]
 #[read_component(Position)]
 #[read_component(Shape)]
 #[read_component(node::Id)]
