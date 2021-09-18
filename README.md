@@ -18,17 +18,6 @@
 [![Optimization issues](https://img.shields.io/github/issues/traffloat/traffloat/G:%20Optimization)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22G%3A+Optimization%22)
 [![Tooling issues](https://img.shields.io/github/issues/traffloat/traffloat/G:%20Tooling)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22G%3A+Tooling%22)
 
-[![Cargo issues](https://img.shields.io/github/issues/traffloat/traffloat/M:%20Cargo)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22M%3A+Cargo%22)
-[![Defense issues](https://img.shields.io/github/issues/traffloat/traffloat/M:%20Defense)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22M%3A+Defense%22)
-[![Definition issues](https://img.shields.io/github/issues/traffloat/traffloat/M:%20Definition)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22M%3A+Definition%22)
-[![Electricity issues](https://img.shields.io/github/issues/traffloat/traffloat/M:%20Electricity)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22M%3A+Electricity%22)
-[![Gas issues](https://img.shields.io/github/issues/traffloat/traffloat/M:%20Gas)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22M%3A+Gas%22)
-[![Graph issues](https://img.shields.io/github/issues/traffloat/traffloat/M:%20Graph)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22M%3A+Graph%22)
-[![Liquid issues](https://img.shields.io/github/issues/traffloat/traffloat/M:%20Liquid)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22M%3A+Liquid%22)
-[![Population issues](https://img.shields.io/github/issues/traffloat/traffloat/M:%20Population)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22M%3A+Population%22)
-[![UI issues](https://img.shields.io/github/issues/traffloat/traffloat/M:%20UI)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22M%3A+UI%22)
-[![Vehicle issues](https://img.shields.io/github/issues/traffloat/traffloat/M:%20Vehicle)](https://github.com/traffloat/traffloat/issues?q=is%3Aissue+is%3Aopen+label%3A%22M%3A+Vehicle%22)
-
 A 3D traffic, factory, city building, tower defense web game.
 
 [Play the game](https://traffloat.github.io/master/) \|
