@@ -20,7 +20,7 @@ enum-map = "1.1.0"
 getrandom = {version = "0.2.3", features = ["js"]}
 getset = "0.1.1"
 itertools = "0.10.1"
-js-sys = "0.3.53"
+js-sys = "0.3.55"
 lazy_static = "1.4.0"
 log = "0.4.14"
 nalgebra = "0.29.0"
@@ -29,7 +29,7 @@ rand = "0.8.4"
 rand_distr = "0.4.1"
 rand_xoshiro = "0.6.0"
 serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.67"
+serde_json = "1.0.68"
 shrev = "1.1.1"
 smallvec = "1.6.1"
 traffloat-codegen = {version = "0.2.0", path = "../codegen", features = ["web-sys"]}
@@ -37,7 +37,7 @@ traffloat-common = {version = "0.2.0", path = "../common", default-features = fa
 traffloat-safety = {version = "0.2.0", path = "../safety"}
 traffloat-version = {version = "0.2.0", path = "../version"}
 typed-builder = "0.9.1"
-wasm-bindgen = {version = "0.2.76"}
+wasm-bindgen = {version = "0.2.78"}
 wasm-logger = "0.2.0"
 yew = {version = "0.18.0", default-features = false, features = ["services", "web_sys"]}
 
@@ -51,7 +51,7 @@ features = [
 ]
 
 [dependencies.web-sys]
-version = "0.3.54"
+version = "0.3.55"
 features = [
 	"Blob",
 	"BlobPropertyBag",
