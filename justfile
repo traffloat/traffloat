@@ -23,6 +23,11 @@ client-tsv:
 deps:
 	cd client/textures && npm install
 	pip3 install -r client/textures/requirements.txt
+	test -f client/glsl_min.rb || ( \
+		wget -O client/glsl_min.rb \
+			https://raw.githubusercontent.com/traffloat/glsl-minifier/master/glsl_min.rb && \
+		chmod +x client/glsl_min.rb \
+	)
 
 tokei:
 	tokei -C -e "*lock*" -e "*.svg"
