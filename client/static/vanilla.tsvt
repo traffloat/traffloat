@@ -463,9 +463,15 @@ def:
         liquid: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
         gas: 1000.0
       features:
-        - RailPump: 100.0
-        - LiquidPump: 100.0
-        - GasPump: 100.0
+        - RailPump:
+            catalysts: []
+            force: 100.0
+        - LiquidPump:
+            catalysts: []
+            force: 100.0
+        - GasPump:
+            catalysts: []
+            force: 100.0
     solar-panel:
       name: Solar panel
       summary: Basic power production
@@ -624,8 +630,10 @@ def:
         gas: 1000.0
       features:
         - SecureExit:
+            catalysts: []
             skill: infamy
-            min_level: 10.0
+            deny_if:
+              AtLeast: 10.0
             breach_probability: 0.001
     customs:
       name: Customs
@@ -650,8 +658,10 @@ def:
         gas: 1000.0
       features:
         - SecureEntry:
+            catalysts: []
             skill: infamy
-            min_level: 10.0
+            deny_if:
+              AtLeast: 10.0
             breach_probability: 0.005
   building_cats:
     population:

@@ -4,10 +4,11 @@ use serde::{Deserialize, Serialize};
 
 pub mod building;
 pub mod cargo;
+pub mod catalyst;
 pub mod crime;
+pub mod feature;
 pub mod gas;
 pub mod liquid;
-pub mod reaction;
 pub mod skill;
 pub mod vehicle;
 
@@ -38,9 +39,6 @@ pub struct GameDefinition {
     /// Vehicle types.
     #[getset(get = "pub", get_mut = "pub")]
     vehicle: Map<vehicle::TypeId, vehicle::Type>,
-    /// Reaction types.
-    #[getset(get = "pub", get_mut = "pub")]
-    reaction: Map<reaction::TypeId, reaction::Type>,
     /// Building types.
     #[getset(get = "pub", get_mut = "pub")]
     building: Map<building::TypeId, building::Type>,

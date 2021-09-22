@@ -5,7 +5,8 @@ use std::rc::Rc;
 use itertools::Itertools;
 use yew::prelude::*;
 
-use traffloat::def::{building, reaction, GameDefinition};
+use traffloat::def::feature::{reaction, Feature};
+use traffloat::def::{building, catalyst, GameDefinition};
 use traffloat::save::SaveFile;
 
 /// Displays a list of buildings.
@@ -74,27 +75,20 @@ impl Component for Comp {
 
                 <h2>{ "Mechanisms" }</h2>
                 { for building.features().iter().map(|feature| render_feature(feature, def)) }
-                { for building.reactions().iter().map(|instance| {
-                    render_reaction(
-                        def.reaction().get(instance.reaction()).expect("Save references undefined reaction"),
-                        instance.policy(),
-                        def,
-                    )
-                }) }
             </>
         }
     }
 }
 
-fn render_feature(feature: &building::ExtraFeature, def: &GameDefinition) -> Html {
+fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
     match feature {
-        building::ExtraFeature::Core => html! {
+        Feature::Core => html! {
             <div>
                 <h3>{ "Core" }</h3>
                 <p>{ "This is a core building. The game is lost if all core buildings are destroyed." }</p>
             </div>
         },
-        building::ExtraFeature::ProvidesHousing(capacity) => html! {
+        Feature::ProvidesHousing(capacity) => html! {
             <div>
                 <h3>{ format_args!("Housing ({} capacity)", capacity) }</h3>
                 <p>
@@ -105,79 +99,48 @@ fn render_feature(feature: &building::ExtraFeature, def: &GameDefinition) -> Htm
                 </p>
             </div>
         },
-        building::ExtraFeature::RailPump(force) => html! {
+        Feature::Reaction(reaction) => render_reaction(reaction, def),
+        Feature::RailPump(spec) => html! {
             <div>
                 <h3>{ "Rail terminal" }</h3>
                 <p>
-                    { format_args!("Vehicles in adjacent corridors received a boost of {}.", force) }
+                    { format_args!("Vehicles in adjacent corridors received a boost of {}.", spec.force()) }
                 </p>
             </div>
         },
-        building::ExtraFeature::LiquidPump(force) => html! {
+        Feature::LiquidPump(spec) => html! {
             <div>
                 <h3>{ "Liquid pump" }</h3>
                 <p>
-                    { format_args!("Pipes in adjacent corridors receive a boost of {}.", force) }
+                    { format_args!("Pipes in adjacent corridors receive a boost of {}.", spec.force()) }
                 </p>
             </div>
         },
-        building::ExtraFeature::GasPump(force) => html! {
+        Feature::GasPump(spec) => html! {
             <div>
                 <h3>{ "Gas fan" }</h3>
                 <p>
                     { "Fans can be installed on adjacent corridors to speed up gas diffusion. " }
-                    { format_args!("Each fan provides up to {} of pumping force.", force) }
+                    { format_args!("Each fan provides up to {} of pumping force.", spec.force()) }
                 </p>
             </div>
         },
-        building::ExtraFeature::SecureEntry { skill, min_level, breach_probability } => {
-            let skill = def.skill().get(skill).expect("Save references undefined skill");
+        Feature::SecureEntry(policy) => {
             html! {
                 <div>
                     <h3>{ "Entry security" }</h3>
                     <p>
-                        { format_args!(
-                            "Inhabitants entering the building must have at least {} {}. ",
-                            *min_level,
-                            skill.name(),
-                        ) }
-                        { for (*breach_probability > 0.).then(|| format!(
-                            "{}% of the ",
-                            (1. - *breach_probability) * 100.,
-                        )) }
-                        { for (*breach_probability == 0.).then(|| "All ") }
-                        { format_args!(
-                            "inhabitants trying to enter the building with less than {} {} ",
-                            *min_level,
-                            skill.name(),
-                        ) }
-                        { "are immediately teleported back to the previous building, " }
+                        { "TODO" }
                     </p>
                 </div>
             }
         }
-        building::ExtraFeature::SecureExit { skill, min_level, breach_probability } => {
-            let skill = def.skill().get(skill).expect("Save references undefined skill");
+        Feature::SecureExit(policy) => {
             html! {
                 <div>
                     <h3>{ "Exit security" }</h3>
                     <p>
-                        { format_args!(
-                            "Inhabitants leaving the building must have at least {} {}. ",
-                            *min_level,
-                            skill.name(),
-                        ) }
-                        { for (*breach_probability > 0.).then(|| format!(
-                            "{}% of the ",
-                            (1. - *breach_probability) * 100.,
-                        )) }
-                        { for (*breach_probability == 0.).then(|| "All ") }
-                        { format_args!(
-                            "inhabitants trying to leave the building with less than {} {} ",
-                            *min_level,
-                            skill.name(),
-                        ) }
-                        { "cannot perform any actions for one minute." }
+                        { "TODO" }
                     </p>
                 </div>
             }
@@ -185,20 +148,13 @@ fn render_feature(feature: &building::ExtraFeature, def: &GameDefinition) -> Htm
     }
 }
 
-fn render_reaction(
-    reaction: &reaction::Type,
-    policy: &building::ReactionPolicy,
-    def: &GameDefinition,
-) -> Html {
+fn render_reaction(reaction: &reaction::Reaction, def: &GameDefinition) -> Html {
     html! {
         <div>
-            <h3>{ reaction.name() }</h3>
-            <p>{ reaction.description() }</p>
-
             <p>
                 { format_args!(
                     "The rate of reaction {} be configured.",
-                    if policy.configurable() { "can" } else { "cannot" }
+                    if reaction.policy().configurable() { "can" } else { "cannot" }
                 ) }
             </p>
             // TODO document FlowPolicy
@@ -219,7 +175,7 @@ fn render_reaction(
                     { for reaction.catalysts().iter().map(|catalyst| html! {
                         <tr>
                             { match catalyst.range() {
-                                    reaction::CatalystRange::Cargo { ty, levels } => html! {
+                                    catalyst::CatalystRange::Cargo { ty, levels } => html! {
                                         <>
                                             <td>{ def.cargo().get(ty).expect("Save references undefined cargo").name() }</td>
                                             <td>{ format_args!(
@@ -229,7 +185,7 @@ fn render_reaction(
                                             ) }</td>
                                         </>
                                     },
-                                    reaction::CatalystRange::Liquid { ty, levels } => html! {
+                                    catalyst::CatalystRange::Liquid { ty, levels } => html! {
                                         <>
                                             <td>{ def.liquid().get(ty).expect("Save references undefined liquid").name() }</td>
                                             <td>{ format_args!(
@@ -239,7 +195,7 @@ fn render_reaction(
                                             ) }</td>
                                         </>
                                     },
-                                    reaction::CatalystRange::Gas { ty, levels } => html! {
+                                    catalyst::CatalystRange::Gas { ty, levels } => html! {
                                         <>
                                             <td>{ def.gas().get(ty).expect("Save references undefined gas").name() }</td>
                                             <td>{ format_args!(
@@ -249,7 +205,7 @@ fn render_reaction(
                                             ) }</td>
                                         </>
                                     },
-                                    reaction::CatalystRange::Electricity { levels } => html! {
+                                    catalyst::CatalystRange::Electricity { levels } => html! {
                                         <>
                                             <td>{ "Electricity" }</td>
                                             <td>{ format_args!(
@@ -259,7 +215,7 @@ fn render_reaction(
                                             ) }</td>
                                         </>
                                     },
-                                    reaction::CatalystRange::Light { levels } => html! {
+                                    catalyst::CatalystRange::Light { levels } => html! {
                                         <>
                                             <td>{ "Sunlight" }</td>
                                             <td>{ format_args!(
@@ -269,7 +225,7 @@ fn render_reaction(
                                             ) }</td>
                                         </>
                                     },
-                                    reaction::CatalystRange::Skill { ty, levels } => html! {
+                                    catalyst::CatalystRange::Skill { ty, levels } => html! {
                                         <>
                                             <td>{ format_args!(
                                                 "Operator with {}",

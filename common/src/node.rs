@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
 use typed_builder::TypedBuilder;
 
-use crate::def::{building, GameDefinition};
+use crate::def::{building, feature::Feature, GameDefinition};
 use crate::defense;
 use crate::shape::{self, Shape};
 use crate::space::{Matrix, Position};
@@ -200,28 +200,32 @@ fn create_new_node(
 
         for feature in building.features() {
             match feature {
-                building::ExtraFeature::Core => {
+                Feature::Core => {
                     entities.add_component(entity, defense::Core);
                 }
-                building::ExtraFeature::ProvidesHousing(housing) => {
+                Feature::ProvidesHousing(housing) => {
                     entities.add_component(
                         entity,
                         population::Housing::builder().capacity(*housing).build(),
                     );
                 }
-                building::ExtraFeature::RailPump(force) => entities
-                    .add_component(entity, vehicle::RailPump::builder().force(*force).build()),
-                building::ExtraFeature::LiquidPump(force) => {
-                    entities.add_component(entity, liquid::Pump::builder().force(*force).build())
+                Feature::Reaction(reaction) => {
+                    todo!("Create factory for {:?}", reaction)
                 }
-                building::ExtraFeature::GasPump(force) => {
-                    entities.add_component(entity, gas::Pump::builder().force(*force).build())
+                Feature::RailPump(spec) => entities.add_component(
+                    entity,
+                    vehicle::RailPump::builder().force(spec.force()).build(),
+                ),
+                Feature::LiquidPump(spec) => entities
+                    .add_component(entity, liquid::Pump::builder().force(spec.force()).build()),
+                Feature::GasPump(spec) => {
+                    entities.add_component(entity, gas::Pump::builder().force(spec.force()).build())
                 }
-                building::ExtraFeature::SecureEntry { skill, min_level, breach_probability } => {
-                    todo!("Create entity with {:?} {:?} {:?}", skill, min_level, breach_probability)
+                Feature::SecureEntry(policy) => {
+                    todo!("Create entity with {:?}", policy)
                 }
-                building::ExtraFeature::SecureExit { skill, min_level, breach_probability } => {
-                    todo!("Create entity with {:?} {:?} {:?}", skill, min_level, breach_probability)
+                Feature::SecureExit(policy) => {
+                    todo!("Create entity with {:?}", policy)
                 }
             }
         }
