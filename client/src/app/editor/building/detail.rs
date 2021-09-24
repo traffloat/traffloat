@@ -5,7 +5,7 @@ use std::rc::Rc;
 use itertools::Itertools;
 use yew::prelude::*;
 
-use traffloat::def::feature::{reaction, Feature};
+use traffloat::def::feature::{reaction, security, Feature};
 use traffloat::def::{building, catalyst, GameDefinition};
 use traffloat::save::SaveFile;
 
@@ -125,23 +125,54 @@ fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
                 </p>
             </div>
         },
-        Feature::SecureEntry(policy) => {
+        Feature::SecureEntry(policy) | Feature::SecureExit(policy) => {
+            let skill = def.skill().get(policy.skill()).expect("Save references undefined skill");
             html! {
                 <div>
-                    <h3>{ "Entry security" }</h3>
+                    <h3>{ match feature {
+                        Feature::SecureEntry(_) => "Entry security",
+                        Feature::SecureExit(_) => "Exit security",
+                        _ => unreachable!(),
+                    } }</h3>
+
                     <p>
-                        { "TODO" }
+                        { match feature {
+                            Feature::SecureEntry(_) => "Inhabitants entering the building ",
+                            Feature::SecureExit(_) => "Inhabitants leaving the building ",
+                            _ => unreachable!(),
+                        } }
+                        { match policy.deny_if() {
+                            security::SkillRequirement::AtLeast(level) => {
+                                format!("should have at least {} {}.", level, skill.name())
+                            },
+                            security::SkillRequirement::AtMost(level) => {
+                                format!("should have at most {} {}.", level, skill.name())
+                            },
+                        } }
                     </p>
-                </div>
-            }
-        }
-        Feature::SecureExit(policy) => {
-            html! {
-                <div>
-                    <h3>{ "Exit security" }</h3>
+
                     <p>
-                        { "TODO" }
+                        { match feature {
+                            Feature::SecureEntry(_) => format!("\
+                                Unqualified inhabitants have {0}% probability to succeed breaking in.
+                                Rejected inhabitants are immediately teleported back to their original building. \
+                                The inhabitant will then attempt to find alternative paths to the destination. \
+                                If there is no alternative path, the inhabitant will try to travel across the corridor again \
+                                and get another {0}% chance to break in.", policy.breach_probability() * 100.),
+                            Feature::SecureExit(_) => format!("\
+                                Unqualified inhabitants have {0}% probability to succed breaking out.
+                                Rejected inhabitants will stay immobile for one second \
+                                and get another {0}% chance to break out.", policy.breach_probability() * 100.),
+                            _ => unreachable!(),
+                        } }
                     </p>
+
+                    { for (!policy.catalysts().is_empty()).then(|| html! {
+                        <>
+                            <h4>{ "Boosts" }</h4>
+                            { for policy.catalysts().iter().map(|catalyst| render_catalyst(catalyst, def)) }
+                        </>
+                    }) }
                 </div>
             }
         }
@@ -176,71 +207,7 @@ fn render_reaction(reaction: &reaction::Reaction, def: &GameDefinition) -> Html 
 
                     { for reaction.catalysts().iter().map(|catalyst| html! {
                         <tr>
-                            { match catalyst.range() {
-                                    catalyst::CatalystRange::Cargo { ty, levels } => html! {
-                                        <>
-                                            <td>{ def.cargo().get(ty).expect("Save references undefined cargo").name() }</td>
-                                            <td>{ format_args!(
-                                                "{} to {}",
-                                                levels.start,
-                                                levels.end,
-                                            ) }</td>
-                                        </>
-                                    },
-                                    catalyst::CatalystRange::Liquid { ty, levels } => html! {
-                                        <>
-                                            <td>{ def.liquid().get(ty).expect("Save references undefined liquid").name() }</td>
-                                            <td>{ format_args!(
-                                                "{} to {}",
-                                                levels.start,
-                                                levels.end,
-                                            ) }</td>
-                                        </>
-                                    },
-                                    catalyst::CatalystRange::Gas { ty, levels } => html! {
-                                        <>
-                                            <td>{ def.gas().get(ty).expect("Save references undefined gas").name() }</td>
-                                            <td>{ format_args!(
-                                                "{} to {}",
-                                                levels.start,
-                                                levels.end,
-                                            ) }</td>
-                                        </>
-                                    },
-                                    catalyst::CatalystRange::Electricity { levels } => html! {
-                                        <>
-                                            <td>{ "Electricity" }</td>
-                                            <td>{ format_args!(
-                                                "{} to {}",
-                                                levels.start,
-                                                levels.end,
-                                            ) }</td>
-                                        </>
-                                    },
-                                    catalyst::CatalystRange::Light { levels } => html! {
-                                        <>
-                                            <td>{ "Sunlight" }</td>
-                                            <td>{ format_args!(
-                                                "{} to {}",
-                                                levels.start,
-                                                levels.end,
-                                            ) }</td>
-                                        </>
-                                    },
-                                    catalyst::CatalystRange::Skill { ty, levels } => html! {
-                                        <>
-                                            <td>{ format_args!(
-                                                "Operator with {}",
-                                                def.skill().get(ty).expect("Save references undefined skill").name(),
-                                            ) }</td>
-                                            <td>{ format_args!(
-                                                "{} to {}",
-                                                levels.start,
-                                                levels.end,
-                                            ) }</td>
-                                        </>
-                                    },
-                            } }
+                        { render_catalyst(catalyst, def) }
                             <td>{ format_args!("{}\u{d7}", catalyst.multipliers().underflow()) }</td>
                             <td>{ format_args!(
                                 "{}\u{d7} to {}\u{d7}",
@@ -255,6 +222,74 @@ fn render_reaction(reaction: &reaction::Reaction, def: &GameDefinition) -> Html 
 
             // TODO render inputs/outputs
         </div>
+    }
+}
+
+fn render_catalyst(catalyst: &catalyst::Catalyst, def: &GameDefinition) -> Html {
+    match catalyst.range() {
+        catalyst::CatalystRange::Cargo { ty, levels } => html! {
+            <>
+                <td>{ def.cargo().get(ty).expect("Save references undefined cargo").name() }</td>
+                <td>{ format_args!(
+                    "{} to {}",
+                    levels.start,
+                    levels.end,
+                ) }</td>
+            </>
+        },
+        catalyst::CatalystRange::Liquid { ty, levels } => html! {
+            <>
+                <td>{ def.liquid().get(ty).expect("Save references undefined liquid").name() }</td>
+                <td>{ format_args!(
+                    "{} to {}",
+                    levels.start,
+                    levels.end,
+                ) }</td>
+            </>
+        },
+        catalyst::CatalystRange::Gas { ty, levels } => html! {
+            <>
+                <td>{ def.gas().get(ty).expect("Save references undefined gas").name() }</td>
+                <td>{ format_args!(
+                    "{} to {}",
+                    levels.start,
+                    levels.end,
+                ) }</td>
+            </>
+        },
+        catalyst::CatalystRange::Electricity { levels } => html! {
+            <>
+                <td>{ "Electricity" }</td>
+                <td>{ format_args!(
+                    "{} to {}",
+                    levels.start,
+                    levels.end,
+                ) }</td>
+            </>
+        },
+        catalyst::CatalystRange::Light { levels } => html! {
+            <>
+                <td>{ "Sunlight" }</td>
+                <td>{ format_args!(
+                    "{} to {}",
+                    levels.start,
+                    levels.end,
+                ) }</td>
+            </>
+        },
+        catalyst::CatalystRange::Skill { ty, levels } => html! {
+            <>
+                <td>{ format_args!(
+                    "Operator with {}",
+                    def.skill().get(ty).expect("Save references undefined skill").name(),
+                ) }</td>
+                <td>{ format_args!(
+                    "{} to {}",
+                    levels.start,
+                    levels.end,
+                ) }</td>
+            </>
+        },
     }
 }
 
