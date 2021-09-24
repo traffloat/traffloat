@@ -14,6 +14,9 @@ use traffloat::shape::{Shape, Texture};
 use traffloat::space::{Matrix, Position};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
+mod perspective;
+use perspective::*;
+
 pub mod mesh;
 
 pub mod edge;
@@ -70,6 +73,9 @@ impl Canvas {
 #[read_component(Position)]
 #[read_component(Shape)]
 #[read_component(LightStats)]
+#[read_component(traffloat::liquid::Storage)]
+#[read_component(traffloat::liquid::StorageSize)]
+#[read_component(traffloat::liquid::NextStorageSize)]
 #[read_component(traffloat::node::Id)]
 #[read_component(traffloat::edge::Id)]
 #[read_component(traffloat::edge::Size)]
@@ -82,6 +88,7 @@ fn draw(
     #[resource] texture_pool: &mut Option<super::texture::Pool>,
     #[resource] hover_target: &input::mouse::HoverTarget,
     #[resource] focus_target: &input::FocusTarget,
+    #[resource] perspective: &Perspective,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     use legion::IntoQuery;
