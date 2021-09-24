@@ -4,7 +4,7 @@ use arcstr::ArcStr;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
-use super::{reaction, skill};
+use super::feature::Feature;
 use crate::space::Matrix;
 use crate::{geometry, units};
 
@@ -32,9 +32,6 @@ pub struct Type {
     /// Shape of the building.
     #[getset(get = "pub")]
     shape: Shape,
-    /// Reactions associated with the building.
-    #[getset(get = "pub")]
-    reactions: Vec<ReactionInstance>,
     /// Maximum hitpoint of a building.
     ///
     /// The actual hitpoint is subject to asteroid and fire damage.
@@ -46,7 +43,7 @@ pub struct Type {
     storage: Storage,
     /// Extra features associated with the building.
     #[getset(get = "pub")]
-    features: Vec<ExtraFeature>,
+    features: Vec<Feature>,
 }
 
 /// Shape of a building.
@@ -68,45 +65,6 @@ pub struct Shape {
     texture_name: ArcStr,
 }
 
-/// An instance of reaction applied to a building.
-#[derive(Debug, Clone, TypedBuilder, getset::Getters, Serialize, Deserialize)]
-pub struct ReactionInstance {
-    /// The reaction ID.
-    #[getset(get = "pub")]
-    reaction: reaction::TypeId,
-    /// The instance-specific reaction behavior.
-    #[getset(get = "pub")]
-    policy: ReactionPolicy,
-}
-
-/// Reaction behaviour specific to this building.
-#[derive(Debug, Clone, TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
-#[builder(field_defaults(default))]
-pub struct ReactionPolicy {
-    /// Whethre the reaction rate can be configured by the players.
-    #[get_copy = "pub"]
-    configurable: bool,
-    /// What happens when inputs underflow.
-    #[get_copy = "pub"]
-    on_underflow: FlowPolicy,
-    /// What happens when outputs overflow.
-    #[get_copy = "pub"]
-    on_overflow: FlowPolicy,
-}
-
-/// behaviour when inputs underflow or outputs overflow.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum FlowPolicy {
-    /// Reduce the rate of reaction such that the input/output capacity is just enough.
-    ReduceRate,
-}
-
-impl Default for FlowPolicy {
-    fn default() -> Self {
-        Self::ReduceRate
-    }
-}
-
 /// Storage provided by a building.
 ///
 /// This storage is also used as a buffer for liquid and gas transfer.
@@ -124,43 +82,6 @@ pub struct Storage {
     /// Gas storage provided
     #[getset(get_copy = "pub")]
     gas: units::GasVolume,
-}
-
-/// Extra features of a building (in addition to reactions)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ExtraFeature {
-    /// The building is a core and must not be destroyed.
-    Core,
-    /// The building provides housing capacity, and inhabitants can be assigned to it.
-    ProvidesHousing(u32),
-    /// The building provides driving force for vehicles on adjacent rails.
-    RailPump(units::RailForce),
-    /// The building provides pumping force for adjacent liquid pipes.
-    LiquidPump(units::PipeForce),
-    /// The building provides pumping force for gas diffusion in adjacent corridors.
-    GasPump(units::FanForce),
-    /// Inhabitants with low skill may not be permitted to enter the node.
-    SecureEntry {
-        /// The skill type to check.
-        skill: skill::TypeId,
-        /// The minimum skill level required to enter the building.
-        min_level: units::Skill,
-        /// The probability per second per inhabitant that
-        /// the inhabitant has lower skill level than required
-        /// but still can enter the building.
-        breach_probability: f64,
-    },
-    /// Inhabitants with low skill may not be permitted to exit the node.
-    SecureExit {
-        /// The skill type to check.
-        skill: skill::TypeId,
-        /// The minimum skill level required to exit the building.
-        min_level: units::Skill,
-        /// The probability per second per operator that
-        /// the operator has lower skill level than required
-        /// but still can exit the building.
-        breach_probability: f64,
-    },
 }
 
 /// Identifies a building category

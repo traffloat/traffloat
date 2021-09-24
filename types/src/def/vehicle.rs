@@ -6,7 +6,7 @@ use arcstr::ArcStr;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
-use crate::def::{reaction, skill};
+use crate::def::{catalyst, skill};
 use crate::units;
 
 /// Identifies a vehicle type.
@@ -59,5 +59,5 @@ pub struct Skill {
     levels: Range<units::Skill>,
     /// The multipliers applied on the driving speed.
     #[getset(get_copy = "pub")]
-    multipliers: reaction::Multipliers,
+    multipliers: catalyst::Multipliers,
 }

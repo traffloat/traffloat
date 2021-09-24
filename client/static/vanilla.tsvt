@@ -295,104 +295,6 @@ def:
           overflow: 2.0
       texture_src: gen/textures-x-fancy.png
       texture_name: bus
-  reaction:
-    solar-power:
-      name: Solar power
-      description: "Generates electricity from sunlight."
-      catalysts:
-        - range:
-            Light:
-              levels:
-                start: 0.0
-                end: 10.0
-          multipliers:
-            underflow: 0.0
-            min: 0.0
-            max: 1.0
-            overflow: 1.0
-      puts:
-        - Electricity:
-            base: 100.0
-    asteroidal-water-filtration:
-      name: Asteroidal water filtration
-      description: Filters out rocks and other sediments in asteroidal water.
-      catalysts:
-        - range:
-            Skill:
-              ty: mechanic-skill
-              levels:
-                start: 0.0
-                end: 20.0
-          multipliers:
-            underflow: 1.0
-            min: 1.0
-            max: 2.0
-            overflow: 2.0
-      puts:
-        - Liquid:
-            ty: asteroidal-water
-            base: -100.0
-        - Liquid:
-            ty: filtered-water
-            base: 100.0
-        - Cargo:
-            ty: rock
-            base: 10.0
-        - Cargo:
-            ty: junk
-            base: 10.0
-    driving-lesson:
-      name: Driving lesson
-      description: Assign an experienced driver to teach driving skills to other inhabitants.
-      catalysts:
-        - range:
-            Skill:
-              ty: driving-skill
-              levels:
-                start: 10.0
-                end: 20.0
-          multipliers:
-            underflow: 0.0
-            min: 0.0
-            max: 1.0
-            overflow: 1.0
-      puts:
-        - Skill:
-            ty: driving-skill
-            base: 0.03
-    imprisonment:
-      name: Imprisonment
-      description: Imprison criminals to recultivate their moral values and turn to a good citizen.
-      catalysts:
-        - range:
-            Skill:
-              ty: teaching-skill
-              levels:
-                start: 5.0
-                end: 50.0
-          multipliers:
-            underflow: 0.0
-            min: 1.0
-            max: 1.0
-            overflow: 1.0
-      puts:
-        - Skill:
-            ty: satisfaction
-            base: 0.1
-        - Skill:
-            ty: morality
-            base: 0.01
-    stadium:
-      name: Stadium
-      description: Inhabitants can improve athletic skills slowly but gain happiness.
-      catalysts: []
-      puts:
-        - Skill:
-            ty: happiness
-            base: 0.2
-        - Skill:
-            ty: athletic-skill
-            base: 0.02
   building:
     core:
       name: Core
@@ -409,7 +311,6 @@ def:
         ]
         texture_src: gen/textures-x-fancy.png
         texture_name: core
-      reactions: []
       hitpoint: 3000.0
       storage:
         cargo: 1000.0
@@ -433,7 +334,6 @@ def:
         ]
         texture_src: gen/textures-x-fancy.png
         texture_name: house
-      reactions: []
       hitpoint: 150.0
       storage:
         cargo: 1000.0
@@ -456,16 +356,21 @@ def:
         ]
         texture_src: gen/textures-x-fancy.png
         texture_name: terminal
-      reactions: []
       hitpoint: 100.0
       storage:
         cargo: 1000.0
         liquid: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
         gas: 1000.0
       features:
-        - RailPump: 100.0
-        - LiquidPump: 100.0
-        - GasPump: 100.0
+        - RailPump:
+            catalysts: []
+            force: 100.0
+        - LiquidPump:
+            catalysts: []
+            force: 100.0
+        - GasPump:
+            catalysts: []
+            force: 100.0
     solar-panel:
       name: Solar panel
       summary: Basic power production
@@ -481,18 +386,33 @@ def:
         ]
         texture_src: gen/textures-x-fancy.png
         texture_name: solar-panel
-      reactions:
-        - reaction: solar-power
-          policy:
-            configurable: true
-            on_underflow: ReduceRate
-            on_overflow: ReduceRate
       hitpoint: 200.0
       storage:
         cargo: 1000.0
         liquid: [100.0]
         gas: 1000.0
-      features: []
+      features:
+        - Reaction:
+            title: Solar power
+            description: Generates electricity from sunlight.
+            catalysts:
+              - range:
+                  Light:
+                    levels:
+                      start: 0.0
+                      end: 10.0
+                multipliers:
+                  underflow: 0.0
+                  min: 0.0
+                  max: 1.0
+                  overflow: 1.0
+            puts:
+              - Electricity:
+                  base: 100.0
+            policy:
+              configurable: true
+              on_underflow: ReduceRate
+              on_overflow: ReduceRate
     vault:
       name: Vault
       summary: Store lots of cargo
@@ -508,7 +428,6 @@ def:
         ]
         texture_src: gen/textures-x-fancy.png
         texture_name: vault
-      reactions: []
       hitpoint: 500.0
       storage:
         cargo: 20000.0
@@ -530,18 +449,44 @@ def:
         ]
         texture_src: gen/textures-x-fancy.png
         texture_name: filtration-plant
-      reactions:
-        - reaction: asteroidal-water-filtration
-          policy:
-            configurable: true
-            on_underflow: ReduceRate
-            on_overflow: ReduceRate
       hitpoint: 150.0
       storage:
         cargo: 3000.0
         liquid: [1000.0, 1000.0]
         gas: 1000.0
-      features: []
+      features:
+        - Reaction:
+            title: Asteroidal water filtration
+            description: Filters out rocks and other sediments in asteroidal water.
+            catalysts:
+              - range:
+                  Skill:
+                    ty: mechanic-skill
+                    levels:
+                      start: 0.0
+                      end: 20.0
+                multipliers:
+                  underflow: 1.0
+                  min: 1.0
+                  max: 2.0
+                  overflow: 2.0
+            puts:
+              - Liquid:
+                  ty: asteroidal-water
+                  base: -100.0
+              - Liquid:
+                  ty: filtered-water
+                  base: 100.0
+              - Cargo:
+                  ty: rock
+                  base: 10.0
+              - Cargo:
+                  ty: junk
+                  base: 10.0
+            policy:
+              configurable: true
+              on_underflow: ReduceRate
+              on_overflow: ReduceRate
     driving-school:
       name: Driving school
       summary: Train inhabitants to drive better
@@ -557,18 +502,35 @@ def:
         ]
         texture_src: gen/textures-x-fancy.png
         texture_name: driving-school
-      reactions:
-        - reaction: driving-lesson
-          policy:
-            configurable: false
-            on_underflow: ReduceRate
-            on_overflow: ReduceRate
       hitpoint: 150.0
       storage:
         cargo: 1000.0
         liquid: [100.0, 100.0]
         gas: 1000.0
-      features: []
+      features:
+        - Reaction:
+            title: Driving lesson
+            description: Assign an experienced driver to teach driving skills to other inhabitants.
+            catalysts:
+              - range:
+                  Skill:
+                    ty: driving-skill
+                    levels:
+                      start: 10.0
+                      end: 20.0
+                multipliers:
+                  underflow: 0.0
+                  min: 0.0
+                  max: 1.0
+                  overflow: 1.0
+            puts:
+              - Skill:
+                  ty: driving-skill
+                  base: 0.03
+            policy:
+              configurable: false
+              on_underflow: ReduceRate
+              on_overflow: ReduceRate
     stadium:
       name: Stadium
       summary: Inhabitants can exercise here
@@ -584,18 +546,27 @@ def:
         ]
         texture_src: gen/textures-x-fancy.png
         texture_name: stadium
-      reactions:
-        - reaction: stadium
-          policy:
-            configurable: false
-            on_underflow: ReduceRate
-            on_overflow: ReduceRate
       hitpoint: 150.0
       storage:
         cargo: 1000.0
         liquid: [100.0, 100.0]
         gas: 1000.0
-      features: []
+      features:
+        - Reaction:
+            title: Stadium
+            description: Inhabitants can improve athletic skills slowly but gain happiness.
+            catalysts: []
+            puts:
+              - Skill:
+                  ty: happiness
+                  base: 0.2
+              - Skill:
+                  ty: athletic-skill
+                  base: 0.02
+            policy:
+              configurable: false
+              on_underflow: ReduceRate
+              on_overflow: ReduceRate
     prison:
       name: Prison
       summary: Correctional services for criminals
@@ -611,12 +582,6 @@ def:
         ]
         texture_src: gen/textures-x-fancy.png
         texture_name: prison
-      reactions:
-        - reaction: imprisonment
-          policy:
-            configurable: false
-            on_underflow: ReduceRate
-            on_overflow: ReduceRate
       hitpoint: 200.0
       storage:
         cargo: 1000.0
@@ -624,9 +589,37 @@ def:
         gas: 1000.0
       features:
         - SecureExit:
+            catalysts: []
             skill: infamy
-            min_level: 10.0
+            deny_if:
+              AtLeast: 10.0
             breach_probability: 0.001
+        - Reaction:
+            title: Correctional service
+            description: Imprison criminals to recultivate their moral values and turn to a good citizen.
+            catalysts:
+              - range:
+                  Skill:
+                    ty: teaching-skill
+                    levels:
+                      start: 5.0
+                      end: 50.0
+                multipliers:
+                  underflow: 0.0
+                  min: 1.0
+                  max: 1.0
+                  overflow: 1.0
+            puts:
+              - Skill:
+                  ty: satisfaction
+                  base: 0.1
+              - Skill:
+                  ty: morality
+                  base: 0.01
+            policy:
+              configurable: false
+              on_underflow: ReduceRate
+              on_overflow: ReduceRate
     customs:
       name: Customs
       summary: Disallow outlaws from intrusion
@@ -642,7 +635,6 @@ def:
         ]
         texture_src: gen/textures-x-fancy.png
         texture_name: customs
-      reactions: []
       hitpoint: 300.0
       storage:
         cargo: 1000.0
@@ -650,8 +642,10 @@ def:
         gas: 1000.0
       features:
         - SecureEntry:
+            catalysts: []
             skill: infamy
-            min_level: 10.0
+            deny_if:
+              AtLeast: 10.0
             breach_probability: 0.005
   building_cats:
     population:
