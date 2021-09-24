@@ -18,7 +18,7 @@ pub enum Feature {
     /// The building provides housing capacity, and inhabitants can be assigned to it.
     ProvidesHousing(u32),
     /// The building performs a reaction.
-    Reaction(Reaction),
+    Reaction(Box<Reaction>),
     /// The building provides driving force for vehicles on adjacent rails.
     RailPump(PumpSpec<units::RailForce>),
     /// The building provides pumping force for adjacent liquid pipes.

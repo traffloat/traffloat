@@ -4,7 +4,7 @@ use arcstr::ArcStr;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
-use super::{feature::Feature, skill};
+use super::feature::Feature;
 use crate::space::Matrix;
 use crate::{geometry, units};
 

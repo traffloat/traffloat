@@ -151,6 +151,8 @@ fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
 fn render_reaction(reaction: &reaction::Reaction, def: &GameDefinition) -> Html {
     html! {
         <div>
+            <h3>{ reaction.title() }</h3>
+            <p>{ reaction.description() }</p>
             <p>
                 { format_args!(
                     "The rate of reaction {} be configured.",

@@ -1,7 +1,5 @@
 //! Reaction definitions
 
-use std::ops::Range;
-
 use arcstr::ArcStr;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -16,6 +14,12 @@ use crate::units;
     Debug, Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize,
 )]
 pub struct Reaction {
+    /// Title for the reaction.
+    #[getset(get = "pub")]
+    title: ArcStr,
+    /// Description for the reaction.
+    #[getset(get = "pub")]
+    description: ArcStr,
     /// Catalysts for the reaction.
     #[getset(get = "pub")]
     catalysts: SmallVec<[Catalyst; 2]>,

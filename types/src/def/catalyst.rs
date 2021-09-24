@@ -3,7 +3,6 @@
 use std::ops::Range;
 
 use serde::{Deserialize, Serialize};
-use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
 use crate::def::{cargo, gas, liquid, skill};
