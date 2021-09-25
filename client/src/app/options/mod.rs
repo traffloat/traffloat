@@ -1,5 +1,7 @@
 //! Options menu for Traffloat client.
 
+use std::{cell::RefCell, rc::Rc};
+
 use yew::{prelude::*, services::storage};
 
 use crate::options::{self, Options};
@@ -11,6 +13,22 @@ pub struct Comp {
     props: Props,
     link: ComponentLink<Self>,
     options: Options,
+}
+
+impl Comp {
+    fn save_options(&mut self) {
+        let mut storage = storage::StorageService::new(storage::Area::Local)
+            .expect("Failed to fetch localStorage");
+        storage.store(options::STORAGE_KEY, yew::format::Json(&self.options));
+
+        if let Some(legion) = self.props.legion.as_ref() {
+            let legion = legion.borrow_mut();
+            let mut options = legion.resources.get_mut::<Options>();
+            if let Some(options) = options.as_mut() {
+                **options = self.options.clone();
+            }
+        }
+    }
 }
 
 impl Component for Comp {
@@ -28,8 +46,9 @@ impl Component for Comp {
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
             Msg::UpdateBool(key, value) => {
-                let field = key.0(&mut self.options);
+                let field = key(&mut self.options);
                 *field = value;
+                self.save_options();
                 true
             }
         }
@@ -41,36 +60,47 @@ impl Component for Comp {
     }
 
     fn view(&self) -> Html {
-        fn s(options: &mut Options) -> &mut bool {
-            options.graphics_mut().render_stars_mut()
-        }
-
         html! {
             <div>
                 <h2>{ "Graphics" }</h2>
                 <toggle::Comp
                     title="Render stars"
-                    field=OptionsField(|options| options.graphics_mut().render_stars_mut())
                     value=self.options.graphics().render_stars()
+                    callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_stars_mut())
                     />
                 <toggle::Comp
                     title="Render reticle"
-                    field=OptionsField(|options| options.graphics_mut().render_reticle_mut())
                     value=self.options.graphics().render_reticle()
+                    callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_reticle_mut())
                     />
+                { for cfg!(feature = "render-debug").then(|| html! {
+                    <toggle::Comp
+                        title="Render debug info"
+                        value=self.options.graphics().render_debug_info()
+                        callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_debug_info_mut())
+                        />
+                }) }
             </div>
         }
     }
 }
 
-#[derive(Clone)]
-pub struct OptionsField(fn(&mut Options) -> &mut bool);
+type OptionsField = fn(&mut Options) -> &mut bool;
 
 /// Events for [`Comp`].
 pub enum Msg {
     UpdateBool(OptionsField, bool),
 }
 
+impl Msg {
+    fn update_bool(link: &ComponentLink<Comp>, f: OptionsField) -> Callback<bool> {
+        link.callback(move |b| Self::UpdateBool(f, b))
+    }
+}
+
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
-pub struct Props {}
+pub struct Props {
+    /// The legion setup, if opened in-game.
+    pub legion: Option<Rc<RefCell<traffloat::Legion>>>,
+}

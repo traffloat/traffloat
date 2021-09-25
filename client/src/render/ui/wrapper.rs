@@ -4,6 +4,7 @@ use std::rc::Rc;
 use yew::prelude::*;
 
 use super::{duct_editor, edge_preview, node_preview, toolbar};
+use crate::app::options;
 use crate::input::keyboard;
 
 /// Wrapper for UI elements.
@@ -13,6 +14,7 @@ pub struct Wrapper {
     node_preview_args: Option<node_preview::Args>,
     edge_preview_args: Option<edge_preview::Args>,
     duct_editor_args: Option<duct_editor::Args>,
+    options_opened: bool,
     display_toolbar: bool,
 }
 
@@ -29,6 +31,7 @@ impl Component for Wrapper {
             node_preview_args: None,
             edge_preview_args: None,
             duct_editor_args: None,
+            options_opened: false,
             display_toolbar: true,
         }
     }
@@ -57,6 +60,10 @@ impl Component for Wrapper {
                 self.duct_editor_args = args;
                 true
             }
+            Update::OpenOptions => {
+                self.options_opened = true;
+                true
+            }
             Update::Edit => {
                 if let Some(args) = self.edge_preview_args.as_ref() {
                     let args = duct_editor::Args { entity: args.entity };
@@ -69,6 +76,9 @@ impl Component for Wrapper {
                     let mut legion = self.props.legion.borrow_mut();
                     args.save(&mut *legion);
                     self.duct_editor_args = None;
+                }
+                if self.options_opened {
+                    self.options_opened = false;
                 }
                 true
             }
@@ -110,8 +120,20 @@ impl Component for Wrapper {
                 { for self.display_toolbar.then(|| html! {
                     <toolbar::Comp
                         legion=Rc::clone(&self.props.legion)
+                        open_options=self.link.callback(|()| Update::OpenOptions)
                         cancel=self.duct_editor_args.is_some().then(|| self.link.callback(|_| Update::Cancel))
                         />
+                }) }
+                { for self.options_opened.then(|| html! {
+                    <div style="
+                        background-color: white;
+                        width: 300px;
+                        pointer-events: auto;
+                    ">
+                        <options::Comp
+                            legion=Some(Rc::clone(&self.props.legion))
+                            />
+                    </div>
                 }) }
             </div>
         }
@@ -126,6 +148,8 @@ pub enum Update {
     SetEdgePreview(Option<edge_preview::Args>),
     /// Sets the duct editor args to display.
     SetDuctEditor(Option<duct_editor::Args>),
+    /// Open the options menu.
+    OpenOptions,
     /// Trigger the edit action.
     Edit,
     /// Cancels the opened interfaces.

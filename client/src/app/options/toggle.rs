@@ -16,7 +16,12 @@ impl Component for Comp {
     }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
-        match msg {}
+        match msg {
+            Msg::Change(_) => {
+                self.props.callback.emit(!self.props.value);
+                false // parent will update us anyway
+            }
+        }
     }
 
     fn change(&mut self, props: Props) -> ShouldRender {
@@ -29,7 +34,11 @@ impl Component for Comp {
             <tr>
                 <th>{ self.props.title }</th>
                 <td>
-                    <input type="checkbox" checked=self.props.value />
+                    <input
+                        type="checkbox"
+                        checked=self.props.value
+                        onchange=self.link.callback(Msg::Change)
+                        />
                     { for self.props.value.then(|| self.props.on_message) }
                     { for (!self.props.value).then(|| self.props.off_message) }
                 </td>
@@ -39,14 +48,16 @@ impl Component for Comp {
 }
 
 /// Events for [`Comp`].
-pub enum Msg {}
+pub enum Msg {
+    Change(ChangeData),
+}
 
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
     pub title: &'static str,
-    pub field: super::OptionsField,
     pub value: bool,
+    pub callback: Callback<bool>,
     #[prop_or("On")]
     pub on_message: &'static str,
     #[prop_or("Off")]

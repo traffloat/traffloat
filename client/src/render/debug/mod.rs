@@ -3,6 +3,7 @@
 use derive_new::new;
 
 use super::comm::RenderFlag;
+use crate::options;
 use crate::util;
 
 #[cfg(feature = "render-debug")]
@@ -21,12 +22,16 @@ fn draw(
     #[resource] layers: &Option<super::Layers>,
     #[resource] perf_read: &mut codegen::Perf,
     #[resource] entries: &codegen::DebugEntries,
+    #[resource] options: &options::Options,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
+    use std::fmt::Write;
+
     match render_flag.last() {
         Some(RenderFlag) => (),
         None => return,
     };
+
     let mut layers = match layers.as_ref() {
         Some(layers) => layers.borrow_mut(),
         None => return,
@@ -35,10 +40,12 @@ fn draw(
 
     // Start actual logging
     writer.reset();
+    if !options.graphics().render_debug_info() {
+        writer.flush();
+        return;
+    }
 
     for (category, names) in entries.entries() {
-        use std::fmt::Write;
-
         write!(writer, "[{}]", category).expect("String::write_fmt never fails");
         let mut first = true;
         for (name, entry) in names {
@@ -69,9 +76,9 @@ fn draw(
                 sys, avg, sd, max
             ));
         }
-
-        writer.flush();
     }
+
+    writer.flush();
 }
 
 /// Sets up legion ECS for debug info rendering.

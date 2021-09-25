@@ -185,9 +185,11 @@ fn draw(
 
     scene.gl.disable(WebGlRenderingContext::CULL_FACE);
     scene.gl.disable(WebGlRenderingContext::BLEND);
-    scene.reticle_prog.draw(&scene.gl, arrow_projection, [1., 0., 0.]);
-    scene.reticle_prog.draw(&scene.gl, arrow_projection * rot_y, [0., 1., 0.]);
-    scene.reticle_prog.draw(&scene.gl, arrow_projection * rot_z, [0., 0., 1.]);
+    if options.graphics().render_reticle() {
+        scene.reticle_prog.draw(&scene.gl, arrow_projection, [1., 0., 0.]);
+        scene.reticle_prog.draw(&scene.gl, arrow_projection * rot_y, [0., 1., 0.]);
+        scene.reticle_prog.draw(&scene.gl, arrow_projection * rot_z, [0., 0., 1.]);
+    }
 }
 
 #[codegen::system(Visualize)]
