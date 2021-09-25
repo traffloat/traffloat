@@ -48,7 +48,9 @@ jobs:
       - name: Preprocess resources
         run: just pp
       - name: cargo clippy
-        run: "cargo clippy --all ${{matrix.stability}}"
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
   test:
     name: unit tests
     runs-on: ubuntu-latest
