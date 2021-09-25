@@ -11,7 +11,6 @@ use traffloat::save;
 pub mod building;
 pub mod cargo;
 pub mod nav;
-pub mod options;
 
 const SIDEBAR_WIDTH_PX: u32 = 200;
 const SIDEBAR_PADDING_PX: u32 = 10;

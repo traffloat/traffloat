@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use traffloat::def::{cargo, gas, liquid};
 
+/// The localStorage key for options
 pub const STORAGE_KEY: &str = "traffloat_options";
 
 /// All settings for the client, serialized in `localStorage`.

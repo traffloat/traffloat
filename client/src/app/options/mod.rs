@@ -2,7 +2,7 @@
 
 use yew::{prelude::*, services::storage};
 
-use crate::options;
+use crate::options::{self, Options};
 
 mod toggle;
 
@@ -10,7 +10,7 @@ mod toggle;
 pub struct Comp {
     props: Props,
     link: ComponentLink<Self>,
-    options: options::Options,
+    options: Options,
 }
 
 impl Component for Comp {
@@ -28,7 +28,7 @@ impl Component for Comp {
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
             Msg::UpdateBool(key, value) => {
-                let field = key(&mut self.options);
+                let field = key.0(&mut self.options);
                 *field = value;
                 true
             }
@@ -41,17 +41,21 @@ impl Component for Comp {
     }
 
     fn view(&self) -> Html {
+        fn s(options: &mut Options) -> &mut bool {
+            options.graphics_mut().render_stars_mut()
+        }
+
         html! {
             <div>
                 <h2>{ "Graphics" }</h2>
                 <toggle::Comp
-                    name="Render stars"
-                    key={|options| options.graphics_mut().render_stars_mut()}
+                    title="Render stars"
+                    field=OptionsField(|options| options.graphics_mut().render_stars_mut())
                     value=self.options.graphics().render_stars()
                     />
                 <toggle::Comp
-                    name="Render reticle"
-                    key={|options| options.graphics_mut().render_reticle_mut()}
+                    title="Render reticle"
+                    field=OptionsField(|options| options.graphics_mut().render_reticle_mut())
                     value=self.options.graphics().render_reticle()
                     />
             </div>
@@ -59,7 +63,8 @@ impl Component for Comp {
     }
 }
 
-type OptionsField = fn(&mut options::Options) -> &mut bool;
+#[derive(Clone)]
+pub struct OptionsField(fn(&mut Options) -> &mut bool);
 
 /// Events for [`Comp`].
 pub enum Msg {

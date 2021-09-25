@@ -27,7 +27,7 @@ impl Component for Comp {
     fn view(&self) -> Html {
         html! {
             <tr>
-                <th>{ self.props.name }</th>
+                <th>{ self.props.title }</th>
                 <td>
                     <input type="checkbox" checked=self.props.value />
                     { for self.props.value.then(|| self.props.on_message) }
@@ -44,8 +44,8 @@ pub enum Msg {}
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
-    pub name: &'static str,
-    pub key: super::OptionsField,
+    pub title: &'static str,
+    pub field: super::OptionsField,
     pub value: bool,
     #[prop_or("On")]
     pub on_message: &'static str,
