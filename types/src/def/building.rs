@@ -30,8 +30,10 @@ pub struct Type {
     #[getset(get = "pub")]
     category: CategoryId,
     /// Shape of the building.
+    ///
+    /// If multiple shapes are provided, they are all rendered together in order.
     #[getset(get = "pub")]
-    shape: Shape,
+    shapes: Vec<Shape>,
     /// Maximum hitpoint of a building.
     ///
     /// The actual hitpoint is subject to asteroid and fire damage.

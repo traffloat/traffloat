@@ -3,15 +3,27 @@
 use arcstr::ArcStr;
 use derive_new::new;
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
 use crate::space::{Matrix, Position};
 use crate::SetupEcs;
 pub use traffloat_types::geometry::Unit;
 
+/// Describes the shape and appearance of an object.
+///
+/// An object may be composed of multiple components.
+///
+#[derive(Debug, Clone, new, getset::Getters, Serialize, Deserialize)]
+pub struct Appearance {
+    /// The list of components.
+    #[getset(get = "pub")]
+    components: SmallVec<[Component; 1]>,
+}
+
 /// Describes the shape and appearance of an object
 #[derive(Debug, Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize)]
-pub struct Shape {
+pub struct Component {
     #[getset(get_copy = "pub")]
     /// Unit shape variant
     unit: Unit,
@@ -30,7 +42,7 @@ pub struct Shape {
     texture: Texture,
 }
 
-impl<'de> Deserialize<'de> for Shape {
+impl<'de> Deserialize<'de> for Component {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
         struct Simple {
@@ -51,7 +63,7 @@ impl<'de> Deserialize<'de> for Shape {
     }
 }
 
-impl Shape {
+impl Component {
     /// The transformation matrix from the unit shape to this shape centered at pos
     pub fn transform(&self, pos: Position) -> Matrix {
         self.matrix().append_translation(&pos.vector())

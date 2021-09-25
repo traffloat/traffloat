@@ -1,14 +1,15 @@
 //! Calculates the sunlight level of each building
 
+use std::cell::Cell;
 use std::collections::{btree_map::Entry, BTreeMap};
 use std::f64::consts::PI;
 
 use smallvec::SmallVec;
 
+use crate::appearance::Appearance;
 use crate::clock::Clock;
 use crate::config;
 use crate::node;
-use crate::shape::Shape;
 use crate::space::{Position, Vector};
 use crate::units::Brightness;
 use crate::util::Finite;
@@ -68,7 +69,7 @@ pub struct LightStats {
 #[codegen::system(PostCommand)]
 #[write_component(LightStats)]
 #[read_component(Position)]
-#[read_component(Shape)]
+#[read_component(Appearance)]
 fn shadow_cast(
     world: &mut legion::world::SubWorld,
     #[state(true)] first: &mut bool,
@@ -87,10 +88,10 @@ fn shadow_cast(
     #[allow(clippy::indexing_slicing)]
     for month in 0..MONTH_COUNT {
         use legion::IntoQuery;
-        let mut query = <(&mut LightStats, &Position, &Shape)>::query();
+        let mut query = <(&mut LightStats, &Position, &Appearance)>::query();
 
         struct Marker<'t> {
-            light: &'t mut Brightness,
+            light: &'t Cell<Brightness>,
             min: [Finite; 2],
             max: [Finite; 2],
             priority: Finite,
@@ -98,7 +99,7 @@ fn shadow_cast(
 
         let mut markers = Vec::new();
 
-        for (stats, &position, shape) in query.iter_mut(world) {
+        for (stats, &position, appearance) in query.iter_mut(world) {
             // Sun rotates from +x towards +y, normal to +z
             let yaw: f64 = PI * 2. / MONTH_COUNT.small_float::<f64>() * month.small_float::<f64>();
 
@@ -106,20 +107,24 @@ fn shadow_cast(
             let rot = nalgebra::Rotation3::from_axis_angle(&Vector::z_axis(), -yaw)
                 .matrix()
                 .to_homogeneous();
-            let trans = shape.transform(position);
-            let (min, max) = shape.unit().bb_under(rot * trans);
 
-            let priority = Finite::new(max.x);
             let light = stats.brightness.get_mut(month).expect("month < MONTH_COUNT");
             *light = Brightness(0.);
 
-            let marker = Marker {
-                light,
-                min: [Finite::new(min.y), Finite::new(min.z)],
-                max: [Finite::new(max.y), Finite::new(max.z)],
-                priority,
-            };
-            markers.push(marker);
+            let light: &Cell<Brightness> = Cell::from_mut(light);
+
+            for component in appearance.components() {
+                let trans = component.transform(position);
+                let (min, max) = component.unit().bb_under(rot * trans);
+                let priority = Finite::new(max.x);
+                let marker = Marker {
+                    light,
+                    min: [Finite::new(min.y), Finite::new(min.z)],
+                    max: [Finite::new(max.y), Finite::new(max.z)],
+                    priority,
+                };
+                markers.push(marker);
+            }
         }
 
         let cuts: SmallVec<[Vec<Finite>; 2]> = (0_usize..2)
@@ -171,8 +176,8 @@ fn shadow_cast(
             let len0 = cuts[0][i + 1].value() - cuts[0][i].value();
             let len1 = cuts[1][j + 1].value() - cuts[1][j].value();
             let area = Brightness(len0 * len1);
-            let light = &mut *markers[marker_index].light;
-            *light += area;
+            let light = markers[marker_index].light;
+            light.set(light.get() + area);
         }
     }
 }

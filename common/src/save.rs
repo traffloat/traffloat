@@ -8,13 +8,13 @@ use legion::{world::ComponentError, Entity, EntityStore, IntoQuery};
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
+use crate::appearance::Appearance;
 use crate::clock::Clock;
 use crate::def::GameDefinition;
 use crate::defense;
 use crate::edge::save::{Edge, SavedDuct};
 use crate::node::save::Node;
 use crate::population;
-use crate::shape::Shape;
 use crate::space::Position;
 use crate::time::Instant;
 use crate::units;
@@ -93,7 +93,7 @@ pub struct Response {
 #[read_component(edge::Size)]
 #[read_component(edge::Design)]
 #[read_component(Position)]
-#[read_component(Shape)]
+#[read_component(Appearance)]
 #[read_component(units::Portion<units::Hitpoint>)]
 #[read_component(cargo::StorageList)]
 #[read_component(cargo::StorageCapacity)]
@@ -127,7 +127,7 @@ fn save(
                         &node::Id,
                         &node::Name,
                         &Position,
-                        &Shape,
+                        &Appearance,
                         &units::Portion<units::Hitpoint>,
                         &cargo::StorageList,
                         &cargo::StorageCapacity,
@@ -142,7 +142,7 @@ fn save(
                             &id,
                             name,
                             &position,
-                            shape,
+                            appearance,
                             &hitpoint,
                             cargo,
                             &cargo_capacity,
@@ -156,7 +156,7 @@ fn save(
                                 id,
                                 name: name.clone(),
                                 position,
-                                shape: shape.clone(),
+                                appearance: appearance.clone(),
                                 hitpoint,
                                 cargo: cargo
                                     .storages()

@@ -7,7 +7,7 @@ use crate::render::scene::mesh;
 use crate::render::texture;
 use crate::render::util::{create_program, AttrLocation, UniformLocation};
 use safety::Safety;
-use traffloat::shape;
+use traffloat::appearance;
 use traffloat::space::{Matrix, Vector};
 
 /// Stores the setup data for node rendering.
@@ -81,8 +81,8 @@ impl Program {
         // The dynamic dispatch here is roughly equialent to
         // an enum matching on the unit type and should not impact performance.
         let mesh: &dyn AbstractPreparedMesh = match shape_unit {
-            shape::Unit::Cube => &self.cube,
-            shape::Unit::Cylinder => &self.cylinder,
+            appearance::Unit::Cube => &self.cube,
+            appearance::Unit::Cylinder => &self.cylinder,
             _ => todo!(),
         };
         self.a_pos.assign(gl, mesh.positions());
@@ -128,5 +128,5 @@ pub struct DrawArgs<'t> {
     /// The spritesheet for the shape.
     texture: &'t texture::PreparedTexture,
     /// The shape to draw.
-    shape_unit: shape::Unit,
+    shape_unit: appearance::Unit,
 }

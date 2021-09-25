@@ -5,9 +5,9 @@ use legion::Entity;
 use super::{keyboard, ScreenPosition};
 use crate::camera::Camera;
 use crate::render;
+use traffloat::appearance;
 use traffloat::edge;
 use traffloat::node;
-use traffloat::shape::{self, Shape};
 use traffloat::space::Position;
 
 /// Resource storing the position of the mouse, in the range [0, 1]^2.
@@ -91,7 +91,7 @@ pub struct HoverTarget {
 
 #[codegen::system(Response)]
 #[read_component(Position)]
-#[read_component(Shape)]
+#[read_component(appearance::Appearance)]
 #[read_component(node::Id)]
 #[read_component(edge::Id)]
 #[read_component(edge::Size)]
@@ -109,15 +109,19 @@ fn trace_entity(
 
     hover_target.set_entity(None);
     let mut last_depth = 2.0;
-    for (&entity, &position, shape) in <(Entity, &Position, &Shape)>::query().iter(world) {
-        let transform = shape.inv_transform(position);
-        let proximal = transform.transform_point(&segment.proximal.0);
-        let distal = transform.transform_point(&segment.distal.0);
+    for (&entity, &position, appearance) in
+        <(Entity, &Position, &appearance::Appearance)>::query().iter(world)
+    {
+        for component in appearance.components() {
+            let transform = component.inv_transform(position);
+            let proximal = transform.transform_point(&segment.proximal.0);
+            let distal = transform.transform_point(&segment.distal.0);
 
-        if let Some(depth) = shape.unit().between(proximal, distal) {
-            if depth < last_depth {
-                last_depth = depth;
-                hover_target.set_entity(Some(entity));
+            if let Some(depth) = component.unit().between(proximal, distal) {
+                if depth < last_depth {
+                    last_depth = depth;
+                    hover_target.set_entity(Some(entity));
+                }
             }
         }
     }
@@ -127,7 +131,7 @@ fn trace_entity(
         let proximal = unit.transform_point(&segment.proximal.0);
         let distal = unit.transform_point(&segment.distal.0);
 
-        if let Some(depth) = shape::Unit::Cylinder.between(proximal, distal) {
+        if let Some(depth) = appearance::Unit::Cylinder.between(proximal, distal) {
             if depth < last_depth {
                 last_depth = depth;
                 hover_target.set_entity(Some(entity));

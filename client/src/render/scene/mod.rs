@@ -9,8 +9,8 @@ use web_sys::WebGlRenderingContext;
 use super::{CursorType, RenderFlag};
 use crate::camera::Camera;
 use crate::input;
+use traffloat::appearance::{self, Appearance};
 use traffloat::lerp;
-use traffloat::shape::{Shape, Texture};
 use traffloat::space::{Matrix, Position};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
@@ -71,7 +71,7 @@ impl Canvas {
 
 #[codegen::system(Visualize)]
 #[read_component(Position)]
-#[read_component(Shape)]
+#[read_component(appearance::Appearance)]
 #[read_component(LightStats)]
 #[read_component(traffloat::liquid::Storage)]
 #[read_component(traffloat::liquid::StorageSize)]
@@ -116,14 +116,11 @@ fn draw(
     scene.gl.enable(WebGlRenderingContext::BLEND);
 
     #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
-    for (entity, &position, shape, light) in <(Entity, &Position, &Shape, &LightStats)>::query()
-        .filter(component::<traffloat::node::Id>())
-        .iter(world)
+    for (entity, &position, appearance, light) in
+        <(Entity, &Position, &Appearance, &LightStats)>::query()
+            .filter(component::<traffloat::node::Id>())
+            .iter(world)
     {
-        // projection matrix transforms real coordinates to canvas
-
-        let unit_to_real = shape.transform(position);
-
         let base_month = sun.yaw() / PI / 2. * MONTH_COUNT as f64;
         #[allow(clippy::indexing_slicing)]
         let brightness = {
@@ -134,20 +131,25 @@ fn draw(
         let selected =
             hover_target.entity() == Some(*entity) || focus_target.entity() == Some(*entity);
 
-        let tex: &Texture = shape.texture();
-        let sprite = texture_pool.sprite(tex, &scene.gl);
+        for component in appearance.components() {
+            // projection matrix transforms real coordinates to canvas
 
-        scene.node_prog.draw(
-            node::DrawArgs::builder()
-                .gl(&scene.gl)
-                .proj(projection * unit_to_real)
-                .sun(sun_dir)
-                .brightness(brightness)
-                .selected(selected)
-                .texture(&sprite)
-                .shape_unit(shape.unit())
-                .build(),
-        );
+            let unit_to_real = component.transform(position);
+            let tex: &appearance::Texture = component.texture();
+            let sprite = texture_pool.sprite(tex, &scene.gl);
+
+            scene.node_prog.draw(
+                node::DrawArgs::builder()
+                    .gl(&scene.gl)
+                    .proj(projection * unit_to_real)
+                    .sun(sun_dir)
+                    .brightness(brightness)
+                    .selected(selected)
+                    .texture(&sprite)
+                    .shape_unit(component.unit())
+                    .build(),
+            );
+        }
     }
 
     for (entity, edge, size) in

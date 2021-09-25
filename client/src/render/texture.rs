@@ -12,7 +12,7 @@ use crate::render::scene::mesh::{cube, cylinder};
 use crate::render::util::{AttrLocation, FloatBuffer, UniformLocation};
 use crate::util::ReifiedPromise;
 use safety::Safety;
-use traffloat::shape;
+use traffloat::appearance;
 
 #[wasm_bindgen(module = "/js/bitmap.js")]
 extern "C" {
@@ -57,7 +57,11 @@ impl Pool {
     }
 
     /// Retrieves a sprite for the given texture, or returns the dummy texture
-    pub fn sprite(&self, texture: &shape::Texture, gl: &WebGlRenderingContext) -> PreparedTexture {
+    pub fn sprite(
+        &self,
+        texture: &appearance::Texture,
+        gl: &WebGlRenderingContext,
+    ) -> PreparedTexture {
         let atlas = self.load(texture.url());
         atlas.get(texture.name(), gl).unwrap_or_else(|| PreparedTexture {
             gl_tex: Rc::clone(&self.dummy),

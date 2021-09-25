@@ -12,9 +12,9 @@ use serde::{Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
 use typed_builder::TypedBuilder;
 
+use crate::appearance;
 use crate::def::{building, feature::Feature, GameDefinition};
 use crate::defense;
-use crate::shape::{self, Shape};
 use crate::space::{Matrix, Position};
 use crate::sun::LightStats;
 use crate::units;
@@ -33,7 +33,7 @@ codegen::component_depends! {
         Id,
         Name,
         Position,
-        Shape,
+        appearance::Appearance,
         LightStats,
         units::Portion<units::Hitpoint>,
         cargo::StorageList,
@@ -175,14 +175,22 @@ fn create_new_node(
             id,
             Name::new(building.name().clone()),
             request.position,
-            Shape::builder()
-                .unit(building.shape().unit())
-                .matrix(request.rotation * building.shape().transform())
-                .texture(shape::Texture::new(
-                    building.shape().texture_src().clone(),
-                    building.shape().texture_name().clone(),
-                ))
-                .build(),
+            appearance::Appearance::new(
+                building
+                    .shapes()
+                    .iter()
+                    .map(|shape| {
+                        appearance::Component::builder()
+                            .unit(shape.unit())
+                            .matrix(request.rotation * shape.transform())
+                            .texture(appearance::Texture::new(
+                                shape.texture_src().clone(),
+                                shape.texture_name().clone(),
+                            ))
+                            .build()
+                    })
+                    .collect(),
+            ),
             LightStats::default(),
             units::Portion::full(building.hitpoint()),
             cargo::StorageList::new(smallvec![]),
@@ -294,7 +302,7 @@ fn create_saved_node(
             save.id,
             save.name.clone(),
             save.position,
-            save.shape.clone(),
+            save.appearance.clone(),
             LightStats::default(),
             save.hitpoint,
             cargo::StorageList::new(cargo_list),
@@ -349,7 +357,7 @@ pub mod save {
         pub(crate) id: super::Id,
         pub(crate) name: super::Name,
         pub(crate) position: Position,
-        pub(crate) shape: Shape,
+        pub(crate) appearance: appearance::Appearance,
         pub(crate) hitpoint: units::Portion<units::Hitpoint>,
         pub(crate) cargo: BTreeMap<def::cargo::TypeId, units::CargoSize>,
         pub(crate) cargo_capacity: units::CargoSize,

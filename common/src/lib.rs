@@ -28,6 +28,7 @@ mod macros;
 
 pub use traffloat_types::{def, space, time, units};
 
+pub mod appearance;
 pub mod cargo;
 pub mod clock;
 pub mod config;
@@ -39,7 +40,6 @@ pub mod liquid;
 pub mod node;
 pub mod population;
 pub mod save;
-pub mod shape;
 pub mod sun;
 mod util;
 pub use util::*;
@@ -54,7 +54,7 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
         .uses(clock::setup_ecs)
         .uses(defense::setup_ecs)
         .uses(factory::setup_ecs)
-        .uses(shape::setup_ecs)
+        .uses(appearance::setup_ecs)
         .uses(node::setup_ecs)
         .uses(|mut setup| {
             setup.builder.flush();
