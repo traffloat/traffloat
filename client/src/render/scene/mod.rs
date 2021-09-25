@@ -8,14 +8,11 @@ use web_sys::WebGlRenderingContext;
 
 use super::{CursorType, RenderFlag};
 use crate::camera::Camera;
-use crate::input;
+use crate::{input, options};
 use traffloat::appearance::{self, Appearance};
 use traffloat::lerp;
 use traffloat::space::{Matrix, Position};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
-
-mod perspective;
-use perspective::*;
 
 pub mod mesh;
 
@@ -88,7 +85,7 @@ fn draw(
     #[resource] texture_pool: &mut Option<super::texture::Pool>,
     #[resource] hover_target: &input::mouse::HoverTarget,
     #[resource] focus_target: &input::FocusTarget,
-    #[resource] perspective: &Perspective,
+    #[resource] options: &options::Options,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     use legion::IntoQuery;

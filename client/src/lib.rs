@@ -31,6 +31,7 @@ mod app;
 pub mod camera;
 pub mod config;
 pub mod input;
+pub mod options;
 pub mod render;
 pub mod util;
 
