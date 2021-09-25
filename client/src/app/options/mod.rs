@@ -39,7 +39,7 @@ impl Component for Comp {
         let storage = storage::StorageService::new(storage::Area::Local)
             .expect("Failed to fetch localStorage");
         let yew::format::Json(options) = storage.restore(options::STORAGE_KEY);
-        let options = options.unwrap_or_default();
+        let options = options.unwrap_or_else(|_| Options::default());
         Self { props, link, options }
     }
 
@@ -64,20 +64,26 @@ impl Component for Comp {
             <div>
                 <h2>{ "Graphics" }</h2>
                 <toggle::Comp
-                    title="Render stars"
+                    title="Background stars"
                     value=self.options.graphics().render_stars()
                     callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_stars_mut())
+                    on_message="Show"
+                    off_message="Hide"
                     />
                 <toggle::Comp
-                    title="Render reticle"
+                    title="Axis reticle"
                     value=self.options.graphics().render_reticle()
                     callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_reticle_mut())
+                    on_message="Show"
+                    off_message="Hide"
                     />
                 { for cfg!(feature = "render-debug").then(|| html! {
                     <toggle::Comp
-                        title="Render debug info"
+                        title="Debug info"
                         value=self.options.graphics().render_debug_info()
                         callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_debug_info_mut())
+                        on_message="Show"
+                        off_message="Hide"
                         />
                 }) }
             </div>

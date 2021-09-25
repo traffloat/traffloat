@@ -41,7 +41,7 @@ fn draw(
     #[resource] camera: &Camera,
     #[resource] layers: &Option<super::Layers>,
     #[resource] sun: &Sun,
-    #[resource] options: &options::Options,
+    #[resource(no_init)] options: &options::Options,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     // Render flag gate boilerplate

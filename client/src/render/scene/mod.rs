@@ -85,7 +85,7 @@ fn draw(
     #[resource] texture_pool: &mut Option<super::texture::Pool>,
     #[resource] hover_target: &input::mouse::HoverTarget,
     #[resource] focus_target: &input::FocusTarget,
-    #[resource] options: &options::Options,
+    #[resource(no_init)] options: &options::Options,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     use legion::IntoQuery;

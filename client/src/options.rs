@@ -2,11 +2,12 @@
 
 use arcstr::ArcStr;
 use serde::{Deserialize, Serialize};
+use yew::services::storage;
 
 use traffloat::def::{cargo, gas, liquid};
 
 /// The localStorage key for options
-pub const STORAGE_KEY: &str = "traffloat_options";
+pub const STORAGE_KEY: &str = "traffloat:game_options";
 
 /// All settings for the client, serialized in `localStorage`.
 #[derive(Debug, Clone, Serialize, Deserialize, getset::Getters, getset::MutGetters)]
@@ -147,8 +148,10 @@ pub struct Trapezium {
     maximum: f32,
 }
 
-impl Default for Options {
-    fn default() -> Self {
+impl Options {
+    /// This method deliberately does not implement [`Default`]
+    /// to avoid accidentally overwriting the default initialization.
+    pub fn default() -> Self {
         Self {
             graphics: Graphics {
                 render_stars: true,
@@ -179,4 +182,13 @@ impl Default for Options {
             },
         }
     }
+}
+
+/// Sets up legion ECS.
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
+    let storage =
+        storage::StorageService::new(storage::Area::Local).expect("Failed to fetch localStorage");
+    let yew::format::Json(options) = storage.restore(STORAGE_KEY);
+    let options: Options = options.unwrap_or_else(|_| Options::default());
+    setup.resource(options)
 }

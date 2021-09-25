@@ -22,7 +22,7 @@ fn draw(
     #[resource] layers: &Option<super::Layers>,
     #[resource] perf_read: &mut codegen::Perf,
     #[resource] entries: &codegen::DebugEntries,
-    #[resource] options: &options::Options,
+    #[resource(no_init)] options: &options::Options,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     use std::fmt::Write;

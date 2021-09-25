@@ -61,4 +61,5 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
         .uses(camera::setup_ecs)
         .uses(input::setup_ecs)
         .uses(render::setup_ecs)
+        .uses(options::setup_ecs)
 }
