@@ -50,7 +50,7 @@ jobs:
       - name: cargo clippy
         uses: actions-rs/clippy-check@v1
         with:
-          token: ${{secrets.MAIN_TOKEN}}
+          token: ${{secrets.GITHUB_TOKEN}}
   test:
     name: unit tests
     runs-on: ubuntu-latest
