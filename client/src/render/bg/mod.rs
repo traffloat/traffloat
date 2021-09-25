@@ -3,7 +3,7 @@
 use web_sys::WebGlRenderingContext;
 
 use super::{Dimension, RenderFlag};
-use crate::camera::Camera;
+use crate::{camera::Camera, options};
 use safety::Safety;
 use traffloat::sun::Sun;
 
@@ -41,6 +41,7 @@ fn draw(
     #[resource] camera: &Camera,
     #[resource] layers: &Option<super::Layers>,
     #[resource] sun: &Sun,
+    #[resource(no_init)] options: &options::Options,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
 ) {
     // Render flag gate boilerplate
@@ -61,7 +62,9 @@ fn draw(
 
     bg.sun_prog.draw(&bg.gl, screen_pos, dim.aspect().lossy_trunc());
 
-    bg.star_prog.draw(&bg.gl, camera.asymptotic_projection());
+    if options.graphics().render_stars() {
+        bg.star_prog.draw(&bg.gl, camera.asymptotic_projection());
+    }
 }
 
 /// Sets up legion ECS for debug info rendering.

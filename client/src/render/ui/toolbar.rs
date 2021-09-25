@@ -29,6 +29,10 @@ impl Component for Comp {
                 legion.publish(traffloat::save::Request::builder().format(format).build());
                 false
             }
+            Msg::OpenOptions => {
+                self.props.open_options.emit(());
+                false
+            }
         }
     }
 
@@ -49,6 +53,10 @@ impl Component for Comp {
                     style="pointer-events: auto;"
                     onclick=self.link.callback(|_| Msg::SaveButton(save::Format::Binary))
                 >{ "Save" }</button>
+                <button
+                    style="pointer-events: auto;"
+                    onclick=self.link.callback(|_| Msg::OpenOptions)
+                >{ "Options" }</button>
                 { for self.props.cancel.as_ref().map(|cancel| html! {
                     <button
                         style="pointer-events: auto;"
@@ -64,6 +72,8 @@ impl Component for Comp {
 pub enum Msg {
     /// The user clicks the save button.
     SaveButton(save::Format),
+    /// Open settings menu.
+    OpenOptions,
 }
 
 /// Yew properties for [`Comp`].
@@ -73,6 +83,8 @@ pub struct Props {
     pub legion: Rc<RefCell<traffloat::Legion>>,
     /// The cancel callback, or [`None`] if it should not be rendered.
     pub cancel: Option<Callback<MouseEvent>>,
+    /// The callback to open options menu.
+    pub open_options: Callback<()>,
 }
 
 #[codegen::system(Visualize)]
