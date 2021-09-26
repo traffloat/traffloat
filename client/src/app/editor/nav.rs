@@ -31,18 +31,19 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         html! {
-            <nav style=format!("
-                overflow-x: hidden;
-                overflow-y: auto;
-                position: fixed;
-                left: 0;
-                width: {width}px;
-                height: 100vh;
-                padding: 5px {padding}px;
-                font-family: 'Helvetica', 'Arial', sans-serif;
-            ", width=super::SIDEBAR_WIDTH_PX, padding=super::SIDEBAR_PADDING_PX)>
+            <nav style=style!(
+                "overflow-x": "hidden",
+                "overflow-y": "auto",
+                "position": "fixed",
+                "left": "0",
+                "width": format!("{}px", super::SIDEBAR_WIDTH_PX),
+                "height": "100vh",
+                "padding": format!("5px {}px", super::SIDEBAR_PADDING_PX),
+                "padding": "5px {padding}px",
+                "font-family": "'Helvetica', 'Arial', sans-serif",
+            )>
                 <div
-                    style="cursor: pointer;"
+                    style=style!("cursor": "pointer")
                     onclick=self.props.editor_home.reform(|_| ())
                 >
                     { "Game Rules" }

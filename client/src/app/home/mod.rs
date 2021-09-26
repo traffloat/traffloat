@@ -156,7 +156,11 @@ impl Component for Home {
 
     fn view(&self) -> Html {
         html! {
-            <div style="margin: 0 auto; max-width: 720px; font-family: 'Helvetica', 'Arial', sans-serif;">
+            <div style=style!(
+                "margin": "0 auto",
+                "max-width": "720px",
+                "font-family": "'Helvetica', 'Arial', sans-serif",
+            )>
                 <h1>{ "Traffloat" }</h1>
 
                 { for self.props.error.as_ref().map(|error| html! {
@@ -218,20 +222,33 @@ impl Component for Home {
 
                 // TODO handle multiplayer
 
-                <footer style="position: fixed; bottom: 0; left: 0; width: 100%;">
-                    <ul style="text-align: center; display: block; padding: 0;">
+                <footer style=style!(
+                    "position": "fixed",
+                    "bottom": "0", "left": "0",
+                    "width": "100%",
+                )>
+                    <ul style=style!(
+                        "text-align": "center",
+                        "display": "block",
+                        "padding": "0",
+                    )>
                         { for [
                             ("Source code", "https://github.com/traffloat/traffloat"),
                             ("Bugs", "https://github.com/traffloat/traffloat/issues"),
                             ("Discussion", "https://github.com/traffloat/traffloat/discussions"),
                         ].iter().map(|&(name, url)| html! {
-                            <li style="display: inline; margin: 0.5em;"><a href=url target="_blank">{ name }</a></li>
+                            <li style=style!(
+                                "display": "inline",
+                                "margin": "0.5em",
+                            )>
+                                <a href=url target="_blank">{ name }</a>
+                            </li>
                         }) }
                     </ul>
-                    <p style="text-align: center;">{
+                    <p style=style!("text-align": "center")>{
                         format_args!( "v{}", traffloat_version::VERSION)
                     }</p>
-                    <p style="text-align: center;">
+                    <p style=style!("text-align": "center;")>
                         { "Licensed under " }
                         <a href="https://www.gnu.org/licenses/agpl-3.0.en.html" target="_blank">
                             { "GNU Affero General Public License" }

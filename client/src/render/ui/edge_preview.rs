@@ -76,21 +76,21 @@ impl Component for Comp {
         }
 
         html! {
-            <div style="
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                width: 15em; height: 10em;
-                color: black;
-                pointer-events: auto;
-                background-color: white;
-                font-size: large;
-                padding: 1em 0.2em;
-                overflow-y: auto;
-            ">
-                <p style="margin: 0.5em 0;">{ "Corridor" }</p>
+            <div style=style!(
+                "position": "absolute",
+                "bottom": "0",
+                "left": "0",
+                "width": "15em", "height": "10em",
+                "color": "black",
+                "pointer-events": "auto",
+                "background-color": "white",
+                "font-size": "large",
+                "padding": "1em 0.2em",
+                "overflow-y": "auto",
+            )>
+                <p style=style!("margin": "0.5em 0")>{ "Corridor" }</p>
                 <button onclick=self.link.callback(|_| Msg::EditDucts)>{ "Edit" }</button>
-                <p style="marign: 0.5em 0;">
+                <p style=style!("marign": "0.5em 0")>
                     { for self.props.args.liquids.iter().map(|flow| html! {
                         <>
                             { flow_display(flow.flow, &flow.name, &flow.icon) }

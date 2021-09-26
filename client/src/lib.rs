@@ -27,6 +27,9 @@
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
+#[macro_use]
+pub mod style;
+
 mod app;
 pub mod camera;
 pub mod config;

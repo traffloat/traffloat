@@ -41,8 +41,8 @@ impl Component for Comp {
         fn table_entry(name: impl Into<Html>, value: impl Into<Html>) -> Html {
             html! {
                 <tr>
-                    <td style="width: 4em; padding-right: 10px;">{ name }</td>
-                    <td style="width: 8em;">{ value }</td>
+                    <td style=style!("width": "4em", "padding-right": "10px")>{ name }</td>
+                    <td style=style!("width": "8em;")>{ value }</td>
                 </tr>
             }
         }
@@ -50,9 +50,7 @@ impl Component for Comp {
         html! {
             <>
                 <h1>{ building.name() }</h1>
-                <div style="
-                    float: right;
-                ">
+                <div style=style!("float": "right")>
                     <table>
                         <tbody>
                             { table_entry("Hitpoints", building.hitpoint()) }
@@ -70,7 +68,7 @@ impl Component for Comp {
                         </tbody>
                     </table>
                 </div>
-                <p style="font-style: italic;">{ building.summary() }</p>
+                <p style=style!("font-style": "italic")>{ building.summary() }</p>
                 <p>{ building.description() }</p>
 
                 <h2>{ "Mechanisms" }</h2>
@@ -92,7 +90,7 @@ fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
             <div>
                 <h3>{ format_args!("Housing ({} capacity)", capacity) }</h3>
                 <p>
-                    { format_args!("This building provides {} housing capacity.", capacity) }
+                    { format_args!("This building provides {} housing capacity. ", capacity) }
                     { "Inhabitants assigned to this building will be affected by " }
                     { "the skill-related mechanisms of this building, such as food, " }
                     { "even if they are not currently inside the building." }
@@ -193,16 +191,16 @@ fn render_reaction(reaction: &reaction::Reaction, def: &GameDefinition) -> Html 
             // TODO document FlowPolicy
 
             <table>
-                <tbody style="text-align: center;">
+                <tbody style=style!("text-align": "center")>
                     <tr>
-                        <th style="width: 20%;" rowspan="2">{ "Condition" }</th>
-                        <th style="width: 20%;" rowspan="2">{ "Optimal range" }</th>
+                        <th style=style!("width": "20%") rowspan="2">{ "Condition" }</th>
+                        <th style=style!("width": "20%") rowspan="2">{ "Optimal range" }</th>
                         <th colspan="3">{ "Rate multiplier" }</th>
                     </tr>
                     <tr>
-                        <th style="width: 20%;">{ "Below optimal range" }</th>
-                        <th style="width: 20%;"> { "Within optimal range" } </th>
-                        <th style="width: 20%;">{ "Above optimal range" }</th>
+                        <th style=style!("width": "20%")>{ "Below optimal range" }</th>
+                        <th style=style!("width": "20%")> { "Within optimal range" } </th>
+                        <th style=style!("width": "20%")>{ "Above optimal range" }</th>
                     </tr>
 
                     { for reaction.catalysts().iter().map(|catalyst| html! {

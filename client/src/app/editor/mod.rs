@@ -86,19 +86,19 @@ impl Component for Comp {
                     choose_cargo=self.link.callback(Msg::ChooseCargo)
                     route_prefix=self.route_prefix()
                     />
-                <main style=format!("
-                    margin-left: {}px;
-                    border-left: 1px solid;
-                    padding: 5px 10px;
-                    height: 100vh;
-                    font-family: 'Helvetica', 'Arial', sans-serif;
-                ", SIDEBAR_WIDTH_PX + SIDEBAR_PADDING_PX)>
-                    <div style=format!("
-                        margin-left: auto;
-                        margin-right: auto;
-                        max-width: {}px;
-                        overflow: auto;
-                    ", MAIN_WIDTH_PX)>
+                <main style=style!(
+                    "margin-left": format!("{}px", SIDEBAR_WIDTH_PX + SIDEBAR_PADDING_PX),
+                    "border-left": "1px solid",
+                    "padding": "5px 10px",
+                    "height": "100vh",
+                    "font-family": "'Helvetica', 'Arial', sans-serif",
+                )>
+                    <div style=style!(
+                        "margin-left": "auto",
+                        "margin-right": "auto",
+                        "max-width": format!("{}px", MAIN_WIDTH_PX),
+                        "overflow": "auto",
+                    )>
                         { self.switch() }
                     </div>
                 </main>

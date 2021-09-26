@@ -269,16 +269,19 @@ impl Component for Game {
     }
 
     fn view(&self) -> Html {
+        style! { static BASE_CANVAS =
+            "width": "100vw", "height": "100vh",
+            "position": "absolute",
+            "x": "0", "y": "0",
+        }
         html! {
-            <div style="margin: 0; background-color: black;">
+            <div style=style!("margin": "0", "background-color": "black")>
                 <canvas
                     ref=self.bg_canvas_ref.clone()
-                    style="
-                        width: 100vw; height: 100vh;
-                        z-index: 1;
-                        position: absolute;
-                        x: 0; y: 0;
-                    " />
+                    style=style!(
+                        ..BASE_CANVAS,
+                        "z-index": "1",
+                    ) />
                 <canvas
                     ref=self.scene_canvas_ref.clone()
                     onmousemove=self.link.callback(Msg::MouseMove)
@@ -288,27 +291,25 @@ impl Component for Game {
                     ontouchmove=self.link.callback(Msg::TouchMove)
                     ontouchstart=self.link.callback(Msg::TouchDown)
                     ontouchend=self.link.callback(Msg::TouchUp)
-                    style="
-                        width: 100vw; height: 100vh;
-                        z-index: 2;
-                        position: absolute;
-                        x: 0; y: 0;
-                    " />
+                    style=style!(
+                        ..BASE_CANVAS,
+                        "z-index": "2",
+                    ) />
 
                 <render::ui::Wrapper legion=Rc::clone(&self.legion) />
 
                 <div
                     ref=self.debug_ref.clone()
-                    style="
-                        padding-left: 10px; padding-top: 10px;
-                        z-index: 4;
-                        position: absolute;
-                        x: 0; y: 0;
-                        color: white;
-                        pointer-events: none;
-                        font-family: Helvetica, sans-serif;
-                        font-size: x-small;
-                    " />
+                    style=style!(
+                        "padding-left": "10px", "padding-top": "10px",
+                        "z-index": "4",
+                        "position": "absolute",
+                        "x": "0", "y": "0",
+                        "color": "white",
+                        "pointer-events": "none",
+                        "font-family": "Helvetica, sans-serif",
+                        "font-size": "x-small",
+                    ) />
             </div>
         }
     }

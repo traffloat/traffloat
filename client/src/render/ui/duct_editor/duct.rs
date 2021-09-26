@@ -47,7 +47,7 @@ impl Component for Comp {
                     cy=(self.props.origin + self.props.center.vector().y).to_string()
                     r=self.props.radius.to_string()
                     fill=duct_fill(self.props.ty)
-                    style="cursor: pointer;"
+                    style=style!("cursor": "pointer")
                     onmousedown=self.link.callback(Msg::MouseDown)
                     onmouseup=self.link.callback(Msg::MouseUp)
                     />
@@ -60,7 +60,7 @@ impl Component for Comp {
                             stroke="red"
                             stroke-width=(self.props.radius * DISABLED_WIDTH).to_string()
                             fill="none"
-                            style="pointer-events: none;"
+                            style=style!("pointer-events": "none;")
                             />
                         <line
                             x1=(self.props.origin + self.props.center.vector().x + self.props.radius * DISABLED_RADIUS * FRAC_1_SQRT_2).to_string()
@@ -69,7 +69,7 @@ impl Component for Comp {
                             y2=(self.props.origin + self.props.center.vector().y - self.props.radius * DISABLED_RADIUS * FRAC_1_SQRT_2).to_string()
                             stroke="red"
                             stroke-width=(self.props.radius * DISABLED_WIDTH).to_string()
-                            style="pointer-events: none;"
+                            style=style!("pointer-events": "none;")
                             />
                     </>
                 }) }
@@ -91,7 +91,7 @@ impl Component for Comp {
                             self.props.origin + self.props.center.vector().y,
                             0.2 * FRAC_1_SQRT_2 * self.props.radius,
                         )
-                        style="pointer-events: none;"
+                        style=style!("pointer-events": "none;")
                         />
                 }) }
                 { for (self.props.ty.direction() == Some(edge::Direction::ToFrom)).then(|| html! {
@@ -100,7 +100,7 @@ impl Component for Comp {
                         cy=(self.props.origin + self.props.center.vector().y).to_string()
                         r=(self.props.radius * 0.25).to_string()
                         fill="black"
-                        style="pointer-events: none;"
+                        style=style!("pointer-events": "none;")
                         />
                 }) }
             </>

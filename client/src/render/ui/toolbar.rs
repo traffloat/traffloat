@@ -50,16 +50,16 @@ impl Component for Comp {
         html! {
             <nav style=style>
                 <button
-                    style="pointer-events: auto;"
+                    style=style!("pointer-events": "auto")
                     onclick=self.link.callback(|_| Msg::SaveButton(save::Format::Binary))
                 >{ "Save" }</button>
                 <button
-                    style="pointer-events: auto;"
+                    style=style!("pointer-events": "auto")
                     onclick=self.link.callback(|_| Msg::OpenOptions)
                 >{ "Options" }</button>
                 { for self.props.cancel.as_ref().map(|cancel| html! {
                     <button
-                        style="pointer-events: auto;"
+                        style=style!("pointer-events": "auto")
                         onclick=cancel
                     >{ "Cancel" }</button>
                 })}

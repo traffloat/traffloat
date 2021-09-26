@@ -82,6 +82,9 @@ features = [
 	"WebGlUniformLocation",
 ]
 
+[dev-dependencies]
+maplit = "1.0.2"
+
 [features]
 default = ["render-debug", "load-tsvt"]
 render-debug = ["traffloat-common/render-debug", "traffloat-codegen/render-debug"]

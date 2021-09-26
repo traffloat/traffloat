@@ -45,7 +45,7 @@ impl Component for Comp {
         html! {
             <div>
                 <div
-                    style="cursor: pointer;"
+                    style=style!("cursor": "pointer")
                     onclick=self.link.callback(Msg::Toggle)
                 >
                     <h3>{ "Buildings" }</h3>

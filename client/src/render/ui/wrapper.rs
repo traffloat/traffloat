@@ -93,14 +93,14 @@ impl Component for Wrapper {
 
     fn view(&self) -> Html {
         html! {
-            <div style="
-                z-index: 3;
-                position: absolute;
-                width: 100vw; height: 100vh;
-                pointer-events: none;
-                x: 0; y: 0;
-                font-family: Helvetica, sans-serif;
-            ">
+            <div style=style!(
+                "z-index": "3",
+                "position": "absolute",
+                "width": "100vw", "height": "100vh",
+                "pointer-events": "none",
+                "x": "0", "y": "0",
+                "font-family": "Helvetica, sans-serif",
+            )>
                 { for self.node_preview_args.as_ref().map(|args| html! {
                     <node_preview::Comp
                         args=args.clone()
@@ -125,11 +125,11 @@ impl Component for Wrapper {
                         />
                 }) }
                 { for self.options_opened.then(|| html! {
-                    <div style="
-                        background-color: white;
-                        width: 300px;
-                        pointer-events: auto;
-                    ">
+                    <div style=style!(
+                        "background-color": "white",
+                        "width": "300px",
+                        "pointer-events": "auto",
+                    )>
                         <options::Comp
                             legion=Some(Rc::clone(&self.props.legion))
                             />

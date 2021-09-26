@@ -79,38 +79,43 @@ impl Component for Comp {
             }
         }
 
+        style! { static ROW_STYLE =
+            "margin": "0.5em 0",
+        }
+        let row_style = &*ROW_STYLE;
+
         html! {
-            <div style="
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                width: 15em; height: 10em;
-                color: black;
-                pointer-events: auto;
-                background-color: white;
-                font-size: large;
-                padding: 1em 0.2em;
-                overflow-y: auto;
-            ">
+            <div style=style!(
+                "position": "absolute",
+                "bottom": "0",
+                "left": "0",
+                "width": "15em", "height": "10em",
+                "color": "black",
+                "pointer-events": "auto",
+                "background-color": "white",
+                "font-size": "large",
+                "padding": "1em 0.2em",
+                "overflow-y": "auto",
+            )>
                 <p
                     onclick=self.link.callback(Msg::HelpButton)
-                    style="
-                        margin: 0.5em 0;
-                        cursor: help;
-                    "
+                    style=style!(
+                        ..ROW_STYLE,
+                        "cursor": "help",
+                    )
                 >
                     { &self.props.args.node_name }
                 </p>
-                <p style="margin: 0.5em 0;">
+                <p style=row_style>
                     { self.props.args.hitpoint }
                 </p>
-                <p style="margin: 0.5em 0;">
+                <p style=row_style>
                     { for self.props.args.cargo.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
                 </p>
-                <p style="margin: 0.5em 0;">
+                <p style=row_style>
                     { for self.props.args.liquid.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
                 </p>
-                <p style="margin: 0.5em 0;">
+                <p style=row_style>
                     { for self.props.args.gas.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
                 </p>
             </div>
