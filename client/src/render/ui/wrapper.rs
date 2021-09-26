@@ -129,6 +129,10 @@ impl Component for Wrapper {
                         "background-color": "white",
                         "width": "300px",
                         "pointer-events": "auto",
+                        "position": "fixed",
+                        "top": "50%", "left": "50%",
+                        "transform": "translate(-50%, -50%)",
+                        "margin": "2em",
                     )>
                         <options::Comp
                             legion=Some(Rc::clone(&self.props.legion))

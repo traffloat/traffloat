@@ -61,7 +61,7 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         html! {
-            <div>
+            <div style=style!("margin": "2em")>
                 <h2>{ "Graphics" }</h2>
                 <toggle::Comp
                     title="Background stars"
