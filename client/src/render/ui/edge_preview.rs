@@ -10,8 +10,8 @@ use crate::app::icon;
 use crate::input;
 use crate::render::texture;
 use traffloat::def;
+use traffloat::liquid;
 use traffloat::units;
-use traffloat::{cargo, gas, liquid};
 use traffloat::{edge, node};
 
 /// Displays basic info about an edge at a corner of the screen.

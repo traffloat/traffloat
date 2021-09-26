@@ -144,7 +144,7 @@ pub struct Args {
 
 impl Args {
     /// Saves the changes.
-    pub fn save(&self, legion: &mut traffloat::Legion) {
+    pub fn save(&self, _legion: &mut traffloat::Legion) {
         // TODO
     }
 }

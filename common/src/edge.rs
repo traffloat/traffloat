@@ -8,11 +8,11 @@ use legion::{systems::CommandBuffer, world::SubWorld, Entity};
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
+use crate::liquid;
 use crate::node;
 use crate::space::{Matrix, Position, Vector};
 use crate::units;
 use crate::SetupEcs;
-use crate::{cargo, gas, liquid};
 
 /// Component storing the endpoints of an edge
 #[derive(Debug, Clone, Copy, PartialEq, Eq, new, getset::CopyGetters, getset::Setters)]
@@ -187,7 +187,7 @@ impl DuctType {
             DuctType::Electricity(true) => {
                 entities.push(()) // TODO
             }
-            DuctType::Rail(Some(direction)) => {
+            DuctType::Rail(Some(_direction)) => {
                 entities.push(()) // TODO
             }
             DuctType::Liquid { dir: Some(direction), from_storage, to_storage } => entities.push({
