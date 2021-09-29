@@ -3,7 +3,8 @@
 use web_sys::WebGlRenderingContext;
 
 use super::{Dimension, RenderFlag};
-use crate::{camera::Camera, options};
+use crate::camera::Camera;
+use crate::options;
 use safety::Safety;
 use traffloat::sun::Sun;
 

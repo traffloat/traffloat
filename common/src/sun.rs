@@ -1,19 +1,18 @@
 //! Calculates the sunlight level of each building
 
 use std::cell::Cell;
-use std::collections::{btree_map::Entry, BTreeMap};
+use std::collections::btree_map::Entry;
+use std::collections::BTreeMap;
 use std::f64::consts::PI;
 
 use smallvec::SmallVec;
 
 use crate::appearance::Appearance;
 use crate::clock::Clock;
-use crate::config;
-use crate::node;
 use crate::space::{Position, Vector};
 use crate::units::Brightness;
 use crate::util::Finite;
-use crate::SetupEcs;
+use crate::{config, node, SetupEcs};
 use safety::Safety;
 
 /// The position of the sun

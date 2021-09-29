@@ -1,8 +1,10 @@
 //! Edge rendering
 
+use safety::Safety;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::mesh;
+use crate::options;
 use crate::render::util::{create_program, AttrLocation, UniformLocation};
 use traffloat::space::{Matrix, Vector};
 
@@ -14,7 +16,7 @@ pub struct Program {
     a_normal: AttrLocation,
     u_trans: UniformLocation<Matrix>,
     u_trans_sun: UniformLocation<Vector>,
-    u_color: UniformLocation<[f32; 4]>,
+    u_color: UniformLocation<nalgebra::Vector4<f64>>,
     u_ambient: UniformLocation<f32>,
     u_diffuse: UniformLocation<f32>,
     u_specular: UniformLocation<f32>,
@@ -61,8 +63,9 @@ impl Program {
         gl: &WebGlRenderingContext,
         proj: Matrix,
         sun: Vector,
-        rgba: [f32; 4],
+        rgba: nalgebra::Vector4<f64>,
         selected: bool,
+        args: &options::ReflectionArgs,
     ) {
         use mesh::AbstractPreparedMesh;
 
@@ -70,10 +73,10 @@ impl Program {
         self.u_trans.assign(gl, proj);
         self.u_trans_sun.assign(gl, sun);
         self.u_color.assign(gl, rgba);
-        self.u_ambient.assign(gl, 0.3);
-        self.u_diffuse.assign(gl, 0.2);
-        self.u_specular.assign(gl, 1.0);
-        self.u_specular_coef.assign(gl, 10.0);
+        self.u_ambient.assign(gl, args.ambient().lossy_trunc());
+        self.u_diffuse.assign(gl, args.diffuse().lossy_trunc());
+        self.u_specular.assign(gl, args.specular().lossy_trunc());
+        self.u_specular_coef.assign(gl, args.specular_coef().lossy_trunc());
         self.u_inv_gain.assign(gl, if selected { 0.5f32 } else { 1f32 });
 
         self.a_pos.assign(gl, self.cylinder.positions());

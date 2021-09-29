@@ -3,24 +3,19 @@
 use std::convert::TryInto;
 
 use cfg_if::cfg_if;
-use legion::world::SubWorld;
-use legion::{world::ComponentError, Entity, EntityStore, IntoQuery};
+use legion::world::{ComponentError, SubWorld};
+use legion::{Entity, EntityStore, IntoQuery};
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
 use crate::appearance::Appearance;
 use crate::clock::Clock;
 use crate::def::GameDefinition;
-use crate::defense;
 use crate::edge::save::{Edge, SavedDuct};
 use crate::node::save::Node;
-use crate::population;
 use crate::space::Position;
 use crate::time::Instant;
-use crate::units;
-use crate::SetupEcs;
-use crate::{cargo, gas, liquid, vehicle};
-use crate::{edge, node};
+use crate::{cargo, defense, edge, gas, liquid, node, population, units, vehicle, SetupEcs};
 use safety::Safety;
 
 /// The save schema version.

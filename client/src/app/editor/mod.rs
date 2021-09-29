@@ -5,8 +5,7 @@ use std::rc::Rc;
 use yew::prelude::*;
 
 use crate::app::route::*;
-use traffloat::def;
-use traffloat::save;
+use traffloat::{def, save};
 
 pub mod building;
 pub mod cargo;

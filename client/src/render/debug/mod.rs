@@ -3,8 +3,7 @@
 use derive_new::new;
 
 use super::comm::RenderFlag;
-use crate::options;
-use crate::util;
+use crate::{options, util};
 
 #[cfg(feature = "render-debug")]
 pub mod fps;

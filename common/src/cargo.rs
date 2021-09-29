@@ -6,11 +6,9 @@ use legion::Entity;
 use smallvec::SmallVec;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
-use crate::def;
 use crate::time::Instant;
 use crate::units::CargoSize;
-use crate::util;
-use crate::SetupEcs;
+use crate::{def, util, SetupEcs};
 
 /// A component attached to nodes to indicate cargo in the node.
 #[derive(new, getset::Getters)]

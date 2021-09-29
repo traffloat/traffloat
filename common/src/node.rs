@@ -7,20 +7,17 @@ use std::num::NonZeroUsize;
 
 use arcstr::ArcStr;
 use derive_new::new;
-use legion::{systems::CommandBuffer, Entity};
+use legion::systems::CommandBuffer;
+use legion::Entity;
 use serde::{Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
 use typed_builder::TypedBuilder;
 
-use crate::appearance;
-use crate::def::{building, feature::Feature, GameDefinition};
-use crate::defense;
+use crate::def::feature::Feature;
+use crate::def::{building, GameDefinition};
 use crate::space::{Matrix, Position};
 use crate::sun::LightStats;
-use crate::units;
-use crate::SetupEcs;
-use crate::{cargo, gas, liquid};
-use crate::{population, vehicle};
+use crate::{appearance, cargo, defense, gas, liquid, population, units, vehicle, SetupEcs};
 
 /// Component storing an identifier for a node
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new, Serialize, Deserialize)]
@@ -348,8 +345,7 @@ pub mod save {
     use std::collections::BTreeMap;
 
     use super::*;
-    use crate::def;
-    use crate::units;
+    use crate::{def, units};
 
     /// Saves all data related to a node.
     #[derive(Clone, Serialize, Deserialize)]

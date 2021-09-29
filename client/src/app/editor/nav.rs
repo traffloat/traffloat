@@ -4,8 +4,7 @@ use std::rc::Rc;
 
 use yew::prelude::*;
 
-use traffloat::def::building;
-use traffloat::def::cargo;
+use traffloat::def::{building, cargo};
 use traffloat::save;
 
 /// Container for all nav items.

@@ -21,7 +21,7 @@ pub struct Program {
     a_tex_offset: AttrLocation,
     u_proj: UniformLocation<Matrix>,
     u_sun: UniformLocation<Vector>,
-    u_brightness: UniformLocation<f64>,
+    u_filter: UniformLocation<Vector>,
     u_inv_gain: UniformLocation<f32>,
     u_tex: UniformLocation<i32>,
     u_tex_dim: UniformLocation<[f32; 2]>,
@@ -41,7 +41,7 @@ impl Program {
         let a_tex_offset = AttrLocation::new(gl, &prog, "a_tex_offset");
         let u_proj = UniformLocation::new(gl, &prog, "u_proj");
         let u_sun = UniformLocation::new(gl, &prog, "u_sun");
-        let u_brightness = UniformLocation::new(gl, &prog, "u_brightness");
+        let u_filter = UniformLocation::new(gl, &prog, "u_filter");
         let u_inv_gain = UniformLocation::new(gl, &prog, "u_inv_gain");
         let u_tex = UniformLocation::new_optional(gl, &prog, "u_tex");
         let u_tex_dim = UniformLocation::new_optional(gl, &prog, "u_tex_dim");
@@ -56,7 +56,7 @@ impl Program {
             a_tex_offset,
             u_proj,
             u_sun,
-            u_brightness,
+            u_filter,
             u_inv_gain,
             u_tex,
             u_tex_dim,
@@ -68,14 +68,14 @@ impl Program {
     /// The projection matrix transforms unit model coordinates to projection coordinates directly.
     pub fn draw(
         &self,
-        DrawArgs { gl, proj, sun, brightness, selected, texture, shape_unit }: DrawArgs<'_>,
+        DrawArgs { gl, proj, sun, filter, selected, texture, shape_unit }: DrawArgs<'_>,
     ) {
         use mesh::AbstractPreparedMesh;
 
         gl.use_program(Some(&self.prog));
         self.u_proj.assign(gl, proj);
         self.u_sun.assign(gl, sun);
-        self.u_brightness.assign(gl, brightness.clamp(0.5, 1.));
+        self.u_filter.assign(gl, filter);
         self.u_inv_gain.assign(gl, if selected { 0.5f32 } else { 1f32 });
 
         // The dynamic dispatch here is roughly equialent to
@@ -121,8 +121,8 @@ pub struct DrawArgs<'t> {
     proj: Matrix,
     /// The world direction of the sun.
     sun: Vector,
-    /// The brightness received by the node.
-    brightness: f64,
+    /// The RGB color filter on the node.
+    filter: Vector,
     /// Whether this node is selected.
     selected: bool,
     /// The spritesheet for the shape.

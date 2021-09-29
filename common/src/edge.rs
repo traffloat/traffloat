@@ -4,15 +4,14 @@
 //! It connects two nodes together.
 
 use derive_new::new;
-use legion::{systems::CommandBuffer, world::SubWorld, Entity};
+use legion::systems::CommandBuffer;
+use legion::world::SubWorld;
+use legion::Entity;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
-use crate::liquid;
-use crate::node;
 use crate::space::{Matrix, Position, Vector};
-use crate::units;
-use crate::SetupEcs;
+use crate::{liquid, node, units, SetupEcs};
 
 /// Component storing the endpoints of an edge
 #[derive(Debug, Clone, Copy, PartialEq, Eq, new, getset::CopyGetters, getset::Setters)]

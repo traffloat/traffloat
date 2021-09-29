@@ -1,12 +1,10 @@
 use std::rc::Rc;
 
 use yew::prelude::*;
-use yew::services::fetch;
-use yew::services::reader;
+use yew::services::{fetch, reader};
 
 use super::route::{Route, SpRoute};
-use super::scenarios;
-use super::SpGameArgs;
+use super::{scenarios, SpGameArgs};
 
 mod scenario_choose;
 

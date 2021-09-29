@@ -81,6 +81,11 @@ impl<U: Unit> Portion<U> {
     pub fn full(max: U) -> Self {
         Self::new(max, max)
     }
+
+    /// The filled ratio of the portion.
+    pub fn ratio(self) -> f64 {
+        self.current.value() / self.max.value()
+    }
 }
 
 impl<U: Unit + fmt::Display> fmt::Display for Portion<U> {

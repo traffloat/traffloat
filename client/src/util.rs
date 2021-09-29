@@ -99,7 +99,7 @@ extern "C" {
     unsafe fn set_div_lines(div: JsValue, lines: &str);
 }
 
-/// Writer for debug lines in a div
+/// Writer for debug lines in a div.
 #[derive(new)]
 pub struct DebugWriter {
     div: web_sys::HtmlElement,

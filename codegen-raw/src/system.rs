@@ -1,7 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
-use syn::parse;
-use syn::Result;
+use syn::{parse, Result};
 
 pub(crate) fn imp(args: TokenStream, input: TokenStream) -> Result<TokenStream> {
     let args = syn::parse2::<AttrArgs>(args)?;

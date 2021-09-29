@@ -4,6 +4,8 @@ use std::f64::consts::PI;
 
 use legion::world::SubWorld;
 use legion::{component, Entity};
+use safety::Safety;
+use traffloat::units;
 use web_sys::WebGlRenderingContext;
 
 use super::{CursorType, RenderFlag};
@@ -11,7 +13,7 @@ use crate::camera::Camera;
 use crate::{input, options};
 use traffloat::appearance::{self, Appearance};
 use traffloat::lerp;
-use traffloat::space::{Matrix, Position};
+use traffloat::space::{Matrix, Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
 pub mod mesh;
@@ -70,6 +72,7 @@ impl Canvas {
 #[read_component(Position)]
 #[read_component(appearance::Appearance)]
 #[read_component(LightStats)]
+#[read_component(units::Portion<units::Hitpoint>)]
 #[read_component(traffloat::liquid::Storage)]
 #[read_component(traffloat::liquid::StorageSize)]
 #[read_component(traffloat::liquid::NextStorageSize)]
@@ -112,57 +115,97 @@ fn draw(
     scene.gl.enable(WebGlRenderingContext::CULL_FACE);
     scene.gl.enable(WebGlRenderingContext::BLEND);
 
-    #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
-    for (entity, &position, appearance, light) in
-        <(Entity, &Position, &Appearance, &LightStats)>::query()
-            .filter(component::<traffloat::node::Id>())
-            .iter(world)
-    {
-        let base_month = sun.yaw() / PI / 2. * MONTH_COUNT as f64;
-        #[allow(clippy::indexing_slicing)]
-        let brightness = {
-            let prev = light.brightness()[base_month.floor() as usize % MONTH_COUNT];
-            let next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
-            lerp(prev.0, next.0, base_month.fract())
-        };
-        let selected =
-            hover_target.entity() == Some(*entity) || focus_target.entity() == Some(*entity);
+    type Comps<'t> =
+        (Entity, &'t Position, &'t Appearance, &'t LightStats, &'t units::Portion<units::Hitpoint>);
+    let base_month: f64 = sun.yaw() / PI / 2. * MONTH_COUNT.small_float::<f64>();
+    let mut scales: [Box<dyn options::ColorMapCount<Comps<'_>>>; 2] = [
+        Box::new(options::ColorMapCounter::try_new(
+            options.graphics().node().brightness(),
+            |(_, _, _, light, _hp): Comps| {
+                #[allow(clippy::indexing_slicing, clippy::cast_possible_truncation)]
+                let prev = light.brightness()[base_month.floor() as usize % MONTH_COUNT];
+                #[allow(clippy::indexing_slicing, clippy::cast_possible_truncation)]
+                let next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
+                let lerped = lerp(prev, next, base_month.fract());
+                lerped.value()
+            },
+        )),
+        Box::new(options::ColorMapCounter::try_new(
+            options.graphics().node().hitpoint(),
+            |(_, _, _, _light, hp): Comps| hp.ratio(),
+        )),
+    ];
 
-        for component in appearance.components() {
-            // projection matrix transforms real coordinates to canvas
+    if scales.iter().any(|scale| scale.is_some()) {
+        for comps in Comps::query().filter(component::<traffloat::node::Id>()).iter(world) {
+            let comps = (*comps.0, comps.1, comps.2, comps.3, comps.4); // hack, blame bad legion design :(
 
-            let unit_to_real = component.transform(position);
-            let tex: &appearance::Texture = component.texture();
-            let sprite = texture_pool.sprite(tex, &scene.gl);
-
-            scene.node_prog.draw(
-                node::DrawArgs::builder()
-                    .gl(&scene.gl)
-                    .proj(projection * unit_to_real)
-                    .sun(sun_dir)
-                    .brightness(brightness)
-                    .selected(selected)
-                    .texture(&sprite)
-                    .shape_unit(component.unit())
-                    .build(),
-            );
+            for scale in &mut scales {
+                scale.feed(comps);
+            }
         }
     }
 
-    for (entity, edge, size) in
-        <(Entity, &traffloat::edge::Id, &traffloat::edge::Size)>::query().iter(world)
-    {
-        let unit = traffloat::edge::tf(edge, size, &*world, true);
-        let selected =
-            hover_target.entity() == Some(*entity) || focus_target.entity() == Some(*entity);
+    // Draw nodes
+    if options.graphics().node().render() {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
+        for comps in Comps::query().filter(component::<traffloat::node::Id>()).iter(world) {
+            let comps = (*comps.0, comps.1, comps.2, comps.3, comps.4); // hack, blame bad legion design :(
 
-        scene.edge_prog.draw(
-            &scene.gl,
-            projection * unit,
-            projection.transform_vector(&sun_dir),
-            [0.3, 0.5, 0.8, 0.5],
-            selected,
-        );
+            let mut filter = Vector::new(1., 1., 1.);
+
+            for scale in &scales {
+                let subfilter = scale.compute(comps);
+                filter.component_mul_assign(&subfilter);
+            }
+
+            let (entity, position, appearance, _, _) = comps;
+
+            let selected =
+                hover_target.entity() == Some(entity) || focus_target.entity() == Some(entity);
+
+            for component in appearance.components() {
+                // projection matrix transforms real coordinates to canvas
+
+                let unit_to_real = component.transform(*position);
+                let tex: &appearance::Texture = component.texture();
+                let sprite = texture_pool.sprite(tex, &scene.gl);
+
+                scene.node_prog.draw(
+                    node::DrawArgs::builder()
+                        .gl(&scene.gl)
+                        .proj(projection * unit_to_real)
+                        .sun(sun_dir)
+                        .filter(filter)
+                        .selected(selected)
+                        .texture(&sprite)
+                        .shape_unit(component.unit())
+                        .build(),
+                );
+            }
+        }
+    }
+
+    // Draw edges
+    if options.graphics().edge().render() {
+        for (entity, edge, size) in
+            <(Entity, &traffloat::edge::Id, &traffloat::edge::Size)>::query().iter(world)
+        {
+            let unit = traffloat::edge::tf(edge, size, &*world, true);
+            let selected =
+                hover_target.entity() == Some(*entity) || focus_target.entity() == Some(*entity);
+
+            let rgb = options.graphics().edge().base();
+            let rgba = rgb.fixed_resize::<4, 1>(1.);
+            scene.edge_prog.draw(
+                &scene.gl,
+                projection * unit,
+                projection.transform_vector(&sun_dir),
+                rgba,
+                selected,
+                options.graphics().edge().reflection(),
+            );
+        }
     }
 
     /// Shift columns frontward (1 -> 2) or backward (2 -> 1)

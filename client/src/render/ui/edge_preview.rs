@@ -9,10 +9,7 @@ use super::{duct_editor, Update, UpdaterRef};
 use crate::app::icon;
 use crate::input;
 use crate::render::texture;
-use traffloat::def;
-use traffloat::liquid;
-use traffloat::units;
-use traffloat::{edge, node};
+use traffloat::{def, edge, liquid, node, units};
 
 /// Displays basic info about an edge at a corner of the screen.
 pub struct Comp {

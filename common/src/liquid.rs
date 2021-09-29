@@ -7,13 +7,10 @@ use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
-use crate::config;
-use crate::def::{self, liquid::TypeId};
-use crate::node;
+use crate::def::liquid::TypeId;
 use crate::time::Instant;
 use crate::units::{self, LiquidVolume};
-use crate::util;
-use crate::SetupEcs;
+use crate::{config, def, node, util, SetupEcs};
 
 /// A component attached to entities that house liquid.
 #[derive(new, getset::Getters)]
@@ -162,7 +159,8 @@ fn simulate_pipes(
     #[resource(no_init)] def: &def::GameDefinition,
     #[subscriber] sim_sub: impl Iterator<Item = SimulationEvent>,
 ) {
-    use legion::{world::ComponentError, EntityStore, IntoQuery};
+    use legion::world::ComponentError;
+    use legion::{EntityStore, IntoQuery};
 
     if sim_sub.next().is_none() {
         return;

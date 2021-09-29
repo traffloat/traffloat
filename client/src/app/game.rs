@@ -6,9 +6,7 @@ use yew::prelude::*;
 use yew::services::{interval, keyboard as kb_srv, render as render_srv, resize};
 
 use super::GameArgs;
-use crate::input;
-use crate::render;
-use crate::util;
+use crate::{input, render, util};
 use safety::Safety;
 use traffloat::clock::Clock;
 use traffloat::SetupEcs;

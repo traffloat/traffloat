@@ -1,4 +1,4 @@
-use std::cmp;
+use std::{cmp, ops};
 
 /// The common port
 pub const DEFAULT_PORT: u16 = 15384;
@@ -38,7 +38,10 @@ impl Ord for Finite {
 }
 
 /// Linear interpolation from a to b, with ratio=0 as a and ratio=1 as b
-pub fn lerp(a: f64, b: f64, ratio: f64) -> f64 {
+pub fn lerp<T, U>(a: T, b: T, ratio: U) -> T
+where
+    T: Copy + ops::Add<Output = T> + ops::Sub<Output = T> + ops::Mul<U, Output = T>,
+{
     a + (b - a) * ratio
 }
 

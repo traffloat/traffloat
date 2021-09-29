@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
-use crate::def::{cargo, catalyst::Catalyst, gas, liquid, skill};
+use crate::def::catalyst::Catalyst;
+use crate::def::{cargo, gas, liquid, skill};
 use crate::time::Rate;
 use crate::units;
 

@@ -7,8 +7,7 @@ use enum_map::EnumMap;
 use typed_builder::TypedBuilder;
 
 use crate::camera::Camera;
-use crate::config;
-use crate::render;
+use crate::{config, render};
 use traffloat::clock::Clock;
 use traffloat::space::Vector;
 use traffloat::time::Instant;

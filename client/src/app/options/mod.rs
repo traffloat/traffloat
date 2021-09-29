@@ -1,8 +1,10 @@
 //! Options menu for Traffloat client.
 
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
+use std::rc::Rc;
 
-use yew::{prelude::*, services::storage};
+use yew::prelude::*;
+use yew::services::storage;
 
 use crate::options::{self, Options};
 

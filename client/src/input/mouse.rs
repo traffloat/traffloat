@@ -5,10 +5,8 @@ use legion::Entity;
 use super::{keyboard, ScreenPosition};
 use crate::camera::Camera;
 use crate::render;
-use traffloat::appearance;
-use traffloat::edge;
-use traffloat::node;
 use traffloat::space::Position;
+use traffloat::{appearance, edge, node};
 
 /// Resource storing the position of the mouse, in the range [0, 1]^2.
 #[derive(Debug, getset::CopyGetters)]

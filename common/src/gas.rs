@@ -7,11 +7,9 @@ use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
-use crate::def;
 use crate::time::Instant;
 use crate::units::{self, GasVolume};
-use crate::util;
-use crate::SetupEcs;
+use crate::{def, util, SetupEcs};
 
 /// A component attached to entities that house gas.
 #[derive(new, getset::Getters)]

@@ -13,9 +13,7 @@ use crate::render::texture;
 use traffloat::clock::Clock;
 use traffloat::config::Scalar;
 use traffloat::def::GameDefinition;
-use traffloat::units;
-use traffloat::{cargo, gas, liquid};
-use traffloat::{edge, node};
+use traffloat::{cargo, edge, gas, liquid, node, units};
 
 /// Displays basic info about a node at a corner of the screen.
 pub struct Comp {
