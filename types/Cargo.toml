@@ -17,6 +17,6 @@ indexmap = {version = "1.7.0", features = ["serde"]}
 log = "0.4.14"
 nalgebra = {version = "0.29.0", features = ["serde-serialize"]}
 serde = {version = "1.0.130", features = ["derive"]}
-smallvec = {version = "1.6.1", features = ["serde"]}
+smallvec = {version = "1.7.0", features = ["serde"]}
 traffloat-codegen = {version = "0.2.0", path = "../codegen"}
 typed-builder = "0.9.1"
