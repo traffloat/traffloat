@@ -12,19 +12,20 @@ use crate::render::util::{create_program, AttrLocation, UniformLocation};
 
 /// Stores the setup data for node rendering.
 pub struct Program {
-    prog:         WebGlProgram,
-    cube:         mesh::PreparedMesh,
-    cylinder:     mesh::PreparedIndexedMesh,
-    a_pos:        AttrLocation,
-    a_normal:     AttrLocation,
-    a_tex_pos:    AttrLocation,
-    a_tex_offset: AttrLocation,
-    u_proj:       UniformLocation<Matrix>,
-    u_sun:        UniformLocation<Vector>,
-    u_filter:     UniformLocation<Vector>,
-    u_inv_gain:   UniformLocation<f32>,
-    u_tex:        UniformLocation<i32>,
-    u_tex_dim:    UniformLocation<[f32; 2]>,
+    prog:           WebGlProgram,
+    cube:           mesh::PreparedMesh,
+    cylinder:       mesh::PreparedIndexedMesh,
+    a_pos:          AttrLocation,
+    a_normal:       AttrLocation,
+    a_tex_pos:      AttrLocation,
+    a_tex_offset:   AttrLocation,
+    u_proj:         UniformLocation<Matrix>,
+    u_sun:          UniformLocation<Vector>,
+    u_filter:       UniformLocation<Vector>,
+    u_inv_gain:     UniformLocation<f32>,
+    u_uses_texture: UniformLocation<bool>,
+    u_tex:          UniformLocation<i32>,
+    u_tex_dim:      UniformLocation<[f32; 2]>,
 }
 
 impl Program {
@@ -43,6 +44,7 @@ impl Program {
         let u_sun = UniformLocation::new(gl, &prog, "u_sun");
         let u_filter = UniformLocation::new(gl, &prog, "u_filter");
         let u_inv_gain = UniformLocation::new(gl, &prog, "u_inv_gain");
+        let u_uses_texture = UniformLocation::new(gl, &prog, "u_uses_texture");
         let u_tex = UniformLocation::new_optional(gl, &prog, "u_tex");
         let u_tex_dim = UniformLocation::new_optional(gl, &prog, "u_tex_dim");
 
@@ -58,6 +60,7 @@ impl Program {
             u_sun,
             u_filter,
             u_inv_gain,
+            u_uses_texture,
             u_tex,
             u_tex_dim,
         }
@@ -68,7 +71,9 @@ impl Program {
     /// The projection matrix transforms unit model coordinates to projection coordinates directly.
     pub fn draw(
         &self,
-        DrawArgs { gl, proj, sun, filter, selected, texture, shape_unit }: DrawArgs<'_>,
+        DrawArgs { gl, proj, sun, filter, selected, texture, shape_unit, uses_texture }: DrawArgs<
+            '_,
+        >,
     ) {
         use mesh::AbstractPreparedMesh;
 
@@ -77,6 +82,7 @@ impl Program {
         self.u_sun.assign(gl, sun);
         self.u_filter.assign(gl, filter);
         self.u_inv_gain.assign(gl, if selected { 0.5f32 } else { 1f32 });
+        self.u_uses_texture.assign(gl, uses_texture);
 
         // The dynamic dispatch here is roughly equialent to
         // an enum matching on the unit type and should not impact performance.
@@ -115,18 +121,20 @@ impl Program {
 #[derive(TypedBuilder)]
 pub struct DrawArgs<'t> {
     /// The WebGL context.
-    gl:         &'t WebGlRenderingContext,
+    gl:           &'t WebGlRenderingContext,
     /// The projection matrix transforming unit model coordinates to projection coordinates
     /// directly.
-    proj:       Matrix,
+    proj:         Matrix,
     /// The world direction of the sun.
-    sun:        Vector,
+    sun:          Vector,
     /// The RGB color filter on the node.
-    filter:     Vector,
+    filter:       Vector,
     /// Whether this node is selected.
-    selected:   bool,
+    selected:     bool,
     /// The spritesheet for the shape.
-    texture:    &'t texture::PreparedTexture,
+    texture:      &'t texture::PreparedTexture,
     /// The shape to draw.
-    shape_unit: appearance::Unit,
+    shape_unit:   appearance::Unit,
+    /// Whether to draw the texture.
+    uses_texture: bool,
 }

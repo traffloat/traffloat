@@ -73,3 +73,9 @@ impl Uniform for i32 {
         gl.uniform1i(location, *self);
     }
 }
+
+impl Uniform for bool {
+    fn apply(&self, location: Option<&WebGlUniformLocation>, gl: &WebGlRenderingContext) {
+        gl.uniform1i(location, if *self { 1 } else { 0 });
+    }
+}

@@ -43,7 +43,9 @@ pub struct Graphics {
 }
 
 /// Node rendering settings.
-#[derive(Debug, Clone, Serialize, Deserialize, getset::CopyGetters, getset::Getters)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, getset::CopyGetters, getset::Getters, getset::MutGetters,
+)]
 pub struct Node {
     /// Whether nodes should be rendered.
     #[getset(get_copy = "pub", get_mut = "pub")]

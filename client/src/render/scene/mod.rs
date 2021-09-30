@@ -177,8 +177,9 @@ fn draw(
                         .sun(sun_dir)
                         .filter(filter)
                         .selected(selected)
-                        .texture(&sprite)
+                        .texture(&sprite) // TODO check texture variant name
                         .shape_unit(component.unit())
+                        .uses_texture(options.graphics().node().texture().is_some())
                         .build(),
                 );
             }

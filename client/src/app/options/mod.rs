@@ -65,29 +65,49 @@ impl Component for Comp {
         html! {
             <div style=style!("margin": "2em")>
                 <h2>{ "Graphics" }</h2>
-                <toggle::Comp
-                    title="Background stars"
-                    value=self.options.graphics().render_stars()
-                    callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_stars_mut())
-                    on_message="Show"
-                    off_message="Hide"
-                    />
-                <toggle::Comp
-                    title="Axis reticle"
-                    value=self.options.graphics().render_reticle()
-                    callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_reticle_mut())
-                    on_message="Show"
-                    off_message="Hide"
-                    />
-                { for cfg!(feature = "render-debug").then(|| html! {
+                <table>
                     <toggle::Comp
-                        title="Debug info"
-                        value=self.options.graphics().render_debug_info()
-                        callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_debug_info_mut())
+                        title="Background stars"
+                        value=self.options.graphics().render_stars()
+                        callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_stars_mut())
                         on_message="Show"
                         off_message="Hide"
                         />
-                }) }
+                    <toggle::Comp
+                        title="Axis reticle"
+                        value=self.options.graphics().render_reticle()
+                        callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_reticle_mut())
+                        on_message="Show"
+                        off_message="Hide"
+                        />
+                    { for cfg!(feature = "render-debug").then(|| html! {
+                        <toggle::Comp
+                            title="Debug info"
+                            value=self.options.graphics().render_debug_info()
+                            callback=Msg::update_bool(&self.link, |options| options.graphics_mut().render_debug_info_mut())
+                            on_message="Show"
+                            off_message="Hide"
+                            />
+                    }) }
+                </table>
+
+                <h3>{ "Buildings" }</h3>
+                <toggle::Comp
+                    title="Render"
+                    value=self.options.graphics().node().render()
+                    callback=Msg::update_bool(&self.link, |options| options.graphics_mut().node_mut().render_mut())
+                    on_message="Show"
+                    off_message="Hide"
+                    />
+
+                <h3>{ "Corridors" }</h3>
+                <toggle::Comp
+                    title="Render"
+                    value=self.options.graphics().edge().render()
+                    callback=Msg::update_bool(&self.link, |options| options.graphics_mut().edge_mut().render_mut())
+                    on_message="Show"
+                    off_message="Hide"
+                    />
             </div>
         }
     }

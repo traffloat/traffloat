@@ -36,6 +36,7 @@ impl Component for Comp {
                         type="checkbox"
                         checked=self.props.value
                         onchange=self.link.callback(Msg::Change)
+                        disabled=self.props.disabled
                         />
                     { for self.props.value.then(|| self.props.on_message) }
                     { for (!self.props.value).then(|| self.props.off_message) }
@@ -60,4 +61,6 @@ pub struct Props {
     pub on_message:  &'static str,
     #[prop_or("Off")]
     pub off_message: &'static str,
+    #[prop_or(false)]
+    pub disabled:    bool,
 }
