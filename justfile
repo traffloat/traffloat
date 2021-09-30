@@ -1,3 +1,5 @@
+default: client-watch
+
 client-build path_prefix: client-clean pp
 	cd client && trunk build --public-url {{path_prefix}} --release release.html
 client-build-dev: client-clean pp
