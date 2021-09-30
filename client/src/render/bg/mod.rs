@@ -1,21 +1,21 @@
 //! Manages the background canvas.
 
+use safety::Safety;
+use traffloat::sun::Sun;
 use web_sys::WebGlRenderingContext;
 
 use super::{Dimension, RenderFlag};
 use crate::camera::Camera;
 use crate::options;
-use safety::Safety;
-use traffloat::sun::Sun;
 
 pub mod star;
 pub mod sun;
 
 /// Stores the setup data of the background canvas.
 pub struct Canvas {
-    gl: WebGlRenderingContext,
+    gl:        WebGlRenderingContext,
     star_prog: star::Program,
-    sun_prog: sun::Program,
+    sun_prog:  sun::Program,
 }
 
 impl Canvas {
@@ -69,6 +69,4 @@ fn draw(
 }
 
 /// Sets up legion ECS for debug info rendering.
-pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(draw_setup)
-}
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs { setup.uses(draw_setup) }

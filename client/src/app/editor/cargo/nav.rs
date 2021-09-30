@@ -2,25 +2,22 @@
 
 use std::rc::Rc;
 
-use yew::prelude::*;
-
 use traffloat::def::cargo;
 use traffloat::save;
+use yew::prelude::*;
 
 /// Displays a list of cargo.
 pub struct Comp {
     props: Props,
-    link: ComponentLink<Self>,
-    open: bool,
+    link:  ComponentLink<Self>,
+    open:  bool,
 }
 
 impl Component for Comp {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        Self { props, link, open: false }
-    }
+    fn create(props: Props, link: ComponentLink<Self>) -> Self { Self { props, link, open: false } }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
@@ -92,7 +89,7 @@ pub enum Msg {
 #[derive(Clone, Properties)]
 pub struct Props {
     /// The loaded tsv file.
-    pub file: Rc<save::SaveFile>,
+    pub file:         Rc<save::SaveFile>,
     /// Set the main body to a cargo.
     pub choose_cargo: Callback<cargo::TypeId>,
     /// The prefix in the hash-route, e.g. `scenario/vanilla`)

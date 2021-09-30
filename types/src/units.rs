@@ -68,24 +68,18 @@ pub struct Portion<U: Unit> {
     current: U,
     /// The maximum capacity.
     #[getset(get_copy = "pub")]
-    max: U,
+    max:     U,
 }
 
 impl<U: Unit> Portion<U> {
     /// Initializes an empty portion.
-    pub fn empty(max: U) -> Self {
-        Self::new(U::default(), max)
-    }
+    pub fn empty(max: U) -> Self { Self::new(U::default(), max) }
 
     /// Initializes a full portion.
-    pub fn full(max: U) -> Self {
-        Self::new(max, max)
-    }
+    pub fn full(max: U) -> Self { Self::new(max, max) }
 
     /// The filled ratio of the portion.
-    pub fn ratio(self) -> f64 {
-        self.current.value() / self.max.value()
-    }
+    pub fn ratio(self) -> f64 { self.current.value() / self.max.value() }
 }
 
 impl<U: Unit + fmt::Display> fmt::Display for Portion<U> {

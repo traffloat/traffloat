@@ -3,24 +3,21 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use traffloat::save;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;
-
-use traffloat::save;
 
 /// Displays common toolbar buttons.
 pub struct Comp {
     props: Props,
-    link: ComponentLink<Self>,
+    link:  ComponentLink<Self>,
 }
 
 impl Component for Comp {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        Self { props, link }
-    }
+    fn create(props: Props, link: ComponentLink<Self>) -> Self { Self { props, link } }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
@@ -80,9 +77,9 @@ pub enum Msg {
 #[derive(Clone, Properties)]
 pub struct Props {
     /// The legion setup.
-    pub legion: Rc<RefCell<traffloat::Legion>>,
+    pub legion:       Rc<RefCell<traffloat::Legion>>,
     /// The cancel callback, or [`None`] if it should not be rendered.
-    pub cancel: Option<Callback<MouseEvent>>,
+    pub cancel:       Option<Callback<MouseEvent>>,
     /// The callback to open options menu.
     pub open_options: Callback<()>,
 }
@@ -123,6 +120,4 @@ fn post_save(#[subscriber] responses: impl Iterator<Item = save::Response>) {
 }
 
 /// Sets up legion ECS for node info rendering.
-pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(post_save_setup)
-}
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs { setup.uses(post_save_setup) }

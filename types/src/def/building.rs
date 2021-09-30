@@ -19,33 +19,33 @@ pub struct TypeId(pub ArcStr);
 pub struct Type {
     /// Name of the building type.
     #[getset(get = "pub")]
-    name: ArcStr,
+    name:        ArcStr,
     /// Short summary of the building type.
     #[getset(get = "pub")]
-    summary: ArcStr,
+    summary:     ArcStr,
     /// Long description of the building type.
     #[getset(get = "pub")]
     description: ArcStr,
     /// Category of the building type.
     #[getset(get = "pub")]
-    category: CategoryId,
+    category:    CategoryId,
     /// Shape of the building.
     ///
     /// If multiple shapes are provided, they are all rendered together in order.
     #[getset(get = "pub")]
-    shapes: Vec<Shape>,
+    shapes:      Vec<Shape>,
     /// Maximum hitpoint of a building.
     ///
     /// The actual hitpoint is subject to asteroid and fire damage.
     /// It can be restored by construction work.
     #[getset(get_copy = "pub")]
-    hitpoint: units::Hitpoint,
+    hitpoint:    units::Hitpoint,
     /// Storage provided by a building
     #[getset(get = "pub")]
-    storage: Storage,
+    storage:     Storage,
     /// Extra features associated with the building.
     #[getset(get = "pub")]
-    features: Vec<Feature>,
+    features:    Vec<Feature>,
 }
 
 /// Shape of a building.
@@ -55,13 +55,13 @@ pub struct Type {
 pub struct Shape {
     /// The unit model type.
     #[getset(get_copy = "pub")]
-    unit: geometry::Unit,
+    unit:         geometry::Unit,
     /// The transformation matrix from the unit model to this shape.
     #[getset(get_copy = "pub")]
-    transform: Matrix,
+    transform:    Matrix,
     /// The texture source path of the building.
     #[getset(get = "pub")]
-    texture_src: ArcStr,
+    texture_src:  ArcStr,
     /// The texture name of the building.
     #[getset(get = "pub")]
     texture_name: ArcStr,
@@ -77,13 +77,13 @@ pub struct Shape {
 pub struct Storage {
     /// Cargo storage provided
     #[getset(get_copy = "pub")]
-    cargo: units::CargoSize,
+    cargo:  units::CargoSize,
     /// Liquid storage provided
     #[getset(get = "pub")]
     liquid: Vec<units::LiquidVolume>,
     /// Gas storage provided
     #[getset(get_copy = "pub")]
-    gas: units::GasVolume,
+    gas:    units::GasVolume,
 }
 
 /// Identifies a building category
@@ -95,7 +95,7 @@ pub struct CategoryId(pub ArcStr);
 pub struct Category {
     /// Title of the building category.
     #[getset(get = "pub")]
-    title: ArcStr,
+    title:       ArcStr,
     /// Description of the building category.
     #[getset(get = "pub")]
     description: ArcStr,

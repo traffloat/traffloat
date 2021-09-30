@@ -39,7 +39,7 @@ impl AttrLocation {
 
 /// A buffer of float values to be passed to a WebGL program.
 pub struct FloatBuffer {
-    buffer: WebGlBuffer,
+    buffer:         WebGlBuffer,
     component_size: u32,
 }
 
@@ -107,7 +107,7 @@ impl BufferUsage {
 /// A buffer of index values to be passed to a WebGL program.
 pub struct IndexBuffer {
     buffer: WebGlBuffer,
-    len: i32,
+    len:    i32,
 }
 
 impl IndexBuffer {

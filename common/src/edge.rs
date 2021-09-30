@@ -21,7 +21,7 @@ pub struct Id {
     from: Entity,
     /// The "dest" node
     #[getset(get_copy = "pub")]
-    to: Entity,
+    to:   Entity,
 }
 
 codegen::component_depends! {
@@ -57,24 +57,16 @@ pub struct CrossSectionPosition(nalgebra::Vector2<f64>);
 
 impl CrossSectionPosition {
     /// Create a new position from the two components.
-    pub fn new(x: f64, y: f64) -> Self {
-        Self(nalgebra::Vector2::new(x, y))
-    }
+    pub fn new(x: f64, y: f64) -> Self { Self(nalgebra::Vector2::new(x, y)) }
 
     /// The vector from the center to the position.
-    pub fn vector(self) -> nalgebra::Vector2<f64> {
-        self.0
-    }
+    pub fn vector(self) -> nalgebra::Vector2<f64> { self.0 }
 
     /// The X-coordinate of [`Self::vector`].
-    pub fn x(self) -> f64 {
-        self.0.x
-    }
+    pub fn x(self) -> f64 { self.0.x }
 
     /// The Y-coordinate of [`Self::vector`].
-    pub fn y(self) -> f64 {
-        self.0.y
-    }
+    pub fn y(self) -> f64 { self.0.y }
 }
 
 /// The geometric design of the edge.
@@ -102,7 +94,7 @@ pub struct Duct {
     radius: f64,
     /// The type of duct.
     #[getset(get_copy = "pub")]
-    ty: DuctType,
+    ty:     DuctType,
     /// The entity storing the duct attributes.
     #[getset(get_copy = "pub")]
     entity: Entity,
@@ -125,7 +117,7 @@ pub enum DuctType {
     /// They refer to the "from" and "to" IDs, and do not change when direction is flipped.
     Liquid {
         /// The direction that the pipe runs in
-        dir: Option<Direction>,
+        dir:          Option<Direction>,
         /// The storage ordinal in the "from" node.
         ///
         /// This value does **not** swap with [`to_storage`] when the direction is flipped.
@@ -133,7 +125,7 @@ pub enum DuctType {
         /// The storage ordinal in the "to" node.
         ///
         /// This value does **not** swap with [`from_storage`] when the direction is flipped.
-        to_storage: usize,
+        to_storage:   usize,
     },
     /// A cable that electricity can pass through.
     ///
@@ -233,7 +225,7 @@ impl DuctType {
 pub struct AddEvent {
     /// The added edge ID.
     #[getset(get = "pub")]
-    edge: Id,
+    edge:   Id,
     /// The added edge entity.
     #[getset(get = "pub")]
     entity: Entity,
@@ -284,10 +276,10 @@ pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bo
 /// An event to schedule requests to initialize new edges.
 #[derive(TypedBuilder)]
 pub struct CreateRequest {
-    from: Entity,
-    to: Entity,
-    size: f64,
-    hp: units::Portion<units::Hitpoint>,
+    from:   Entity,
+    to:     Entity,
+    size:   f64,
+    hp:     units::Portion<units::Hitpoint>,
     design: Vec<save::SavedDuct>,
 }
 
@@ -307,7 +299,7 @@ fn create_new_edge(
             .map(|duct| Duct {
                 center: duct.center,
                 radius: duct.radius,
-                ty: duct.ty,
+                ty:     duct.ty,
                 entity: duct.ty.create_entity(
                     entities,
                     world,
@@ -351,7 +343,7 @@ fn create_saved_edge(
             .map(|duct| Duct {
                 center: duct.center,
                 radius: duct.radius,
-                ty: duct.ty,
+                ty:     duct.ty,
                 entity: duct.ty.create_entity(entities, world, from, to, duct.radius),
             })
             .collect();
@@ -375,10 +367,10 @@ pub mod save {
     /// Saves all data related to an edge.
     #[derive(Clone, Serialize, Deserialize)]
     pub struct Edge {
-        pub(crate) from: node::Id,
-        pub(crate) to: node::Id,
-        pub(crate) size: super::Size,
-        pub(crate) design: Vec<SavedDuct>,
+        pub(crate) from:     node::Id,
+        pub(crate) to:       node::Id,
+        pub(crate) size:     super::Size,
+        pub(crate) design:   Vec<SavedDuct>,
         pub(crate) hitpoint: units::Portion<units::Hitpoint>,
     }
 
@@ -390,6 +382,6 @@ pub mod save {
         /// Radius of the duct.
         pub radius: f64,
         /// Type of the duct.
-        pub ty: DuctType,
+        pub ty:     DuctType,
     }
 }

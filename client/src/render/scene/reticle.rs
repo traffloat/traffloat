@@ -2,21 +2,21 @@
 
 use std::convert::TryInto;
 
+use traffloat::space::Matrix;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::mesh;
 use crate::render::util::{
     create_program, AttrLocation, BufferUsage, FloatBuffer, UniformLocation,
 };
-use traffloat::space::Matrix;
 
 /// Stores the setup data for node rendering.
 pub struct Program {
-    prog: WebGlProgram,
+    prog:      WebGlProgram,
     arrow_buf: FloatBuffer,
-    a_pos: AttrLocation,
-    u_trans: UniformLocation<Matrix>,
-    u_color: UniformLocation<[f32; 3]>,
+    a_pos:     AttrLocation,
+    u_trans:   UniformLocation<Matrix>,
+    u_color:   UniformLocation<[f32; 3]>,
 }
 
 impl Program {

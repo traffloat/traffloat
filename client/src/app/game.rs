@@ -2,35 +2,33 @@ use std::cell::{self, RefCell};
 use std::rc::Rc;
 use std::time::Duration;
 
+use safety::Safety;
+use traffloat::clock::Clock;
+use traffloat::SetupEcs;
 use yew::prelude::*;
 use yew::services::{interval, keyboard as kb_srv, render as render_srv, resize};
 
 use super::GameArgs;
 use crate::{input, render, util};
-use safety::Safety;
-use traffloat::clock::Clock;
-use traffloat::SetupEcs;
 
 /// HTML interface of the game page
 pub struct Game {
-    _props: Props,
-    link: ComponentLink<Self>,
-    legion: Rc<RefCell<traffloat::Legion>>,
-    _resize_task: resize::ResizeTask,
-    _render_task: render_srv::RenderTask,
+    _props:           Props,
+    link:             ComponentLink<Self>,
+    legion:           Rc<RefCell<traffloat::Legion>>,
+    _resize_task:     resize::ResizeTask,
+    _render_task:     render_srv::RenderTask,
     _simulation_task: interval::IntervalTask,
-    _keyboard_task: [kb_srv::KeyListenerHandle; 2],
-    render_comm: render::Comm,
-    bg_canvas_ref: NodeRef,
+    _keyboard_task:   [kb_srv::KeyListenerHandle; 2],
+    render_comm:      render::Comm,
+    bg_canvas_ref:    NodeRef,
     scene_canvas_ref: NodeRef,
-    debug_ref: NodeRef,
-    layers_cache: Option<(render::Layers, render::Dimension)>,
+    debug_ref:        NodeRef,
+    layers_cache:     Option<(render::Layers, render::Dimension)>,
 }
 
 impl Game {
-    fn legion_mut(&self) -> cell::RefMut<traffloat::Legion> {
-        self.legion.borrow_mut()
-    }
+    fn legion_mut(&self) -> cell::RefMut<traffloat::Legion> { self.legion.borrow_mut() }
 
     fn simulate(&mut self) {
         {
@@ -262,9 +260,7 @@ impl Component for Game {
         false
     }
 
-    fn change(&mut self, _: Props) -> ShouldRender {
-        unreachable!()
-    }
+    fn change(&mut self, _: Props) -> ShouldRender { unreachable!() }
 
     fn view(&self) -> Html {
         style! { static BASE_CANVAS =
@@ -350,7 +346,7 @@ pub enum Msg {
 #[derive(Clone, Properties)]
 pub struct Props {
     /// Arguments for the game.
-    pub args: GameArgs,
+    pub args:       GameArgs,
     /// Error handler.
     pub error_hook: Callback<Option<String>>,
 }

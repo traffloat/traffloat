@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 use structopt::StructOpt;
-
 use traffloat::save;
 
 #[derive(StructOpt)]
@@ -15,14 +14,14 @@ enum Args {
     /// Converts a save file to binary format.
     ToBinary {
         /// The input file
-        input: PathBuf,
+        input:  PathBuf,
         /// The output file
         output: Option<PathBuf>,
     },
     /// Converts a save file to text format.
     ToText {
         /// The input file
-        input: PathBuf,
+        input:  PathBuf,
         /// The output file
         output: Option<PathBuf>,
     },

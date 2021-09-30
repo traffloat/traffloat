@@ -86,9 +86,9 @@ fn git_data(path: &Path) -> Result<GitData> {
 }
 
 struct GitData {
-    sha: Option<String>,
+    sha:    Option<String>,
     branch: Option<String>,
-    dirty: bool,
+    dirty:  bool,
 }
 
 fn option_tokens(os: Option<&str>) -> proc_macro2::TokenStream {

@@ -32,9 +32,7 @@ impl Sign {
     }
 
     /// Inverts this sign in-place.
-    pub fn invert_mut(&mut self) {
-        *self = self.invert();
-    }
+    pub fn invert_mut(&mut self) { *self = self.invert(); }
 }
 
 /// A directed axis.
@@ -67,9 +65,9 @@ pub struct Face {
     /// The direction of the face normal.
     pub normal: DirectedAxis,
     /// The texture down direction.
-    pub down: DirectedAxis,
+    pub down:   DirectedAxis,
     /// The texture right direction.
-    pub right: DirectedAxis,
+    pub right:  DirectedAxis,
 }
 
 impl Face {
@@ -97,13 +95,9 @@ impl Face {
         self
     }
     /// The position of the upper right coordinates.
-    pub fn upper_right_coords(self) -> [f32; 3] {
-        self.flip_down().lower_right_coords()
-    }
+    pub fn upper_right_coords(self) -> [f32; 3] { self.flip_down().lower_right_coords() }
     /// The position of the lower left coordinates.
-    pub fn lower_left_coords(self) -> [f32; 3] {
-        self.flip_right().lower_right_coords()
-    }
+    pub fn lower_left_coords(self) -> [f32; 3] { self.flip_right().lower_right_coords() }
     /// The position of the upper left coordinates.
     pub fn upper_left_coords(self) -> [f32; 3] {
         self.flip_down().flip_right().lower_right_coords()

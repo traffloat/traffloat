@@ -4,19 +4,19 @@
 
 use derive_new::new;
 use enum_map::EnumMap;
+use traffloat::clock::Clock;
+use traffloat::space::Vector;
+use traffloat::time::Instant;
 use typed_builder::TypedBuilder;
 
 use crate::camera::Camera;
 use crate::{config, render};
-use traffloat::clock::Clock;
-use traffloat::space::Vector;
-use traffloat::time::Instant;
 
 /// A raw key event from the yew layer.
 #[derive(TypedBuilder, getset::Getters, getset::CopyGetters)]
 pub struct RawKeyEvent {
     /// The code of the event.
-    key: RawKey,
+    key:  RawKey,
     /// Whether the key is pressed down or up.
     #[getset(get_copy = "pub")]
     down: bool,
@@ -24,9 +24,7 @@ pub struct RawKeyEvent {
 
 impl RawKeyEvent {
     /// The code of the event.
-    pub fn key(&self) -> RawKey<&str> {
-        self.key.as_ref()
-    }
+    pub fn key(&self) -> RawKey<&str> { self.key.as_ref() }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -121,13 +119,13 @@ impl Command {
 pub struct CommandState {
     /// Whether the command is currently active.
     #[getset(get_copy = "pub")]
-    active: bool,
+    active:    bool,
     /// The last instant at which the command state changed from inactive to active.
     #[getset(get_copy = "pub")]
     last_down: Instant,
     /// The last instant at which the command state changed from active to inactive.
     #[getset(get_copy = "pub")]
-    last_up: Instant,
+    last_up:   Instant,
 }
 
 impl CommandState {

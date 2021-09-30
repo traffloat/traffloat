@@ -9,8 +9,8 @@ use crate::app::scenarios;
 
 /// Displays a form for choosing a scenario.
 pub struct Comp {
-    props: Props,
-    link: ComponentLink<Self>,
+    props:  Props,
+    link:   ComponentLink<Self>,
     choice: usize,
 }
 
@@ -25,7 +25,7 @@ impl Component for Comp {
                     Some((ord, def)) => {
                         props.choose_scenario.emit(super::ChooseScenario {
                             scenario: Some(super::Scenario::Url(def.path)),
-                            name: Some(def.id.into()),
+                            name:     Some(def.id.into()),
                             explicit: false,
                         });
                         ord
@@ -36,7 +36,7 @@ impl Component for Comp {
             Some(Route::Custom { .. }) => {
                 props.choose_scenario.emit(super::ChooseScenario {
                     scenario: None,
-                    name: None,
+                    name:     None,
                     explicit: false,
                 });
                 scenarios::OPTIONS.len()
@@ -46,7 +46,7 @@ impl Component for Comp {
                     scenario: Some(super::Scenario::Url(
                         scenarios::OPTIONS.get(0).expect("scenarios::OPTIONS is empty").path,
                     )),
-                    name: Some("vanilla".into()),
+                    name:     Some("vanilla".into()),
                     explicit: false,
                 });
                 0
@@ -83,7 +83,7 @@ impl Component for Comp {
                 };
                 self.props.choose_scenario.emit(super::ChooseScenario {
                     scenario: file.map(super::Scenario::File),
-                    name: None,
+                    name:     None,
                     explicit: true,
                 });
                 false
@@ -135,5 +135,5 @@ pub struct Props {
     /// The callback for updating chosen scenario.
     pub choose_scenario: Callback<super::ChooseScenario>,
     /// The intended route to navigate to.
-    pub intent_route: Option<Route>,
+    pub intent_route:    Option<Route>,
 }

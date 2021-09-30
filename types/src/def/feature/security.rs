@@ -19,7 +19,7 @@ pub struct Policy {
 
     /// The skill type to check.
     #[getset(get = "pub")]
-    skill: skill::TypeId,
+    skill:   skill::TypeId,
     /// The constraints on skill level to deny entry/exit.
     #[getset(get_copy = "pub")]
     deny_if: SkillRequirement,

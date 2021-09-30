@@ -1,7 +1,7 @@
+use safety::Safety;
 use web_sys::{WebGlRenderingContext, WebGlUniformLocation};
 
 use super::Uniform;
-use safety::Safety;
 
 /// A float-based type that can be lossily converted for WebGL compatibility.
 pub trait Glize: Sized {
@@ -27,9 +27,7 @@ macro_rules! impl_glize {
 impl Glize for f64 {
     type Output = f32;
 
-    fn glize(self) -> Self::Output {
-        self.lossy_trunc()
-    }
+    fn glize(self) -> Self::Output { self.lossy_trunc() }
 }
 
 impl_glize!(Matrix2);

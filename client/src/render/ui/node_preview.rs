@@ -4,30 +4,28 @@ use arcstr::ArcStr;
 use legion::world::SubWorld;
 use legion::{Entity, EntityStore};
 use smallvec::SmallVec;
+use traffloat::clock::Clock;
+use traffloat::config::Scalar;
+use traffloat::def::GameDefinition;
+use traffloat::{cargo, edge, gas, liquid, node, units};
 use yew::prelude::*;
 
 use super::{Update, UpdaterRef};
 use crate::app::icon;
 use crate::input;
 use crate::render::texture;
-use traffloat::clock::Clock;
-use traffloat::config::Scalar;
-use traffloat::def::GameDefinition;
-use traffloat::{cargo, edge, gas, liquid, node, units};
 
 /// Displays basic info about a node at a corner of the screen.
 pub struct Comp {
     props: Props,
-    link: ComponentLink<Self>,
+    link:  ComponentLink<Self>,
 }
 
 impl Component for Comp {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        Self { props, link }
-    }
+    fn create(props: Props, link: ComponentLink<Self>) -> Self { Self { props, link } }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
@@ -45,8 +43,9 @@ impl Component for Comp {
     }
 
     fn view(&self) -> Html {
-        use crate::render::texture::Icon;
         use traffloat::units::RoundedUnit;
+
+        use crate::render::texture::Icon;
 
         fn storage_display(
             size: impl RoundedUnit + Into<Html>,
@@ -138,17 +137,17 @@ pub struct Props {
 #[derive(Clone, PartialEq)]
 pub struct Args {
     /// Entity ID of the node.
-    pub entity: Entity,
+    pub entity:    Entity,
     /// Name of the targeted node.
     pub node_name: ArcStr,
     /// Hitpoint value of the targeted node.
-    pub hitpoint: units::Portion<units::Hitpoint>,
+    pub hitpoint:  units::Portion<units::Hitpoint>,
     /// Cargo stored in the targeted node.
-    pub cargo: SmallVec<[(units::CargoSize, ArcStr, Option<texture::Icon>); 4]>,
+    pub cargo:     SmallVec<[(units::CargoSize, ArcStr, Option<texture::Icon>); 4]>,
     /// Liquids stored in the targeted node.
-    pub liquid: SmallVec<[(units::LiquidVolume, ArcStr, Option<texture::Icon>); 4]>,
+    pub liquid:    SmallVec<[(units::LiquidVolume, ArcStr, Option<texture::Icon>); 4]>,
     /// Gases stored in the targeted node.
-    pub gas: SmallVec<[(units::GasVolume, ArcStr, Option<texture::Icon>); 4]>,
+    pub gas:       SmallVec<[(units::GasVolume, ArcStr, Option<texture::Icon>); 4]>,
 }
 
 #[codegen::system(Visualize)]
@@ -257,6 +256,4 @@ fn draw(
 }
 
 /// Sets up legion ECS for node info rendering.
-pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(draw_setup)
-}
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs { setup.uses(draw_setup) }

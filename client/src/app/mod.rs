@@ -1,7 +1,8 @@
 use std::rc::Rc;
 
-use crate::util::high_res_time;
 use traffloat::SetupEcs;
+
+use crate::util::high_res_time;
 
 mod editor;
 mod game;

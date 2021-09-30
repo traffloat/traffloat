@@ -6,7 +6,6 @@ use std::fmt;
 
 use derive_new::new;
 use once_cell::unsync::OnceCell;
-
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
@@ -42,14 +41,12 @@ extern "C" {
 }
 
 /// Passes the error to the JavaScript error handler.
-pub fn error_handler(value: &str) {
-    handle_error(value.into());
-}
+pub fn error_handler(value: &str) { handle_error(value.into()); }
 
 /// Wraps a possibly resolved promise.
 pub struct ReifiedPromise<T> {
     unknown: RefCell<Option<(JsValue, Box<dyn Any>)>>,
-    known: OnceCell<Result<T, ()>>,
+    known:   OnceCell<Result<T, ()>>,
 }
 
 impl<T> ReifiedPromise<T> {
@@ -57,7 +54,7 @@ impl<T> ReifiedPromise<T> {
     pub fn new(reified: JsValue, attachments: impl Any) -> Self {
         Self {
             unknown: RefCell::new(Some((reified, Box::new(attachments)))),
-            known: OnceCell::new(),
+            known:   OnceCell::new(),
         }
     }
 }
@@ -102,16 +99,14 @@ extern "C" {
 /// Writer for debug lines in a div.
 #[derive(new)]
 pub struct DebugWriter {
-    div: web_sys::HtmlElement,
+    div:   web_sys::HtmlElement,
     #[new(default)]
     lines: String,
 }
 
 impl DebugWriter {
     /// Resets the writer buffer.
-    pub fn reset(&mut self) {
-        self.lines.clear();
-    }
+    pub fn reset(&mut self) { self.lines.clear(); }
 
     /// Appends a line to the div.
     pub fn write(&mut self, line: impl AsRef<str>) {
@@ -127,13 +122,7 @@ impl DebugWriter {
 }
 
 impl fmt::Write for DebugWriter {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.lines.write_str(s)
-    }
-    fn write_char(&mut self, c: char) -> fmt::Result {
-        self.lines.write_char(c)
-    }
-    fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> fmt::Result {
-        self.lines.write_fmt(args)
-    }
+    fn write_str(&mut self, s: &str) -> fmt::Result { self.lines.write_str(s) }
+    fn write_char(&mut self, c: char) -> fmt::Result { self.lines.write_char(c) }
+    fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> fmt::Result { self.lines.write_fmt(args) }
 }

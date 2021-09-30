@@ -1,12 +1,12 @@
 //! Handles mouse interaction.
 
 use legion::Entity;
+use traffloat::space::Position;
+use traffloat::{appearance, edge, node};
 
 use super::{keyboard, ScreenPosition};
 use crate::camera::Camera;
 use crate::render;
-use traffloat::space::Position;
-use traffloat::{appearance, edge, node};
 
 /// Resource storing the position of the mouse, in the range [0, 1]^2.
 #[derive(Debug, getset::CopyGetters)]
@@ -20,15 +20,11 @@ impl CursorPosition {
     /// Creates a new cursor position.
     ///
     /// Parameters are identical to those of [`ScreenPosition::new`].
-    pub fn new(x: f64, y: f64) -> Self {
-        Self { position: ScreenPosition::new(x, y) }
-    }
+    pub fn new(x: f64, y: f64) -> Self { Self { position: ScreenPosition::new(x, y) } }
 }
 
 impl Default for CursorPosition {
-    fn default() -> Self {
-        Self::new(0.5, 0.5)
-    }
+    fn default() -> Self { Self::new(0.5, 0.5) }
 }
 
 /// Resource storing the line segment below the cursor.
@@ -39,7 +35,7 @@ pub struct Segment {
     proximal: Position,
     /// The point furthest from but still visible to the camera.
     #[getset(get_copy = "pub")]
-    distal: Position,
+    distal:   Position,
 }
 
 impl Default for Segment {

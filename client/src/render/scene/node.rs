@@ -1,30 +1,30 @@
 //! Node rendering
 
+use safety::Safety;
+use traffloat::appearance;
+use traffloat::space::{Matrix, Vector};
 use typed_builder::TypedBuilder;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use crate::render::scene::mesh;
 use crate::render::texture;
 use crate::render::util::{create_program, AttrLocation, UniformLocation};
-use safety::Safety;
-use traffloat::appearance;
-use traffloat::space::{Matrix, Vector};
 
 /// Stores the setup data for node rendering.
 pub struct Program {
-    prog: WebGlProgram,
-    cube: mesh::PreparedMesh,
-    cylinder: mesh::PreparedIndexedMesh,
-    a_pos: AttrLocation,
-    a_normal: AttrLocation,
-    a_tex_pos: AttrLocation,
+    prog:         WebGlProgram,
+    cube:         mesh::PreparedMesh,
+    cylinder:     mesh::PreparedIndexedMesh,
+    a_pos:        AttrLocation,
+    a_normal:     AttrLocation,
+    a_tex_pos:    AttrLocation,
     a_tex_offset: AttrLocation,
-    u_proj: UniformLocation<Matrix>,
-    u_sun: UniformLocation<Vector>,
-    u_filter: UniformLocation<Vector>,
-    u_inv_gain: UniformLocation<f32>,
-    u_tex: UniformLocation<i32>,
-    u_tex_dim: UniformLocation<[f32; 2]>,
+    u_proj:       UniformLocation<Matrix>,
+    u_sun:        UniformLocation<Vector>,
+    u_filter:     UniformLocation<Vector>,
+    u_inv_gain:   UniformLocation<f32>,
+    u_tex:        UniformLocation<i32>,
+    u_tex_dim:    UniformLocation<[f32; 2]>,
 }
 
 impl Program {
@@ -115,18 +115,18 @@ impl Program {
 #[derive(TypedBuilder)]
 pub struct DrawArgs<'t> {
     /// The WebGL context.
-    gl: &'t WebGlRenderingContext,
+    gl:         &'t WebGlRenderingContext,
     /// The projection matrix transforming unit model coordinates to projection coordinates
     /// directly.
-    proj: Matrix,
+    proj:       Matrix,
     /// The world direction of the sun.
-    sun: Vector,
+    sun:        Vector,
     /// The RGB color filter on the node.
-    filter: Vector,
+    filter:     Vector,
     /// Whether this node is selected.
-    selected: bool,
+    selected:   bool,
     /// The spritesheet for the shape.
-    texture: &'t texture::PreparedTexture,
+    texture:    &'t texture::PreparedTexture,
     /// The shape to draw.
     shape_unit: appearance::Unit,
 }

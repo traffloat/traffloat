@@ -12,9 +12,7 @@ pub struct Comm {
 impl Deref for Comm {
     type Target = CommInner;
 
-    fn deref(&self) -> &CommInner {
-        &*self.inner
-    }
+    fn deref(&self) -> &CommInner { &*self.inner }
 }
 
 /// The actual fields of Comm
@@ -24,9 +22,7 @@ pub struct CommInner {
 }
 
 impl Default for CommInner {
-    fn default() -> Self {
-        Self { perf: Perf::default() }
-    }
+    fn default() -> Self { Self { perf: Perf::default() } }
 }
 
 /// Resource for the cursor icon.
@@ -39,9 +35,7 @@ pub struct CursorType {
 }
 
 impl Default for CursorType {
-    fn default() -> Self {
-        Self { name: "initial" }
-    }
+    fn default() -> Self { Self { name: "initial" } }
 }
 
 /// An event fired when rendering is requested.

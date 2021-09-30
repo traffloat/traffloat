@@ -2,18 +2,18 @@
 
 use std::convert::TryInto;
 
+use traffloat::space::{LinearMatrix, Vector};
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use crate::render::util::{
     create_program, AttrLocation, BufferUsage, FloatBuffer, UniformLocation,
 };
-use traffloat::space::{LinearMatrix, Vector};
 
 /// Stores the setup data for node rendering.
 pub struct Program {
-    prog: WebGlProgram,
+    prog:    WebGlProgram,
     pos_buf: FloatBuffer,
-    a_pos: AttrLocation,
+    a_pos:   AttrLocation,
     u_trans: UniformLocation<LinearMatrix>,
 }
 
@@ -49,10 +49,11 @@ const NUM_STARS: usize = 8192;
 const STAR_SCALE: f64 = 0.001;
 
 fn generate_vertices(seed: [u8; 32]) -> Vec<f32> {
-    use crate::render::util::Glize;
     use rand::SeedableRng;
     use rand_distr::{Distribution, LogNormal, UnitSphere};
     use rand_xoshiro::Xoshiro256StarStar;
+
+    use crate::render::util::Glize;
 
     let mut rng = Xoshiro256StarStar::from_seed(seed);
 

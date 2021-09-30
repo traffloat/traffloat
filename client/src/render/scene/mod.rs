@@ -5,16 +5,15 @@ use std::f64::consts::PI;
 use legion::world::SubWorld;
 use legion::{component, Entity};
 use safety::Safety;
-use traffloat::units;
+use traffloat::appearance::{self, Appearance};
+use traffloat::space::{Matrix, Position, Vector};
+use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
+use traffloat::{lerp, units};
 use web_sys::WebGlRenderingContext;
 
 use super::{CursorType, RenderFlag};
 use crate::camera::Camera;
 use crate::{input, options};
-use traffloat::appearance::{self, Appearance};
-use traffloat::lerp;
-use traffloat::space::{Matrix, Position, Vector};
-use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 
 pub mod mesh;
 
@@ -24,9 +23,9 @@ pub mod reticle;
 
 /// Stores the setup data of the scene canvas.
 pub struct Canvas {
-    gl: WebGlRenderingContext,
-    node_prog: node::Program,
-    edge_prog: edge::Program,
+    gl:           WebGlRenderingContext,
+    node_prog:    node::Program,
+    edge_prog:    edge::Program,
     reticle_prog: reticle::Program,
 }
 

@@ -322,7 +322,7 @@ pub(crate) fn imp(args: TokenStream, input: TokenStream) -> Result<TokenStream> 
 
 struct DebugName {
     category: String,
-    name: String,
+    name:     String,
 }
 
 impl parse::Parse for DebugName {

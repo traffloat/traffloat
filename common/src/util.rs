@@ -4,9 +4,7 @@ use std::{cmp, ops};
 pub const DEFAULT_PORT: u16 = 15384;
 
 /// Checks whether the client name is valid.
-pub fn is_valid_name(name: &str) -> bool {
-    name.trim().len() >= 3 && name.len() <= 31
-}
+pub fn is_valid_name(name: &str) -> bool { name.trim().len() >= 3 && name.len() <= 31 }
 
 /// A f64 wrapper that is guaranteed to be finite.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -23,9 +21,7 @@ impl Finite {
     }
 
     /// Retrieves the underlying value.
-    pub fn value(self) -> f64 {
-        self.0
-    }
+    pub fn value(self) -> f64 { self.0 }
 }
 
 impl Eq for Finite {}
@@ -49,6 +45,4 @@ where
 ///
 /// Used in serde fields: `#[serde(skip_serializing_if = "crate::is_default")]`
 #[inline(always)]
-pub fn is_default<T: PartialEq + Default>(value: &T) -> bool {
-    *value == T::default()
-}
+pub fn is_default<T: PartialEq + Default>(value: &T) -> bool { *value == T::default() }

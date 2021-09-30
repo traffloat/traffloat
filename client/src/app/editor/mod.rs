@@ -2,10 +2,10 @@
 
 use std::rc::Rc;
 
+use traffloat::{def, save};
 use yew::prelude::*;
 
 use crate::app::route::*;
-use traffloat::{def, save};
 
 pub mod building;
 pub mod cargo;
@@ -18,8 +18,8 @@ const MAIN_WIDTH_PX: u32 = 750;
 /// Displays an editor for ducts in an edge.
 pub struct Comp {
     props: Props,
-    link: ComponentLink<Self>,
-    file: Option<Rc<save::SaveFile>>,
+    link:  ComponentLink<Self>,
+    file:  Option<Rc<save::SaveFile>>,
     state: State,
 }
 
@@ -183,9 +183,7 @@ impl Switch {
 }
 
 impl Default for Switch {
-    fn default() -> Self {
-        Self::Home
-    }
+    fn default() -> Self { Self::Home }
 }
 
 /// Events for [`Comp`].
@@ -202,11 +200,11 @@ pub enum Msg {
 #[derive(Clone, Properties)]
 pub struct Props {
     /// Name of the scenario, if it is default.
-    pub name: Option<String>,
+    pub name:         Option<String>,
     /// Buffer storing the tsv buffer.
-    pub buf: Rc<[u8]>,
+    pub buf:          Rc<[u8]>,
     /// Callback to return to home.
-    pub close_hook: Callback<Option<String>>,
+    pub close_hook:   Callback<Option<String>>,
     /// The intended route to navigate to.
     pub intent_route: Option<Route>,
 }

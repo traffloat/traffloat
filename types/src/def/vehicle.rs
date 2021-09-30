@@ -20,27 +20,27 @@ pub struct TypeId(pub ArcStr);
 pub struct Type {
     /// Name of the vehicle type.
     #[getset(get = "pub")]
-    name: ArcStr,
+    name:         ArcStr,
     /// Long description of the vehicle type.
     #[getset(get = "pub")]
-    description: ArcStr,
+    description:  ArcStr,
     /// Base speed of the vehicle.
     ///
     /// Subject to terminal force and operator skill.
     #[getset(get_copy = "pub")]
-    speed: units::VehicleSpeed,
+    speed:        units::VehicleSpeed,
     /// The amount of cargo that the vehicle can carry.
     #[getset(get_copy = "pub")]
-    capacity: units::CargoSize,
+    capacity:     units::CargoSize,
     /// The number of non-driver inhabitants carried by the vehicle.
     #[getset(get_copy = "pub")]
-    passengers: u32,
+    passengers:   u32,
     /// The skill required to operate this vehicle.
     #[getset(get = "pub")]
-    skill: Skill,
+    skill:        Skill,
     /// The texture source path of the vehicle.
     #[getset(get = "pub")]
-    texture_src: ArcStr,
+    texture_src:  ArcStr,
     /// The texture name of the vehicle.
     #[getset(get = "pub")]
     texture_name: ArcStr,
@@ -53,10 +53,10 @@ pub struct Type {
 pub struct Skill {
     /// The skill type.
     #[getset(get = "pub")]
-    skill: skill::TypeId,
+    skill:       skill::TypeId,
     /// The skill level range of varying speed multipliers.
     #[getset(get = "pub")]
-    levels: Range<units::Skill>,
+    levels:      Range<units::Skill>,
     /// The multipliers applied on the driving speed.
     #[getset(get_copy = "pub")]
     multipliers: catalyst::Multipliers,

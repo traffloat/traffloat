@@ -88,6 +88,4 @@ pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
 
 /// Dummy setup for non-render-debug builds
 #[cfg(not(feature = "render-debug"))]
-pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup
-}
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs { setup }

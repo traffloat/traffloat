@@ -7,16 +7,14 @@ use super::*;
 /// Displays an editor for ducts in an edge.
 pub struct Comp {
     props: Props,
-    link: ComponentLink<Self>,
+    link:  ComponentLink<Self>,
 }
 
 impl Component for Comp {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        Self { props, link }
-    }
+    fn create(props: Props, link: ComponentLink<Self>) -> Self { Self { props, link } }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
@@ -126,16 +124,16 @@ pub struct Props {
     /// The radius of the duct.
     pub center: edge::CrossSectionPosition,
     /// The type of the duct.
-    pub ty: edge::DuctType,
+    pub ty:     edge::DuctType,
     /// The index of the duct in `super::Comp::state`.
     ///
     /// This is the *new* index, not the old index as in [`super::Circle::original_index`].
-    pub index: usize,
+    pub index:  usize,
 
     /// When the user presses down the circle.
     pub mouse_down: Callback<MouseEvent>,
     /// When the user releases mouse on the circle.
-    pub mouse_up: Callback<MouseEvent>,
+    pub mouse_up:   Callback<MouseEvent>,
 }
 
 fn duct_fill(ty: edge::DuctType) -> String {

@@ -3,11 +3,10 @@
 use std::rc::Rc;
 
 use itertools::Itertools;
-use yew::prelude::*;
-
 use traffloat::def::feature::{reaction, security, Feature};
 use traffloat::def::{building, catalyst, GameDefinition};
 use traffloat::save::SaveFile;
+use yew::prelude::*;
 
 /// Displays a list of buildings.
 pub struct Comp {
@@ -18,13 +17,9 @@ impl Component for Comp {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Props, _link: ComponentLink<Self>) -> Self {
-        Self { props }
-    }
+    fn create(props: Props, _link: ComponentLink<Self>) -> Self { Self { props } }
 
-    fn update(&mut self, msg: Msg) -> ShouldRender {
-        match msg {}
-    }
+    fn update(&mut self, msg: Msg) -> ShouldRender { match msg {} }
 
     fn change(&mut self, props: Props) -> ShouldRender {
         self.props = props;
@@ -298,7 +293,7 @@ pub enum Msg {}
 #[derive(Clone, Properties)]
 pub struct Props {
     /// The loaded tsv file.
-    pub file: Rc<SaveFile>,
+    pub file:        Rc<SaveFile>,
     /// The type ID of the active building.
     pub building_id: building::TypeId,
 }

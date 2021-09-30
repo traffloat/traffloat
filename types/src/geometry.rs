@@ -140,9 +140,7 @@ impl Unit {
                 type Storage = nalgebra::storage::Owned<f64, dim::U4, dim::U8>;
                 type Points = nalgebra::Matrix<f64, dim::U4, dim::U8, Storage>;
 
-                fn p01() -> impl Iterator<Item = f64> {
-                    [0., 1.].iter().copied()
-                }
+                fn p01() -> impl Iterator<Item = f64> { [0., 1.].iter().copied() }
                 fn xyz(x: f64, y: f64, z: f64) -> impl Iterator<Item = f64> {
                     let vec: SmallVec<[f64; 4]> = smallvec![x, y, z, 1.];
                     vec.into_iter()

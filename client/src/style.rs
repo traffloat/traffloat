@@ -9,7 +9,7 @@ use yew::html::IntoPropValue;
 pub struct Style {
     /// The actual rules of the style, without duplicate keys
     pub rules: Vec<(&'static str, Cow<'static, str>)>,
-    string: Lazy<String, Box<dyn FnOnce() -> String + Send>>,
+    string:    Lazy<String, Box<dyn FnOnce() -> String + Send>>,
 }
 
 impl Style {
@@ -18,7 +18,7 @@ impl Style {
     /// Prefer the [`style`] macro instead.
     pub fn new(rules: Vec<(&'static str, Cow<'static, str>)>) -> Self {
         Self {
-            rules: rules.clone(),
+            rules:  rules.clone(),
             string: Lazy::new(Box::new(move || {
                 use std::fmt::Write;
 

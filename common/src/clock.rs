@@ -2,9 +2,10 @@
 
 use std::convert::TryFrom;
 
+use safety::Safety;
+
 use crate::time::{Instant, Time};
 use crate::SetupEcs;
-use safety::Safety;
 
 /// The interval between simulation frames.
 pub const SIMULATION_PERIOD: Time = Time(100);
@@ -17,14 +18,14 @@ pub const MICROS_PER_TICK: u64 = 10000;
 pub struct Clock {
     /// The current time
     #[getset(get_copy = "pub")]
-    now: Instant, // TODO multiplayer calibration
+    now:           Instant, // TODO multiplayer calibration
     /// Time since the last frame
     #[getset(get_copy = "pub")]
-    delta: Time,
+    delta:         Time,
     /// The reference time value at epoch.
     epoch_instant: Instant,
     /// The epoch in microseconds used for calibration.
-    epoch_micros: i64,
+    epoch_micros:  i64,
 }
 
 impl Clock {
@@ -56,9 +57,7 @@ impl Clock {
 /// # use traffloat::clock::SimulationEvent;
 /// #
 /// #[codegen::system(Simulate)]
-/// fn execute(
-///     #[subscriber] simul_sub: impl Iterator<Item = SimulationEvent>,
-/// ) {
+/// fn execute(#[subscriber] simul_sub: impl Iterator<Item = SimulationEvent>) {
 ///     if simul_sub.next().is_none() {
 ///         return;
 ///     }
@@ -81,6 +80,4 @@ fn sim_trigger(
 }
 
 /// Initializes the time module.
-pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.uses(sim_trigger_setup)
-}
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs { setup.uses(sim_trigger_setup) }

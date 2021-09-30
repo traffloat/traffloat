@@ -23,7 +23,7 @@ mod unsafe_proj {
         ///
         /// `projection()` shall transform this point to (0.5, 0.5, z), where `z = zoom / distance`.
         #[getset(get_copy = "pub")]
-        focus: Position,
+        focus:    Position,
         /// The rotation matrix of the camera.
         ///
         /// This transforms the real coordinates to the coordinates as seen by the user.
@@ -32,19 +32,19 @@ mod unsafe_proj {
 
         /// Canvas width divided by canvas height
         #[getset(get_copy = "pub")]
-        aspect: f64,
+        aspect:   f64,
         /// The distance of the focus from the camera.
         #[getset(get_copy = "pub")]
-        zoom: f64,
+        zoom:     f64,
         /// The rendering distance of the camera.
         #[getset(get_copy = "pub")]
         distance: f64,
         /// The vertical field of view in radians.
         #[getset(get_copy = "pub")]
-        fovy: f64,
+        fovy:     f64,
 
         #[builder(default)]
-        proj: Mutex<Option<Matrix>>,
+        proj:     Mutex<Option<Matrix>>,
         #[builder(default)]
         proj_inv: Mutex<Option<Matrix>>,
     }
@@ -207,6 +207,4 @@ fn debug(
 }
 
 /// Sets up legion ECS for this module.
-pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(debug_setup)
-}
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs { setup.uses(debug_setup) }

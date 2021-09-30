@@ -7,8 +7,8 @@ use super::*;
 
 /// Wrapper component for the site.
 pub struct Mux {
-    link: ComponentLink<Self>,
-    state: State,
+    link:         ComponentLink<Self>,
+    state:        State,
     intent_route: Option<Route>,
 }
 
@@ -52,9 +52,7 @@ impl Component for Mux {
         }
     }
 
-    fn change(&mut self, (): ()) -> ShouldRender {
-        unreachable!()
-    }
+    fn change(&mut self, (): ()) -> ShouldRender { unreachable!() }
 
     fn view(&self) -> Html {
         match &self.state {

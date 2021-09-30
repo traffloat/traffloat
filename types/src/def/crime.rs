@@ -49,26 +49,26 @@ pub enum InhabitantCriterion {
 pub struct Type {
     /// Name of the crime.
     #[getset(get = "pub")]
-    name: ArcStr,
+    name:                ArcStr,
     /// Description of the crime.
     #[getset(get = "pub")]
-    description: ArcStr,
+    description:         ArcStr,
     /// The actual consequence of the crime.
     #[getset(get = "pub")]
-    action: Action,
+    action:              Action,
     /// The skill type to trigger the crime.
     #[getset(get = "pub")]
-    trigger_skill: skill::TypeId,
+    trigger_skill:       skill::TypeId,
     /// The skill range at which this crime may happen.
     #[getset(get = "pub")]
     trigger_skill_range: Range<units::Skill>,
     /// The base (unmultiplied) probability per second that an inhabitant starts to commit this
     /// crime.
     #[getset(get_copy = "pub")]
-    probability: f64,
+    probability:         f64,
     /// The change in skill levels after committing this crime.
     #[getset(get = "pub")]
-    skill_change: SmallVec<[SkillChange; 1]>,
+    skill_change:        SmallVec<[SkillChange; 1]>,
 }
 
 /// A change in skill level.
@@ -78,7 +78,7 @@ pub struct Type {
 pub struct SkillChange {
     /// The skill type to change.
     #[getset(get = "pub")]
-    skill: skill::TypeId,
+    skill:  skill::TypeId,
     /// The amount changed.
     #[getset(get_copy = "pub")]
     change: units::Skill,

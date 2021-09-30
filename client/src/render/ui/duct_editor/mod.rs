@@ -4,16 +4,15 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use legion::{Entity, EntityStore};
-use yew::prelude::*;
-
 use traffloat::edge;
+use yew::prelude::*;
 
 pub mod duct;
 
 /// Displays an editor for ducts in an edge.
 pub struct Comp {
     props: Props,
-    link: ComponentLink<Self>,
+    link:  ComponentLink<Self>,
     state: Option<State>,
 }
 
@@ -28,15 +27,15 @@ impl Comp {
             self.state =
                 match (entry.get_component::<edge::Size>(), entry.get_component::<edge::Design>()) {
                     (Ok(size), Ok(design)) => Some(State {
-                        size: size.radius(),
+                        size:  size.radius(),
                         ducts: design
                             .ducts()
                             .iter()
                             .enumerate()
                             .map(|(index, duct)| Circle {
-                                center: duct.center(),
-                                radius: duct.radius(),
-                                ty: duct.ty(),
+                                center:         duct.center(),
+                                radius:         duct.radius(),
+                                ty:             duct.ty(),
                                 original_index: Some(index),
                             })
                             .collect(),
@@ -130,7 +129,7 @@ pub enum Msg {
 #[derive(Clone, Properties)]
 pub struct Props {
     /// The yew-independent properties.
-    pub args: Args,
+    pub args:   Args,
     /// The legion setup.
     pub legion: Rc<RefCell<traffloat::Legion>>,
 }
@@ -151,7 +150,7 @@ impl Args {
 
 /// The temporary state of edges in the duct
 struct State {
-    size: f64,
+    size:  f64,
     ducts: Vec<Circle>,
 }
 
@@ -159,11 +158,11 @@ struct State {
 #[derive(Debug, Clone, Copy)]
 pub struct Circle {
     /// Position of the cicle center
-    pub center: edge::CrossSectionPosition,
+    pub center:         edge::CrossSectionPosition,
     /// Radius of the circle
-    pub radius: f64,
+    pub radius:         f64,
     /// Type of the circle.
-    pub ty: edge::DuctType,
+    pub ty:             edge::DuctType,
     /// The index of this circle in [`edge::Design::ducts`] if it is not newly drawn.
     pub original_index: Option<usize>,
 }

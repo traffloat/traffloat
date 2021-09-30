@@ -2,10 +2,9 @@
 
 use std::rc::Rc;
 
-use yew::prelude::*;
-
 use traffloat::def::{building, cargo};
 use traffloat::save;
+use yew::prelude::*;
 
 /// Container for all nav items.
 pub struct Comp {
@@ -15,13 +14,9 @@ impl Component for Comp {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Props, _link: ComponentLink<Self>) -> Self {
-        Self { props }
-    }
+    fn create(props: Props, _link: ComponentLink<Self>) -> Self { Self { props } }
 
-    fn update(&mut self, msg: Msg) -> ShouldRender {
-        match msg {}
-    }
+    fn update(&mut self, msg: Msg) -> ShouldRender { match msg {} }
 
     fn change(&mut self, props: Props) -> ShouldRender {
         self.props = props;
@@ -69,13 +64,13 @@ pub enum Msg {}
 #[derive(Clone, Properties)]
 pub struct Props {
     /// The loaded tsv file.
-    pub file: Rc<save::SaveFile>,
+    pub file:            Rc<save::SaveFile>,
     /// Set the main body to editor home.
-    pub editor_home: Callback<()>,
+    pub editor_home:     Callback<()>,
     /// Set the main body to a building.
     pub choose_building: Callback<building::TypeId>,
     /// Set the main body to a cargo.
-    pub choose_cargo: Callback<cargo::TypeId>,
+    pub choose_cargo:    Callback<cargo::TypeId>,
     /// The prefix in the hash-route, e.g. `scenario/vanilla`)
-    pub route_prefix: String,
+    pub route_prefix:    String,
 }

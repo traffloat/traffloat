@@ -15,7 +15,7 @@ use crate::units;
 pub struct Catalyst {
     /// The lerp endpoints of the catalyst.
     #[getset(get = "pub")]
-    range: CatalystRange,
+    range:       CatalystRange,
     /// The multipliers associated with the catalyst.
     #[getset(get_copy = "pub")]
     multipliers: Multipliers,
@@ -27,21 +27,21 @@ pub enum CatalystRange {
     /// Existence of cargo
     Cargo {
         /// Type of cargo catalyst
-        ty: cargo::TypeId,
+        ty:     cargo::TypeId,
         /// Min and max levels of cargo catalyst
         levels: Range<units::CargoSize>,
     },
     /// Existence of liquid
     Liquid {
         /// Type of liquid catalyst
-        ty: liquid::TypeId,
+        ty:     liquid::TypeId,
         /// Min and max levels of liquid catalyst
         levels: Range<units::LiquidVolume>,
     },
     /// Existence of gas
     Gas {
         /// Type of gas catalyst
-        ty: gas::TypeId,
+        ty:     gas::TypeId,
         /// Min and max levels of gas catalyst
         levels: Range<units::GasVolume>,
     },
@@ -60,7 +60,7 @@ pub enum CatalystRange {
     /// Only the most skilled operator is counted as a catalyst.
     Skill {
         /// Type of skill catalyst
-        ty: skill::TypeId,
+        ty:     skill::TypeId,
         /// Min and max levels of skill catalyst
         levels: Range<units::Skill>,
     },
@@ -74,11 +74,11 @@ pub struct Multipliers {
     underflow: f64,
     /// Multiplier to the reaction rate when the catalyst is at the min lerp endpoint.
     #[getset(get_copy = "pub")]
-    min: f64,
+    min:       f64,
     /// Multiplier to the reaction rate when the catalyst is at the max lerp endpoint.
     #[getset(get_copy = "pub")]
-    max: f64,
+    max:       f64,
     /// Multiplier to the reaction rate when the catalyst is in excess.
     #[getset(get_copy = "pub")]
-    overflow: f64,
+    overflow:  f64,
 }

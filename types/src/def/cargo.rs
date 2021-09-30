@@ -15,19 +15,19 @@ pub struct TypeId(pub ArcStr);
 pub struct Type {
     /// Name of the cargo type.
     #[getset(get = "pub")]
-    name: ArcStr,
+    name:         ArcStr,
     /// Short summary of the cargo type.
     #[getset(get = "pub")]
-    summary: ArcStr,
+    summary:      ArcStr,
     /// Long description of the cargo type.
     #[getset(get = "pub")]
-    description: ArcStr,
+    description:  ArcStr,
     /// Category of the cargo type.
     #[getset(get = "pub")]
-    category: CategoryId,
+    category:     CategoryId,
     /// The texture source path of the cargo.
     #[getset(get = "pub")]
-    texture_src: ArcStr,
+    texture_src:  ArcStr,
     /// The texture name of the cargo.
     #[getset(get = "pub")]
     texture_name: ArcStr,
@@ -42,7 +42,7 @@ pub struct CategoryId(pub ArcStr);
 pub struct Category {
     /// Title of the cargo category.
     #[getset(get = "pub")]
-    title: ArcStr,
+    title:       ArcStr,
     /// Description of the cargo category.
     #[getset(get = "pub")]
     description: ArcStr,

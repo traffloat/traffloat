@@ -1,9 +1,8 @@
 //! The hash routes used for traffloat.
 
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::JsValue;
-
 use traffloat::def;
+use wasm_bindgen::JsValue;
 
 /// The top level route.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,7 +12,7 @@ pub enum Route {
         /// Key name of the scenario.
         name: String,
         /// Scenario subroute.
-        sp: SpRoute,
+        sp:   SpRoute,
     },
     /// The subject is an uploaded scenario.
     Custom {
@@ -41,9 +40,7 @@ pub enum Rules {
 }
 
 impl Default for Route {
-    fn default() -> Self {
-        Self::Scenario { name: String::from("vanilla"), sp: SpRoute::Home }
-    }
+    fn default() -> Self { Self::Scenario { name: String::from("vanilla"), sp: SpRoute::Home } }
 }
 
 impl Route {

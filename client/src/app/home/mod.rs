@@ -10,11 +10,11 @@ mod scenario_choose;
 
 /// The homepage for selecting gamemode.
 pub struct Home {
-    props: Props,
-    link: ComponentLink<Self>,
-    game_mode: GameMode,
-    _loader: Option<ScenarioLoader>,
-    scenario: Option<Rc<[u8]>>,
+    props:                Props,
+    link:                 ComponentLink<Self>,
+    game_mode:            GameMode,
+    _loader:              Option<ScenarioLoader>,
+    scenario:             Option<Rc<[u8]>>,
     chosen_scenario_name: Option<String>,
 }
 
@@ -85,7 +85,9 @@ impl Component for Home {
 
                 if event.explicit {
                     let route = match event.name.as_ref() {
-                        Some(name) => Route::Scenario { name: name.to_string(), sp: SpRoute::Home },
+                        Some(name) => {
+                            Route::Scenario { name: name.to_string(), sp: SpRoute::Home }
+                        }
                         None => Route::Custom { sp: SpRoute::Home },
                     };
                     route.replace_state();
@@ -148,9 +150,7 @@ impl Component for Home {
         }
     }
 
-    fn change(&mut self, _: Props) -> ShouldRender {
-        unreachable!()
-    }
+    fn change(&mut self, _: Props) -> ShouldRender { unreachable!() }
 
     fn view(&self) -> Html {
         html! {
@@ -281,7 +281,7 @@ pub struct ChooseScenario {
     /// The source of scenario.
     pub scenario: Option<Scenario>,
     /// The name of the scenario.
-    pub name: Option<String>,
+    pub name:     Option<String>,
     /// Whether the scenario was explicit chosen
     /// (`false` if inferred from URL).
     pub explicit: bool,
@@ -291,13 +291,13 @@ pub struct ChooseScenario {
 #[derive(Clone, Properties)]
 pub struct Props {
     /// Callback to start a singleplayer game.
-    pub start_single_hook: Callback<(SpGameArgs, Option<String>)>,
+    pub start_single_hook:  Callback<(SpGameArgs, Option<String>)>,
     /// Callback to edit a scenario.
     pub edit_scenario_hook: Callback<(Option<String>, Rc<[u8]>)>,
     /// The intended route to navigate to.
-    pub intent_route: Option<Route>,
+    pub intent_route:       Option<Route>,
     /// Displays an error message.
-    pub error: Option<String>,
+    pub error:              Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

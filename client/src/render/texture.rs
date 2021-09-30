@@ -5,14 +5,14 @@ use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use arcstr::ArcStr;
+use safety::Safety;
+use traffloat::appearance;
 use wasm_bindgen::prelude::*;
 use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture};
 
 use crate::render::scene::mesh::{cube, cylinder};
 use crate::render::util::{AttrLocation, FloatBuffer, UniformLocation};
 use crate::util::ReifiedPromise;
-use safety::Safety;
-use traffloat::appearance;
 
 #[wasm_bindgen(module = "/js/bitmap.js")]
 extern "C" {
@@ -24,7 +24,7 @@ extern "C" {
 
 /// Stores atlas cache.
 pub struct Pool {
-    map: cell::RefCell<BTreeMap<String, Rc<Atlas>>>,
+    map:   cell::RefCell<BTreeMap<String, Rc<Atlas>>>,
     dummy: Rc<WebGlTexture>,
 }
 
@@ -64,10 +64,10 @@ impl Pool {
     ) -> PreparedTexture {
         let atlas = self.load(texture.url());
         atlas.get(texture.name(), gl).unwrap_or_else(|| PreparedTexture {
-            gl_tex: Rc::clone(&self.dummy),
+            gl_tex:  Rc::clone(&self.dummy),
             sprites: ShapeSprites::Cube(DUMMY_CUBE_SPRITES),
-            width: 1.,
-            height: 1.,
+            width:   1.,
+            height:  1.,
         })
     }
 
@@ -80,10 +80,10 @@ impl Pool {
 
 /// A texture that can be used on WebGL directly.
 pub struct PreparedTexture {
-    gl_tex: Rc<WebGlTexture>,
+    gl_tex:  Rc<WebGlTexture>,
     sprites: ShapeSprites,
-    width: f32,
-    height: f32,
+    width:   f32,
+    height:  f32,
 }
 
 impl PreparedTexture {
@@ -225,16 +225,14 @@ fn decompose_value(value: &JsValue) -> (Index, ImageBitmap) {
 /// The loaded index of an atlas.
 #[derive(serde::Deserialize)]
 pub struct Index {
-    width: u32,
+    width:  u32,
     height: u32,
-    items: BTreeMap<String, ShapeSprites>,
+    items:  BTreeMap<String, ShapeSprites>,
 }
 
 impl Index {
     /// Returns the information of a sprite in this atlas.
-    pub fn sprites(&self, name: &str) -> Option<ShapeSprites> {
-        self.items.get(name).copied()
-    }
+    pub fn sprites(&self, name: &str) -> Option<ShapeSprites> { self.items.get(name).copied() }
 }
 
 /// Sprites for one shape.
@@ -257,7 +255,12 @@ impl ShapeSprites {
             Self::Cube(sprites) => sprites.sprite_number(number),
             Self::Cylinder(sprites) => sprites.sprite_number(number),
             Self::Icon(sprite) => {
-                assert!(number == 0, "Attempt to fetch sprite {:?} from an icon sprite. This may be caused by a texture or shape mismatch.", number);
+                assert!(
+                    number == 0,
+                    "Attempt to fetch sprite {:?} from an icon sprite. This may be caused by a \
+                     texture or shape mismatch.",
+                    number
+                );
                 sprite
             }
         }
@@ -273,7 +276,7 @@ pub struct CylinderSprites {
     /// - Normal: (0, 0, 1)
     /// - Texture-to-world mapping: `f(x, y) = (x, y, 1)`
     #[getset(get_copy = "pub")]
-    top: RectSprite,
+    top:    RectSprite,
     /// Bottom face.
     ///
     /// - Position: `x^2 + y^2 <= 1, z = 0`
@@ -297,7 +300,11 @@ impl CylinderSprites {
             cylinder::FACE_CURVED => self.curved,
             cylinder::FACE_TOP => self.top,
             cylinder::FACE_BOTTOM => self.bottom,
-            _ => panic!("Attempt to fetch sprite {:?} from a cylinder sprite. This may be caused by a texture or shape mismatch.", number),
+            _ => panic!(
+                "Attempt to fetch sprite {:?} from a cylinder sprite. This may be caused by a \
+                 texture or shape mismatch.",
+                number
+            ),
         }
     }
 }
@@ -330,7 +337,11 @@ impl CubeSprites {
     pub fn sprite_number(self, number: usize) -> RectSprite {
         let face = match cube::FACES.get(number) {
             Some(face) => face,
-            _ => panic!("Attempt to fetch sprite {:?} from a cylinder sprite. This may be caused by a texture or shape mismatch.", number),
+            _ => panic!(
+                "Attempt to fetch sprite {:?} from a cylinder sprite. This may be caused by a \
+                 texture or shape mismatch.",
+                number
+            ),
         };
         face.cube_sprite(self)
     }
@@ -341,13 +352,13 @@ impl CubeSprites {
 pub struct RectSprite {
     /// Starting X-coordinate of the rectangle.
     #[getset(get_copy = "pub")]
-    x: u32,
+    x:      u32,
     /// Starting Y-coordinate of the rectangle.
     #[getset(get_copy = "pub")]
-    y: u32,
+    y:      u32,
     /// Width of the rectangle.
     #[getset(get_copy = "pub")]
-    width: u32,
+    width:  u32,
     /// Height of the rectangle.
     #[getset(get_copy = "pub")]
     height: u32,

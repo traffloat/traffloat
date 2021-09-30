@@ -1,5 +1,5 @@
 pub struct ScenarioDef {
-    pub id: &'static str,
+    pub id:   &'static str,
     pub name: &'static str,
     pub path: &'static str,
 }

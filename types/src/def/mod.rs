@@ -20,32 +20,32 @@ pub type Map<K, V> = indexmap::IndexMap<K, V, fxhash::FxBuildHasher>;
 pub struct GameDefinition {
     /// Cargo types.
     #[getset(get = "pub", get_mut = "pub")]
-    cargo: Map<cargo::TypeId, cargo::Type>,
+    cargo:         Map<cargo::TypeId, cargo::Type>,
     /// Cargo categories.
     #[getset(get = "pub", get_mut = "pub")]
-    cargo_cats: Map<cargo::CategoryId, cargo::Category>,
+    cargo_cats:    Map<cargo::CategoryId, cargo::Category>,
     /// Liquid types.
     #[getset(get = "pub", get_mut = "pub")]
-    liquid: Map<liquid::TypeId, liquid::Type>,
+    liquid:        Map<liquid::TypeId, liquid::Type>,
     /// Liquid mixing behaviour.
     #[getset(get = "pub", get_mut = "pub")]
-    liquid_mixer: liquid::Mixer,
+    liquid_mixer:  liquid::Mixer,
     /// Gas types.
     #[getset(get = "pub", get_mut = "pub")]
-    gas: Map<gas::TypeId, gas::Type>,
+    gas:           Map<gas::TypeId, gas::Type>,
     /// Skill types.
     #[getset(get = "pub", get_mut = "pub")]
-    skill: Map<skill::TypeId, skill::Type>,
+    skill:         Map<skill::TypeId, skill::Type>,
     /// Vehicle types.
     #[getset(get = "pub", get_mut = "pub")]
-    vehicle: Map<vehicle::TypeId, vehicle::Type>,
+    vehicle:       Map<vehicle::TypeId, vehicle::Type>,
     /// Building types.
     #[getset(get = "pub", get_mut = "pub")]
-    building: Map<building::TypeId, building::Type>,
+    building:      Map<building::TypeId, building::Type>,
     /// Building categories.
     #[getset(get = "pub", get_mut = "pub")]
     building_cats: Map<building::CategoryId, building::Category>,
     /// List of possible crimes.
     #[getset(get = "pub", get_mut = "pub")]
-    crime: Map<crime::TypeId, crime::Type>,
+    crime:         Map<crime::TypeId, crime::Type>,
 }

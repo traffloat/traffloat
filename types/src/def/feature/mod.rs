@@ -39,5 +39,5 @@ pub struct PumpSpec<U: Unit> {
     catalysts: SmallVec<[Catalyst; 2]>,
     /// The base force provided by the pump.
     #[getset(get_copy = "pub")]
-    force: U,
+    force:     U,
 }

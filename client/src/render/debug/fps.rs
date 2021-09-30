@@ -20,8 +20,8 @@ impl Counter {
         let index = match self.deque.binary_search(&now.saturating_sub(1000000)) {
             Ok(index) => index,
             Err(index) => index,
-            // index is somewhere between lower and upper bound
-            // we don't care about duplicates, so index is good enough
+            /* index is somewhere between lower and upper bound
+             * we don't care about duplicates, so index is good enough */
         };
         self.deque.drain(..index);
 
@@ -30,9 +30,7 @@ impl Counter {
     }
 
     /// The number of frames in the last second.
-    pub fn frames(&self) -> usize {
-        self.deque.len()
-    }
+    pub fn frames(&self) -> usize { self.deque.len() }
 }
 
 /// Resource type for simulation FPS counter.
@@ -77,6 +75,4 @@ fn update(
 }
 
 /// Sets up legion ECS for debug info rendering.
-pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(update_setup)
-}
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs { setup.uses(update_setup) }

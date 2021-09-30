@@ -43,9 +43,7 @@ pub trait LossyTrunc<U>: Sized {
     fn lossy_trunc_impl(self) -> U;
 }
 impl LossyTrunc<f32> for f64 {
-    fn lossy_trunc_impl(self) -> f32 {
-        self as f32
-    }
+    fn lossy_trunc_impl(self) -> f32 { self as f32 }
 }
 
 /// Converts an integer to a float probably losslessly

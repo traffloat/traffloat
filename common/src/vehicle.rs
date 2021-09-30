@@ -13,6 +13,4 @@ pub struct RailPump {
 }
 
 /// Initializes ECS
-pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup
-}
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs { setup }

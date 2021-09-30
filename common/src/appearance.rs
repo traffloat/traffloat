@@ -4,16 +4,15 @@ use arcstr::ArcStr;
 use derive_new::new;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
+pub use traffloat_types::geometry::Unit;
 use typed_builder::TypedBuilder;
 
 use crate::space::{Matrix, Position};
 use crate::SetupEcs;
-pub use traffloat_types::geometry::Unit;
 
 /// Describes the shape and appearance of an object.
 ///
 /// An object may be composed of multiple components.
-///
 #[derive(Debug, Clone, new, getset::Getters, Serialize, Deserialize)]
 pub struct Appearance {
     /// The list of components.
@@ -26,10 +25,10 @@ pub struct Appearance {
 pub struct Component {
     #[getset(get_copy = "pub")]
     /// Unit shape variant
-    unit: Unit,
+    unit:       Unit,
     /// The transformation matrix from the unit shape to this shape centered at the origin.
     #[getset(get_copy = "pub")]
-    matrix: Matrix,
+    matrix:     Matrix,
     /// The inverse transformation matrix from this shape centered at the origin to the unit shape.
     #[getset(get_copy = "pub")]
     #[builder(
@@ -39,15 +38,15 @@ pub struct Component {
     inv_matrix: Matrix,
     /// The texture for rendering the shape
     #[getset(get = "pub")]
-    texture: Texture,
+    texture:    Texture,
 }
 
 impl<'de> Deserialize<'de> for Component {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         #[derive(Deserialize)]
         struct Simple {
-            unit: Unit,
-            matrix: Matrix,
+            unit:    Unit,
+            matrix:  Matrix,
             texture: Texture,
         }
 
@@ -80,13 +79,11 @@ impl Component {
 pub struct Texture {
     /// A URL to an image file
     #[getset(get = "pub")]
-    url: ArcStr,
+    url:  ArcStr,
     /// The name of the texture.
     #[getset(get = "pub")]
     name: ArcStr,
 }
 
 /// Initializes systems
-pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup
-}
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs { setup }

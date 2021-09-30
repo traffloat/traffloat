@@ -21,19 +21,19 @@ pub struct TypeId(pub ArcStr);
 pub struct Type {
     /// Name of the liquid type.
     #[getset(get = "pub")]
-    name: ArcStr,
+    name:         ArcStr,
     /// Short summary of the liquid type.
     #[getset(get = "pub")]
-    summary: ArcStr,
+    summary:      ArcStr,
     /// Long description of the liquid type.
     #[getset(get = "pub")]
-    description: ArcStr,
+    description:  ArcStr,
     /// Viscosity of a liquid.
     #[getset(get_copy = "pub")]
-    viscosity: units::LiquidViscosity,
+    viscosity:    units::LiquidViscosity,
     /// The texture source path of the liquid.
     #[getset(get = "pub")]
-    texture_src: ArcStr,
+    texture_src:  ArcStr,
     /// The texture name of the liquid.
     #[getset(get = "pub")]
     texture_name: ArcStr,
@@ -44,7 +44,7 @@ pub struct Type {
 pub struct Mixer {
     /// The default type for mixing.
     #[getset(get = "pub")]
-    default: TypeId,
+    default:   TypeId,
     /// Specific addition formulas.
     #[getset(get = "pub")]
     specifics: BTreeMap<Pair, TypeId>,
@@ -57,39 +57,25 @@ impl Mixer {
             fn less(&self) -> &TypeId;
             fn greater(&self) -> &TypeId;
 
-            fn tuple(&self) -> (&TypeId, &TypeId) {
-                (self.less(), self.greater())
-            }
+            fn tuple(&self) -> (&TypeId, &TypeId) { (self.less(), self.greater()) }
         }
 
         impl PairRef for Pair {
-            fn less(&self) -> &TypeId {
-                &self.types[0]
-            }
-            fn greater(&self) -> &TypeId {
-                &self.types[1]
-            }
+            fn less(&self) -> &TypeId { &self.types[0] }
+            fn greater(&self) -> &TypeId { &self.types[1] }
         }
 
         impl PairRef for (&TypeId, &TypeId) {
-            fn less(&self) -> &TypeId {
-                self.0
-            }
-            fn greater(&self) -> &TypeId {
-                self.1
-            }
+            fn less(&self) -> &TypeId { self.0 }
+            fn greater(&self) -> &TypeId { self.1 }
         }
 
         impl<'b> Borrow<dyn PairRef + 'b> for Pair {
-            fn borrow(&self) -> &(dyn PairRef + 'b) {
-                self
-            }
+            fn borrow(&self) -> &(dyn PairRef + 'b) { self }
         }
 
         impl<'b> Borrow<dyn PairRef + 'b> for (&'b TypeId, &'b TypeId) {
-            fn borrow(&self) -> &(dyn PairRef + 'b) {
-                self
-            }
+            fn borrow(&self) -> &(dyn PairRef + 'b) { self }
         }
 
         impl PartialEq for dyn PairRef + '_ {
@@ -100,14 +86,10 @@ impl Mixer {
         impl Eq for dyn PairRef + '_ {}
 
         impl PartialOrd for dyn PairRef + '_ {
-            fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
-                Some(self.cmp(other))
-            }
+            fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> { Some(self.cmp(other)) }
         }
         impl Ord for dyn PairRef + '_ {
-            fn cmp(&self, other: &Self) -> cmp::Ordering {
-                self.tuple().cmp(&other.tuple())
-            }
+            fn cmp(&self, other: &Self) -> cmp::Ordering { self.tuple().cmp(&other.tuple()) }
         }
 
         self.specifics.get::<dyn PairRef + 'b>(&(a, b))
@@ -126,7 +108,7 @@ impl Mixer {
 
 #[derive(Serialize, Deserialize)]
 struct Serde {
-    default: TypeId,
+    default:  TypeId,
     formulas: Vec<Entry>,
 }
 
@@ -134,13 +116,13 @@ struct Serde {
 struct Entry {
     augend: TypeId,
     addend: TypeId,
-    sum: TypeId,
+    sum:    TypeId,
 }
 
 impl Serialize for Mixer {
     fn serialize<S: Serializer>(&self, ser: S) -> Result<S::Ok, S::Error> {
         let serde = Serde {
-            default: self.default.clone(),
+            default:  self.default.clone(),
             formulas: self
                 .specifics
                 .iter()
@@ -157,7 +139,7 @@ impl<'de> Deserialize<'de> for Mixer {
     fn deserialize<D: Deserializer<'de>>(de: D) -> Result<Self, D::Error> {
         let serde = Serde::deserialize(de)?;
         Ok(Self {
-            default: serde.default,
+            default:   serde.default,
             specifics: serde
                 .formulas
                 .into_iter()

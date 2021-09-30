@@ -6,6 +6,4 @@ use crate::SetupEcs;
 pub struct Core;
 
 /// Initializes ECS
-pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup
-}
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs { setup }

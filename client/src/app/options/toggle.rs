@@ -5,15 +5,13 @@ use yew::prelude::*;
 /// Options menu for Traffloat client.
 pub struct Comp {
     props: Props,
-    link: ComponentLink<Self>,
+    link:  ComponentLink<Self>,
 }
 impl Component for Comp {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        Self { props, link }
-    }
+    fn create(props: Props, link: ComponentLink<Self>) -> Self { Self { props, link } }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
@@ -55,11 +53,11 @@ pub enum Msg {
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
-    pub title: &'static str,
-    pub value: bool,
-    pub callback: Callback<bool>,
+    pub title:       &'static str,
+    pub value:       bool,
+    pub callback:    Callback<bool>,
     #[prop_or("On")]
-    pub on_message: &'static str,
+    pub on_message:  &'static str,
     #[prop_or("Off")]
     pub off_message: &'static str,
 }

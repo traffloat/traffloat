@@ -1,27 +1,27 @@
 //! Edge rendering
 
 use safety::Safety;
+use traffloat::space::{Matrix, Vector};
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use super::mesh;
 use crate::options;
 use crate::render::util::{create_program, AttrLocation, UniformLocation};
-use traffloat::space::{Matrix, Vector};
 
 /// Stores the setup data for edge rendering.
 pub struct Program {
-    prog: WebGlProgram,
-    cylinder: mesh::PreparedIndexedMesh,
-    a_pos: AttrLocation,
-    a_normal: AttrLocation,
-    u_trans: UniformLocation<Matrix>,
-    u_trans_sun: UniformLocation<Vector>,
-    u_color: UniformLocation<nalgebra::Vector4<f64>>,
-    u_ambient: UniformLocation<f32>,
-    u_diffuse: UniformLocation<f32>,
-    u_specular: UniformLocation<f32>,
+    prog:            WebGlProgram,
+    cylinder:        mesh::PreparedIndexedMesh,
+    a_pos:           AttrLocation,
+    a_normal:        AttrLocation,
+    u_trans:         UniformLocation<Matrix>,
+    u_trans_sun:     UniformLocation<Vector>,
+    u_color:         UniformLocation<nalgebra::Vector4<f64>>,
+    u_ambient:       UniformLocation<f32>,
+    u_diffuse:       UniformLocation<f32>,
+    u_specular:      UniformLocation<f32>,
     u_specular_coef: UniformLocation<f32>,
-    u_inv_gain: UniformLocation<f32>,
+    u_inv_gain:      UniformLocation<f32>,
 }
 
 impl Program {

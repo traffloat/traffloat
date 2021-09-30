@@ -23,32 +23,20 @@ pub struct Position(pub Point);
 
 impl Position {
     /// Creates a position
-    pub fn new(x: f64, y: f64, z: f64) -> Position {
-        Position(Point::new(x, y, z))
-    }
+    pub fn new(x: f64, y: f64, z: f64) -> Position { Position(Point::new(x, y, z)) }
 
     /// The X coordinate of the position
-    pub fn x(self) -> f64 {
-        self.0.x
-    }
+    pub fn x(self) -> f64 { self.0.x }
     /// The Y coordinate of the position
-    pub fn y(self) -> f64 {
-        self.0.y
-    }
+    pub fn y(self) -> f64 { self.0.y }
     /// The Z coordinate of the position
-    pub fn z(self) -> f64 {
-        self.0.z
-    }
+    pub fn z(self) -> f64 { self.0.z }
 
     /// Returns the vector from the origin to the position
-    pub fn vector(&self) -> Vector {
-        Vector::new(self.x(), self.y(), self.z())
-    }
+    pub fn vector(&self) -> Vector { Vector::new(self.x(), self.y(), self.z()) }
 
     /// Returns the underlying point
-    pub fn value(&self) -> Point {
-        self.0
-    }
+    pub fn value(&self) -> Point { self.0 }
 }
 
 impl Sub<Position> for Position {
@@ -67,9 +55,7 @@ impl Add<Vector> for Position {
     }
 }
 impl AddAssign<Vector> for Position {
-    fn add_assign(&mut self, other: Vector) {
-        *self = *self + other;
-    }
+    fn add_assign(&mut self, other: Vector) { *self = *self + other; }
 }
 impl Sub<Vector> for Position {
     type Output = Position;
@@ -79,9 +65,7 @@ impl Sub<Vector> for Position {
     }
 }
 impl SubAssign<Vector> for Position {
-    fn sub_assign(&mut self, other: Vector) {
-        *self = *self - other;
-    }
+    fn sub_assign(&mut self, other: Vector) { *self = *self - other; }
 }
 
 /// Creates a transformation matrix from a cube to a cuboid at `lower..upper`.

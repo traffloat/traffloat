@@ -69,7 +69,7 @@ pub struct Child {
 pub struct AddEvent {
     /// The added node ID
     #[getset(get_copy = "pub")]
-    node: Id,
+    node:   Id,
     /// The added node entity
     #[getset(get_copy = "pub")]
     entity: Entity,
@@ -99,9 +99,7 @@ pub struct Index {
 
 impl Index {
     /// Retrieves the entity ID for the given node
-    pub fn get(&self, id: Id) -> Option<Entity> {
-        self.index.get(&id).copied()
-    }
+    pub fn get(&self, id: Id) -> Option<Entity> { self.index.get(&id).copied() }
 }
 
 #[codegen::system(Command)]
@@ -132,7 +130,7 @@ fn delete_nodes(
 #[derive(TypedBuilder)]
 pub struct CreationRequest {
     /// Type ID of the building to create.
-    type_id: building::TypeId,
+    type_id:  building::TypeId,
     /// The position of the node.
     position: Position,
     /// The rotation matrix of the node.
@@ -350,32 +348,32 @@ pub mod save {
     /// Saves all data related to a node.
     #[derive(Clone, Serialize, Deserialize)]
     pub struct Node {
-        pub(crate) id: super::Id,
-        pub(crate) name: super::Name,
-        pub(crate) position: Position,
-        pub(crate) appearance: appearance::Appearance,
-        pub(crate) hitpoint: units::Portion<units::Hitpoint>,
-        pub(crate) cargo: BTreeMap<def::cargo::TypeId, units::CargoSize>,
-        pub(crate) cargo_capacity: units::CargoSize,
-        pub(crate) liquid: Vec<LiquidStorage>,
-        pub(crate) gas: BTreeMap<def::gas::TypeId, units::GasVolume>,
-        pub(crate) gas_capacity: units::GasVolume,
+        pub(crate) id:                super::Id,
+        pub(crate) name:              super::Name,
+        pub(crate) position:          Position,
+        pub(crate) appearance:        appearance::Appearance,
+        pub(crate) hitpoint:          units::Portion<units::Hitpoint>,
+        pub(crate) cargo:             BTreeMap<def::cargo::TypeId, units::CargoSize>,
+        pub(crate) cargo_capacity:    units::CargoSize,
+        pub(crate) liquid:            Vec<LiquidStorage>,
+        pub(crate) gas:               BTreeMap<def::gas::TypeId, units::GasVolume>,
+        pub(crate) gas_capacity:      units::GasVolume,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        pub(crate) is_core: bool,
+        pub(crate) is_core:           bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         pub(crate) housing_provision: Option<u32>,
         #[serde(skip_serializing_if = "crate::is_default")]
-        pub(crate) rail_pump: Option<units::RailForce>,
+        pub(crate) rail_pump:         Option<units::RailForce>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        pub(crate) liquid_pump: Option<units::PipeForce>,
+        pub(crate) liquid_pump:       Option<units::PipeForce>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        pub(crate) gas_pump: Option<units::FanForce>,
+        pub(crate) gas_pump:          Option<units::FanForce>,
     }
 
     #[derive(Clone, Serialize, Deserialize)]
     pub(crate) struct LiquidStorage {
-        pub(crate) ty: def::liquid::TypeId,
-        pub(crate) volume: units::LiquidVolume,
+        pub(crate) ty:       def::liquid::TypeId,
+        pub(crate) volume:   units::LiquidVolume,
         pub(crate) capacity: units::LiquidVolume,
     }
 }

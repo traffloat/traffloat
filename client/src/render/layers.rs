@@ -10,16 +10,14 @@ use crate::util::DebugWriter;
 #[derive(Debug, Clone, Copy)]
 pub struct Dimension {
     /// Number of pixels horizontally.
-    pub width: u32,
+    pub width:  u32,
     /// Number of pixels vertically.
     pub height: u32,
 }
 
 impl Dimension {
     /// Aspect ratio of the dimension
-    pub fn aspect(self) -> f64 {
-        (self.width as f64) / (self.height as f64)
-    }
+    pub fn aspect(self) -> f64 { (self.width as f64) / (self.height as f64) }
 }
 
 /// A shared reference to a canvas.
@@ -33,7 +31,7 @@ pub type Layers = Rc<RefCell<LayersStruct>>;
 pub struct LayersStruct {
     /// The background render layer
     #[getset(get = "pub")]
-    bg: bg::Canvas,
+    bg:    bg::Canvas,
     /// The object render layer
     #[getset(get = "pub")]
     scene: scene::Canvas,

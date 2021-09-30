@@ -5,6 +5,7 @@ use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::f64::consts::PI;
 
+use safety::Safety;
 use smallvec::SmallVec;
 
 use crate::appearance::Appearance;
@@ -13,7 +14,6 @@ use crate::space::{Position, Vector};
 use crate::units::Brightness;
 use crate::util::Finite;
 use crate::{config, node, SetupEcs};
-use safety::Safety;
 
 /// The position of the sun
 #[derive(Default, getset::CopyGetters)]
@@ -25,9 +25,7 @@ pub struct Sun {
 
 impl Sun {
     /// Direction vector from any opaque object to the sun.
-    pub fn direction(&self) -> Vector {
-        Vector::new(self.yaw().cos(), self.yaw().sin(), 0.)
-    }
+    pub fn direction(&self) -> Vector { Vector::new(self.yaw().cos(), self.yaw().sin(), 0.) }
 }
 
 #[codegen::system(Schedule)]
@@ -90,9 +88,9 @@ fn shadow_cast(
         let mut query = <(&mut LightStats, &Position, &Appearance)>::query();
 
         struct Marker<'t> {
-            light: &'t Cell<Brightness>,
-            min: [Finite; 2],
-            max: [Finite; 2],
+            light:    &'t Cell<Brightness>,
+            min:      [Finite; 2],
+            max:      [Finite; 2],
             priority: Finite,
         }
 
@@ -182,6 +180,4 @@ fn shadow_cast(
 }
 
 /// Initializes ECS
-pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.uses(move_sun_setup).uses(shadow_cast_setup)
-}
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs { setup.uses(move_sun_setup).uses(shadow_cast_setup) }

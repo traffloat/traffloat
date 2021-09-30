@@ -91,7 +91,7 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Liq
 pub struct Pipe {
     /// Entity of the source storage
     #[getset(get_copy = "pub")]
-    src_entity: Entity,
+    src_entity:  Entity,
     /// Entity of the destination storage
     #[getset(get_copy = "pub")]
     dest_entity: Entity,
@@ -108,9 +108,7 @@ pub struct PipeResistance {
 
 impl PipeResistance {
     /// Computes the resistance of a pipe.
-    pub fn compute(length: f64, radius: f64) -> Self {
-        Self::new(length / radius.powi(2))
-    }
+    pub fn compute(length: f64, radius: f64) -> Self { Self::new(length / radius.powi(2)) }
 }
 
 /// A component storing the current flow of a pipe.
@@ -119,7 +117,7 @@ pub struct PipeFlow {
     /// The type of liquid flowing over the pipe in the current simulation frame.
     #[getset(get = "pub")]
     #[getset(set = "pub")]
-    ty: Option<TypeId>,
+    ty:    Option<TypeId>,
     /// The flow rate over the pipe in the current simulation frame.
     #[getset(get_copy = "pub")]
     #[getset(set = "pub")]
@@ -170,10 +168,10 @@ fn simulate_pipes(
     let (mut query_world, mut entry_world) = world.split_for_query(&query);
     for (pipe, resistance, flow) in query.iter_mut(&mut query_world) {
         struct FetchEndpoint {
-            ty: TypeId,
-            force: units::PipeForce,
-            volume: units::LiquidVolume,
-            empty: units::LiquidVolume,
+            ty:        TypeId,
+            force:     units::PipeForce,
+            volume:    units::LiquidVolume,
+            empty:     units::LiquidVolume,
             viscosity: units::LiquidViscosity,
         }
 

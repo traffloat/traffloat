@@ -5,6 +5,7 @@ use std::convert::TryInto;
 use cfg_if::cfg_if;
 use legion::world::{ComponentError, SubWorld};
 use legion::{Entity, EntityStore, IntoQuery};
+use safety::Safety;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
@@ -16,7 +17,6 @@ use crate::node::save::Node;
 use crate::space::Position;
 use crate::time::Instant;
 use crate::{cargo, defense, edge, gas, liquid, node, population, units, vehicle, SetupEcs};
-use safety::Safety;
 
 /// The save schema version.
 ///
@@ -30,7 +30,7 @@ const TEXT_PREFIX: &str = "### SCHEMA_VERSION=";
 pub struct SaveFile {
     /// Defines the game rules and mechanisms.
     #[getset(get = "pub")]
-    def: GameDefinition,
+    def:   GameDefinition,
     /// Defines the current state of the game.
     #[getset(get = "pub")]
     state: GameState,
@@ -78,7 +78,7 @@ pub struct Response {
     format: Format,
     /// The raw result data.
     #[getset(get = "pub")]
-    data: Vec<u8>,
+    data:   Vec<u8>,
 }
 
 #[codegen::system(Visualize)]
@@ -114,7 +114,7 @@ fn save(
 ) {
     for request in requests {
         let file: SaveFile = SaveFile {
-            def: def.clone(),
+            def:   def.clone(),
             state:
                 GameState {
                     nodes: <(
@@ -184,9 +184,9 @@ fn save(
                                             .get_component()
                                             .expect("liquid storage entity has no StorageSize");
                                         node::save::LiquidStorage {
-                                            ty: storage.liquid().clone(),
+                                            ty:       storage.liquid().clone(),
                                             capacity: capacity.total(),
-                                            volume: size.size(),
+                                            volume:   size.size(),
                                         }
                                     })
                                     .collect(),
@@ -263,7 +263,7 @@ fn save(
                                 .map(|duct| SavedDuct {
                                     center: duct.center(),
                                     radius: duct.radius(),
-                                    ty: duct.ty(),
+                                    ty:     duct.ty(),
                                 })
                                 .collect(),
                             hitpoint,
@@ -383,6 +383,4 @@ pub fn load(mut setup: SetupEcs, buf: &[u8], now: u64) -> anyhow::Result<SetupEc
 }
 
 /// Initializes ECS
-pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.uses(save_setup)
-}
+pub fn setup_ecs(setup: SetupEcs) -> SetupEcs { setup.uses(save_setup) }

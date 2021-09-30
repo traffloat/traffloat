@@ -17,19 +17,19 @@ use crate::units;
 pub struct Reaction {
     /// Title for the reaction.
     #[getset(get = "pub")]
-    title: ArcStr,
+    title:       ArcStr,
     /// Description for the reaction.
     #[getset(get = "pub")]
     description: ArcStr,
     /// Catalysts for the reaction.
     #[getset(get = "pub")]
-    catalysts: SmallVec<[Catalyst; 2]>,
+    catalysts:   SmallVec<[Catalyst; 2]>,
     /// Inputs and outputs for the reaction.
     #[getset(get = "pub")]
-    puts: SmallVec<[Put; 2]>,
+    puts:        SmallVec<[Put; 2]>,
     /// Policies for the reaction.
     #[getset(get = "pub")]
-    policy: Policy,
+    policy:      Policy,
 }
 
 /// The inputs and outputs of a reaction.
@@ -38,21 +38,21 @@ pub enum Put {
     /// Consumption or production of cargo
     Cargo {
         /// Type of cargo consumed/produced
-        ty: cargo::TypeId,
+        ty:   cargo::TypeId,
         /// Base (unmultiplied) rate of gas consumed/produced
         base: Rate<units::CargoSize>,
     },
     /// Consumption or production of liquid
     Liquid {
         /// Type of liquid consumed/produced
-        ty: liquid::TypeId,
+        ty:   liquid::TypeId,
         /// Base (unmultiplied) rate of liquid consumed/produced
         base: Rate<units::LiquidVolume>,
     },
     /// Consumption or production of gas
     Gas {
         /// Type of gas consumed/produced
-        ty: gas::TypeId,
+        ty:   gas::TypeId,
         /// Base (unmultiplied) rate of gas consumed/produced
         base: Rate<units::GasVolume>,
     },
@@ -67,7 +67,7 @@ pub enum Put {
     /// All other operators receive the same amount of change.
     Skill {
         /// Type of skill trained/lost
-        ty: skill::TypeId,
+        ty:   skill::TypeId,
         /// Base (unmultiplied) rate of gas consumed/produced
         base: Rate<units::Skill>,
     },
@@ -86,14 +86,10 @@ impl Put {
     }
 
     /// Whether this is an output
-    pub fn is_output(&self) -> bool {
-        self.base() > 0.
-    }
+    pub fn is_output(&self) -> bool { self.base() > 0. }
 
     /// Whether this is an input
-    pub fn is_input(&self) -> bool {
-        self.base() < 0.
-    }
+    pub fn is_input(&self) -> bool { self.base() < 0. }
 }
 
 /// Reaction behaviour specific to this building.
@@ -108,7 +104,7 @@ pub struct Policy {
     on_underflow: FlowPolicy,
     /// What happens when outputs overflow.
     #[get_copy = "pub"]
-    on_overflow: FlowPolicy,
+    on_overflow:  FlowPolicy,
 }
 
 /// behaviour when inputs underflow or outputs overflow.
@@ -119,7 +115,5 @@ pub enum FlowPolicy {
 }
 
 impl Default for FlowPolicy {
-    fn default() -> Self {
-        Self::ReduceRate
-    }
+    fn default() -> Self { Self::ReduceRate }
 }

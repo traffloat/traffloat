@@ -1,11 +1,10 @@
-use std::collections::{BTreeMap, VecDeque};
-use std::fmt;
-use std::sync::{Mutex, RwLock};
-
 #[cfg(feature = "render-debug")]
 use std::collections::btree_map;
+use std::collections::{BTreeMap, VecDeque};
+use std::fmt;
 #[cfg(feature = "render-debug")]
 use std::sync::Arc;
+use std::sync::{Mutex, RwLock};
 
 use enum_map::EnumMap;
 
@@ -26,7 +25,6 @@ macro_rules! wasm_dbg {
 }
 
 use legion::systems::{ParallelRunnable, Runnable};
-
 /// Generates legion system setup procedure for.
 ///
 /// Consider this example:
@@ -69,9 +67,7 @@ use legion::systems::{ParallelRunnable, Runnable};
 ///     *local_counter += 1;
 /// }
 ///
-/// fn setup_ecs(setup: codegen::SetupEcs) -> codegen::SetupEcs {
-///     setup.uses(example_setup)
-/// }
+/// fn setup_ecs(setup: codegen::SetupEcs) -> codegen::SetupEcs { setup.uses(example_setup) }
 /// ```
 ///
 /// The parameter in the attribute is the [`SystemClass`] for the system.
@@ -87,15 +83,15 @@ pub const RENDER_DEBUG: bool = cfg!(feature = "render-debug");
 #[derive(Default)]
 pub struct SetupEcs {
     /// Whether to enable server-only systems
-    pub server: bool,
+    pub server:    bool,
     /// The legion::Scheduler builder
-    pub builder: legion::systems::Builder,
+    pub builder:   legion::systems::Builder,
     /// The legion world storing entities and components
-    pub world: legion::World,
+    pub world:     legion::World,
     /// The resource set storing legion resources
     pub resources: legion::Resources,
     /// The schedule of each class of systems
-    classes: EnumMap<SystemClass, ClassSchedule>,
+    classes:       EnumMap<SystemClass, ClassSchedule>,
 }
 
 /// A discrete batch of systems to execute.
@@ -139,15 +135,13 @@ pub enum SystemClass {
 
 #[derive(Default)]
 struct ClassSchedule {
-    sync: Vec<Box<dyn ParallelRunnable>>,
+    sync:   Vec<Box<dyn ParallelRunnable>>,
     unsync: Vec<Box<dyn Runnable>>,
 }
 
 impl SetupEcs {
     /// Register a bundle
-    pub fn uses(self, setup_ecs: fn(Self) -> Self) -> Self {
-        setup_ecs(self)
-    }
+    pub fn uses(self, setup_ecs: fn(Self) -> Self) -> Self { setup_ecs(self) }
 
     /// Add a system
     #[allow(clippy::indexing_slicing)]
@@ -232,18 +226,16 @@ impl SetupEcs {
 /// The set of values required to run legion
 pub struct Legion {
     /// The legion world storing entities and components
-    pub world: legion::World,
+    pub world:     legion::World,
     /// The resource set storing legion resources
     pub resources: legion::Resources,
     /// The legion scheduler running systems
-    pub schedule: legion::Schedule,
+    pub schedule:  legion::Schedule,
 }
 
 impl Legion {
     /// Spins all systems once.
-    pub fn run(&mut self) {
-        self.schedule.execute(&mut self.world, &mut self.resources)
-    }
+    pub fn run(&mut self) { self.schedule.execute(&mut self.world, &mut self.resources) }
 
     /// Publishes an event.
     pub fn publish<T: shrev::Event>(&mut self, event: T) {
@@ -395,9 +387,7 @@ impl DebugEntry {
 
         struct MutexStr<'t>(MutexGuard<'t, String>);
         impl<'t> AsRef<str> for MutexStr<'t> {
-            fn as_ref(&self) -> &str {
-                self.0.as_str()
-            }
+            fn as_ref(&self) -> &str { self.0.as_str() }
         }
         let value = self.value.lock().expect("Poisoned debug entry");
         MutexStr(value)
@@ -412,9 +402,7 @@ pub struct DebugEntry(pub ());
 #[cfg(not(feature = "render-debug"))]
 impl DebugEntry {
     /// Dummy method for debug entry in non-render-debug builds.
-    pub fn _update(&self, _new: impl fmt::Display) {
-        unimplemented!()
-    }
+    pub fn _update(&self, _new: impl fmt::Display) { unimplemented!() }
 }
 
 /// The high-resolution clock in microseconds

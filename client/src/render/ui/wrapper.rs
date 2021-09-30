@@ -9,13 +9,13 @@ use crate::input::keyboard;
 
 /// Wrapper for UI elements.
 pub struct Wrapper {
-    props: Props,
-    link: ComponentLink<Self>,
+    props:             Props,
+    link:              ComponentLink<Self>,
     node_preview_args: Option<node_preview::Args>,
     edge_preview_args: Option<edge_preview::Args>,
-    duct_editor_args: Option<duct_editor::Args>,
-    options_opened: bool,
-    display_toolbar: bool,
+    duct_editor_args:  Option<duct_editor::Args>,
+    options_opened:    bool,
+    display_toolbar:   bool,
 }
 
 impl Component for Wrapper {
@@ -184,9 +184,7 @@ pub struct UpdaterRef {
 
 impl UpdaterRef {
     /// Updates the callback.
-    pub fn set(&self, callback: Callback<Update>) {
-        let _ = self.cell.replace(Some(callback));
-    }
+    pub fn set(&self, callback: Callback<Update>) { let _ = self.cell.replace(Some(callback)); }
 
     /// Invokes the callback if it exists.
     pub fn call(&self, update: Update) {

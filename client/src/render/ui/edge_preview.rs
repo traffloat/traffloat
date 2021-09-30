@@ -3,27 +3,25 @@
 use arcstr::ArcStr;
 use legion::world::SubWorld;
 use legion::{Entity, EntityStore};
+use traffloat::{def, edge, liquid, node, units};
 use yew::prelude::*;
 
 use super::{duct_editor, Update, UpdaterRef};
 use crate::app::icon;
 use crate::input;
 use crate::render::texture;
-use traffloat::{def, edge, liquid, node, units};
 
 /// Displays basic info about an edge at a corner of the screen.
 pub struct Comp {
     props: Props,
-    link: ComponentLink<Self>,
+    link:  ComponentLink<Self>,
 }
 
 impl Component for Comp {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        Self { props, link }
-    }
+    fn create(props: Props, link: ComponentLink<Self>) -> Self { Self { props, link } }
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
@@ -115,7 +113,7 @@ pub enum Msg {
 #[derive(Clone, Properties)]
 pub struct Props {
     /// The yew-independent properties.
-    pub args: Args,
+    pub args:      Args,
     /// Callback to start duct editor
     pub edit_duct: Callback<Option<duct_editor::Args>>,
 }
@@ -124,7 +122,7 @@ pub struct Props {
 #[derive(Clone)]
 pub struct Args {
     /// Entity ID of the edge.
-    pub entity: Entity,
+    pub entity:  Entity,
     /// Liquid flows along the edge.
     pub liquids: Vec<LiquidFlow>,
 }
@@ -139,7 +137,7 @@ pub struct LiquidFlow {
     /// Flow rate in the pipe.
     pub flow: units::LiquidVolume,
     /// Direction of flow.
-    pub dir: edge::Direction,
+    pub dir:  edge::Direction,
 }
 
 #[codegen::system(Visualize)]
@@ -204,6 +202,4 @@ fn draw(
 }
 
 /// Sets up legion ECS for edge info rendering.
-pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup.uses(draw_setup)
-}
+pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs { setup.uses(draw_setup) }

@@ -12,8 +12,8 @@ mod toggle;
 
 /// Options menu for Traffloat client.
 pub struct Comp {
-    props: Props,
-    link: ComponentLink<Self>,
+    props:   Props,
+    link:    ComponentLink<Self>,
     options: Options,
 }
 

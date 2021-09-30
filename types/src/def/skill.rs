@@ -15,7 +15,7 @@ pub struct TypeId(pub ArcStr);
 pub struct Type {
     /// Name of the skill type.
     #[getset(get = "pub")]
-    name: ArcStr,
+    name:        ArcStr,
     /// Long description of the skill type.
     #[getset(get = "pub")]
     description: ArcStr,

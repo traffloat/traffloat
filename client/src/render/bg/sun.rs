@@ -1,12 +1,12 @@
 //! Sun rendering
 
 use lazy_static::lazy_static;
+use traffloat::space::Vector;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
 use crate::render::util::{
     create_program, AttrLocation, BufferUsage, FloatBuffer, IndexBuffer, UniformLocation,
 };
-use traffloat::space::Vector;
 
 #[rustfmt::skip]
 // f32::sqrt() is not const yet
@@ -21,15 +21,15 @@ lazy_static! {
 
 /// Stores the setup data for node rendering.
 pub struct Program {
-    prog: WebGlProgram,
-    pos_buf: FloatBuffer,
-    index_buf: IndexBuffer,
-    a_pos: AttrLocation,
-    u_screen_pos: UniformLocation<Vector>,
-    u_color: UniformLocation<[f32; 3]>,
+    prog:          WebGlProgram,
+    pos_buf:       FloatBuffer,
+    index_buf:     IndexBuffer,
+    a_pos:         AttrLocation,
+    u_screen_pos:  UniformLocation<Vector>,
+    u_color:       UniformLocation<[f32; 3]>,
     u_body_radius: UniformLocation<f32>,
     u_aura_radius: UniformLocation<f32>,
-    u_aspect: UniformLocation<f32>,
+    u_aspect:      UniformLocation<f32>,
 }
 
 impl Program {
