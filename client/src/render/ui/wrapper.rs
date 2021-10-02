@@ -127,7 +127,7 @@ impl Component for Wrapper {
                 { for self.options_opened.then(|| html! {
                     <div style=style!(
                         "background-color": "white",
-                        "width": "300px",
+                        "width": "500px",
                         "pointer-events": "auto",
                         "position": "fixed",
                         "top": "50%", "left": "50%",

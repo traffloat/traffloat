@@ -6,6 +6,7 @@ use once_cell::sync::Lazy;
 use yew::html::IntoPropValue;
 
 /// A set of styles for an element.
+#[derive(Debug)]
 pub struct Style {
     /// The actual rules of the style, without duplicate keys
     pub rules: Vec<(&'static str, Cow<'static, str>)>,
@@ -17,20 +18,38 @@ impl Style {
     ///
     /// Prefer the [`style`] macro instead.
     pub fn new(rules: Vec<(&'static str, Cow<'static, str>)>) -> Self {
-        Self {
-            rules:  rules.clone(),
-            string: Lazy::new(Box::new(move || {
-                use std::fmt::Write;
+        Self { rules: rules.clone(), string: Lazy::new(create_lazy_closure(rules)) }
+    }
 
-                let mut string = String::new();
-                for (key, value) in rules {
-                    write!(&mut string, "{}: {};", key, value)
-                        .expect("String::write_fmt cannot fail");
-                }
-                string
-            })),
+    /// Resets the lazy string.
+    ///
+    /// Useful for invalidating cache after mutating the rules.
+    pub fn reset_lazy(&mut self) {
+        self.string = Lazy::new(create_lazy_closure(self.rules.clone()));
+    }
+}
+
+impl Clone for Style {
+    fn clone(&self) -> Self {
+        Self {
+            rules:  self.rules.clone(),
+            string: Lazy::new(create_lazy_closure(self.rules.clone())),
         }
     }
+}
+
+fn create_lazy_closure(
+    rules: Vec<(&'static str, Cow<'static, str>)>,
+) -> Box<dyn FnOnce() -> String + Send> {
+    Box::new(move || {
+        use std::fmt::Write;
+
+        let mut string = String::new();
+        for (key, value) in rules {
+            write!(&mut string, "{}: {};", key, value).expect("String::write_fmt cannot fail");
+        }
+        string
+    })
 }
 
 macro_rules! style {
@@ -45,11 +64,11 @@ macro_rules! style {
                     for (key, value) in &$base.rules {
                         rules.insert(*key, value.clone());
                     }
-                 )*
-                    $(
-                        rules.insert($name, Cow::from($value));
-                     )*
-                    rules.into_iter().collect()
+                )*
+                $(
+                    rules.insert($name, Cow::from($value));
+                )*
+                rules.into_iter().collect()
             });
         }
     };
@@ -65,6 +84,17 @@ impl IntoPropValue<Option<Cow<'static, str>>> for &'static Style {
     fn into_prop_value(self) -> Option<Cow<'static, str>> {
         let string: &'static String = &*self.string;
         Some(Cow::Borrowed(string.as_str()))
+    }
+}
+
+/// A wrapper type over styles,
+/// used in [`yew::html!`] calls when `&'static Style` is not possible.
+pub struct NonStatic(pub Style);
+
+impl IntoPropValue<Option<Cow<'static, str>>> for NonStatic {
+    fn into_prop_value(self) -> Option<Cow<'static, str>> {
+        let string: String = self.0.string.clone();
+        Some(Cow::Owned(string))
     }
 }
 

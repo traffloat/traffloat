@@ -6,8 +6,9 @@ use std::rc::Rc;
 use yew::prelude::*;
 use yew::services::storage;
 
-use crate::options::{self, Options};
+use crate::options::{self, ColorMap, Options};
 
+mod color_picker;
 mod toggle;
 
 /// Options menu for Traffloat client.
@@ -53,6 +54,12 @@ impl Component for Comp {
                 self.save_options();
                 true
             }
+            Msg::UpdateColor(key, value) => {
+                let field = key(&mut self.options);
+                *field = value;
+                self.save_options();
+                true
+            }
         }
     }
 
@@ -63,8 +70,8 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         html! {
-            <div style=style!("margin": "2em")>
-                <h2>{ "Graphics" }</h2>
+            <div style=style!("margin": "50px")>
+                <h2 style=&*HEADER_STYLE>{ "Graphics" }</h2>
                 <table>
                     <toggle::Comp
                         title="Background stars"
@@ -91,7 +98,7 @@ impl Component for Comp {
                     }) }
                 </table>
 
-                <h3>{ "Buildings" }</h3>
+                <h3 style=&*HEADER_STYLE>{ "Buildings" }</h3>
                 <toggle::Comp
                     title="Render"
                     value=self.options.graphics().node().render()
@@ -99,8 +106,20 @@ impl Component for Comp {
                     on_message="Show"
                     off_message="Hide"
                     />
+                <color_picker::Comp
+                    title="Brightness shading"
+                    value=self.options.graphics().node().brightness()
+                    callback=Msg::update_color_map(&self.link, |options| options.graphics_mut().node_mut().brightness_mut())
+                    disabled=!self.options.graphics().node().render()
+                    />
+                <color_picker::Comp
+                    title="Hitpoint shading"
+                    value=self.options.graphics().node().hitpoint()
+                    callback=Msg::update_color_map(&self.link, |options| options.graphics_mut().node_mut().hitpoint_mut())
+                    disabled=!self.options.graphics().node().render()
+                    />
 
-                <h3>{ "Corridors" }</h3>
+                <h3 style=&*HEADER_STYLE>{ "Corridors" }</h3>
                 <toggle::Comp
                     title="Render"
                     value=self.options.graphics().edge().render()
@@ -113,16 +132,24 @@ impl Component for Comp {
     }
 }
 
-type OptionsField = fn(&mut Options) -> &mut bool;
+type OptionsField<T> = fn(&mut Options) -> &mut T;
 
 /// Events for [`Comp`].
 pub enum Msg {
-    UpdateBool(OptionsField, bool),
+    UpdateBool(OptionsField<bool>, bool),
+    UpdateColor(OptionsField<Option<ColorMap>>, Option<ColorMap>),
 }
 
 impl Msg {
-    fn update_bool(link: &ComponentLink<Comp>, f: OptionsField) -> Callback<bool> {
+    fn update_bool(link: &ComponentLink<Comp>, f: OptionsField<bool>) -> Callback<bool> {
         link.callback(move |b| Self::UpdateBool(f, b))
+    }
+
+    fn update_color_map(
+        link: &ComponentLink<Comp>,
+        f: OptionsField<Option<ColorMap>>,
+    ) -> Callback<Option<ColorMap>> {
+        link.callback(move |b| Self::UpdateColor(f, b))
     }
 }
 
@@ -131,4 +158,16 @@ impl Msg {
 pub struct Props {
     /// The legion setup, if opened in-game.
     pub legion: Option<Rc<RefCell<traffloat::Legion>>>,
+}
+
+style! { static HEADER_STYLE =
+    "margin-bottom": "0.5em",
+}
+style! { static ROW_STYLE =
+    "margin": "0.2em",
+}
+style! { static ROW_KEY_STYLE =
+    "text-align": "left",
+    "padding-right": "2ch",
+    "width": "200px",
 }

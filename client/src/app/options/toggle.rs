@@ -1,8 +1,8 @@
-//! Options menu for Traffloat client.
+//! A toggle component in the options menu.
 
 use yew::prelude::*;
 
-/// Options menu for Traffloat client.
+/// A toggle component in the options menu.
 pub struct Comp {
     props: Props,
     link:  ComponentLink<Self>,
@@ -29,8 +29,8 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         html! {
-            <tr>
-                <th>{ self.props.title }</th>
+            <tr style=&*super::ROW_STYLE>
+                <th style=&*super::ROW_KEY_STYLE>{ self.props.title }</th>
                 <td>
                     <input
                         type="checkbox"
