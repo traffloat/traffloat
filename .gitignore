@@ -4,7 +4,6 @@ __pycache__
 
 /client/dist
 /client/pkg
-/client/glsl_min.rb
 *.min.vert
 *.min.frag
 *.tsv

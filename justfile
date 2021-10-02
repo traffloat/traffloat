@@ -7,17 +7,15 @@ client-build-dev: client-clean pp
 client-watch: client-clean
 	cd client && trunk serve dev.html --watch .. --open
 
-doc: client-glsl
+doc:
 	cargo doc --lib --document-private-items
 
 client-clean:
 	test ! -d client/dist || rm -r client/dist
 	test ! -d client/pkg || rm -r client/pkg
-pp: client-texture client-glsl client-tsv
+pp: client-texture client-tsv
 client-texture:
 	cd client/textures && python3 aggregate.py
-client-glsl:
-	cd client && ./glsl_min.rb
 client-tsv:
 	rm client/static/*.tsv || true
 	find client/static -name "*.tsvt" -exec cargo run --bin tsvtool to-binary {} \;
@@ -25,11 +23,6 @@ client-tsv:
 deps:
 	cd client/textures && npm install
 	pip3 install -r client/textures/requirements.txt
-	test -f client/glsl_min.rb || ( \
-		wget -O client/glsl_min.rb \
-			https://raw.githubusercontent.com/traffloat/glsl-minifier/master/glsl_min.rb && \
-		chmod +x client/glsl_min.rb \
-	)
 
 tokei:
 	tokei -C -e "*lock*" -e "*.svg"

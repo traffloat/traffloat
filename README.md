@@ -60,13 +60,11 @@ which can be propelled or dissolved into raw resources.
 ## Compilation
 The following tools are used for compiling the client:
 
-- Ruby 2.7.0
 - Python 3.8.10
 - Node v14.16.0
 - Rust (default toolchain) nightly-2021-08-01
 
-Ruby is used to minify the GLSL scripts,
-and Node and Python are used for combining the texture images.
+Node and Python are used for combining the texture images.
 Rust is used to write the main game logic compiled to WebAssembly.
 
 This ptoject requites the wasm target for the Rust toolchain:
