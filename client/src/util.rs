@@ -2,7 +2,8 @@
 
 use std::any::Any;
 use std::cell::RefCell;
-use std::fmt;
+use std::ops::RangeInclusive;
+use std::{fmt, ops};
 
 use derive_new::new;
 use once_cell::unsync::OnceCell;
@@ -125,4 +126,45 @@ impl fmt::Write for DebugWriter {
     fn write_str(&mut self, s: &str) -> fmt::Result { self.lines.write_str(s) }
     fn write_char(&mut self, c: char) -> fmt::Result { self.lines.write_char(c) }
     fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> fmt::Result { self.lines.write_fmt(args) }
+}
+
+/// An expanding range.
+#[derive(Default)]
+pub struct Bounds<T: PartialOrd + Copy> {
+    range: Option<RangeInclusive<T>>,
+}
+
+impl<T: PartialOrd + Copy> Bounds<T> {
+    /// Add a value to expand the bounds.
+    pub fn add(&mut self, value: T) {
+        self.range = Some(match &self.range {
+            Some(range) => {
+                if value < *range.start() {
+                    // value < range.start() < range.end(), no need to test
+                    value..=*range.end()
+                } else if *range.end() < value {
+                    // range.start() < range.end() < value, no need to test
+                    *range.start()..=value
+                } else {
+                    range.clone()
+                }
+            }
+            None => value..=value,
+        });
+    }
+}
+
+impl<T: PartialOrd + Copy> Bounds<T>
+where
+    T: ops::Sub<Output = T>,
+    T: ops::Div,
+    <T as ops::Div>::Output: Default, // used as the default return value
+{
+    /// Computes the ratio of `value` within the range.
+    pub fn unlerp(&self, value: T) -> <T as ops::Div>::Output {
+        match &self.range {
+            Some(range) => (value - *range.start()) / (*range.end() - *range.start()),
+            None => Default::default(),
+        }
+    }
 }

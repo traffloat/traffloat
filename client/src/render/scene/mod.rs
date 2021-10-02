@@ -13,6 +13,7 @@ use web_sys::WebGlRenderingContext;
 
 use super::{CursorType, RenderFlag};
 use crate::camera::Camera;
+use crate::util::Bounds;
 use crate::{input, options};
 
 pub mod mesh;
@@ -67,6 +68,12 @@ impl Canvas {
     }
 }
 
+#[derive(Default)]
+struct ScaleBounds {
+    brightness: Bounds<units::Brightness>,
+    hitpoint:   Bounds<f64>,
+}
+
 #[codegen::system(Visualize)]
 #[read_component(Position)]
 #[read_component(appearance::Appearance)]
@@ -89,6 +96,7 @@ fn draw(
     #[resource] focus_target: &input::FocusTarget,
     #[resource(no_init)] options: &options::Options,
     #[subscriber] render_flag: impl Iterator<Item = RenderFlag>,
+    #[state(ScaleBounds::default())] bounds: &mut ScaleBounds,
 ) {
     use legion::IntoQuery;
 
@@ -114,51 +122,44 @@ fn draw(
     scene.gl.enable(WebGlRenderingContext::CULL_FACE);
     scene.gl.enable(WebGlRenderingContext::BLEND);
 
-    type Comps<'t> =
-        (Entity, &'t Position, &'t Appearance, &'t LightStats, &'t units::Portion<units::Hitpoint>);
     let base_month: f64 = sun.yaw() / PI / 2. * MONTH_COUNT.small_float::<f64>();
-    let mut scales: [Box<dyn options::ColorMapCount<Comps<'_>>>; 2] = [
-        Box::new(options::ColorMapCounter::try_new(
-            options.graphics().node().brightness(),
-            |(_, _, _, light, _hp): Comps| {
-                #[allow(clippy::indexing_slicing, clippy::cast_possible_truncation)]
-                let prev = light.brightness()[base_month.floor() as usize % MONTH_COUNT];
-                #[allow(clippy::indexing_slicing, clippy::cast_possible_truncation)]
-                let next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
-                let lerped = lerp(prev, next, base_month.fract());
-                lerped.value()
-            },
-        )),
-        Box::new(options::ColorMapCounter::try_new(
-            options.graphics().node().hitpoint(),
-            |(_, _, _, _light, hp): Comps| hp.ratio(),
-        )),
-    ];
 
-    if scales.iter().any(|scale| scale.is_some()) {
-        for comps in Comps::query().filter(component::<traffloat::node::Id>()).iter(world) {
-            let comps = (*comps.0, comps.1, comps.2, comps.3, comps.4); // hack, blame bad legion design :(
-
-            for scale in &mut scales {
-                scale.feed(comps);
-            }
-        }
-    }
+    let mut next_bounds = ScaleBounds::default();
 
     // Draw nodes
     if options.graphics().node().render() {
         #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
-        for comps in Comps::query().filter(component::<traffloat::node::Id>()).iter(world) {
-            let comps = (*comps.0, comps.1, comps.2, comps.3, comps.4); // hack, blame bad legion design :(
-
+        for (&entity, position, appearance, light, hitpoint) in <(
+            Entity,
+            &Position,
+            &Appearance,
+            &LightStats,
+            &units::Portion<units::Hitpoint>,
+        )>::query()
+        .filter(component::<traffloat::node::Id>())
+        .iter(world)
+        {
             let mut filter = Vector::new(1., 1., 1.);
 
-            for scale in &scales {
-                let subfilter = scale.compute(comps);
-                filter.component_mul_assign(&subfilter);
-            }
+            // Brightness
+            if let Some(cm) = options.graphics().node().brightness() {
+                #[allow(clippy::indexing_slicing, clippy::cast_possible_truncation)]
+                let prev = light.brightness()[base_month.floor() as usize % MONTH_COUNT];
+                #[allow(clippy::indexing_slicing, clippy::cast_possible_truncation)]
+                let next = light.brightness()[base_month.ceil() as usize % MONTH_COUNT];
+                let brightness = lerp(prev, next, base_month.fract());
 
-            let (entity, position, appearance, _, _) = comps;
+                next_bounds.brightness.add(brightness);
+                let unlerp = bounds.brightness.unlerp(brightness);
+                filter.component_mul_assign(&cm.convert(unlerp));
+            }
+            // Hitpoint
+            if let Some(cm) = options.graphics().node().hitpoint() {
+                let hitpoint = hitpoint.ratio();
+                next_bounds.hitpoint.add(hitpoint);
+                let unlerp = bounds.hitpoint.unlerp(hitpoint);
+                filter.component_mul_assign(&cm.convert(unlerp));
+            }
 
             let selected =
                 hover_target.entity() == Some(entity) || focus_target.entity() == Some(entity);
@@ -208,27 +209,30 @@ fn draw(
         }
     }
 
-    /// Shift columns frontward (1 -> 2) or backward (2 -> 1)
-    fn shift_axes(mut mat: Matrix, front: bool) -> Matrix {
-        #[allow(clippy::branches_sharing_code)] // it is confusing to merge them
-        if front {
-            mat.swap_columns(0, 1);
-            mat.swap_columns(1, 2);
-        } else {
-            mat.swap_columns(2, 0);
-            mat.swap_columns(1, 2);
-        }
+    *bounds = next_bounds;
 
-        mat
-    }
-    let rot_y = shift_axes(Matrix::identity(), true);
-    let rot_z = shift_axes(Matrix::identity(), false);
-
-    let arrow_projection = projection.prepend_translation(&camera.focus().vector());
-
-    scene.gl.disable(WebGlRenderingContext::CULL_FACE);
-    scene.gl.disable(WebGlRenderingContext::BLEND);
+    // Draw reticle
     if options.graphics().render_reticle() {
+        /// Shift columns frontward (1 -> 2) or backward (2 -> 1)
+        fn shift_axes(mut mat: Matrix, front: bool) -> Matrix {
+            #[allow(clippy::branches_sharing_code)] // it is confusing to merge them
+            if front {
+                mat.swap_columns(0, 1);
+                mat.swap_columns(1, 2);
+            } else {
+                mat.swap_columns(2, 0);
+                mat.swap_columns(1, 2);
+            }
+
+            mat
+        }
+        let rot_y = shift_axes(Matrix::identity(), true);
+        let rot_z = shift_axes(Matrix::identity(), false);
+
+        let arrow_projection = projection.prepend_translation(&camera.focus().vector());
+
+        scene.gl.disable(WebGlRenderingContext::CULL_FACE);
+        scene.gl.disable(WebGlRenderingContext::BLEND);
         scene.reticle_prog.draw(&scene.gl, arrow_projection, [1., 0., 0.]);
         scene.reticle_prog.draw(&scene.gl, arrow_projection * rot_y, [0., 1., 0.]);
         scene.reticle_prog.draw(&scene.gl, arrow_projection * rot_z, [0., 0., 1.]);

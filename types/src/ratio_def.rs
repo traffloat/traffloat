@@ -125,6 +125,24 @@ macro_rules! units {
                 }
             }
 
+            impl ::std::ops::Div for $tys {
+                type Output = $base;
+
+                #[inline(always)]
+                fn div(self, other: Self) -> $base {
+                    self.0 / other.0
+                }
+            }
+
+            impl ::std::ops::Div<$base> for $tys {
+                type Output = Self;
+
+                #[inline(always)]
+                fn div(self, other: $base) -> Self {
+                    Self(self.0 / other)
+                }
+            }
+
             impl ::std::ops::DivAssign<$base> for $tys {
                 #[inline(always)]
                 fn div_assign(&mut self, other: $base) {
