@@ -182,8 +182,6 @@ pub struct ReflectionArgs {
 /// A function mapping a scalar [0, 1] to a color [0, 1]^3.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum ColorMap {
-    /// A constant color value.
-    Monochrome(Vector),
     /// A linear color value.
     Linear(Vector, Vector),
     /// A colormap formed by three trapeziums.
@@ -194,7 +192,6 @@ impl ColorMap {
     /// Convert a scalar [0, 1] to a color [0, 1]^3
     pub fn convert(&self, value: f64) -> Vector {
         match self {
-            Self::Monochrome(color) => *color,
             Self::Linear(low, high) => lerp(*low, *high, value),
             Self::Trapeziums([r, g, b]) => {
                 Vector::new(r.convert(value), g.convert(value), b.convert(value))
