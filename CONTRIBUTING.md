@@ -14,7 +14,7 @@ New features, especially big ones, should first be discussed at [Discussions][di
 to avoid wasting time writing code that will not be used.
 However, small proof-of-concept patches could be helpful for the discussion if relevant.
 
-Also see the [VISION](VISION.md) document for a brief introduction
+Also see the [Vision](wiki-vision) document for a brief introduction
 for the long-term principles for the development of this software.
 
 ## Contributing code
@@ -24,6 +24,10 @@ To contribute codw, you have to create a pull request:
 2. Create a branch for your change, most likely from the master branch.
 3. Commit your changes on this new branch.
 4. [Open a pull request][pulls] for review.
+
+### Getting help
+The [wiki][wiki] contains some technical documents explaining the codebase.
+Also feel free to reach out at [Discussions][discussions] to ask about the code.
 
 ### Licensing
 Traffloat is licensed under [Affero GNU Public License (AGPL) Version 3](LICENSE).
@@ -100,3 +104,5 @@ but standalone components (e.g. mathematical functions) should use unit tests.
 [fork]: https://github.com/traffloat/traffloat/fork
 [issues]: https://github.com/traffloat/traffloat/issues
 [pulls]: https://github.com/traffloat/traffloat/pulls
+[wiki]: https://github.com/traffloat/traffloat/wiki
+[wiki-vision]: https://github.com/traffloat/traffloat/wiki/Vision
