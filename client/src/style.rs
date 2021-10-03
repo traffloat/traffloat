@@ -8,6 +8,9 @@ use yew::html::IntoPropValue;
 /// A set of styles for an element.
 pub struct Style {
     /// The actual rules of the style, without duplicate keys
+    ///
+    /// Do not modify directly; use [`push_rules`] instead.
+    #[doc(hidden)]
     pub rules: Vec<(&'static str, Cow<'static, str>)>,
     string:    Lazy<String, Box<dyn FnOnce() -> String + Send>>,
 }
@@ -17,18 +20,39 @@ impl Style {
     ///
     /// Prefer the [`style`] macro instead.
     pub fn new(rules: Vec<(&'static str, Cow<'static, str>)>) -> Self {
-        Self {
-            rules:  rules.clone(),
-            string: Lazy::new(Box::new(move || {
-                use std::fmt::Write;
+        Self { rules: rules.clone(), string: Lazy::new(Box::new(string_lazy(rules))) }
+    }
 
-                let mut string = String::new();
-                for (key, value) in rules {
-                    write!(&mut string, "{}: {};", key, value)
-                        .expect("String::write_fmt cannot fail");
-                }
-                string
-            })),
+    /// Add rules to this style.
+    ///
+    /// Note that this method clones the whole rules vector,
+    /// and therefore has O(n) time complexity.
+    pub fn push_rules(
+        &mut self,
+        rules: impl IntoIterator<Item = (&'static str, Cow<'static, str>)>,
+    ) {
+        self.rules.extend(rules);
+        self.string = Lazy::new(Box::new(string_lazy(self.rules.clone())));
+    }
+}
+
+fn string_lazy(rules: Vec<(&'static str, Cow<'static, str>)>) -> impl FnOnce() -> String + Send {
+    move || {
+        use std::fmt::Write;
+
+        let mut string = String::new();
+        for (key, value) in rules {
+            write!(&mut string, "{}: {};", key, value).expect("String::write_fmt cannot fail");
+        }
+        string
+    }
+}
+
+impl Clone for Style {
+    fn clone(&self) -> Self {
+        Self {
+            rules:  self.rules.clone(),
+            string: Lazy::new(Box::new(string_lazy(self.rules.clone()))),
         }
     }
 }
@@ -65,6 +89,16 @@ impl IntoPropValue<Option<Cow<'static, str>>> for &'static Style {
     fn into_prop_value(self) -> Option<Cow<'static, str>> {
         let string: &'static String = &*self.string;
         Some(Cow::Borrowed(string.as_str()))
+    }
+}
+
+/// A wrapper for a non-static style.
+pub struct NonStaticStyle(pub Style);
+
+impl IntoPropValue<Option<Cow<'static, str>>> for NonStaticStyle {
+    fn into_prop_value(self) -> Option<Cow<'static, str>> {
+        let string: String = self.0.string.clone();
+        Some(Cow::Owned(string))
     }
 }
 

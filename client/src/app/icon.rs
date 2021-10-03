@@ -3,6 +3,8 @@
 use safety::Safety;
 use yew::prelude::*;
 
+use crate::style::{NonStaticStyle, Style};
+
 /// Displays an editor for ducts in an edge.
 pub struct Comp {
     props: Props,
@@ -26,28 +28,32 @@ impl Component for Comp {
     }
 
     fn view(&self) -> Html {
+        let mut style: Style = Style::clone(style! {
+            "background-repeat": "no-repeat",
+            "display": "inline-block",
+            "font-size": "0",
+            "vertical-align": "text-bottom",
+        });
+
+        style.rules.push(("background-image", format!("url('{}')", self.props.atlas_path).into()));
+        style.rules.push((
+            "background-size",
+            format!("{}px {}px", self.props.scaled_atlas_x(), self.props.scaled_atlas_y()).into(),
+        ));
+        style.rules.push(("width", format!("{}px", self.props.scaled_size_x()).into()));
+        style.rules.push(("height", format!("{}px", self.props.scaled_size_y()).into()));
+        style.rules.push((
+            "background-position",
+            format!(
+                "{}px {}px",
+                pos_x = -self.props.scaled_pos_x().homosign(),
+                pos_y = -self.props.scaled_pos_y().homosign(),
+            )
+            .into(),
+        ));
         html! {
             <span
-                style=format!(
-                    "
-                        background-image: url('{url}');
-                        background-repeat: no-repeat;
-                        display: inline-block;
-                        background-size: {atlas_x}px {atlas_y}px;
-                        width: {size_x}px;
-                        height: {size_y}px;
-                        background-position: {pos_x}px {pos_y}px;
-                        font-size: 0;
-                        vertical-align: text-bottom;
-                    ",
-                    url=self.props.atlas_path,
-                    atlas_x=self.props.scaled_atlas_x(),
-                    atlas_y=self.props.scaled_atlas_y(),
-                    size_x=self.props.scaled_size_x(),
-                    size_y=self.props.scaled_size_y(),
-                    pos_x=-self.props.scaled_pos_x().homosign(),
-                    pos_y=-self.props.scaled_pos_y().homosign(),
-                )
+                style=NonStaticStyle(style)
                 title=self.props.text.clone()
             >
                 { &self.props.text }

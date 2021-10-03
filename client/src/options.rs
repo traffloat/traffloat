@@ -229,12 +229,12 @@ pub trait ColorMapCount<T> {
 
     /// Feed the components into the counter, which forwards to the function for type counting.
     ///
-    /// Do not call after using [`compute`].
+    /// Do not call after using [`ColorMapCount::compute`].
     fn feed(&mut self, comps: T);
 
-    /// Compute the color given the components, using the extrema collected in [`feed`].
+    /// Compute the color given the components, using the extrema collected in [`ColorMapCount::feed`].
     ///
-    /// Only use after calling [`feed`] on all entities.
+    /// Only use after calling [`ColorMapCount::feed`] on all entities.
     fn compute(&self, comps: T) -> Vector;
 }
 

@@ -53,26 +53,28 @@ impl Component for Comp {
             icon: &Option<Icon>,
         ) -> Html {
             html! {
-                <>
-                    { size.round(2) }
-                    { " " }
-                    { for icon.as_ref().map(|icon| html! {
-                        <icon::Comp
-                            atlas_path=icon.url.to_string()
-                            atlas_width=icon.dim.0
-                            atlas_height=icon.dim.1
-                            x0=icon.pos.x()
-                            y0=icon.pos.y()
-                            x1=icon.pos.x() + icon.pos.width()
-                            y1=icon.pos.y() + icon.pos.height()
-                            out_width=24
-                            out_height=24
-                            text=name.to_string()
-                            />
-                    }) }
-                    { for icon.is_none().then(|| name) }
-                    <br />
-                </>
+                <tr>
+                    <td>{ size.round(2) }</td>
+                    <td>
+                        { match icon {
+                            Some(icon) => html! {
+                                <icon::Comp
+                                    atlas_path=icon.url.to_string()
+                                    atlas_width=icon.dim.0
+                                    atlas_height=icon.dim.1
+                                    x0=icon.pos.x()
+                                    y0=icon.pos.y()
+                                    x1=icon.pos.x() + icon.pos.width()
+                                    y1=icon.pos.y() + icon.pos.height()
+                                    out_width=24
+                                    out_height=24
+                                    text=name.to_string()
+                                    />
+                            },
+                            None => name.into(),
+                        }}
+                    </td>
+                </tr>
             }
         }
 
@@ -106,15 +108,11 @@ impl Component for Comp {
                 <p style=row_style>
                     { self.props.args.hitpoint }
                 </p>
-                <p style=row_style>
+                <table style=row_style>
                     { for self.props.args.cargo.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
-                </p>
-                <p style=row_style>
                     { for self.props.args.liquid.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
-                </p>
-                <p style=row_style>
                     { for self.props.args.gas.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
-                </p>
+                </table>
             </div>
         }
     }
