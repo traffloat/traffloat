@@ -488,7 +488,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 [[package]]
 name = "legion"
 version = "0.4.0"
-source = "git+https://github.com/traffloat/legion#446593e022b186e7daa4095a3fd0fd8fdb0ea023"
+source = "git+https://github.com/traffloat/legion#a2ce1404f9c7eba2c45bf6a029ca383d9ab0b15c"
 dependencies = [
  "atomic_refcell",
  "bit-set",
@@ -504,7 +504,7 @@ dependencies = [
 [[package]]
 name = "legion_codegen"
 version = "0.4.0"
-source = "git+https://github.com/traffloat/legion#446593e022b186e7daa4095a3fd0fd8fdb0ea023"
+source = "git+https://github.com/traffloat/legion#a2ce1404f9c7eba2c45bf6a029ca383d9ab0b15c"
 dependencies = [
  "proc-macro2",
  "quote",
