@@ -1,14 +1,16 @@
 [package]
-name = "tsvtool"
+name = "tfsave-builder"
 authors = ["SOFe <sofe2038@gmail.com>"]
 version = "0.2.0"
 edition = "2018"
 repository = "https://github.com/traffloat/traffloat"
 homepage = "https://github.com/traffloat/traffloat"
-description = "Traffloat save file toolkit"
+description = "Creates save files from TOML files"
 license = "AGPL-3.0"
 
 [dependencies]
 anyhow = "1.0.44"
+serde = {version = "1.0.130", features = ["derive", "std"]}
 structopt = "0.3.23"
-traffloat-common = {version = "0.2.0", path = "../common", features = ["save-binary", "save-text"]}
+traffloat-def = {version = "0.2.0", path = "../def"}
+traffloat-types = {version = "0.2.0", path = "../types"}

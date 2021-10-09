@@ -4,10 +4,11 @@ members = [
 	"codegen-raw",
 	"codegen",
 	"types",
+	"def",
 	"common",
 	"client",
 	"version",
-	"tsvtool",
+	"tfsave-builder",
 ]
 
 [profile.dev]
@@ -17,9 +18,10 @@ opt-level = 3
 traffloat-codegen = {opt-level = 0}
 traffloat-codegen-raw = {opt-level = 0}
 traffloat-types = {opt-level = 0}
+traffloat-def = {opt-level = 0}
 traffloat-common = {opt-level = 0}
 traffloat-client = {opt-level = 0}
-tsvtool = {opt-level = 0}
+tfsave-builder = {opt-level = 0}
 
 [profile.release]
 lto = true

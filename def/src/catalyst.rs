@@ -2,15 +2,16 @@
 
 use std::ops::Range;
 
+use codegen::Definition;
+use getset::CopyGetters;
 use serde::{Deserialize, Serialize};
-use typed_builder::TypedBuilder;
+use traffloat_types::units;
 
-use crate::def::{cargo, gas, liquid, skill};
-use crate::units;
+use crate::{cargo, gas, liquid, skill};
 
 /// A condition or catalyst.
 #[derive(
-    Debug, Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize,
+    Debug, Clone, getset::Getters, getset::CopyGetters, Serialize, Deserialize, Definition,
 )]
 pub struct Catalyst {
     /// The lerp endpoints of the catalyst.
@@ -22,26 +23,26 @@ pub struct Catalyst {
 }
 
 /// A type of resource whose existence affects a reaction.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Definition)]
 pub enum CatalystRange {
     /// Existence of cargo
     Cargo {
         /// Type of cargo catalyst
-        ty:     cargo::TypeId,
+        ty:     cargo::Id,
         /// Min and max levels of cargo catalyst
         levels: Range<units::CargoSize>,
     },
     /// Existence of liquid
     Liquid {
         /// Type of liquid catalyst
-        ty:     liquid::TypeId,
+        ty:     liquid::Id,
         /// Min and max levels of liquid catalyst
         levels: Range<units::LiquidVolume>,
     },
     /// Existence of gas
     Gas {
         /// Type of gas catalyst
-        ty:     gas::TypeId,
+        ty:     gas::Id,
         /// Min and max levels of gas catalyst
         levels: Range<units::GasVolume>,
     },
@@ -60,14 +61,14 @@ pub enum CatalystRange {
     /// Only the most skilled operator is counted as a catalyst.
     Skill {
         /// Type of skill catalyst
-        ty:     skill::TypeId,
+        ty:     skill::Id,
         /// Min and max levels of skill catalyst
         levels: Range<units::Skill>,
     },
 }
 
 /// The multipliers associated with a catalyst.
-#[derive(Debug, Clone, Copy, TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, CopyGetters, Serialize, Deserialize, Definition)]
 pub struct Multipliers {
     /// Multiplier to the reaction rate when the catalyst is in deficiency.
     #[getset(get_copy = "pub")]

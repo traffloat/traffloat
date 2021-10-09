@@ -1,0 +1,54 @@
+[[def]]
+type = "Atlas"
+id = "buildings"
+dir = "./textures/buildings"
+
+	[[def.variants]]
+	name = "pixel"
+	dimension = 16
+
+	[[def.variants]]
+	name = "simple"
+	dimension = 64
+
+	[[def.variants]]
+	name = "fancy"
+	dimension = 256
+
+	[[def.variants]]
+	name = "x-fancy"
+	dimension = 1024
+
+[[def]]
+type = "Atlas"
+id = "icons"
+dir = "./textures/icons"
+
+	[[def.variants]]
+	name = "simple"
+	dimension = 16
+
+	[[def.variants]]
+	name = "fancy"
+	dimension = 128
+
+	[[def.variants]]
+	name = "x-fancy"
+	dimension = 512
+
+[[def]]
+type = "Atlas"
+id = "vehicles"
+dir = "./textures/vehicles"
+
+	[[def.variants]]
+	name = "simple"
+	dimension = 64
+
+	[[def.variants]]
+	name = "fancy"
+	dimension = 256
+
+	[[def.variants]]
+	name = "x-fancy"
+	dimension = 1024

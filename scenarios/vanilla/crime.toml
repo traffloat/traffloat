@@ -1,0 +1,64 @@
+[[def]]
+type = "Crime"
+name = {src = "main", key = "crime-pickpocket"}
+description = {src = "main", key = "crime-pickpocket.description"}
+
+	[def.action]
+	type = "InhabitantTheft"
+	amount = 5.0
+
+	[def.trigger]
+	ty = "satisfaction"
+	range = {start = 0.0, end = -500.0}
+	probability = 0.01
+
+	[[def.skill_change]]
+	skill = "infamy"
+	change = 5.0
+
+	[[def.skill_change]]
+	skill = "satisfaction"
+	change = -1.0
+
+[[def]]
+type = "Crime"
+name = {src = "main", key = "crime-robbery"}
+description = {src = "main", key = "crime-robbery.description"}
+
+	[def.action]
+	type = "NodeTheft"
+	amount = 5.0
+
+	[def.trigger]
+	ty = "satisfaction"
+	range = {start = -50.0, end = -1000.0}
+	probability = 0.0001
+
+	[[def.skill_change]]
+	skill = "infamy"
+	change = 20.0
+
+	[[def.skill_change]]
+	skill = "satisfaction"
+	change = 0.5
+
+[[def]]
+type = "Crime"
+name = {src = "main", key = "crime-arson"}
+description = {src = "main", key = "crime-arson.description"}
+
+	[def.action]
+	type = "Arson"
+
+	[def.trigger]
+	ty = "satisfaction"
+	range = {start = -500.0, end = -1000.0}
+	probability = 0.0001
+
+	[[def.skill_change]]
+	skill = "infamy"
+	change = 100.0
+
+	[[def.skill_change]]
+	skill = "satisfaction"
+	change = -25

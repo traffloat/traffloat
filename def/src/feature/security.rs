@@ -1,17 +1,16 @@
 //! Security-related node features.
 
+use codegen::Definition;
+use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use typed_builder::TypedBuilder;
+use traffloat_types::units;
 
-use crate::def::catalyst::Catalyst;
-use crate::def::skill;
-use crate::units;
+use crate::catalyst::Catalyst;
+use crate::skill;
 
 /// A security policy affecting entry/exit.
-#[derive(
-    Debug, Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize, Definition)]
 pub struct Policy {
     /// The catalysts affecting the breach probability.
     #[getset(get = "pub")]
@@ -19,7 +18,7 @@ pub struct Policy {
 
     /// The skill type to check.
     #[getset(get = "pub")]
-    skill:   skill::TypeId,
+    skill:   skill::Id,
     /// The constraints on skill level to deny entry/exit.
     #[getset(get_copy = "pub")]
     deny_if: SkillRequirement,
@@ -32,7 +31,7 @@ pub struct Policy {
 }
 
 /// A requirement of skill level.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Definition)]
 pub enum SkillRequirement {
     /// Minimum skill level.
     AtLeast(units::Skill),

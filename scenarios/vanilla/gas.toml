@@ -1,0 +1,23 @@
+[[def]]
+type = "Gas"
+id = "oxygen"
+name = {src = "main", key = "gas-oxygen"}
+summary = {src = "main", key = "gas-oxygen.summary"}
+description = {src = "main", key = "gas-oxygen.description"}
+texture = {src = "icons", name = "oxygen"}
+
+[[def]]
+type = "Gas"
+id = "carbon-dioxide"
+name = {src = "main", key = "gas-carbon-dioxide"}
+summary = {src = "main", key = "gas-carbon-dioxide.summary"}
+description = {src = "main", key = "gas-carbon-dioxide.description"}
+texture = {src = "icons", name = "carbon-dioxide"}
+
+[[def]]
+type = "Gas"
+id = "nitrogen"
+name = {src = "main", key = "gas-nitrogen"}
+summary = {src = "main", key = "gas-nitrogen.summary"}
+description = {src = "main", key = "gas-nitrogen.description"}
+texture = {src = "icons", name = "nitrogen"}

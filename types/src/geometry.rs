@@ -18,6 +18,8 @@ pub enum Unit {
     Cylinder,
 }
 
+codegen::impl_definition_by_self!(Unit);
+
 impl Unit {
     /// Checks whether the given point is within this unit shape
     pub fn contains(&self, pos: Point) -> bool {

@@ -2,6 +2,7 @@
 
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
+use codegen::{Definition, ResolveName};
 use serde::{Deserialize, Serialize};
 
 /// Standard vector type
@@ -81,3 +82,52 @@ pub fn transform_cylinder(x: f64, y: f64, zn: f64, zp: f64) -> Matrix {
     Matrix::new_nonuniform_scaling(&Vector::new(x, y, zn + zp))
         .append_translation(&Vector::new(0., 0., -zn))
 }
+
+/// A transformation matrix used in object schema.
+///
+/// This just wraps the [`Matrix`] type,
+/// but it implements [`codegen::Definition`] manually
+/// to allow expressing the transformation
+/// as a sequence of primitives in TOML format.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct TransformMatrix(pub Matrix);
+
+impl Definition for TransformMatrix {
+    type HumanFriendly = Vec<TransformPrimitive>;
+
+    fn convert(primitives: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
+        todo!()
+    }
+}
+
+/// A primitive linear transformation operation.
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum TransformPrimitive {
+    /// A translation operation.
+    Translate {
+        /// The distance to translate along the X axis. Default 0.
+        #[serde(default)]
+        x: f64,
+        /// The distance to translate along the Y axis. Default 0.
+        #[serde(default)]
+        y: f64,
+        /// The distance to translate along the Z axis. Default 0.
+        #[serde(default)]
+        z: f64,
+    },
+    /// A scaling operation.
+    Scale {
+        /// The ratio to scale along the X axis. Default 1.
+        #[serde(default = "serde_one")]
+        x: f64,
+        /// The ratio to scale along the Y axis. Default 1.
+        #[serde(default = "serde_one")]
+        y: f64,
+        /// The ratio to scale along the Z axis. Default 1.
+        #[serde(default = "serde_one")]
+        z: f64,
+    },
+}
+
+fn serde_one() -> f64 { 1. }

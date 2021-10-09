@@ -2,11 +2,16 @@
 use std::collections::btree_map;
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt;
+use std::ops::Range;
+use std::rc::Rc;
 #[cfg(feature = "render-debug")]
 use std::sync::Arc;
 use std::sync::{Mutex, RwLock};
 
+use arcstr::ArcStr;
 use enum_map::EnumMap;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 /// [`std::dbg!`] equivalent for wasm log
 #[macro_export]
@@ -25,6 +30,7 @@ macro_rules! wasm_dbg {
 }
 
 use legion::systems::{ParallelRunnable, Runnable};
+use smallvec::SmallVec;
 /// Generates legion system setup procedure for.
 ///
 /// Consider this example:
@@ -75,6 +81,9 @@ use legion::systems::{ParallelRunnable, Runnable};
 /// If some of the parameters need to be thread-unsafe,
 /// apply the `#[thread_local]` attribute on the function.
 pub use traffloat_codegen_raw::system;
+/// Derives `Id`, [`Identifiable`] implementation and [`Definition`] implementation where
+/// appropriate.
+pub use traffloat_codegen_raw::Definition;
 
 /// Whether debug info should be rendered.
 pub const RENDER_DEBUG: bool = cfg!(feature = "render-debug");
@@ -426,4 +435,84 @@ pub fn hrtime() -> i64 {
     }
 
     EPOCH.elapsed().as_micros() as i64
+}
+
+pub trait Definition: Serialize + DeserializeOwned + Sized {
+    type HumanFriendly: Serialize + DeserializeOwned;
+
+    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self>;
+}
+
+pub type ResolveName = Rc<dyn Fn(&str) -> Option<usize>>;
+
+/// Implements [`Definition`] for a type that is already human-friendly.
+#[macro_export]
+macro_rules! impl_definition_by_self {
+    ($ty:ty) => {
+        impl $crate::Definition for $ty {
+            type HumanFriendly = Self;
+
+            fn convert(hf: Self, _: $crate::ResolveName) -> anyhow::Result<Self> { Ok(hf) }
+        }
+    };
+}
+
+// We don't have specialization, so we need to list all normal types here :(
+impl_definition_by_self!(bool);
+impl_definition_by_self!(u32);
+impl_definition_by_self!(f64);
+impl_definition_by_self!(ArcStr);
+
+impl<T: Definition> Definition for Range<T> {
+    type HumanFriendly = Range<T::HumanFriendly>;
+
+    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
+        Ok(Range {
+            start: T::convert(hf.start, Rc::clone(&resolve_name))?,
+            end:   T::convert(hf.end, resolve_name)?,
+        })
+    }
+}
+
+impl<T: Definition> Definition for Box<T> {
+    type HumanFriendly = Box<<T as Definition>::HumanFriendly>;
+
+    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
+        Ok(Box::new(T::convert(*hf, resolve_name)?))
+    }
+}
+
+impl<T: Definition> Definition for Vec<T> {
+    type HumanFriendly = Vec<T::HumanFriendly>;
+
+    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
+        hf.into_iter().map(|thf| T::convert(thf, Rc::clone(&resolve_name))).collect()
+    }
+}
+
+impl<T: Definition, const N: usize> Definition for SmallVec<[T; N]>
+where
+    [T; N]: smallvec::Array<Item = T>,
+    Self: Serialize + DeserializeOwned,
+    T::HumanFriendly: Serialize + DeserializeOwned,
+{
+    type HumanFriendly = Vec<T::HumanFriendly>;
+
+    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
+        hf.into_iter().map(|thf| T::convert(thf, Rc::clone(&resolve_name))).collect()
+    }
+}
+
+impl<T: Definition> Definition for BTreeMap<ArcStr, T> {
+    type HumanFriendly = BTreeMap<ArcStr, T::HumanFriendly>;
+
+    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
+        hf.into_iter().map(|(k, thf)| Ok((k, T::convert(thf, Rc::clone(&resolve_name))?))).collect()
+    }
+}
+
+pub trait Identifiable {
+    type Id: fmt::Debug + Copy + Eq + Ord;
+
+    fn id(&self) -> Self::Id;
 }

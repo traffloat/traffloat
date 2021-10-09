@@ -1,0 +1,43 @@
+[scenario]
+name = "Vanilla"
+description = "The default game rules and minimal setup."
+
+[config]
+sun_speed = 0.0020943951
+negligible_volume = 1.0
+
+[[include]]
+file = "./lang.toml"
+
+[[include]]
+file = "./atlas.toml"
+
+[[include]]
+file = "./cargo-cats.toml"
+
+[[include]]
+file = "./cargo.toml"
+
+[[include]]
+file = "./liquid.toml"
+
+[[include]]
+file = "./liquid-recipe.toml"
+
+[[include]]
+file = "./gas.toml"
+
+[[include]]
+file = "./skill.toml"
+
+[[include]]
+file = "./vehicle.toml"
+
+[[include]]
+file = "./building-cats.toml"
+
+[[include]]
+file = "./building.toml"
+
+[[include]]
+file = "./crime.toml"

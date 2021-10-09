@@ -1,0 +1,60 @@
+[[def]]
+type = "Vehicle"
+id = "raptor"
+name = {src = "main", key = "vehicle-raptor"}
+description = {src = "main", key = "vehicle-raptor.description"}
+speed = 20.0
+capacity = 0.0
+passengers = 0
+texture = {src = "vehicles", name = "raptor"}
+
+	[[def.skill]]
+	skill = "driving-skill"
+	levels = {start = 0.0, end = 20.0}
+
+		[def.skill.multipliers]
+		underflow = 1.0
+		min = 1.0
+		max = 2.0
+		overflow = 2.0
+
+
+[[def]]
+type = "Vehicle"
+id = "freighter"
+name = "vehicle-freighter"
+description = "vehicle-freighter.description"
+speed = 5.0
+capacity = 1000.0
+passengers = 0
+texture = {src = "vehicles", name = "freighter"}
+
+	[[def.skill]]
+	skill = "driving-skill"
+	levels = {start = 0.0, end = 20.0}
+
+		[def.skill.multipliers]
+		underflow = 1.0
+		min = 1.0
+		max = 2.0
+		overflow = 2.0
+
+[[def]]
+type = "Vehicle"
+id = "bus"
+name = "vehicle-bus"
+description = "vehicle-bus.description"
+speed = 5.0
+capacity = 0.0
+passengers = 16
+texture = {src = "vehicles", name = "bus"}
+
+	[[def.skill]]
+	skill = "driving-skill"
+	levels = {start = 0.0, end = 20.0}
+
+		[def.skill.multipliers]
+		underflow = 1.0
+		min = 1.0
+		max = 2.0
+		overflow = 2.0

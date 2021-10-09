@@ -2,6 +2,7 @@
 
 use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 
+use codegen::Definition;
 use serde::{Deserialize, Serialize};
 
 units! {
@@ -75,4 +76,10 @@ impl<T: Mul<f64, Output = T>> std::ops::Mul<Time> for Rate<T> {
     type Output = T;
 
     fn mul(self, time: Time) -> T { self.0 * (time.value() as f64) }
+}
+
+impl<T: Definition> Definition for Rate<T> {
+    type HumanFriendly = Self;
+
+    fn convert(hf: Self, _: codegen::ResolveName) -> anyhow::Result<Self> { Ok(hf) }
 }

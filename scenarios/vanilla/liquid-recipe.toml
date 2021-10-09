@@ -1,0 +1,33 @@
+[[def]]
+type = "DefaultLiquidFormula"
+liquid = "contaminated-liquid"
+
+[[def]]
+type = "LiquidFormula"
+augend = "deionized-water"
+addend = "filtered-water"
+sum = "filtered-water"
+
+[[def]]
+type = "LiquidFormula"
+augend = "filtered-water"
+addend = "asteridal-water"
+sum = "asteridal-water"
+
+[[def]]
+type = "LiquidFormula"
+augend = "deionized-water"
+addend = "asteridal-water"
+sum = "asteridal-water"
+
+[[def]]
+type = "LiquidFormula"
+augend = "urine"
+addend = "asteridal-water"
+sum = "asteridal-water"
+
+[[def]]
+type = "LiquidFormula"
+augend = "deionized-water"
+addend = "urine"
+sum = "urine"

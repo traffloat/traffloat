@@ -1,19 +1,18 @@
 //! Reaction definitions
 
 use arcstr::ArcStr;
+use codegen::Definition;
+use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use typed_builder::TypedBuilder;
+use traffloat_types::time::Rate;
+use traffloat_types::units;
 
-use crate::def::catalyst::Catalyst;
-use crate::def::{cargo, gas, liquid, skill};
-use crate::time::Rate;
-use crate::units;
+use crate::catalyst::Catalyst;
+use crate::{cargo, gas, liquid, skill};
 
 /// A type of reaction.
-#[derive(
-    Debug, Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize, Definition)]
 pub struct Reaction {
     /// Title for the reaction.
     #[getset(get = "pub")]
@@ -33,26 +32,26 @@ pub struct Reaction {
 }
 
 /// The inputs and outputs of a reaction.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Definition)]
 pub enum Put {
     /// Consumption or production of cargo
     Cargo {
         /// Type of cargo consumed/produced
-        ty:   cargo::TypeId,
+        ty:   cargo::Id,
         /// Base (unmultiplied) rate of gas consumed/produced
         base: Rate<units::CargoSize>,
     },
     /// Consumption or production of liquid
     Liquid {
         /// Type of liquid consumed/produced
-        ty:   liquid::TypeId,
+        ty:   liquid::Id,
         /// Base (unmultiplied) rate of liquid consumed/produced
         base: Rate<units::LiquidVolume>,
     },
     /// Consumption or production of gas
     Gas {
         /// Type of gas consumed/produced
-        ty:   gas::TypeId,
+        ty:   gas::Id,
         /// Base (unmultiplied) rate of gas consumed/produced
         base: Rate<units::GasVolume>,
     },
@@ -67,7 +66,7 @@ pub enum Put {
     /// All other operators receive the same amount of change.
     Skill {
         /// Type of skill trained/lost
-        ty:   skill::TypeId,
+        ty:   skill::Id,
         /// Base (unmultiplied) rate of gas consumed/produced
         base: Rate<units::Skill>,
     },
@@ -93,8 +92,7 @@ impl Put {
 }
 
 /// Reaction behaviour specific to this building.
-#[derive(Debug, Clone, TypedBuilder, getset::CopyGetters, Serialize, Deserialize)]
-#[builder(field_defaults(default))]
+#[derive(Debug, Clone, CopyGetters, Serialize, Deserialize, Definition)]
 pub struct Policy {
     /// Whethre the reaction rate can be configured by the players.
     #[get_copy = "pub"]
@@ -108,7 +106,7 @@ pub struct Policy {
 }
 
 /// behaviour when inputs underflow or outputs overflow.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Definition)]
 pub enum FlowPolicy {
     /// Reduce the rate of reaction such that the input/output capacity is just enough.
     ReduceRate,

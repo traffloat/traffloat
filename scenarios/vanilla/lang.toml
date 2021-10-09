@@ -1,0 +1,6 @@
+[[def]]
+type = "LangBundle"
+id = "main"
+
+	[def.languages]
+	en = "./en.ftl"

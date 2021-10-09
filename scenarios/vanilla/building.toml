@@ -1,0 +1,30 @@
+[[include]]
+file = ./core.toml
+
+[[include]]
+file = ./customs.toml
+
+[[include]]
+file = ./driving-school.toml
+
+[[include]]
+file = ./filtration-plant.toml
+
+[[include]]
+file = ./hut.toml
+
+[[include]]
+file = ./prison.toml
+
+[[include]]
+file = ./solar-panel.toml
+
+[[include]]
+file = ./stadium.toml
+
+[[include]]
+file = ./terminal.toml
+
+[[include]]
+file = ./vault.toml
+

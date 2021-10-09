@@ -1,0 +1,40 @@
+[[def]]
+type = "Building"
+id = "core"
+category = "population"
+hitpoint = 3000.0
+name = {src = "main", key = "building-core"}
+summary = {src = "main", key = "building-core.summary"}
+description = {src = "main", key = "building-core.description"}
+
+	[def.storage]
+	cargo = 8000.0
+	gas = 8000.0
+
+		[[def.storage.liquid]]
+		capacity = 2000.0
+		name = {src = "main", key = "storage-liquid-generic-reservoir"}
+
+		[[def.storage.liquid]]
+		capacity = 2000.0
+		name = {src = "main", key = "storage-liquid-generic-reservoir"}
+
+		[[def.storage.liquid]]
+		capacity = 2000.0
+		name = {src = "main", key = "storage-liquid-generic-reservoir"}
+
+		[[def.storage.liquid]]
+		capacity = 2000.0
+		name = {src = "main", key = "storage-liquid-generic-reservoir"}
+
+		[[def.storage.population]]
+		building = 10
+		name = {src = "main", key = "storage-population-generic-transit"}
+
+
+	[[def.features]]
+	type = "Core"
+
+	[[def.shapes]]
+	unit = "Cube"
+	texture = {src = "buildings", name = "core"}

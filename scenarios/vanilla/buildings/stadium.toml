@@ -1,0 +1,57 @@
+[[def]]
+type = "Building"
+id = "stadium"
+category = "entertainment"
+hitpoint = 150.0
+name = {src = "main", key = "building-stadium"}
+summary = {src = "main", key = "building-stadium.summary"}
+description = {src = "main", key = "building-stadium.description"}
+
+	[[def.shapes]]
+	unit = "Cylinder"
+	texture = {src = "buildings", name = "stadium"}
+
+		[[def.shapes.transforms]]
+		type = "Translate"
+		z = -0.5
+
+		[[def.shapes.transforms]]
+		type = "Scale"
+		x = 0.8
+		y = 1.4
+		z = 2.4
+
+	[def.storage]
+	cargo = 1000.0
+	gas = 1000.0
+
+		[[def.storage.liquid]]
+		capacity = 10.0
+		name = {src = "main", key = "storage-liquid-generic-buffer"}
+
+		[[def.storage.population]]
+		id = "user"
+		capacity = 4
+		name = {src = "main", key = "storage-population-generic-user"}
+
+	[[def.features]]
+	type = "Reaction"
+	title = {src = "main", key = "reaction-stadium"}
+	description = {src = "main", key = "reaction-stadium.description"}
+
+		[[def.features.puts]]
+		type = "Skill"
+		ty = "happiness"
+		base = 0.2
+		storage = "user"
+
+		[[def.features.puts]]
+		type = "Skill"
+		ty = "athletic-skill"
+		base = 0.02
+		storage = "user"
+
+		[def.features.policy]
+		configurable = false
+		on_underflow = "ReduceRate"
+		on_overflow = "ReduceRate"

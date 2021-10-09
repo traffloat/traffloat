@@ -1,0 +1,47 @@
+[[def]]
+type = "Building"
+id = "hut"
+category = "population"
+hitpoint = 150.0
+name = {src = "main", key = "building-hut"}
+summary = {src = "main", key = "building-hut.summary"}
+description = {src = "main", key = "building-hut.description"}
+
+	[def.storage]
+	cargo = 1000.0
+	gas = 1000.0
+
+		[[def.storage.liquid]]
+		id = "drinking"
+		capacity = 500.0
+		name = {src = "main", key = "storage-liquid-housing-drinking"}
+
+		[[def.storage.liquid]]
+		id = "toilet"
+		capacity = 500.0
+		name = {src = "main", key = "storage-liquid-housing-tilet"}
+
+		[[def.storage.population]]
+		id = "housing"
+		building = 3
+		name = {src = "main", key = "storage-population-housing-housing"}
+
+		[[def.storage.population]]
+		building = 1
+		name = {src = "main", key = "storage-population-generic-transit"}
+
+	[[def.features]]
+	type = "ProvidesHousing"
+	storage = "housing"
+
+	[[def.shapes]]
+	unit = "Cylinder"
+	texture = {src = "buildings", name = "hut"}
+
+		[[def.shapes.transform]]
+		type = "Translate"
+		z = -0.5
+
+		[[def.shapes.transform]]
+		type = "Scale"
+		z = 0.8

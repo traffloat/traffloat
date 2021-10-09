@@ -1054,6 +1054,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tfsave-builder"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "structopt",
+ "traffloat-def",
+ "traffloat-types",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1129,12 +1140,16 @@ dependencies = [
 name = "traffloat-codegen"
 version = "0.2.0"
 dependencies = [
+ "anyhow",
+ "arcstr",
  "enum-map",
  "getset",
  "lazy_static",
  "legion",
  "log",
+ "serde",
  "shrev",
+ "smallvec",
  "traffloat-codegen-raw",
  "web-sys",
 ]
@@ -1144,6 +1159,7 @@ name = "traffloat-codegen-raw"
 version = "0.2.0"
 dependencies = [
  "crc64fast",
+ "heck",
  "proc-macro2",
  "quote",
  "syn",
@@ -1177,6 +1193,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "traffloat-def"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "arcstr",
+ "derive-new",
+ "getset",
+ "log",
+ "nalgebra",
+ "serde",
+ "smallvec",
+ "traffloat-codegen",
+ "traffloat-types",
+ "typed-builder",
+]
+
+[[package]]
 name = "traffloat-safety"
 version = "0.2.0"
 
@@ -1184,6 +1217,7 @@ version = "0.2.0"
 name = "traffloat-types"
 version = "0.2.0"
 dependencies = [
+ "anyhow",
  "arcstr",
  "derive-new",
  "fxhash",
@@ -1206,15 +1240,6 @@ dependencies = [
  "hex",
  "proc-macro2",
  "quote",
-]
-
-[[package]]
-name = "tsvtool"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "structopt",
- "traffloat-common",
 ]
 
 [[package]]

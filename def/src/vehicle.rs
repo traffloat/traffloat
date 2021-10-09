@@ -2,58 +2,51 @@
 
 use std::ops::Range;
 
-use arcstr::ArcStr;
+use codegen::Definition;
+use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
-use typed_builder::TypedBuilder;
+use traffloat_types::units;
 
-use crate::def::{catalyst, skill};
-use crate::units;
-
-/// Identifies a vehicle type.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct TypeId(pub ArcStr);
+use crate::atlas::Sprite;
+use crate::{catalyst, lang, skill};
 
 /// A type of vehicle.
-#[derive(
-    Debug, Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize,
-)]
-pub struct Type {
+#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
+pub struct Def {
+    /// ID of the vehicle type.
+    #[getset(get_copy = "pub")]
+    id:          Id,
     /// Name of the vehicle type.
     #[getset(get = "pub")]
-    name:         ArcStr,
+    name:        lang::Item,
     /// Long description of the vehicle type.
     #[getset(get = "pub")]
-    description:  ArcStr,
+    description: lang::Item,
     /// Base speed of the vehicle.
     ///
     /// Subject to terminal force and operator skill.
     #[getset(get_copy = "pub")]
-    speed:        units::VehicleSpeed,
+    speed:       units::VehicleSpeed,
     /// The amount of cargo that the vehicle can carry.
     #[getset(get_copy = "pub")]
-    capacity:     units::CargoSize,
+    capacity:    units::CargoSize,
     /// The number of non-driver inhabitants carried by the vehicle.
     #[getset(get_copy = "pub")]
-    passengers:   u32,
+    passengers:  u32,
     /// The skill required to operate this vehicle.
     #[getset(get = "pub")]
-    skill:        Skill,
-    /// The texture source path of the vehicle.
+    skill:       Skill,
+    /// The texture of the vehicle.
     #[getset(get = "pub")]
-    texture_src:  ArcStr,
-    /// The texture name of the vehicle.
-    #[getset(get = "pub")]
-    texture_name: ArcStr,
+    texture:     Sprite,
 }
 
 /// A skill required for driving the vehicle.
-#[derive(
-    Debug, Clone, TypedBuilder, getset::Getters, getset::CopyGetters, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
 pub struct Skill {
     /// The skill type.
     #[getset(get = "pub")]
-    skill:       skill::TypeId,
+    skill:       skill::Id,
     /// The skill level range of varying speed multipliers.
     #[getset(get = "pub")]
     levels:      Range<units::Skill>,
