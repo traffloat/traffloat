@@ -15,7 +15,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-08-01
+          toolchain: nightly-2021-10-09
           profile: default
           default: true
           target: wasm32-unknown-unknown
@@ -24,7 +24,7 @@ jobs:
         with:
           path: |
             ~/.cargo
-          key: trunk-just-08-01
+          key: trunk-just-10-09
       - run: test -f ~/.cargo/bin/just || cargo install trunk just
 
       - name: Install toolchain dependencies

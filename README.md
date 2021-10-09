@@ -62,15 +62,15 @@ The following tools are used for compiling the client:
 
 - Python 3.8.10
 - Node v14.16.0
-- Rust (default toolchain) nightly-2021-08-01
+- Rust (default toolchain) nightly-2021-10-09
 
 Node and Python are used for combining the texture images.
 Rust is used to write the main game logic compiled to WebAssembly.
 
-This ptoject requites the wasm target for the Rust toolchain:
+This project requites the wasm target for the Rust toolchain:
 
 ```shell
-rustup target add wasm32-unknown-unknown --toolchain nightly-2021-08-01
+rustup target add wasm32-unknown-unknown --toolchain nightly-2021-10-09
 ```
 
 This project uses [just](https://github.com/casey/just)
