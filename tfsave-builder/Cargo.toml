@@ -10,7 +10,13 @@ license = "AGPL-3.0"
 
 [dependencies]
 anyhow = "1.0.44"
-serde = {version = "1.0.130", features = ["derive", "std"]}
+arcstr = "1.1.1"
+log = "0.4.14"
+pretty_env_logger = "0.4.0"
+serde = {version = "1.0.130", features = ["derive"]}
+serde_path_to_error = "0.1.5"
 structopt = "0.3.23"
+toml = "0.5.8"
+traffloat-codegen = {version = "0.2.0", path = "../codegen"}
 traffloat-def = {version = "0.2.0", path = "../def"}
 traffloat-types = {version = "0.2.0", path = "../types"}

@@ -1,9 +1,9 @@
+use std::any::TypeId;
 #[cfg(feature = "render-debug")]
 use std::collections::btree_map;
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt;
 use std::ops::Range;
-use std::rc::Rc;
 #[cfg(feature = "render-debug")]
 use std::sync::Arc;
 use std::sync::{Mutex, RwLock};
@@ -440,10 +440,35 @@ pub fn hrtime() -> i64 {
 pub trait Definition: Serialize + DeserializeOwned + Sized {
     type HumanFriendly: Serialize + DeserializeOwned;
 
-    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self>;
+    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self>;
 }
 
-pub type ResolveName = Rc<dyn Fn(&str) -> Option<usize>>;
+/// Mode for [`ResolveName`].
+pub enum ResolveMode {
+    /// Definition mode, prepares to register new items. Only used when the field is an `id: Id`.
+    Definition,
+    /// Reference mode, throwing parse error if the item does not exist.
+    Reference,
+}
+
+/// The function that implements name resolution.
+pub type ResolveName<'t> = dyn Fn(&str) -> Option<usize> + 't;
+
+/// The context used to resolve name references to runtime IDs.
+#[derive(Default)]
+pub struct ResolveContext<'t>(pub BTreeMap<TypeId, Box<ResolveName<'t>>>);
+
+impl<'t> ResolveContext<'t> {
+    pub fn add<T: Identifiable + 'static>(&mut self, f: Box<ResolveName<'t>>) {
+        self.0.insert(TypeId::of::<T>(), f);
+    }
+
+    /// Resolves a runtime ID by type and name.
+    pub fn resolve_id<T: Identifiable + 'static>(&self, name: &str) -> Option<usize> {
+        // the entry for T may not be defined yet because of incorrect loading order.
+        self.0.get(&TypeId::of::<T>())?(name)
+    }
+}
 
 /// Implements [`Definition`] for a type that is already human-friendly.
 #[macro_export]
@@ -452,7 +477,7 @@ macro_rules! impl_definition_by_self {
         impl $crate::Definition for $ty {
             type HumanFriendly = Self;
 
-            fn convert(hf: Self, _: $crate::ResolveName) -> anyhow::Result<Self> { Ok(hf) }
+            fn convert(hf: Self, _: &$crate::ResolveContext) -> anyhow::Result<Self> { Ok(hf) }
         }
     };
 }
@@ -466,27 +491,24 @@ impl_definition_by_self!(ArcStr);
 impl<T: Definition> Definition for Range<T> {
     type HumanFriendly = Range<T::HumanFriendly>;
 
-    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
-        Ok(Range {
-            start: T::convert(hf.start, Rc::clone(&resolve_name))?,
-            end:   T::convert(hf.end, resolve_name)?,
-        })
+    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
+        Ok(Range { start: T::convert(hf.start, context)?, end: T::convert(hf.end, context)? })
     }
 }
 
 impl<T: Definition> Definition for Box<T> {
     type HumanFriendly = Box<<T as Definition>::HumanFriendly>;
 
-    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
-        Ok(Box::new(T::convert(*hf, resolve_name)?))
+    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
+        Ok(Box::new(T::convert(*hf, context)?))
     }
 }
 
 impl<T: Definition> Definition for Vec<T> {
     type HumanFriendly = Vec<T::HumanFriendly>;
 
-    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
-        hf.into_iter().map(|thf| T::convert(thf, Rc::clone(&resolve_name))).collect()
+    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
+        hf.into_iter().map(|thf| T::convert(thf, context)).collect()
     }
 }
 
@@ -498,16 +520,16 @@ where
 {
     type HumanFriendly = Vec<T::HumanFriendly>;
 
-    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
-        hf.into_iter().map(|thf| T::convert(thf, Rc::clone(&resolve_name))).collect()
+    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
+        hf.into_iter().map(|thf| T::convert(thf, context)).collect()
     }
 }
 
 impl<T: Definition> Definition for BTreeMap<ArcStr, T> {
     type HumanFriendly = BTreeMap<ArcStr, T::HumanFriendly>;
 
-    fn convert(hf: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
-        hf.into_iter().map(|(k, thf)| Ok((k, T::convert(thf, Rc::clone(&resolve_name))?))).collect()
+    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
+        hf.into_iter().map(|(k, thf)| Ok((k, T::convert(thf, context)?))).collect()
     }
 }
 

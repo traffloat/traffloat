@@ -1,8 +1,8 @@
 [[def]]
 type = "CargoCategory"
-id = "raw-material"
+id = "raw-mineral"
 title = {src = "main", key = "cargo-cats-raw-mineral"}
-description = {src = "main", key = "cargo-cats-raw-material.description"}
+description = {src = "main", key = "cargo-cats-raw-mineral.description"}
 
 [[def]]
 type = "CargoCategory"

@@ -23,6 +23,8 @@
     )
 )]
 
+use std::any::{type_name, TypeId};
+
 use arcstr::ArcStr;
 use codegen::Definition;
 use getset::{CopyGetters, Getters};
@@ -41,8 +43,22 @@ pub mod liquid;
 pub mod skill;
 pub mod vehicle;
 
+/// The schema for the binary save file.
+#[derive(Getters, Serialize, Deserialize)]
+pub struct Schema {
+    /// Scenario metadata.
+    #[getset(get = "pub")]
+    scenario: Scenario,
+    /// Scalar configuration for this scenario.
+    #[getset(get = "pub")]
+    config:   Config,
+    /// The includes in the main file.
+    #[getset(get = "pub")]
+    include:  Def,
+}
+
 /// Metadata for a scenario.
-#[derive(Serialize, Deserialize, Getters)]
+#[derive(Getters, Serialize, Deserialize)]
 pub struct Scenario {
     /// Name of the scenario.
     #[getset(get = "pub")]
@@ -53,7 +69,7 @@ pub struct Scenario {
 }
 
 /// Scalar config for the scenario.
-#[derive(Serialize, Deserialize, CopyGetters)]
+#[derive(CopyGetters, Serialize, Deserialize)]
 pub struct Config {
     /// The angle the sun moves per tick
     #[getset(get_copy = "pub")]
@@ -76,7 +92,7 @@ pub enum Def {
     /// Defines a liquid formula.
     LiquidFormula(liquid::Formula),
     /// Defines the default liquid formula.
-    DefaultLiquidFormula(liquid::Formula),
+    DefaultLiquidFormula(liquid::DefaultFormula),
     /// Defines a gas type.
     Gas(gas::Def),
     /// Defines a category of cargo types.
@@ -93,4 +109,63 @@ pub enum Def {
     Building(building::Def),
     /// Defines a crime type.
     Crime(crime::Def),
+}
+
+impl DefHumanFriendly {
+    /// Returns the type ID for the wrapped type.
+    pub fn value_type_id(&self) -> Option<TypeId> {
+        Some(match self {
+            Self::LangBundle(_) => TypeId::of::<lang::Def>(),
+            Self::Atlas(_) => TypeId::of::<atlas::Def>(),
+            Self::Liquid(_) => TypeId::of::<liquid::Def>(),
+            Self::LiquidFormula(_) => return None,
+            Self::DefaultLiquidFormula(_) => return None,
+            Self::Gas(_) => TypeId::of::<gas::Def>(),
+            Self::CargoCategory(_) => TypeId::of::<cargo::category::Def>(),
+            Self::Cargo(_) => TypeId::of::<cargo::Def>(),
+            Self::Skill(_) => TypeId::of::<skill::Def>(),
+            Self::Vehicle(_) => TypeId::of::<vehicle::Def>(),
+            Self::BuildingCategory(_) => TypeId::of::<building::category::Def>(),
+            Self::Building(_) => TypeId::of::<building::Def>(),
+            Self::Crime(_) => TypeId::of::<crime::Def>(),
+        })
+    }
+
+    /// Returns the type ID for the wrapped type.
+    pub fn value_type_name(&self) -> Option<&'static str> {
+        Some(match self {
+            Self::LangBundle(_) => type_name::<lang::Def>(),
+            Self::Atlas(_) => type_name::<atlas::Def>(),
+            Self::Liquid(_) => type_name::<liquid::Def>(),
+            Self::LiquidFormula(_) => return None,
+            Self::DefaultLiquidFormula(_) => return None,
+            Self::Gas(_) => type_name::<gas::Def>(),
+            Self::CargoCategory(_) => type_name::<cargo::category::Def>(),
+            Self::Cargo(_) => type_name::<cargo::Def>(),
+            Self::Skill(_) => type_name::<skill::Def>(),
+            Self::Vehicle(_) => type_name::<vehicle::Def>(),
+            Self::BuildingCategory(_) => type_name::<building::category::Def>(),
+            Self::Building(_) => type_name::<building::Def>(),
+            Self::Crime(_) => type_name::<crime::Def>(),
+        })
+    }
+
+    /// Returns the human-friendly string ID of the def.
+    pub fn id_str(&self) -> Option<&ArcStr> {
+        Some(match self {
+            Self::LangBundle(def) => &def.id,
+            Self::Atlas(def) => &def.id,
+            Self::Liquid(def) => &def.id,
+            Self::LiquidFormula(def) => return None,
+            Self::DefaultLiquidFormula(def) => return None,
+            Self::Gas(def) => &def.id,
+            Self::CargoCategory(def) => &def.id,
+            Self::Cargo(def) => &def.id,
+            Self::Skill(def) => &def.id,
+            Self::Vehicle(def) => &def.id,
+            Self::BuildingCategory(def) => &def.id,
+            Self::Building(def) => &def.id,
+            Self::Crime(def) => &def.id,
+        })
+    }
 }

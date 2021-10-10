@@ -1,17 +1,26 @@
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use traffloat_def::Definition;
+use traffloat_def::{Config, DefHumanFriendly, Scenario};
 
-/// The schema for the main.toml file.
+/// The schema in the main.toml file.
+#[derive(Serialize, Deserialize)]
+pub struct MainFile {
+    /// The extra schema in the main.toml file.
+    #[serde(flatten)]
+    pub main: Main,
+    /// The typical schema common in all files.
+    #[serde(flatten)]
+    pub file: File,
+}
+
+/// The extra schema in the main.toml file.
 #[derive(Serialize, Deserialize)]
 pub struct Main {
     /// Scenario metadata.
     pub scenario: Scenario,
     /// Scalar configuration for this scenario.
     pub config:   Config,
-    /// The includes in the main file.
-    pub include:  Vec<Include>,
 }
 
 /// The schema for included TOML files.
@@ -21,9 +30,11 @@ pub struct File {
     ///
     /// All includes are resolved before definitions.
     /// In other words, include is performed in depth-first order.
+    #[serde(default)]
     pub include: Vec<Include>,
     /// Gamerules defined in this file.
-    pub def:     Vec<Definition>,
+    #[serde(default)]
+    pub def:     Vec<DefHumanFriendly>,
 }
 
 /// References another file to include.

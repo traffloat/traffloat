@@ -69,7 +69,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                             quote!(
                                 <#field_ty as ::codegen::Definition>::convert(
                                     human_friendly.#field_ident,
-                                    ::std::rc::Rc::clone(&resolve_name),
+                                    context,
                                 )?
                             ),
                         )
@@ -82,7 +82,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                     #(#[serde #hf_serde])*
                     pub struct #human_friendly_ident #generics_bounded #generics_where {
                         #(
-                            #field_idents: #field_conversion_ty,
+                            pub(crate) #field_idents: #field_conversion_ty,
                         )*
                     }
                 };
@@ -131,7 +131,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                                     quote!(
                                         <#field_ty as ::codegen::Definition>::convert(
                                             #field_ident,
-                                            ::std::rc::Rc::clone(&resolve_name),
+                                            context,
                                         )?
                                     ),
                                 )
@@ -162,7 +162,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                                     quote!(
                                         <#field_ty as ::codegen::Definition>::convert(
                                             #field_ident,
-                                            ::std::rc::Rc::clone(&resolve_name),
+                                            context,
                                         )?
                                     ),
                                 )
@@ -209,17 +209,18 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
 
     let id = need_id.then(|| quote! {
         #[doc = stringify!("An ordinal runtime ID for [`", stringify!(#input_ident), "`].")]
-        /// An ordinal runtime ID for 
         #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
         pub struct Id(usize);
 
         impl ::codegen::Definition for Id {
             type HumanFriendly = ::arcstr::ArcStr;
 
-            fn convert(human_friendly: Self::HumanFriendly, resolve_name: ::codegen::ResolveName) -> ::anyhow::Result<Self> {
-                match resolve_name(human_friendly.as_str()) {
+            fn convert(human_friendly: Self::HumanFriendly, context: &::codegen::ResolveContext) -> ::anyhow::Result<Self> {
+                // only #input_ident is used here because generic types are not allowed to have
+                // their own IDs.
+                match context.resolve_id::<#input_ident>(human_friendly.as_str()) {
                     Some(id) => Ok(Self(id)),
-                    None => ::anyhow::bail!("Cannot resolve name for {} ID: {}", stringify!(#input_ident), human_friendly.as_str()),
+                    None => ::anyhow::bail!("Cannot resolve name for {}::{} ID: {}", ::std::module_path!(), stringify!(#input_ident), human_friendly.as_str()),
                 }
             }
         }
@@ -241,7 +242,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
         impl #generics_bounded ::codegen::Definition for #input_ident #generics_unbounded #generics_where {
             type HumanFriendly = #human_friendly_ident #generics_unbounded;
 
-            fn convert(human_friendly: #human_friendly_ident #generics_unbounded, resolve_name: ::codegen::ResolveName) -> ::anyhow::Result<Self> {
+            fn convert(human_friendly: #human_friendly_ident #generics_unbounded, context: &::codegen::ResolveContext) -> ::anyhow::Result<Self> {
                 Ok(#human_friendly_conversion)
             }
         }

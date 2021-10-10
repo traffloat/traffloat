@@ -35,7 +35,7 @@ pub struct Def {
     passengers:  u32,
     /// The skill required to operate this vehicle.
     #[getset(get = "pub")]
-    skill:       Skill,
+    skill:       Vec<Skill>,
     /// The texture of the vehicle.
     #[getset(get = "pub")]
     texture:     Sprite,

@@ -1,30 +1,30 @@
 [[include]]
-file = ./core.toml
+file = "buildings/core.toml"
 
 [[include]]
-file = ./customs.toml
+file = "buildings/customs.toml"
 
 [[include]]
-file = ./driving-school.toml
+file = "buildings/driving-school.toml"
 
 [[include]]
-file = ./filtration-plant.toml
+file = "buildings/filtration-plant.toml"
 
 [[include]]
-file = ./hut.toml
+file = "buildings/hut.toml"
 
 [[include]]
-file = ./prison.toml
+file = "buildings/prison.toml"
 
 [[include]]
-file = ./solar-panel.toml
+file = "buildings/solar-panel.toml"
 
 [[include]]
-file = ./stadium.toml
+file = "buildings/stadium.toml"
 
 [[include]]
-file = ./terminal.toml
+file = "buildings/terminal.toml"
 
 [[include]]
-file = ./vault.toml
+file = "buildings/vault.toml"
 

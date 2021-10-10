@@ -33,7 +33,8 @@ pub struct Def {
 
 /// A formula for mixing liquids.
 ///
-/// Formulas are always commutative, i.e. `a + b = b + a`.
+/// Formulas are always commutative, i.e. `a + b = b + a`;
+/// the commutation is automatically filled.
 ///
 /// To ensure reproducibility, formulas should be associative,
 /// i.e. `a + (b + c) = (a + b) + c`.
@@ -48,4 +49,12 @@ pub struct Formula {
     /// The output after mixing.
     #[getset(get_copy = "pub")]
     sum:    Id,
+}
+
+/// The default output if no corresponding formula is defined.
+#[derive(Debug, Clone, CopyGetters, Serialize, Deserialize, Definition)]
+pub struct DefaultFormula {
+    /// The output after mixing.
+    #[getset(get_copy = "pub")]
+    sum: Id,
 }

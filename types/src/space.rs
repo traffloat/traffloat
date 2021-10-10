@@ -2,7 +2,7 @@
 
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
-use codegen::{Definition, ResolveName};
+use codegen::{Definition, ResolveContext};
 use serde::{Deserialize, Serialize};
 
 /// Standard vector type
@@ -95,7 +95,7 @@ pub struct TransformMatrix(pub Matrix);
 impl Definition for TransformMatrix {
     type HumanFriendly = Vec<TransformPrimitive>;
 
-    fn convert(primitives: Self::HumanFriendly, resolve_name: ResolveName) -> anyhow::Result<Self> {
+    fn convert(primitives: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
         todo!()
     }
 }
