@@ -7,18 +7,6 @@ name = {src = "main", key = "building-terminal"}
 summary = {src = "main", key = "building-terminal.summary"}
 description = {src = "main", key = "building-terminal.description"}
 
-	[[def.features]]
-	type = "RailPump"
-	force = 100.0
-
-	[[def.features]]
-	type = "LiquidPump"
-	force = 100.0
-
-	[[def.features]]
-	type = "GasPump"
-	force = 100.0
-
 	[[def.shapes]]
 	unit = "Cube"
 	texture = {src = "buildings", name = "terminal"}
@@ -34,21 +22,38 @@ description = {src = "main", key = "building-terminal.description"}
 	gas = 1000.0
 
 		[[def.storage.liquid]]
+		id = "buffer0"
 		capacity = 10.0
 		name = {src = "main", key = "storage-liquid-generic-buffer"}
 
 		[[def.storage.liquid]]
+		id = "buffer1"
 		capacity = 10.0
 		name = {src = "main", key = "storage-liquid-generic-buffer"}
 
 		[[def.storage.liquid]]
+		id = "buffer2"
 		capacity = 10.0
 		name = {src = "main", key = "storage-liquid-generic-buffer"}
 
 		[[def.storage.liquid]]
+		id = "buffer3"
 		capacity = 10.0
 		name = {src = "main", key = "storage-liquid-generic-buffer"}
 
 		[[def.storage.population]]
-		building = 8
+		id = "buffer4"
+		capacity = 8
 		name = {src = "main", key = "storage-population-generic-transit"}
+
+	[[def.features]]
+	type = "RailPump"
+	force = 100.0
+
+	[[def.features]]
+	type = "LiquidPump"
+	force = 100.0
+
+	[[def.features]]
+	type = "GasPump"
+	force = 100.0

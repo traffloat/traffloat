@@ -1,5 +1,6 @@
 [[def]]
 type = "Crime"
+id = "pickpocket"
 name = {src = "main", key = "crime-pickpocket"}
 description = {src = "main", key = "crime-pickpocket.description"}
 
@@ -22,6 +23,7 @@ description = {src = "main", key = "crime-pickpocket.description"}
 
 [[def]]
 type = "Crime"
+id = "robbery"
 name = {src = "main", key = "crime-robbery"}
 description = {src = "main", key = "crime-robbery.description"}
 
@@ -44,6 +46,7 @@ description = {src = "main", key = "crime-robbery.description"}
 
 [[def]]
 type = "Crime"
+id = "arson"
 name = {src = "main", key = "crime-arson"}
 description = {src = "main", key = "crime-arson.description"}
 

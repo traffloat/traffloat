@@ -16,13 +16,16 @@ description = {src = "main", key = "building-vault.description"}
 	gas = 1000.0
 
 		[[def.storage.liquid]]
+		id = "buffer0"
 		capacity = 10.0
 		name = {src = "main", key = "storage-liquid-generic-buffer"}
 
 		[[def.storage.liquid]]
+		id = "buffer1"
 		capacity = 10.0
 		name = {src = "main", key = "storage-liquid-generic-buffer"}
 
 		[[def.storage.population]]
-		building = 1
+		id = "buffer2"
+		capacity = 1
 		name = {src = "main", key = "storage-population-generic-transit"}

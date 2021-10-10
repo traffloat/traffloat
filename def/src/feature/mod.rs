@@ -10,7 +10,9 @@ use crate::catalyst::Catalyst;
 
 pub mod reaction;
 pub use reaction::Reaction;
+pub mod housing;
 pub mod security;
+pub use housing::Housing;
 
 /// Features of a building.
 #[derive(Debug, Clone, Serialize, Deserialize, Definition)]
@@ -19,7 +21,7 @@ pub enum Feature {
     /// The building is a core and must not be destroyed.
     Core,
     /// The building provides housing capacity, and inhabitants can be assigned to it.
-    ProvidesHousing(u32),
+    ProvidesHousing(Housing),
     /// The building performs a reaction.
     Reaction(Reaction),
     /// The building provides driving force for vehicles on adjacent rails.
@@ -41,6 +43,7 @@ pub enum Feature {
 pub struct PumpSpec<U: Unit + Definition> {
     /// Catalysts affecting the pump efficiency.
     #[getset(get = "pub")]
+    #[hf_serde(default)]
     catalysts: SmallVec<[Catalyst; 2]>,
     /// The base force provided by the pump.
     #[getset(get_copy = "pub")]

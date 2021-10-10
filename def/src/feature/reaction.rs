@@ -9,22 +9,24 @@ use traffloat_types::time::Rate;
 use traffloat_types::units;
 
 use crate::catalyst::Catalyst;
-use crate::{cargo, gas, liquid, skill};
+use crate::{cargo, gas, lang, liquid, skill};
 
 /// A type of reaction.
 #[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize, Definition)]
 pub struct Reaction {
     /// Title for the reaction.
     #[getset(get = "pub")]
-    title:       ArcStr,
+    title:       lang::Item,
     /// Description for the reaction.
     #[getset(get = "pub")]
-    description: ArcStr,
+    description: lang::Item,
     /// Catalysts for the reaction.
     #[getset(get = "pub")]
+    #[hf_serde(default)]
     catalysts:   SmallVec<[Catalyst; 2]>,
     /// Inputs and outputs for the reaction.
     #[getset(get = "pub")]
+    #[hf_serde(default)]
     puts:        SmallVec<[Put; 2]>,
     /// Policies for the reaction.
     #[getset(get = "pub")]
@@ -33,6 +35,7 @@ pub struct Reaction {
 
 /// The inputs and outputs of a reaction.
 #[derive(Debug, Clone, Serialize, Deserialize, Definition)]
+#[serde(tag = "type")]
 pub enum Put {
     /// Consumption or production of cargo
     Cargo {

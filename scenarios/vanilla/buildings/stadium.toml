@@ -26,6 +26,7 @@ description = {src = "main", key = "building-stadium.description"}
 	gas = 1000.0
 
 		[[def.storage.liquid]]
+		id = "buffer"
 		capacity = 10.0
 		name = {src = "main", key = "storage-liquid-generic-buffer"}
 
@@ -53,5 +54,5 @@ description = {src = "main", key = "building-stadium.description"}
 
 		[def.features.policy]
 		configurable = false
-		on_underflow = "ReduceRate"
-		on_overflow = "ReduceRate"
+		on_underflow = {type = "ReduceRate"}
+		on_overflow = {type = "ReduceRate"}

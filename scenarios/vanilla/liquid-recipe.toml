@@ -11,20 +11,20 @@ sum = "filtered-water"
 [[def]]
 type = "LiquidFormula"
 augend = "filtered-water"
-addend = "asteridal-water"
-sum = "asteridal-water"
+addend = "asteroidal-water"
+sum = "asteroidal-water"
 
 [[def]]
 type = "LiquidFormula"
 augend = "deionized-water"
-addend = "asteridal-water"
-sum = "asteridal-water"
+addend = "asteroidal-water"
+sum = "asteroidal-water"
 
 [[def]]
 type = "LiquidFormula"
 augend = "urine"
-addend = "asteridal-water"
-sum = "asteridal-water"
+addend = "asteroidal-water"
+sum = "asteroidal-water"
 
 [[def]]
 type = "LiquidFormula"

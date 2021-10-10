@@ -24,12 +24,16 @@
 )]
 
 use std::any::{type_name, TypeId};
+use std::convert::TryInto;
+use std::io::Write;
 
+use anyhow::Context;
 use arcstr::ArcStr;
 use codegen::Definition;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::{time, units};
+use typed_builder::TypedBuilder;
 
 pub mod atlas;
 pub mod building;
@@ -43,8 +47,18 @@ pub mod liquid;
 pub mod skill;
 pub mod vehicle;
 
+/// The scenario schema version.
+///
+/// This value is only bumped when necessary to distinguish incompatible formats.
+pub const SCHEMA_VERSION: u32 = 1;
+
+/// The scenario magic header.
+///
+/// This value is only bumped when necessary to distinguish incompatible formats.
+pub const MAGIC_HEADER: &[u8] = b"\xffTSV";
+
 /// The schema for the binary save file.
-#[derive(Getters, Serialize, Deserialize)]
+#[derive(Getters, TypedBuilder, Serialize, Deserialize)]
 pub struct Schema {
     /// Scenario metadata.
     #[getset(get = "pub")]
@@ -52,9 +66,32 @@ pub struct Schema {
     /// Scalar configuration for this scenario.
     #[getset(get = "pub")]
     config:   Config,
-    /// The includes in the main file.
+    /// All gamerule definitions.
     #[getset(get = "pub")]
-    include:  Def,
+    def:      Vec<Def>,
+}
+
+impl Schema {
+    pub fn parse(mut buf: &[u8]) -> anyhow::Result<Self> {
+        buf = match buf.strip_prefix(MAGIC_HEADER) {
+            Some(buf) => buf,
+            _ => anyhow::bail!("Not a traffloat scenario file"),
+        };
+        let version = match buf.get(0..4) {
+            Some(bytes) => u32::from_le_bytes(bytes.try_into().expect("bytes.len() == 4")),
+            None => anyhow::bail!("File is too short"),
+        };
+        anyhow::ensure!(version == SCHEMA_VERSION, "Incompatible scenario version");
+
+        rmp_serde::from_read(buf).context("Error parsing scenario file")
+    }
+
+    pub fn write(&self, mut w: impl Write) -> anyhow::Result<()> {
+        w.write_all(MAGIC_HEADER)?;
+        w.write_all(&SCHEMA_VERSION.to_le_bytes())?;
+        self.serialize(&mut rmp_serde::Serializer::new(&mut w))?;
+        Ok(())
+    }
 }
 
 /// Metadata for a scenario.
@@ -80,8 +117,9 @@ pub struct Config {
 }
 
 /// Defines a game rule.
-#[derive(Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Serialize, Deserialize, Definition)]
 #[serde(tag = "type")]
+#[resolve_context()]
 pub enum Def {
     /// Defines a language bundle reference.
     LangBundle(lang::Def),

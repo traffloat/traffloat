@@ -23,11 +23,12 @@ description = {src = "main", key = "building-hut.description"}
 
 		[[def.storage.population]]
 		id = "housing"
-		building = 3
+		capacity = 3
 		name = {src = "main", key = "storage-population-housing-housing"}
 
 		[[def.storage.population]]
-		building = 1
+		id = "transit"
+		capacity = 1
 		name = {src = "main", key = "storage-population-generic-transit"}
 
 	[[def.features]]

@@ -14,14 +14,14 @@ use crate::skill;
 pub struct Policy {
     /// The catalysts affecting the breach probability.
     #[getset(get = "pub")]
+    #[hf_serde(default)]
     catalysts: SmallVec<[Catalyst; 2]>,
 
-    /// The skill type to check.
-    #[getset(get = "pub")]
-    skill:   skill::Id,
     /// The constraints on skill level to deny entry/exit.
-    #[getset(get_copy = "pub")]
-    deny_if: SkillRequirement,
+    ///
+    /// Multiple requirements are joined with an OR operator.
+    #[getset(get = "pub")]
+    deny_if: Vec<SkillRequirement>,
 
     /// The probability per second per inhabitant that
     /// the inhabitant has lower skill level than required
@@ -32,9 +32,20 @@ pub struct Policy {
 
 /// A requirement of skill level.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Definition)]
+#[serde(tag = "type")]
 pub enum SkillRequirement {
     /// Minimum skill level.
-    AtLeast(units::Skill),
+    AtLeast {
+        /// The skill type to check.
+        skill: skill::Id,
+        /// The minimum skill level.
+        level: units::Skill,
+    },
     /// Maximum skill level.
-    AtMost(units::Skill),
+    AtMost {
+        /// The skill type to check.
+        skill: skill::Id,
+        /// The maximum skill level.
+        level: units::Skill,
+    },
 }

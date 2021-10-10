@@ -7,6 +7,19 @@ name = {src = "main", key = "building-solar-panel"}
 summary = {src = "main", key = "building-solar-panel.summary"}
 description = {src = "main", key = "building-solar-panel.description"}
 
+	[[def.shapes]]
+	unit = "Cube"
+	texture = {src = "buildings", name = "solar-panel"}
+
+	[def.storage]
+	cargo = 1000.0
+	gas = 1000.0
+
+		[[def.storage.population]]
+		id = "operator"
+		capacity = 1
+		name = {src = "main", key = "storage-population-factory-operator"}
+
 	[[def.features]]
 	type = "Reaction"
 	title = {src = "main", key = "reaction-solor-power"}
@@ -26,6 +39,7 @@ description = {src = "main", key = "building-solar-panel.description"}
 		[[def.features.catalysts]]
 			[def.features.catalysts.range]
 			type = "Skill"
+			ty = "mechanic-skill"
 			storage = "operator"
 			levels = {start = 0.0, end = 10.0}
 
@@ -41,22 +55,5 @@ description = {src = "main", key = "building-solar-panel.description"}
 
 		[def.features.policy]
 		configurable = true
-		on_underflow = "ReduceRate"
-		on_overflow = "ReduceRate"
-
-	[[def.shapes]]
-	unit = "Cube"
-	texture = {src = "buildings", name = "solar-panel"}
-
-	[def.storage]
-	cargo = 1000.0
-	gas = 1000.0
-
-		[[def.storage.liquid]]
-		capacity = 10.0
-		name = {src = "main", key = "storage-liquid-generic-buffer"}
-
-		[[def.storage.population]]
-		id = "operator"
-		building = 1
-		name = {src = "main", key = "storage-population-factory-operator"}
+		on_underflow = {type = "ReduceRate"}
+		on_overflow = {type = "ReduceRate"}

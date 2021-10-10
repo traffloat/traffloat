@@ -1,4 +1,4 @@
-use std::any::TypeId;
+use std::any::{type_name, TypeId};
 #[cfg(feature = "render-debug")]
 use std::collections::btree_map;
 use std::collections::{BTreeMap, VecDeque};
@@ -8,6 +8,7 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::sync::{Mutex, RwLock};
 
+use anyhow::Context as _;
 use arcstr::ArcStr;
 use enum_map::EnumMap;
 use serde::de::DeserializeOwned;
@@ -440,7 +441,7 @@ pub fn hrtime() -> i64 {
 pub trait Definition: Serialize + DeserializeOwned + Sized {
     type HumanFriendly: Serialize + DeserializeOwned;
 
-    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self>;
+    fn convert(hf: Self::HumanFriendly, context: &mut ResolveContext) -> anyhow::Result<Self>;
 }
 
 /// Mode for [`ResolveName`].
@@ -455,18 +456,41 @@ pub enum ResolveMode {
 pub type ResolveName<'t> = dyn Fn(&str) -> Option<usize> + 't;
 
 /// The context used to resolve name references to runtime IDs.
-#[derive(Default)]
-pub struct ResolveContext<'t>(pub BTreeMap<TypeId, Box<ResolveName<'t>>>);
+#[derive(Clone, Default)]
+pub struct ResolveContext(pub BTreeMap<TypeId, Vec<ArcStr>>);
 
-impl<'t> ResolveContext<'t> {
-    pub fn add<T: Identifiable + 'static>(&mut self, f: Box<ResolveName<'t>>) {
-        self.0.insert(TypeId::of::<T>(), f);
+impl ResolveContext {
+    /// Start tracking a type.
+    pub fn start_tracking<T: Identifiable + 'static>(&mut self) {
+        self.0.insert(TypeId::of::<T>(), Vec::new());
+    }
+
+    /// Stop tracking a type.
+    pub fn stop_tracking<T: Identifiable + 'static>(&mut self) {
+        self.0.remove(&TypeId::of::<T>());
+    }
+
+    /// Notify a new name in the type.
+    pub fn notify<T: Identifiable + 'static>(&mut self, name: ArcStr) -> anyhow::Result<()> {
+        let list = self
+            .0
+            .get_mut(&TypeId::of::<T>())
+            .with_context(|| format!("Type {} is not tracked", type_name::<T>()))?;
+        list.push(name);
+        Ok(())
     }
 
     /// Resolves a runtime ID by type and name.
-    pub fn resolve_id<T: Identifiable + 'static>(&self, name: &str) -> Option<usize> {
+    pub fn resolve_id<T: Identifiable + 'static>(&self, name: &str) -> anyhow::Result<usize> {
         // the entry for T may not be defined yet because of incorrect loading order.
-        self.0.get(&TypeId::of::<T>())?(name)
+        self.0
+            .get(&TypeId::of::<T>())
+            .with_context(|| format!("Type {} is not tracked", type_name::<T>()))?
+            .iter()
+            .position(|n| n == name)
+            .with_context(|| {
+                format!("{} ID {} is undefined in this context", type_name::<T>(), name)
+            })
     }
 }
 
@@ -477,7 +501,7 @@ macro_rules! impl_definition_by_self {
         impl $crate::Definition for $ty {
             type HumanFriendly = Self;
 
-            fn convert(hf: Self, _: &$crate::ResolveContext) -> anyhow::Result<Self> { Ok(hf) }
+            fn convert(hf: Self, _: &mut $crate::ResolveContext) -> anyhow::Result<Self> { Ok(hf) }
         }
     };
 }
@@ -491,7 +515,7 @@ impl_definition_by_self!(ArcStr);
 impl<T: Definition> Definition for Range<T> {
     type HumanFriendly = Range<T::HumanFriendly>;
 
-    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
+    fn convert(hf: Self::HumanFriendly, context: &mut ResolveContext) -> anyhow::Result<Self> {
         Ok(Range { start: T::convert(hf.start, context)?, end: T::convert(hf.end, context)? })
     }
 }
@@ -499,7 +523,7 @@ impl<T: Definition> Definition for Range<T> {
 impl<T: Definition> Definition for Box<T> {
     type HumanFriendly = Box<<T as Definition>::HumanFriendly>;
 
-    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
+    fn convert(hf: Self::HumanFriendly, context: &mut ResolveContext) -> anyhow::Result<Self> {
         Ok(Box::new(T::convert(*hf, context)?))
     }
 }
@@ -507,7 +531,7 @@ impl<T: Definition> Definition for Box<T> {
 impl<T: Definition> Definition for Vec<T> {
     type HumanFriendly = Vec<T::HumanFriendly>;
 
-    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
+    fn convert(hf: Self::HumanFriendly, context: &mut ResolveContext) -> anyhow::Result<Self> {
         hf.into_iter().map(|thf| T::convert(thf, context)).collect()
     }
 }
@@ -520,7 +544,7 @@ where
 {
     type HumanFriendly = Vec<T::HumanFriendly>;
 
-    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
+    fn convert(hf: Self::HumanFriendly, context: &mut ResolveContext) -> anyhow::Result<Self> {
         hf.into_iter().map(|thf| T::convert(thf, context)).collect()
     }
 }
@@ -528,12 +552,12 @@ where
 impl<T: Definition> Definition for BTreeMap<ArcStr, T> {
     type HumanFriendly = BTreeMap<ArcStr, T::HumanFriendly>;
 
-    fn convert(hf: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
+    fn convert(hf: Self::HumanFriendly, context: &mut ResolveContext) -> anyhow::Result<Self> {
         hf.into_iter().map(|(k, thf)| Ok((k, T::convert(thf, context)?))).collect()
     }
 }
 
-pub trait Identifiable {
+pub trait Identifiable: 'static {
     type Id: fmt::Debug + Copy + Eq + Ord;
 
     fn id(&self) -> Self::Id;

@@ -1305,6 +1305,7 @@ dependencies = [
  "getset",
  "log",
  "nalgebra",
+ "rmp-serde",
  "serde",
  "smallvec",
  "traffloat-codegen",

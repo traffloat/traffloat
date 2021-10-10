@@ -1,6 +1,6 @@
 //! Building definitions
 
-use codegen::Definition;
+use codegen::{Definition, ResolveContext};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::space::TransformMatrix;
@@ -12,6 +12,7 @@ use crate::lang;
 
 /// A type of building.
 #[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize, Definition)]
+#[resolve_context(storage::liquid::Def, storage::population::Def)]
 pub struct Def {
     /// ID of the building type.
     #[getset(get_copy = "pub")]
@@ -44,6 +45,7 @@ pub struct Def {
     storage:     Storage,
     /// Extra features associated with the building.
     #[getset(get = "pub")]
+    #[hf_serde(default)]
     features:    Vec<Feature>,
 }
 
@@ -55,6 +57,7 @@ pub struct Shape {
     unit:      geometry::Unit,
     /// The transformation matrix from the unit model to this shape.
     #[getset(get_copy = "pub")]
+    #[hf_serde(default)]
     transform: TransformMatrix,
     /// The texture of the building.
     #[getset(get = "pub")]
@@ -76,9 +79,11 @@ pub struct Storage {
     gas:        units::GasVolume,
     /// Liquid storages provided
     #[getset(get = "pub")]
+    #[hf_serde(default)]
     liquid:     Vec<storage::liquid::Def>,
     /// Population storages provided
     #[getset(get = "pub")]
+    #[hf_serde(default)]
     population: Vec<storage::population::Def>,
 }
 
@@ -133,7 +138,7 @@ pub mod storage {
             id:       Id,
             /// The capacity of this storage.
             #[getset(get_copy = "pub")]
-            capacity: units::LiquidVolume,
+            capacity: u32,
             /// The name of this storage.
             #[getset(get = "pub")]
             name:     lang::Item,

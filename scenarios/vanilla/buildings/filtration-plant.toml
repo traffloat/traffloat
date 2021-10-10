@@ -67,10 +67,10 @@ description = {src = "main", key = "building-filtration-plant.description"}
 
 		[[def.features.puts]]
 		type = "Cargo"
-		ty = "junk"
+		ty = "sediment"
 		base = 10.0
 
 		[def.features.policy]
 		configurable = true
-		on_underflow = "ReduceRate"
-		on_overflow = "ReduceRate"
+		on_underflow = {type = "ReduceRate"}
+		on_overflow = {type = "ReduceRate"}

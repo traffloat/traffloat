@@ -16,16 +16,18 @@ description = {src = "main", key = "building-customs.description"}
 	gas = 1000.0
 
 		[[def.storage.liquid]]
+		id = "buffer0"
 		capacity = 10.0
 		name = {src = "main", key = "storage-liquid-buffer"}
 
 		[[def.storage.liquid]]
+		id = "buffer1"
 		capacity = 10.0
 		name = {src = "main", key = "storage-liquid-buffer"}
 
 		[[def.storage.population]]
 		id = "operator"
-		building = 2
+		capacity = 2
 		name = {src = "main", key = "storage-population-generic-operator"}
 
 	[[def.features]]

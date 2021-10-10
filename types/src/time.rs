@@ -81,5 +81,5 @@ impl<T: Mul<f64, Output = T>> std::ops::Mul<Time> for Rate<T> {
 impl<T: Definition> Definition for Rate<T> {
     type HumanFriendly = Self;
 
-    fn convert(hf: Self, _: &ResolveContext) -> anyhow::Result<Self> { Ok(hf) }
+    fn convert(hf: Self, _: &mut ResolveContext) -> anyhow::Result<Self> { Ok(hf) }
 }

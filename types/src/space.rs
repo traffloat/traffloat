@@ -95,8 +95,12 @@ pub struct TransformMatrix(pub Matrix);
 impl Definition for TransformMatrix {
     type HumanFriendly = Vec<TransformPrimitive>;
 
-    fn convert(primitives: Self::HumanFriendly, context: &ResolveContext) -> anyhow::Result<Self> {
-        todo!()
+    fn convert(primitives: Self::HumanFriendly, _: &mut ResolveContext) -> anyhow::Result<Self> {
+        let mut matrix = Matrix::identity();
+        for primitive in primitives {
+            matrix = primitive.to_matrix() * matrix;
+        }
+        Ok(Self(matrix))
     }
 }
 
@@ -128,6 +132,16 @@ pub enum TransformPrimitive {
         #[serde(default = "serde_one")]
         z: f64,
     },
+}
+
+impl TransformPrimitive {
+    /// Represent this primitive as a transformation matrix.
+    pub fn to_matrix(&self) -> Matrix {
+        match *self {
+            Self::Translate { x, y, z } => Matrix::new_translation(&Vector::new(x, y, z)),
+            Self::Scale { x, y, z } => Matrix::new_nonuniform_scaling(&Vector::new(x, y, z)),
+        }
+    }
 }
 
 fn serde_one() -> f64 { 1. }

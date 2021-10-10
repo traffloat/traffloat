@@ -27,12 +27,12 @@ description = {src = "main", key = "building-prison.description"}
 
 		[[def.storage.population]]
 		id = "prisoner"
-		building = 10
+		capacity = 10
 		name = {src = "main", key = "storage-population-prison-prisoner"}
 
 		[[def.storage.population]]
 		id = "guard"
-		building = 2
+		capacity = 2
 		name = {src = "main", key = "storage-population-prison-guard"}
 
 	[[def.features]]
@@ -99,5 +99,5 @@ description = {src = "main", key = "building-prison.description"}
 
 		[def.features.policy]
 		configurable = false
-		on_underflow = "ReduceRate"
-		on_overflow = "ReduceRate"
+		on_underflow = {type = "ReduceRate"}
+		on_overflow = {type = "ReduceRate"}

@@ -12,23 +12,28 @@ description = {src = "main", key = "building-core.description"}
 	gas = 8000.0
 
 		[[def.storage.liquid]]
+		id = "reservoir0"
 		capacity = 2000.0
 		name = {src = "main", key = "storage-liquid-generic-reservoir"}
 
 		[[def.storage.liquid]]
+		id = "reservoir1"
 		capacity = 2000.0
 		name = {src = "main", key = "storage-liquid-generic-reservoir"}
 
 		[[def.storage.liquid]]
+		id = "reservoir2"
 		capacity = 2000.0
 		name = {src = "main", key = "storage-liquid-generic-reservoir"}
 
 		[[def.storage.liquid]]
+		id = "reservoir3"
 		capacity = 2000.0
 		name = {src = "main", key = "storage-liquid-generic-reservoir"}
 
 		[[def.storage.population]]
-		building = 10
+		id = "transit"
+		capacity = 10
 		name = {src = "main", key = "storage-population-generic-transit"}
 
 

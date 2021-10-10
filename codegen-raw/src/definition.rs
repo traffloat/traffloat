@@ -1,6 +1,7 @@
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, ToTokens};
-use syn::{Error, Result};
+use syn::punctuated::Punctuated;
+use syn::{parse, Error, Result};
 
 pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
     let input = syn::parse2::<syn::DeriveInput>(input)?;
@@ -35,6 +36,14 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
         .map(|attr| &attr.tokens)
         .collect();
 
+    let mut context_types = Vec::new();
+    for attr in &input.attrs {
+        if attr.path.is_ident("resolve_context") {
+            let args = syn::parse2::<ResolveContextTypeList>(attr.tokens.clone())?;
+            context_types.extend(args.0.into_iter());
+        }
+    }
+
     let need_id: bool;
     let human_friendly: TokenStream;
     let human_friendly_conversion: TokenStream;
@@ -56,6 +65,21 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                 });
 
                 let field_idents: Vec<_> = named.named.iter().map(|field| &field.ident).collect();
+                let field_hf_serde: Vec<TokenStream> = named
+                    .named
+                    .iter()
+                    .map(|field| {
+                        field
+                            .attrs
+                            .iter()
+                            .filter(|attr| attr.path.is_ident("hf_serde"))
+                            .map(|attr| {
+                                let tokens = &attr.tokens;
+                                quote!(#[serde #tokens])
+                            })
+                            .collect()
+                    })
+                    .collect();
 
                 let (field_conversion_ty, field_conversion_expr): (Vec<_>, Vec<_>) = named
                     .named
@@ -82,6 +106,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                     #(#[serde #hf_serde])*
                     pub struct #human_friendly_ident #generics_bounded #generics_where {
                         #(
+                            #field_hf_serde
                             pub(crate) #field_idents: #field_conversion_ty,
                         )*
                     }
@@ -215,13 +240,11 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
         impl ::codegen::Definition for Id {
             type HumanFriendly = ::arcstr::ArcStr;
 
-            fn convert(human_friendly: Self::HumanFriendly, context: &::codegen::ResolveContext) -> ::anyhow::Result<Self> {
+            fn convert(human_friendly: Self::HumanFriendly, context: &mut ::codegen::ResolveContext) -> ::anyhow::Result<Self> {
                 // only #input_ident is used here because generic types are not allowed to have
                 // their own IDs.
-                match context.resolve_id::<#input_ident>(human_friendly.as_str()) {
-                    Some(id) => Ok(Self(id)),
-                    None => ::anyhow::bail!("Cannot resolve name for {}::{} ID: {}", ::std::module_path!(), stringify!(#input_ident), human_friendly.as_str()),
-                }
+                let id = context.resolve_id::<#input_ident>(human_friendly.as_str())?;
+                Ok(Self(id))
             }
         }
 
@@ -234,6 +257,29 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
         }
     });
 
+    let register_id = need_id.then(|| {
+        quote! {
+            context.notify::<#input_ident>(human_friendly.id.clone())?;
+        }
+    });
+
+    let context_setup = context_types
+        .iter()
+        .map(|ty| {
+            quote! {
+                context.start_tracking::<#ty>();
+            }
+        })
+        .collect::<TokenStream>();
+    let context_shutdown = context_types
+        .iter()
+        .map(|ty| {
+            quote! {
+                context.stop_tracking::<#ty>();
+            }
+        })
+        .collect::<TokenStream>();
+
     let output = quote! {
         #id
 
@@ -242,11 +288,29 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
         impl #generics_bounded ::codegen::Definition for #input_ident #generics_unbounded #generics_where {
             type HumanFriendly = #human_friendly_ident #generics_unbounded;
 
-            fn convert(human_friendly: #human_friendly_ident #generics_unbounded, context: &::codegen::ResolveContext) -> ::anyhow::Result<Self> {
-                Ok(#human_friendly_conversion)
+            fn convert(human_friendly: #human_friendly_ident #generics_unbounded, context: &mut ::codegen::ResolveContext) -> ::anyhow::Result<Self> {
+                #context_setup
+
+                #register_id
+                let ret = #human_friendly_conversion;
+
+                #context_shutdown
+
+                Ok(ret)
             }
         }
     };
 
     Ok(output)
+}
+
+struct ResolveContextTypeList(Punctuated<syn::Type, syn::Token![,]>);
+
+impl parse::Parse for ResolveContextTypeList {
+    fn parse(input: parse::ParseStream) -> Result<Self> {
+        let inner;
+        syn::parenthesized!(inner in input);
+        let list = Punctuated::parse_terminated(&inner)?;
+        Ok(Self(list))
+    }
 }
