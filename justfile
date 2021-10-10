@@ -1,8 +1,8 @@
 default: client-watch
 
-client-build path_prefix: client-clean pp
+client-build path_prefix: client-clean
 	cd client && trunk build --public-url {{path_prefix}} --release release.html
-client-build-dev: client-clean pp
+client-build-dev: client-clean
 	cd client && trunk build dev.html
 client-watch: client-clean
 	cd client && trunk serve dev.html --watch .. --open
@@ -13,16 +13,10 @@ doc:
 client-clean:
 	test ! -d client/dist || rm -r client/dist
 	test ! -d client/pkg || rm -r client/pkg
-pp: client-texture client-tsv
-client-texture:
-	cd client/textures && python3 aggregate.py
-client-tsv:
-	rm client/static/*.tsv || true
-	find client/static -name "*.tsvt" -exec cargo run --bin tsvtool to-binary {} \;
-
-deps:
-	cd client/textures && npm install
-	pip3 install -r client/textures/requirements.txt
+client-scenarios:
+	rm -r client/gen/scenarios || true
+	mkdir client/gen/scenarios
+	cargo run --bin tfsave-builder scenarios/vanilla/main.toml client/gen/scenarios/vanilla
 
 tokei:
 	tokei -C -e "*lock*" -e "*.svg"

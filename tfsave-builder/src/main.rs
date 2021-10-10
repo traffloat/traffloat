@@ -1,4 +1,6 @@
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 use std::{fs, io};
 
 use anyhow::{Context as _, Result};
@@ -7,6 +9,7 @@ use def::Schema;
 use structopt::StructOpt;
 use traffloat_def::{self as def, Def};
 
+mod atlas;
 mod schema;
 
 #[derive(StructOpt)]
@@ -19,6 +22,51 @@ struct Args {
     input:  PathBuf,
     /// The output file
     output: PathBuf,
+}
+
+struct Timer {
+    task:  String,
+    total: Mutex<Duration>,
+}
+
+impl Timer {
+    pub fn new(task: impl Into<String>) -> Self {
+        Self { task: task.into(), total: Mutex::default() }
+    }
+
+    pub fn start(&self) -> TimerStart<'_> {
+        TimerStart { start: Instant::now(), timer: self, report: false }
+    }
+
+    pub fn report(&self) {
+        let duration = {
+            let lock = self.total.lock().expect("Poisoned lock");
+            Duration::clone(&lock)
+        };
+        log::info!("Finished {}, spent {:?}", &self.task, duration);
+    }
+
+    pub fn start_and_report(&self) -> TimerStart<'_> {
+        TimerStart { start: Instant::now(), timer: self, report: true }
+    }
+}
+
+struct TimerStart<'t> {
+    start:  Instant,
+    timer:  &'t Timer,
+    report: bool,
+}
+
+impl<'t> Drop for TimerStart<'t> {
+    fn drop(&mut self) {
+        {
+            let mut duration = self.timer.total.lock().expect("Thread panicked");
+            *duration += Instant::now() - self.start;
+        }
+        if self.report {
+            self.timer.report();
+        }
+    }
 }
 
 fn main() -> Result<()> {
@@ -42,12 +90,41 @@ fn main() -> Result<()> {
         context.start_tracking::<def::crime::Def>();
     }
 
-    let schema::Main { scenario, config } =
-        read_main_defs(&mut defs, &mut context, &args.input).context("Parsing input files")?;
+    log::info!("Loading scenario definition");
+    let schema::Main { scenario, config } = {
+        let timer = Timer::new("loading scenario definition");
+        let _timer = timer.start_and_report();
+        read_main_defs(&mut defs, &mut context, &args.input).context("Parsing input files")?
+    };
 
+    fs::create_dir(&args.output).context("Creating output directory")?;
+
+    log::info!("Processing textures");
+    {
+        let render_timer = Timer::new("rendering textures");
+        let downscale_timer = Timer::new("downscaling textures");
+        let save_timer = Timer::new("saving textures");
+        for def in &defs {
+            if let Def::Atlas(atlas) = def {
+                atlas::generate(
+                    &args.input,
+                    &args.output,
+                    &render_timer,
+                    &downscale_timer,
+                    &save_timer,
+                    atlas,
+                )
+                .with_context(|| format!("Generating atlas from {}", atlas.dir()))?;
+            }
+        }
+        render_timer.report();
+        downscale_timer.report();
+        save_timer.report();
+    }
+
+    log::info!("Saving scenario output");
     let schema = Schema::builder().scenario(scenario).config(config).def(defs).build();
-
-    write(&args.output, schema).context("Saving output")?;
+    write(&args.output.join("scenario.tfsave"), &schema).context("Saving output")?;
 
     Ok(())
 }
@@ -111,11 +188,7 @@ fn read_defs(
     Ok(())
 }
 
-fn write(dir: &Path, schema: Schema) -> Result<()> {
-    fs::create_dir(dir).context("Creating output directory")?;
-
-    let scenario = dir.join("scenario.tfsave");
-
+fn write(scenario: &Path, schema: &Schema) -> Result<()> {
     let file = fs::File::create(&scenario).context("Writing scenario file")?;
     let file = io::BufWriter::new(file);
     schema.write(file).context("Writing scenario file")?;

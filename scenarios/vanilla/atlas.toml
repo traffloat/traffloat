@@ -2,6 +2,7 @@
 type = "Atlas"
 id = "buildings"
 dir = "./textures/buildings"
+res_name = "buildings"
 
 	[[def.variants]]
 	name = "pixel"
@@ -23,6 +24,7 @@ dir = "./textures/buildings"
 type = "Atlas"
 id = "icons"
 dir = "./textures/icons"
+res_name = "icons"
 
 	[[def.variants]]
 	name = "simple"
@@ -30,16 +32,17 @@ dir = "./textures/icons"
 
 	[[def.variants]]
 	name = "fancy"
-	dimension = 128
+	dimension = 64
 
 	[[def.variants]]
 	name = "x-fancy"
-	dimension = 512
+	dimension = 256
 
 [[def]]
 type = "Atlas"
 id = "vehicles"
 dir = "./textures/vehicles"
+res_name = "vehicles"
 
 	[[def.variants]]
 	name = "simple"

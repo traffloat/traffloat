@@ -16,6 +16,11 @@ pub struct Def {
     /// In tfsave-builder mode, `dir` contains the original files instead.
     #[getset(get = "pub")]
     dir:      ArcStr,
+    /// The file name used in the generated resource.
+    ///
+    /// The generated filename will be in the form `{res_name}-{variant.name}.png`
+    #[getset(get = "pub")]
+    res_name: ArcStr,
     /// Different variants of the atlas.
     #[getset(get = "pub")]
     variants: Vec<Variant>,
