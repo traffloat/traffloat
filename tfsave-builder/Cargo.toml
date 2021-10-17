@@ -20,7 +20,7 @@ structopt = "0.3.23"
 tiny-skia = "0.6.1"
 toml = "0.5.8"
 traffloat-codegen = {version = "0.2.0", path = "../codegen"}
-traffloat-def = {version = "0.2.0", path = "../def"}
+traffloat-def = {version = "0.2.0", path = "../def", features = ["convert-human-friendly"]}
 traffloat-safety = {version = "0.2.0", path = "../safety"}
 traffloat-types = {version = "0.2.0", path = "../types"}
 usvg = "0.19.0"

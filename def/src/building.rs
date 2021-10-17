@@ -1,12 +1,12 @@
 //! Building definitions
 
-use codegen::{Definition, ResolveContext};
+use codegen::Definition;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::space::TransformMatrix;
 use traffloat_types::{geometry, units};
 
-use crate::atlas::Sprite;
+use crate::atlas::ModelRef;
 use crate::feature::Feature;
 use crate::lang;
 
@@ -61,7 +61,7 @@ pub struct Shape {
     transform: TransformMatrix,
     /// The texture of the building.
     #[getset(get = "pub")]
-    texture:   Sprite,
+    texture:   ModelRef,
 }
 
 /// Storage provided by a building.
@@ -123,7 +123,6 @@ pub mod storage {
         use codegen::Definition;
         use getset::{CopyGetters, Getters};
         use serde::{Deserialize, Serialize};
-        use traffloat_types::units;
 
         use crate::lang;
 

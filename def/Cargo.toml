@@ -21,3 +21,7 @@ smallvec = {version = "1.7.0", features = ["serde"]}
 traffloat-codegen = {version = "0.2.0", path = "../codegen"}
 traffloat-types = {version = "0.2.0", path = "../types"}
 typed-builder = "0.9.1"
+
+[features]
+default = []
+convert-human-friendly = []

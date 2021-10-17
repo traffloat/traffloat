@@ -7,7 +7,7 @@ use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::units;
 
-use crate::atlas::Sprite;
+use crate::atlas::IconRef;
 use crate::{catalyst, lang, skill};
 
 /// A type of vehicle.
@@ -38,7 +38,7 @@ pub struct Def {
     skill:       Vec<Skill>,
     /// The texture of the vehicle.
     #[getset(get = "pub")]
-    texture:     Sprite,
+    texture:     IconRef,
 }
 
 /// A skill required for driving the vehicle.

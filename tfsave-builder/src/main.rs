@@ -1,10 +1,14 @@
+use std::cell::RefCell;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
+use std::sync::atomic::AtomicU32;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use std::{fs, io};
 
 use anyhow::{Context as _, Result};
 use codegen::{Definition, ResolveContext};
+use def::atlas::{AtlasContext, IconIndex, ModelIndex};
 use def::Schema;
 use structopt::StructOpt;
 use traffloat_def::{self as def, Def};
@@ -76,6 +80,11 @@ fn main() -> Result<()> {
 
     let mut defs = Vec::new();
     let mut context = ResolveContext::default();
+
+    let render_timer = Rc::new(Timer::new("rendering textures"));
+    let downscale_timer = Rc::new(Timer::new("downscaling textures"));
+    let save_timer = Rc::new(Timer::new("saving textures"));
+
     {
         context.start_tracking::<def::lang::Def>();
         context.start_tracking::<def::atlas::Def>();
@@ -88,7 +97,47 @@ fn main() -> Result<()> {
         context.start_tracking::<def::building::category::Def>();
         context.start_tracking::<def::building::Def>();
         context.start_tracking::<def::crime::Def>();
+
+        {
+            let mut context = context.get_other::<AtlasContext>();
+
+            context.creation_hook = Some(Rc::new({
+                let input = args.input.clone();
+                let output = args.output.clone();
+                let render_timer = Rc::clone(&render_timer);
+                let downscale_timer = Rc::clone(&downscale_timer);
+                let save_timer = Rc::clone(&save_timer);
+
+                let next_texture_id = AtomicU32::new(0);
+
+                move |atlas, context| {
+                    let context = RefCell::new(context);
+                    atlas::generate(
+                        &input,
+                        &output,
+                        &render_timer,
+                        &downscale_timer,
+                        &save_timer,
+                        atlas,
+                        &next_texture_id,
+                        |name, id| {
+                            let mut context = context.borrow_mut();
+                            let mut index = context.get_other::<IconIndex>();
+                            index.add(atlas.id(), name.clone(), id);
+                        },
+                        |name, id, shape| {
+                            let mut context = context.borrow_mut();
+                            let mut index = context.get_other::<ModelIndex>();
+                            index.add(atlas.id(), name.clone(), id, shape);
+                        },
+                    )
+                    .with_context(|| format!("Generating atlas from {}", atlas.dir()))
+                }
+            }))
+        }
     }
+
+    fs::create_dir(&args.output).context("Creating output directory")?;
 
     log::info!("Loading scenario definition");
     let schema::Main { scenario, config } = {
@@ -97,30 +146,9 @@ fn main() -> Result<()> {
         read_main_defs(&mut defs, &mut context, &args.input).context("Parsing input files")?
     };
 
-    fs::create_dir(&args.output).context("Creating output directory")?;
-
-    log::info!("Processing textures");
-    {
-        let render_timer = Timer::new("rendering textures");
-        let downscale_timer = Timer::new("downscaling textures");
-        let save_timer = Timer::new("saving textures");
-        for def in &defs {
-            if let Def::Atlas(atlas) = def {
-                atlas::generate(
-                    &args.input,
-                    &args.output,
-                    &render_timer,
-                    &downscale_timer,
-                    &save_timer,
-                    atlas,
-                )
-                .with_context(|| format!("Generating atlas from {}", atlas.dir()))?;
-            }
-        }
-        render_timer.report();
-        downscale_timer.report();
-        save_timer.report();
-    }
+    render_timer.report();
+    downscale_timer.report();
+    save_timer.report();
 
     log::info!("Saving scenario output");
     let schema = Schema::builder().scenario(scenario).config(config).def(defs).build();

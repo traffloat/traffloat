@@ -22,6 +22,7 @@ serde = {version = "1.0.130", features = ["derive"]}
 shrev = "1.1.1"
 smallvec = "1.7.0"
 traffloat-codegen-raw = {version = "0.2.0", path = "../codegen-raw"}
+typemap = "0.3.3"
 
 [dependencies.legion]
 version = "0.4.0"

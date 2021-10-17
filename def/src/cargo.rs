@@ -4,7 +4,7 @@ use codegen::Definition;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
-use crate::atlas::Sprite;
+use crate::atlas::IconRef;
 use crate::lang;
 
 /// A type of cargo.
@@ -27,7 +27,7 @@ pub struct Def {
     category:    category::Id,
     /// The texture of the cargo.
     #[getset(get = "pub")]
-    texture:     Sprite,
+    texture:     IconRef,
 }
 
 /// Categories of cargo.

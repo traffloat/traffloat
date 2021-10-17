@@ -16,7 +16,7 @@ client-clean:
 client-scenarios:
 	rm -r client/gen/scenarios || true
 	mkdir client/gen/scenarios
-	cargo run --bin tfsave-builder scenarios/vanilla/main.toml client/gen/scenarios/vanilla
+	cargo run --release --bin tfsave-builder scenarios/vanilla/main.toml client/gen/scenarios/vanilla
 
 tokei:
 	tokei -C -e "*lock*" -e "*.svg"

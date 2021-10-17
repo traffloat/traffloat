@@ -72,6 +72,7 @@ pub struct Schema {
 }
 
 impl Schema {
+    /// Parses a scenario file.
     pub fn parse(mut buf: &[u8]) -> anyhow::Result<Self> {
         buf = match buf.strip_prefix(MAGIC_HEADER) {
             Some(buf) => buf,
@@ -86,6 +87,7 @@ impl Schema {
         rmp_serde::from_read(buf).context("Error parsing scenario file")
     }
 
+    /// Writes a scenario file.
     pub fn write(&self, mut w: impl Write) -> anyhow::Result<()> {
         w.write_all(MAGIC_HEADER)?;
         w.write_all(&SCHEMA_VERSION.to_le_bytes())?;
@@ -149,6 +151,7 @@ pub enum Def {
     Crime(crime::Def),
 }
 
+#[cfg(feature = "convert-human-friendly")]
 impl DefHumanFriendly {
     /// Returns the type ID for the wrapped type.
     pub fn value_type_id(&self) -> Option<TypeId> {
@@ -194,8 +197,8 @@ impl DefHumanFriendly {
             Self::LangBundle(def) => &def.id,
             Self::Atlas(def) => &def.id,
             Self::Liquid(def) => &def.id,
-            Self::LiquidFormula(def) => return None,
-            Self::DefaultLiquidFormula(def) => return None,
+            Self::LiquidFormula(_) => return None,
+            Self::DefaultLiquidFormula(_) => return None,
             Self::Gas(def) => &def.id,
             Self::CargoCategory(def) => &def.id,
             Self::Cargo(def) => &def.id,

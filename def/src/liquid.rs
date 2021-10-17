@@ -5,7 +5,7 @@ use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::units;
 
-use crate::atlas::Sprite;
+use crate::atlas::IconRef;
 use crate::lang;
 
 /// A type of liquid.
@@ -28,7 +28,7 @@ pub struct Def {
     viscosity:   units::LiquidViscosity,
     /// The texture of the liquid.
     #[getset(get = "pub")]
-    texture:     Sprite,
+    texture:     IconRef,
 }
 
 /// A formula for mixing liquids.

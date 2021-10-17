@@ -4,7 +4,7 @@ use codegen::Definition;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
-use crate::atlas::Sprite;
+use crate::atlas::IconRef;
 use crate::lang;
 
 /// A type of gas.
@@ -24,5 +24,5 @@ pub struct Def {
     description: lang::Item,
     /// The texture of the gas.
     #[getset(get = "pub")]
-    texture:     Sprite,
+    texture:     IconRef,
 }

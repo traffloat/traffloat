@@ -1,9 +1,11 @@
-use std::any::{type_name, TypeId};
+use std::any::{type_name, Any, TypeId};
+use std::cell::{self, RefCell};
 #[cfg(feature = "render-debug")]
 use std::collections::btree_map;
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt;
 use std::ops::Range;
+use std::rc::Rc;
 #[cfg(feature = "render-debug")]
 use std::sync::Arc;
 use std::sync::{Mutex, RwLock};
@@ -13,6 +15,7 @@ use arcstr::ArcStr;
 use enum_map::EnumMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use typemap::TypeMap;
 
 /// [`std::dbg!`] equivalent for wasm log
 #[macro_export]
@@ -456,24 +459,33 @@ pub enum ResolveMode {
 pub type ResolveName<'t> = dyn Fn(&str) -> Option<usize> + 't;
 
 /// The context used to resolve name references to runtime IDs.
-#[derive(Clone, Default)]
-pub struct ResolveContext(pub BTreeMap<TypeId, Vec<ArcStr>>);
+#[derive(Clone)]
+pub struct ResolveContext {
+    counters: BTreeMap<TypeId, Vec<ArcStr>>,
+    others:   Rc<RefCell<TypeMap>>,
+}
+
+impl Default for ResolveContext {
+    fn default() -> Self {
+        Self { counters: BTreeMap::new(), others: Rc::new(RefCell::new(TypeMap::new())) }
+    }
+}
 
 impl ResolveContext {
     /// Start tracking a type.
     pub fn start_tracking<T: Identifiable + 'static>(&mut self) {
-        self.0.insert(TypeId::of::<T>(), Vec::new());
+        self.counters.insert(TypeId::of::<T>(), Vec::new());
     }
 
     /// Stop tracking a type.
     pub fn stop_tracking<T: Identifiable + 'static>(&mut self) {
-        self.0.remove(&TypeId::of::<T>());
+        self.counters.remove(&TypeId::of::<T>());
     }
 
     /// Notify a new name in the type.
     pub fn notify<T: Identifiable + 'static>(&mut self, name: ArcStr) -> anyhow::Result<()> {
         let list = self
-            .0
+            .counters
             .get_mut(&TypeId::of::<T>())
             .with_context(|| format!("Type {} is not tracked", type_name::<T>()))?;
         list.push(name);
@@ -483,7 +495,7 @@ impl ResolveContext {
     /// Resolves a runtime ID by type and name.
     pub fn resolve_id<T: Identifiable + 'static>(&self, name: &str) -> anyhow::Result<usize> {
         // the entry for T may not be defined yet because of incorrect loading order.
-        self.0
+        self.counters
             .get(&TypeId::of::<T>())
             .with_context(|| format!("Type {} is not tracked", type_name::<T>()))?
             .iter()
@@ -491,6 +503,22 @@ impl ResolveContext {
             .with_context(|| {
                 format!("{} ID {} is undefined in this context", type_name::<T>(), name)
             })
+    }
+
+    /// Gets a [`cell::RefMut`] to an arbitrary type stord with the context.
+    ///
+    /// "Other" types are stored in a single-instance typemap with the context,
+    /// and are persistent over clones,
+    /// i.e. they are not discarded when exiting context.
+    pub fn get_other<T: Default + 'static>(&mut self) -> cell::RefMut<T> {
+        struct Key<T: Any>(T);
+        impl<T: Any> typemap::Key for Key<T> {
+            type Value = T;
+        }
+
+        cell::RefMut::map(self.others.borrow_mut(), |others| {
+            others.entry::<Key<T>>().or_insert_with(T::default)
+        })
     }
 }
 

@@ -1,5 +1,6 @@
 //! Common geometric shapes.
 
+use std::convert::TryInto;
 use std::ops::RangeInclusive;
 
 use serde::{Deserialize, Serialize};
@@ -21,6 +22,34 @@ pub enum Unit {
 codegen::impl_definition_by_self!(Unit);
 
 impl Unit {
+    /// Returns the names of sprites for model spritesheets for this unit variant.
+    ///
+    /// Sprite locations should follow this order.
+    /// Use [`Unit::sprite_coords`] to get the image coordinates for the shape.
+    pub fn sprite_names(&self) -> &'static [&'static str] {
+        match self {
+            Self::Cube => &["xp", "xn", "yp", "yn", "zp", "zn"],
+            Self::Sphere => unimplemented!("Sphere sprites are not supported yet."),
+            Self::Cylinder => &["top", "bottom", "curved"],
+        }
+    }
+
+    /// Returns the coordinates of sprites for model spritesheets for this unit variant.
+    ///
+    /// `order` is the index of the sprite name in the str slice returned in [`sprite_names`].
+    pub fn sprite_coords(&self, order: u32) -> (u32, u32) {
+        let max: u32 = (self.sprite_names().len() - 1).try_into().expect("max is a small number");
+        debug_assert!(order <= max);
+        sprite_location(order, spritesheet_side(max))
+    }
+
+    /// Number of sprites on each side of the spritesheet.
+    pub fn spritesheet_side(&self) -> u32 {
+        spritesheet_side(
+            (self.sprite_names().len() - 1).try_into().expect("sprite count is a small number"),
+        )
+    }
+
     /// Checks whether the given point is within this unit shape
     pub fn contains(&self, pos: Point) -> bool {
         match self {
@@ -239,6 +268,33 @@ impl Unit {
             }
         }
     }
+}
+
+/// Returns the coordinates of a sprite in the spritesheet of a given size.
+///
+/// This encoding scheme ensures that the return value of `order`
+/// is homogeneous over decreasing values of `side`.
+fn sprite_location(order: u32, side: u32) -> (u32, u32) {
+    if order == 0 {
+        return (0, 0);
+    }
+    let subarea = side * side / 4;
+    let (x, y) = sprite_location(order % subarea, side / 2);
+    match order / subarea {
+        0 => (x, y),
+        1 => (x, y + side / 2),
+        2 => (x + side / 2, y),
+        3 => (x + side / 2, y + side / 2),
+        _ => unreachable!("order > side * side"),
+    }
+}
+
+/// Returns the side length of a spritesheet given the number of items.
+fn spritesheet_side(max_order: u32) -> u32 {
+    // Find the smallest power of 4 greater than `order`.
+    let power_of_four = u32::BITS - max_order.leading_zeros();
+    let power_of_two = (power_of_four + 1) / 2;
+    1 << power_of_two
 }
 
 #[cfg(test)]

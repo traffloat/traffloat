@@ -4,6 +4,8 @@ use syn::punctuated::Punctuated;
 use syn::{parse, Error, Result};
 
 pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
+    let cfg_gate = quote!(#[cfg(feature = "convert-human-friendly")]);
+
     let input = syn::parse2::<syn::DeriveInput>(input)?;
     let input_ident = &input.ident;
 
@@ -51,7 +53,13 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
     match &input.data {
         syn::Data::Struct(s) => match &s.fields {
             syn::Fields::Named(named) => {
-                need_id = named.named.iter().any(|field| {
+                let fields: Vec<_> = named
+                    .named
+                    .iter()
+                    .filter(|field| field.attrs.iter().all(|attr| !attr.path.is_ident("hf_skip")))
+                    .collect();
+
+                need_id = fields.iter().any(|field| {
                     if let syn::Type::Path(path) = &field.ty {
                         if path.path.is_ident("Id") {
                             if let Some(ident) = &field.ident {
@@ -64,9 +72,8 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                     false
                 });
 
-                let field_idents: Vec<_> = named.named.iter().map(|field| &field.ident).collect();
-                let field_hf_serde: Vec<TokenStream> = named
-                    .named
+                let field_idents: Vec<_> = fields.iter().map(|field| &field.ident).collect();
+                let field_hf_serde: Vec<TokenStream> = fields
                     .iter()
                     .map(|field| {
                         field
@@ -81,8 +88,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                     })
                     .collect();
 
-                let (field_conversion_ty, field_conversion_expr): (Vec<_>, Vec<_>) = named
-                    .named
+                let (field_conversion_ty, field_conversion_expr): (Vec<_>, Vec<_>) = fields
                     .iter()
                     .map(|field| {
                         let field_ty = &field.ty;
@@ -100,7 +106,20 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                     })
                     .unzip();
 
+                let hf_skip = named
+                    .named
+                    .iter()
+                    .filter(|field| field.attrs.iter().any(|attr| attr.path.is_ident("hf_skip")))
+                    .map(|field| {
+                        let field_ident = &field.ident;
+                        let field_ty = &field.ty;
+                        quote! {
+                            #field_ident: <#field_ty as ::std::default::Default>::default(),
+                        }
+                    });
+
                 human_friendly = quote! {
+                    #cfg_gate
                     #[doc = concat!("The human-friendly version of [`", stringify!(#input_ident), "`].")]
                     #[derive(::serde::Serialize, ::serde::Deserialize)]
                     #(#[serde #hf_serde])*
@@ -116,6 +135,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                         #(
                             #field_idents: #field_conversion_expr,
                         )*
+                            #(#hf_skip)*
                     }
                 };
             }
@@ -209,6 +229,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
             }).unzip();
 
             human_friendly = quote! {
+                #cfg_gate
                 #[doc = concat!("The human-friendly version of [`", stringify!(#input_ident), "`].")]
                 #[derive(::serde::Serialize, ::serde::Deserialize)]
                 #[serde(tag = "type")]
@@ -237,6 +258,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
         #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
         pub struct Id(usize);
 
+        #cfg_gate
         impl ::codegen::Definition for Id {
             type HumanFriendly = ::arcstr::ArcStr;
 
@@ -248,6 +270,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
             }
         }
 
+        #cfg_gate
         impl #generics_bounded ::codegen::Identifiable for #input_ident #generics_unbounded #generics_where {
             type Id = Id;
 
@@ -280,11 +303,27 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
         })
         .collect::<TokenStream>();
 
+    let post_convert: TokenStream = input
+        .attrs
+        .iter()
+        .filter(|attr| attr.path.is_ident("hf_post_convert"))
+        .map(|attr| syn::parse2::<PostConvert>(attr.tokens.clone()))
+        .map(|result| {
+            result.map(|pc| {
+                let path = &pc.0;
+                quote!(#path(&mut ret, context)?;)
+            })
+        })
+        .collect::<syn::Result<_>>()?;
+
+    let ret_mut = (!post_convert.is_empty()).then(|| quote!(mut));
+
     let output = quote! {
         #id
 
         #human_friendly
 
+        #cfg_gate
         impl #generics_bounded ::codegen::Definition for #input_ident #generics_unbounded #generics_where {
             type HumanFriendly = #human_friendly_ident #generics_unbounded;
 
@@ -292,7 +331,9 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                 #context_setup
 
                 #register_id
-                let ret = #human_friendly_conversion;
+                let #ret_mut ret = #human_friendly_conversion;
+
+                #post_convert
 
                 #context_shutdown
 
@@ -311,6 +352,17 @@ impl parse::Parse for ResolveContextTypeList {
         let inner;
         syn::parenthesized!(inner in input);
         let list = Punctuated::parse_terminated(&inner)?;
+        Ok(Self(list))
+    }
+}
+
+struct PostConvert(syn::Path);
+
+impl parse::Parse for PostConvert {
+    fn parse(input: parse::ParseStream) -> Result<Self> {
+        let inner;
+        syn::parenthesized!(inner in input);
+        let list = inner.parse()?;
         Ok(Self(list))
     }
 }

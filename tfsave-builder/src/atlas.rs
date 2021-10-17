@@ -1,11 +1,15 @@
+use std::convert::TryInto;
 use std::ffi::OsStr;
+use std::fs;
 use std::path::Path;
-use std::{fs, mem};
+use std::sync::atomic;
+use std::sync::atomic::AtomicU32;
 
 use anyhow::{Context, Result};
+use arcstr::ArcStr;
 use safety::Safety;
 use serde::Deserialize;
-use tiny_skia::{Pixmap, PixmapPaint, PixmapRef};
+use tiny_skia::{Pixmap, PixmapPaint};
 use traffloat_def::atlas;
 use traffloat_types::geometry;
 
@@ -18,6 +22,9 @@ pub(crate) fn generate(
     downscale_timer: &Timer,
     save_timer: &Timer,
     def: &atlas::Def,
+    next_texture_id: &AtomicU32,
+    mut register_icon_texture_id: impl FnMut(&ArcStr, u32),
+    mut register_model_texture_id: impl FnMut(&ArcStr, u32, geometry::Unit),
 ) -> Result<()> {
     let input = input.canonicalize().context("Cannot canonicalize input file")?;
     let dir = input.parent().context("Regular file has no parent")?;
@@ -26,135 +33,148 @@ pub(crate) fn generate(
         .canonicalize()
         .with_context(|| format!("Cannont canonicalize atlas path {}", dir.display()))?;
 
+    for variant in def.variants() {
+        let variant_dir = output.join(variant.name().as_str());
+        if !variant_dir.exists() {
+            fs::create_dir(&variant_dir).with_context(|| {
+                format!("Cannot create variant directory {}", variant_dir.display())
+            })?;
+        }
+    }
+
     log::info!("Generating atlas for {}", dir.display());
 
     let options = usvg::Options::default();
     let options = options.to_ref();
 
     let max_dim = 1024;
-    let mut atlas = Atlas::new(max_dim)?;
 
     for file in fs::read_dir(&dir).context("Scanning directory list")? {
         let file = file.context("Scanning directory list")?;
         let path = file.path();
+        let texture_id = next_texture_id.fetch_add(1, atomic::Ordering::SeqCst);
 
         if path.extension() == Some(OsStr::new("svg")) {
             log::debug!("Rendering SVG file {}", path.display());
 
             let pixmap = render_svg(&path, max_dim, &options, render_timer.start())
                 .with_context(|| format!("Rendering SVG file {}", path.display()))?;
-            atlas.add(pixmap.as_ref())?;
+            write_variants(
+                def.variants(),
+                pixmap,
+                1, // singleton spritesheet
+                max_dim,
+                output,
+                downscale_timer,
+                save_timer,
+                texture_id,
+            )
+            .context("Emitting PNG output")?;
+
+            let name = path.file_name().expect("Path has filename");
+            let name = name.to_str().context("Texture name must be ASCII only")?;
+            let name = name.strip_suffix(".svg").expect("Path has svg file extension");
+            register_icon_texture_id(&ArcStr::from(name), texture_id);
         } else if path.join("model.toml").exists() {
             log::debug!("Rendering SVG model {}", path.display());
+
             let model = fs::read_to_string(path.join("model.toml"))
                 .with_context(|| format!("Reading {}/model.toml", path.display()))?;
             let model: ModelToml = toml::from_str(&model)
                 .with_context(|| format!("Parsing {}/model.toml", path.display()))?;
 
-            let files = match model.unit {
-                geometry::Unit::Cube => vec!["xp", "xn", "yp", "yn", "zp", "zn"],
-                geometry::Unit::Cylinder => vec!["top", "bottom", "curved"],
-                geometry::Unit::Sphere => unimplemented!("Spheres are not supported yet"),
-            };
-
-            for file in files {
+            let dimension = model.unit.spritesheet_side() * max_dim;
+            let mut pixmap = Pixmap::new(dimension, dimension).context("Creating pixmap buffer")?;
+            for (sprite_id, file) in model.unit.sprite_names().iter().enumerate() {
                 let svg_path = path.join(file).with_extension("svg");
-                let pixmap = render_svg(&svg_path, max_dim, &options, render_timer.start())
+                let sprite_pixmap = render_svg(&svg_path, max_dim, &options, render_timer.start())
                     .with_context(|| format!("Rendering SVG file {}", svg_path.display()))?;
-                atlas.add(pixmap.as_ref()).context("Adding SVG file to atlas")?;
-            }
-        }
-    }
 
-    for variant in def.variants() {
-        let out_png = output.join(format!("{}-{}.png", def.res_name(), variant.name()));
-        log::debug!("Saving downscaled variant {}", out_png.display());
-        let downscaled_map = {
-            let _timer = downscale_timer.start();
-            atlas.downscale(variant.dimension()).context("Downscaling atlas")?
-        };
-        {
-            let _timer = save_timer.start();
-            downscaled_map.save_png(out_png).context("Saving atlas as PNG")?;
+                let (x, y) = model
+                    .unit
+                    .sprite_coords(sprite_id.try_into().expect("Sprite count is a small number"));
+                pixmap
+                    .draw_pixmap(
+                        (x * max_dim).homosign(),
+                        (y * max_dim).homosign(),
+                        sprite_pixmap.as_ref(),
+                        &PixmapPaint::default(),
+                        tiny_skia::Transform::identity(),
+                        None,
+                    )
+                    .context("Copying pixmap buffer")?;
+            }
+
+            write_variants(
+                def.variants(),
+                pixmap,
+                model.unit.spritesheet_side(),
+                dimension,
+                output,
+                downscale_timer,
+                save_timer,
+                texture_id,
+            )
+            .context("Emitting PNG output")?;
+
+            let name = path.file_name().expect("Path has filename");
+            let name = name.to_str().context("Texture name must be ASCII only")?;
+            register_model_texture_id(&ArcStr::from(name), texture_id, model.unit);
         }
     }
 
     Ok(())
 }
 
-struct Atlas {
-    map:            Pixmap,
-    item_size:      u32,
-    items_per_axis: u32,
-    counter:        u32,
+fn write_variants(
+    variants: &[atlas::Variant],
+    pixmap: Pixmap,
+    side_sprite_count: u32,
+    pixmap_size: u32,
+    output: &Path,
+    downscale_timer: &Timer,
+    save_timer: &Timer,
+    texture_id: u32,
+) -> Result<()> {
+    for variant in variants {
+        let out_png = output
+            .join(variant.name().as_str())
+            .join(format!("{:08x}", texture_id))
+            .with_extension("png");
+        log::debug!("Saving downscaled variant {}", out_png.display());
+
+        let downscaled_map = {
+            let _timer = downscale_timer.start();
+            downscale(&pixmap, pixmap_size, variant.dimension() * side_sprite_count)
+                .context("Downscaling sprite")?
+        };
+        {
+            let _timer = save_timer.start();
+            downscaled_map
+                .save_png(&out_png)
+                .with_context(|| format!("Saving atlas as PNG at {}", out_png.display()))?;
+        }
+    }
+
+    Ok(())
 }
 
-impl Atlas {
-    fn new(size: u32) -> Result<Self> {
-        Ok(Self {
-            map:            Pixmap::new(size, size).context("Creating pixmap buffer")?,
-            item_size:      size,
-            items_per_axis: 1,
-            counter:        0,
-        })
-    }
-
-    fn copy(&mut self, x: i32, y: i32, map: PixmapRef) -> Result<()> {
-        self.map
-            .draw_pixmap(x, y, map, &PixmapPaint::default(), tiny_skia::Transform::identity(), None)
-            .context("Drawing onto output canvas")
-    }
-
-    fn add(&mut self, map: PixmapRef) -> Result<()> {
-        if self.counter == self.items_per_axis.pow(2) {
-            self.items_per_axis *= 2;
-            let dim = self.item_size * self.items_per_axis;
-            let old_map = mem::replace(
-                &mut self.map,
-                Pixmap::new(dim, dim).context("Enlarging pixmap buffer")?,
-            );
-
-            self.copy(0, 0, old_map.as_ref())?;
-        }
-
-        let (x, y) = locate_xy(self.items_per_axis, self.counter);
-        self.counter += 1;
-        self.copy((x * self.item_size).homosign(), (y * self.item_size).homosign(), map)?;
-
-        Ok(())
-    }
-
-    fn downscale(&self, size: u32) -> Result<Pixmap> {
-        assert!(size <= self.item_size);
-        let ratio = size.small_float() / self.item_size.small_float();
-        let side = size * self.items_per_axis;
-        let mut map = Pixmap::new(side, side).context("Creating downscaled pixmap buffer")?;
-        map.draw_pixmap(
+fn downscale(map: &Pixmap, old_size: u32, new_size: u32) -> Result<Pixmap> {
+    debug_assert!(new_size <= old_size, "new_size ({}) > old_size ({})", new_size, old_size);
+    let ratio = new_size.small_float() / old_size.small_float();
+    let side = (map.width().small_float() * ratio).trunc_int();
+    let mut submap = Pixmap::new(side, side).context("Creating downscaled pixmap buffer")?;
+    submap
+        .draw_pixmap(
             0,
             0,
-            self.map.as_ref(),
+            map.as_ref(),
             &PixmapPaint::default(),
             tiny_skia::Transform::from_scale(ratio, ratio),
             None,
         )
         .context("Downscaling pixmap buffer")?;
-        Ok(map)
-    }
-}
-
-fn locate_xy(side: u32, count: u32) -> (u32, u32) {
-    if count == 0 {
-        return (0, 0);
-    }
-    let subarea = side * side / 4;
-    let (x, y) = locate_xy(side / 2, count % subarea);
-    match count / subarea {
-        0 => (x, y),
-        1 => (x, y + side / 2),
-        2 => (x + side / 2, y),
-        3 => (x + side / 2, y + side / 2),
-        _ => unreachable!("count > side * side"),
-    }
+    Ok(submap)
 }
 
 fn render_svg(

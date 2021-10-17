@@ -1,6 +1,5 @@
 //! Reaction definitions
 
-use arcstr::ArcStr;
 use codegen::Definition;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
