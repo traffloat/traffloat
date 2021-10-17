@@ -3,8 +3,8 @@ type = "Cargo"
 id = "amino-acid"
 category = "raw-mineral"
 name = {src = "main", key = "cargo-amino-acid"}
-summary = {src = "main", key = "cargo-amino-acid.summary"}
-description = {src = "main", key = "cargo-amino-acid.description"}
+summary = {src = "main", key = "cargo-amino-acid-summary"}
+description = {src = "main", key = "cargo-amino-acid-description"}
 texture = {src = "icons", name = "amino-acid"}
 
 [[def]]
@@ -12,8 +12,8 @@ type = "Cargo"
 id = "rock"
 category = "raw-mineral"
 name = {src = "main", key = "cargo-rock"}
-summary = {src = "main", key = "cargo-rock.summary"}
-description = {src = "main", key = "cargo-rock.description"}
+summary = {src = "main", key = "cargo-rock-summary"}
+description = {src = "main", key = "cargo-rock-description"}
 texture = {src = "icons", name = "rock"}
 
 [[def]]
@@ -21,8 +21,8 @@ type = "Cargo"
 id = "dna"
 category = "organic"
 name = {src = "main", key = "cargo-dna"}
-summary = {src = "main", key = "cargo-dna.summary"}
-description = {src = "main", key = "cargo-dna.description"}
+summary = {src = "main", key = "cargo-dna-summary"}
+description = {src = "main", key = "cargo-dna-description"}
 texture = {src = "icons", name = "dna"}
 
 [[def]]
@@ -30,8 +30,8 @@ type = "Cargo"
 id = "pepples"
 category = "ammunition"
 name = {src = "main", key = "cargo-pepples"}
-summary = {src = "main", key = "cargo-pepples.summary"}
-description = {src = "main", key = "cargo-pepples.description"}
+summary = {src = "main", key = "cargo-pepples-summary"}
+description = {src = "main", key = "cargo-pepples-description"}
 texture = {src = "icons", name = "pepples"}
 
 [[def]]
@@ -39,8 +39,8 @@ type = "Cargo"
 id = "sediment"
 category = "junk"
 name = {src = "main", key = "cargo-sediment"}
-summary = {src = "main", key = "cargo-sediment.summary"}
-description = {src = "main", key = "cargo-sediment.description"}
+summary = {src = "main", key = "cargo-sediment-summary"}
+description = {src = "main", key = "cargo-sediment-description"}
 texture = {src = "icons", name = "sediment"}
 
 [[def]]
@@ -48,8 +48,8 @@ type = "Cargo"
 id = "aluminium"
 category = "intermediate-material"
 name = {src = "main", key = "cargo-aluminium"}
-summary = {src = "main", key = "cargo-aluminium.summary"}
-description = {src = "main", key = "cargo-aluminium.description"}
+summary = {src = "main", key = "cargo-aluminium-summary"}
+description = {src = "main", key = "cargo-aluminium-description"}
 texture = {src = "icons", name = "aluminium"}
 
 [[def]]
@@ -57,8 +57,8 @@ type = "Cargo"
 id = "battery"
 category = "container"
 name = {src = "main", key = "cargo-battery"}
-summary = {src = "main", key = "cargo-battery.summary"}
-description = {src = "main", key = "cargo-battery.description"}
+summary = {src = "main", key = "cargo-battery-summary"}
+description = {src = "main", key = "cargo-battery-description"}
 texture = {src = "icons", name = "battery"}
 
 [[def]]
@@ -66,8 +66,8 @@ type = "Cargo"
 id = "asteroidal-water-bottle"
 category = "container"
 name = {src = "main", key = "cargo-asteroidal-water-bottle"}
-summary = {src = "main", key = "cargo-asteroidal-water-bottle.summary"}
-description = {src = "main", key = "cargo-asteroidal-water-bottle.description"}
+summary = {src = "main", key = "cargo-asteroidal-water-bottle-summary"}
+description = {src = "main", key = "cargo-asteroidal-water-bottle-description"}
 texture = {src = "icons", name = "asteroidal-water-liquid-bottle"}
 
 [[def]]
@@ -75,8 +75,8 @@ type = "Cargo"
 id = "filtered-water-bottle"
 category = "container"
 name = {src = "main", key = "cargo-filtered-water-bottle"}
-summary = {src = "main", key = "cargo-filtered-water-bottle.summary"}
-description = {src = "main", key = "cargo-filtered-water-bottle.description"}
+summary = {src = "main", key = "cargo-filtered-water-bottle-summary"}
+description = {src = "main", key = "cargo-filtered-water-bottle-description"}
 texture = {src = "icons", name = "filtered-water-liquid-bottle"}
 
 [[def]]
@@ -84,8 +84,8 @@ type = "Cargo"
 id = "deionized-water-bottle"
 category = "container"
 name = {src = "main", key = "cargo-deionized-water-bottle"}
-summary = {src = "main", key = "cargo-deionized-water-bottle.summary"}
-description = {src = "main", key = "cargo-deionized-water-bottle.description"}
+summary = {src = "main", key = "cargo-deionized-water-bottle-summary"}
+description = {src = "main", key = "cargo-deionized-water-bottle-description"}
 texture = {src = "icons", name = "deionized-water-liquid-bottle"}
 
 [[def]]
@@ -93,8 +93,8 @@ type = "Cargo"
 id = "urine-bottle"
 category = "container"
 name = {src = "main", key = "cargo-urine-bottle"}
-summary = {src = "main", key = "cargo-urine-bottle.summary"}
-description = {src = "main", key = "cargo-urine-bottle.description"}
+summary = {src = "main", key = "cargo-urine-bottle-summary"}
+description = {src = "main", key = "cargo-urine-bottle-description"}
 texture = {src = "icons", name = "urine-liquid-bottle"}
 
 [[def]]
@@ -102,8 +102,8 @@ type = "Cargo"
 id = "coolant-bottle"
 category = "container"
 name = {src = "main", key = "cargo-coolant-bottle"}
-summary = {src = "main", key = "cargo-coolant-bottle.summary"}
-description = {src = "main", key = "cargo-coolant-bottle.description"}
+summary = {src = "main", key = "cargo-coolant-bottle-summary"}
+description = {src = "main", key = "cargo-coolant-bottle-description"}
 texture = {src = "icons", name = "coolant-liquid-bottle"}
 
 [[def]]
@@ -111,8 +111,8 @@ type = "Cargo"
 id = "oxygen-bottle"
 category = "container"
 name = {src = "main", key = "cargo-oxygen-bottle"}
-summary = {src = "main", key = "cargo-oxygen-bottle.summary"}
-description = {src = "main", key = "cargo-oxygen-bottle.description"}
+summary = {src = "main", key = "cargo-oxygen-bottle-summary"}
+description = {src = "main", key = "cargo-oxygen-bottle-description"}
 texture = {src = "icons", name = "oxygen-gas-bottle"}
 
 [[def]]
@@ -120,8 +120,8 @@ type = "Cargo"
 id = "carbon-dioxide-bottle"
 category = "container"
 name = {src = "main", key = "cargo-carbon-dioxide-bottle"}
-summary = {src = "main", key = "cargo-carbon-dioxide-bottle.summary"}
-description = {src = "main", key = "cargo-carbon-dioxide-bottle.description"}
+summary = {src = "main", key = "cargo-carbon-dioxide-bottle-summary"}
+description = {src = "main", key = "cargo-carbon-dioxide-bottle-description"}
 texture = {src = "icons", name = "carbon-dioxide-gas-bottle"}
 
 [[def]]
@@ -129,6 +129,6 @@ type = "Cargo"
 id = "nitrogen-bottle"
 category = "container"
 name = {src = "main", key = "cargo-nitrogen-bottle"}
-summary = {src = "main", key = "cargo-nitrogen-bottle.summary"}
-description = {src = "main", key = "cargo-nitrogen-bottle.description"}
+summary = {src = "main", key = "cargo-nitrogen-bottle-summary"}
+description = {src = "main", key = "cargo-nitrogen-bottle-description"}
 texture = {src = "icons", name = "nitrogen-gas-bottle"}

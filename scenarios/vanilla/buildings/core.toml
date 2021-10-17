@@ -4,8 +4,8 @@ id = "core"
 category = "population"
 hitpoint = 3000.0
 name = {src = "main", key = "building-core"}
-summary = {src = "main", key = "building-core.summary"}
-description = {src = "main", key = "building-core.description"}
+summary = {src = "main", key = "building-core-summary"}
+description = {src = "main", key = "building-core-description"}
 
 	[def.storage]
 	cargo = 8000.0

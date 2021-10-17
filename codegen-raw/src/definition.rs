@@ -129,6 +129,15 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                             pub(crate) #field_idents: #field_conversion_ty,
                         )*
                     }
+
+                    impl #generics_bounded #human_friendly_ident #generics_unbounded #generics_where {
+                        #(
+                            #[doc = concat!("See [`", stringify!(#input_ident), "::", stringify!(#field_idents), "`]")]
+                            pub fn #field_idents(&self) -> &#field_conversion_ty {
+                                &self.#field_idents
+                            }
+                        )*
+                    }
                 };
                 human_friendly_conversion = quote! {
                     Self {
@@ -331,6 +340,8 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                 #context_setup
 
                 #register_id
+                context.trigger_listener::<#input_ident #generics_unbounded>(&human_friendly)?;
+
                 let #ret_mut ret = #human_friendly_conversion;
 
                 #post_convert

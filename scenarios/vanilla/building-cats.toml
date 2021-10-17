@@ -2,47 +2,47 @@
 type = "BuildingCategory"
 id = "population"
 title = {src = "main", key = "building-cats-population"}
-description = {src = "main", key = "building-cats-population.description"}
+description = {src = "main", key = "building-cats-population-description"}
 
 [[def]]
 type = "BuildingCategory"
 id = "traffic"
 title = {src = "main", key = "building-cats-traffic"}
-description = {src = "main", key = "building-cats-traffic.description"}
+description = {src = "main", key = "building-cats-traffic-description"}
 
 
 [[def]]
 type = "BuildingCategory"
 id = "electricity"
 title = {src = "main", key = "building-cats-electricity"}
-description = {src = "main", key = "building-cats-electricity.description"}
+description = {src = "main", key = "building-cats-electricity-description"}
 
 [[def]]
 type = "BuildingCategory"
 id = "storage"
 title = {src = "main", key = "building-cats-storage"}
-description = {src = "main", key = "building-cats-storage.description"}
+description = {src = "main", key = "building-cats-storage-description"}
 
 [[def]]
 type = "BuildingCategory"
 id = "industrial"
 title = {src = "main", key = "building-cats-industrial"}
-description = {src = "main", key = "building-cats-industrial.description"}
+description = {src = "main", key = "building-cats-industrial-description"}
 
 [[def]]
 type = "BuildingCategory"
 id = "education"
 title = {src = "main", key = "building-cats-education"}
-description = {src = "main", key = "building-cats-education.description"}
+description = {src = "main", key = "building-cats-education-description"}
 
 [[def]]
 type = "BuildingCategory"
 id = "entertainment"
 title = {src = "main", key = "building-cats-entertainment"}
-description = {src = "main", key = "building-cats-entertainment.description"}
+description = {src = "main", key = "building-cats-entertainment-description"}
 
 [[def]]
 type = "BuildingCategory"
 id = "security"
 title = {src = "main", key = "building-cats-security"}
-description = {src = "main", key = "building-cats-security.description"}
+description = {src = "main", key = "building-cats-security-description"}

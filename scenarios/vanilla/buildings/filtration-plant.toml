@@ -4,8 +4,8 @@ id = "filtration-plant"
 category = "industrial"
 hitpoint = 150.0
 name = {src = "main", key = "building-filtration-plant"}
-summary = {src = "main", key = "building-filtration-plant.summary"}
-description = {src = "main", key = "building-filtration-plant.description"}
+summary = {src = "main", key = "building-filtration-plant-summary"}
+description = {src = "main", key = "building-filtration-plant-description"}
 
 	[[def.shapes]]
 	unit = "Cube"
@@ -28,12 +28,12 @@ description = {src = "main", key = "building-filtration-plant.description"}
 		[[def.storage.population]]
 		id = "operator"
 		capacity = 1
-		name = {src = "main", key = "storage-population-factory-operator"}
+		name = {src = "main", key = "storage-population-generic-operator"}
 
 	[[def.features]]
 	type = "Reaction"
 	title = {src = "main", key = "reaction-asteroidal-water-filtration"}
-	description = {src = "main", key = "reaction-asteroidal-water-filtration.description"}
+	description = {src = "main", key = "reaction-asteroidal-water-filtration-description"}
 
 		[[def.features.catalysts]]
 			[def.features.catalysts.range]

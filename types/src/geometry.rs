@@ -36,7 +36,7 @@ impl Unit {
 
     /// Returns the coordinates of sprites for model spritesheets for this unit variant.
     ///
-    /// `order` is the index of the sprite name in the str slice returned in [`sprite_names`].
+    /// `order` is the index of the sprite name in the str slice returned in [`Unit::sprite_names`].
     pub fn sprite_coords(&self, order: u32) -> (u32, u32) {
         let max: u32 = (self.sprite_names().len() - 1).try_into().expect("max is a small number");
         debug_assert!(order <= max);

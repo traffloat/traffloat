@@ -4,8 +4,8 @@ id = "prison"
 category = "security"
 hitpoint = 300.0
 name = {src = "main", key = "building-prison"}
-summary = {src = "main", key = "building-prison.summary"}
-description = {src = "main", key = "building-prison.description"}
+summary = {src = "main", key = "building-prison-summary"}
+description = {src = "main", key = "building-prison-description"}
 
 	[[def.shapes]]
 	unit = "Cube"
@@ -23,7 +23,7 @@ description = {src = "main", key = "building-prison.description"}
 		[[def.storage.liquid]]
 		id = "toilet"
 		capacity = 500.0
-		name = {src = "main", key = "storage-liquid-housing-tilet"}
+		name = {src = "main", key = "storage-liquid-housing-toilet"}
 
 		[[def.storage.population]]
 		id = "prisoner"
@@ -73,7 +73,7 @@ description = {src = "main", key = "building-prison.description"}
 	[[def.features]]
 	type = "Reaction"
 	title = {src = "main", key = "reaction-correctional-service"}
-	description = {src = "main", key = "reaction-correctional-service.description"}
+	description = {src = "main", key = "reaction-correctional-service-description"}
 
 		[[def.features.catalysts]]
 			[def.features.catalysts.range]

@@ -40,7 +40,7 @@ pub enum Feature {
 #[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
 #[serde(bound = "")]
 #[hf_serde(bound = "")]
-pub struct PumpSpec<U: Unit + Definition> {
+pub struct PumpSpec<U: Unit + Definition + 'static> {
     /// Catalysts affecting the pump efficiency.
     #[getset(get = "pub")]
     #[hf_serde(default)]

@@ -4,8 +4,8 @@ id = "terminal"
 category = "traffic"
 hitpoint = 100.0
 name = {src = "main", key = "building-terminal"}
-summary = {src = "main", key = "building-terminal.summary"}
-description = {src = "main", key = "building-terminal.description"}
+summary = {src = "main", key = "building-terminal-summary"}
+description = {src = "main", key = "building-terminal-description"}
 
 	[[def.shapes]]
 	unit = "Cube"

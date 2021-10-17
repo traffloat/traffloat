@@ -4,8 +4,8 @@ id = "driving-school"
 category = "education"
 hitpoint = 150.0
 name = {src = "main", key = "building-driving-school"}
-summary = {src = "main", key = "building-driving-school.summary"}
-description = {src = "main", key = "building-driving-school.description"}
+summary = {src = "main", key = "building-driving-school-summary"}
+description = {src = "main", key = "building-driving-school-description"}
 
 	[[def.shapes]]
 	unit = "Cube"
@@ -33,7 +33,7 @@ description = {src = "main", key = "building-driving-school.description"}
 	[[def.features]]
 	type = "Reaction"
 	title = {src = "main", key = "reaction-driving-lesson"}
-	description = {src = "main", key = "reaction-driving-lesson.description"}
+	description = {src = "main", key = "reaction-driving-lesson-description"}
 
 		[[def.features.catalysts]]
 			[def.features.catalysts.range]

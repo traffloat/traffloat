@@ -4,8 +4,8 @@ id = "customs"
 category = "security"
 hitpoint = 300.0
 name = {src = "main", key = "building-customs"}
-summary = {src = "main", key = "building-customs.summary"}
-description = {src = "main", key = "building-customs.description"}
+summary = {src = "main", key = "building-customs-summary"}
+description = {src = "main", key = "building-customs-description"}
 
 	[[def.shapes]]
 	unit = "Cube"
@@ -18,12 +18,12 @@ description = {src = "main", key = "building-customs.description"}
 		[[def.storage.liquid]]
 		id = "buffer0"
 		capacity = 10.0
-		name = {src = "main", key = "storage-liquid-buffer"}
+		name = {src = "main", key = "storage-liquid-generic-buffer"}
 
 		[[def.storage.liquid]]
 		id = "buffer1"
 		capacity = 10.0
-		name = {src = "main", key = "storage-liquid-buffer"}
+		name = {src = "main", key = "storage-liquid-generic-buffer"}
 
 		[[def.storage.population]]
 		id = "operator"

@@ -36,7 +36,7 @@ type AtlasCreationHook = dyn Fn(&mut Def, &mut codegen::ResolveContext) -> anyho
 pub struct AtlasContext {
     /// A function executed when a new atlas is defined.
     ///
-    /// This must be set by the context setting up the [`ResolveContext`].
+    /// This must be set by the context setting up the [`codegen::ResolveContext`].
     pub creation_hook: Option<Rc<AtlasCreationHook>>,
 }
 

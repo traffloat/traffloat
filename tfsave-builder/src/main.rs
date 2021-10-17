@@ -14,6 +14,7 @@ use structopt::StructOpt;
 use traffloat_def::{self as def, Def};
 
 mod atlas;
+mod lang;
 mod schema;
 
 #[derive(StructOpt)]
@@ -84,6 +85,7 @@ fn main() -> Result<()> {
     let render_timer = Rc::new(Timer::new("rendering textures"));
     let downscale_timer = Rc::new(Timer::new("downscaling textures"));
     let save_timer = Rc::new(Timer::new("saving textures"));
+    let lang_parse_timer = Rc::new(Timer::new("parsing translation files"));
 
     fs::create_dir(&args.output).context("Creating output directory")?;
 
@@ -139,6 +141,8 @@ fn main() -> Result<()> {
                 }
             }))
         }
+
+        lang::setup_context(&mut context, &args.input, &args.output, &lang_parse_timer);
     }
 
     log::info!("Loading scenario definition");
@@ -151,6 +155,7 @@ fn main() -> Result<()> {
     render_timer.report();
     downscale_timer.report();
     save_timer.report();
+    lang_parse_timer.report();
 
     log::info!("Saving scenario output");
     let schema = Schema::builder().scenario(scenario).config(config).def(defs).build();
@@ -197,7 +202,7 @@ fn read_defs(
         let path = path
             .canonicalize()
             .with_context(|| format!("Failed to canonicalize {}", path.display()))?;
-        let dir = path.parent().context("Regular file has no parent")?;
+        let dir = path.parent().expect("Regular file has no parent");
 
         let mut included = dir.join(&include.file);
         included = included.canonicalize().with_context(|| {

@@ -4,8 +4,8 @@ id = "solar-panel"
 category = "electricity"
 hitpoint = 200.0
 name = {src = "main", key = "building-solar-panel"}
-summary = {src = "main", key = "building-solar-panel.summary"}
-description = {src = "main", key = "building-solar-panel.description"}
+summary = {src = "main", key = "building-solar-panel-summary"}
+description = {src = "main", key = "building-solar-panel-description"}
 
 	[[def.shapes]]
 	unit = "Cube"
@@ -18,12 +18,12 @@ description = {src = "main", key = "building-solar-panel.description"}
 		[[def.storage.population]]
 		id = "operator"
 		capacity = 1
-		name = {src = "main", key = "storage-population-factory-operator"}
+		name = {src = "main", key = "storage-population-generic-operator"}
 
 	[[def.features]]
 	type = "Reaction"
-	title = {src = "main", key = "reaction-solor-power"}
-	description = {src = "main", key = "reaction-solor-power.description"}
+	title = {src = "main", key = "reaction-solar-power"}
+	description = {src = "main", key = "reaction-solar-power-description"}
 
 		[[def.features.catalysts]]
 			[def.features.catalysts.range]

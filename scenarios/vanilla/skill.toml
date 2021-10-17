@@ -2,71 +2,71 @@
 type = "Skill"
 id = "age"
 name = {src = "main", key = "skill-age"}
-description = {src = "main", key = "skill-age.description"}
+description = {src = "main", key = "skill-age-description"}
 
 [[def]]
 type = "Skill"
 id = "health"
 
 name = {src = "main", key = "skill-health"}
-description = {src = "main", key = "skill-health.description"}
+description = {src = "main", key = "skill-health-description"}
 
 [[def]]
 type = "Skill"
 id = "happiness"
 name = {src = "main", key = "skill-happiness"}
-description = {src = "main", key = "skill-happiness.description"}
+description = {src = "main", key = "skill-happiness-description"}
 
 [[def]]
 type = "Skill"
 id = "satisfaction"
 name = {src = "main", key = "skill-satisfaction"}
-description = {src = "main", key = "skill-satisfaction.description"}
+description = {src = "main", key = "skill-satisfaction-description"}
 
 [[def]]
 type = "Skill"
 id = "infamy"
 name = {src = "main", key = "skill-infamy"}
-description = {src = "main", key = "skill-infamy.description"}
+description = {src = "main", key = "skill-infamy-description"}
 
 [[def]]
 type = "Skill"
 id = "morality"
 name = {src = "main", key = "skill-morality"}
-description = {src = "main", key = "skill-morality.description"}
+description = {src = "main", key = "skill-morality-description"}
 
 [[def]]
 type = "Skill"
 id = "athletic-skill"
 name = {src = "main", key = "skill-athletic-skill"}
-description = {src = "main", key = "skill-athletic-skill.description"}
+description = {src = "main", key = "skill-athletic-skill-description"}
 
 [[def]]
 type = "Skill"
 id = "driving-skill"
 name = {src = "main", key = "skill-driving-skill"}
-description = {src = "main", key = "skill-driving-skill.description"}
+description = {src = "main", key = "skill-driving-skill-description"}
 
 [[def]]
 type = "Skill"
 id = "mechanic-skill"
 name = {src = "main", key = "skill-mechanic-skill"}
-description = {src = "main", key = "skill-mechanic-skill.description"}
+description = {src = "main", key = "skill-mechanic-skill-description"}
 
 [[def]]
 type = "Skill"
 id = "construction-skill"
 name = {src = "main", key = "skill-construction-skill"}
-description = {src = "main", key = "skill-construction-skill.description"}
+description = {src = "main", key = "skill-construction-skill-description"}
 
 [[def]]
 type = "Skill"
 id = "teaching-skill"
 name = {src = "main", key = "skill-teaching-skill"}
-description = {src = "main", key = "skill-teaching-skill.description"}
+description = {src = "main", key = "skill-teaching-skill-description"}
 
 [[def]]
 type = "Skill"
 id = "military-skill"
 name = {src = "main", key = "skill-military-skill"}
-description = {src = "main", key = "skill-military-skill.description"}
+description = {src = "main", key = "skill-military-skill-description"}

@@ -4,8 +4,8 @@ id = "vault"
 category = "storage"
 hitpoint = 500.0
 name = {src = "main", key = "building-vault"}
-summary = {src = "main", key = "building-vault.summary"}
-description = {src = "main", key = "building-vault.description"}
+summary = {src = "main", key = "building-vault-summary"}
+description = {src = "main", key = "building-vault-description"}
 
 	[[def.shapes]]
 	unit = "Cube"

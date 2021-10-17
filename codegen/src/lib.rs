@@ -4,6 +4,7 @@ use std::cell::{self, RefCell};
 use std::collections::btree_map;
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt;
+use std::marker::PhantomData;
 use std::ops::Range;
 use std::rc::Rc;
 #[cfg(feature = "render-debug")]
@@ -447,28 +448,26 @@ pub trait Definition: Serialize + DeserializeOwned + Sized {
     fn convert(hf: Self::HumanFriendly, context: &mut ResolveContext) -> anyhow::Result<Self>;
 }
 
-/// Mode for [`ResolveName`].
-pub enum ResolveMode {
-    /// Definition mode, prepares to register new items. Only used when the field is an `id: Id`.
-    Definition,
-    /// Reference mode, throwing parse error if the item does not exist.
-    Reference,
-}
-
-/// The function that implements name resolution.
-pub type ResolveName<'t> = dyn Fn(&str) -> Option<usize> + 't;
-
 /// The context used to resolve name references to runtime IDs.
 #[derive(Clone)]
 pub struct ResolveContext {
     counters: BTreeMap<TypeId, Vec<ArcStr>>,
-    others:   Rc<RefCell<TypeMap>>,
+    tymap:    Rc<RefCell<TypeMap>>,
 }
 
 impl Default for ResolveContext {
     fn default() -> Self {
-        Self { counters: BTreeMap::new(), others: Rc::new(RefCell::new(TypeMap::new())) }
+        Self { counters: BTreeMap::new(), tymap: Rc::new(RefCell::new(TypeMap::new())) }
     }
+}
+
+struct Listener<T>(PhantomData<T>);
+
+type ListenerFn<T> =
+    dyn Fn(&<T as Definition>::HumanFriendly, &mut ResolveContext) -> anyhow::Result<()>;
+
+impl<T: Definition + 'static> typemap::Key for Listener<T> {
+    type Value = Rc<ListenerFn<T>>;
 }
 
 impl ResolveContext {
@@ -482,6 +481,12 @@ impl ResolveContext {
         self.counters.remove(&TypeId::of::<T>());
     }
 
+    /// Register a listener when an Identifiable type is being resolved.
+    pub fn add_listener<T: Definition + 'static>(&mut self, f: Rc<ListenerFn<T>>) {
+        let mut tymap = self.tymap.borrow_mut();
+        tymap.insert::<Listener<T>>(f);
+    }
+
     /// Notify a new name in the type.
     pub fn notify<T: Identifiable + 'static>(&mut self, name: ArcStr) -> anyhow::Result<()> {
         let list = self
@@ -489,6 +494,24 @@ impl ResolveContext {
             .get_mut(&TypeId::of::<T>())
             .with_context(|| format!("Type {} is not tracked", type_name::<T>()))?;
         list.push(name);
+
+        Ok(())
+    }
+
+    /// Trigger the listener for the type.
+    pub fn trigger_listener<T: Definition + 'static>(
+        &mut self,
+        value: &<T as Definition>::HumanFriendly,
+    ) -> anyhow::Result<()> {
+        let listener = {
+            let tymap = self.tymap.borrow();
+            let listener = tymap.get::<Listener<T>>();
+            listener.map(Rc::clone)
+        };
+        if let Some(listener) = listener {
+            listener(value, self)?;
+        }
+
         Ok(())
     }
 
@@ -511,13 +534,13 @@ impl ResolveContext {
     /// and are persistent over clones,
     /// i.e. they are not discarded when exiting context.
     pub fn get_other<T: Default + 'static>(&mut self) -> cell::RefMut<T> {
-        struct Key<T: Any>(T);
-        impl<T: Any> typemap::Key for Key<T> {
+        struct Other<T: Any>(T);
+        impl<T: Any> typemap::Key for Other<T> {
             type Value = T;
         }
 
-        cell::RefMut::map(self.others.borrow_mut(), |others| {
-            others.entry::<Key<T>>().or_insert_with(T::default)
+        cell::RefMut::map(self.tymap.borrow_mut(), |tymap| {
+            tymap.entry::<Other<T>>().or_insert_with(T::default)
         })
     }
 }

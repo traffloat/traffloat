@@ -2,35 +2,35 @@
 type = "CargoCategory"
 id = "raw-mineral"
 title = {src = "main", key = "cargo-cats-raw-mineral"}
-description = {src = "main", key = "cargo-cats-raw-mineral.description"}
+description = {src = "main", key = "cargo-cats-raw-mineral-description"}
 
 [[def]]
 type = "CargoCategory"
 id = "organic"
 title = {src = "main", key = "cargo-cats-organic"}
-description = {src = "main", key = "cargo-cats-organic.description"}
+description = {src = "main", key = "cargo-cats-organic-description"}
 
 [[def]]
 type = "CargoCategory"
 id = "ammunition"
 title = {src = "main", key = "cargo-cats-ammunition"}
-description = {src = "main", key = "cargo-cats-ammunition.description"}
+description = {src = "main", key = "cargo-cats-ammunition-description"}
 
 [[def]]
 type = "CargoCategory"
 id = "junk"
 title = {src = "main", key = "cargo-cats-junk"}
-description = {src = "main", key = "cargo-cats-junk.description"}
+description = {src = "main", key = "cargo-cats-junk-description"}
 
 [[def]]
 type = "CargoCategory"
 id = "intermediate-material"
 title = {src = "main", key = "cargo-cats-intermediate-material"}
-description = {src = "main", key = "cargo-cats-intermediate-material.description"}
+description = {src = "main", key = "cargo-cats-intermediate-material-description"}
 
 [[def]]
 type = "CargoCategory"
 id = "container"
 
 title = {src = "main", key = "cargo-cats-container"}
-description = {src = "main", key = "cargo-cats-container.description"}
+description = {src = "main", key = "cargo-cats-container-description"}

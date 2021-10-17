@@ -2,7 +2,7 @@
 type = "Vehicle"
 id = "raptor"
 name = {src = "main", key = "vehicle-raptor"}
-description = {src = "main", key = "vehicle-raptor.description"}
+description = {src = "main", key = "vehicle-raptor-description"}
 speed = 20.0
 capacity = 0.0
 passengers = 0
@@ -23,7 +23,7 @@ texture = {src = "vehicles", name = "raptor"}
 type = "Vehicle"
 id = "freighter"
 name = {src = "main", key = "vehicle-freighter"}
-description = {src = "main", key = "vehicle-freighter.description"}
+description = {src = "main", key = "vehicle-freighter-description"}
 speed = 5.0
 capacity = 1000.0
 passengers = 0
@@ -43,7 +43,7 @@ texture = {src = "vehicles", name = "freighter"}
 type = "Vehicle"
 id = "bus"
 name = {src = "main", key = "vehicle-bus"}
-description = {src = "main", key = "vehicle-bus.description"}
+description = {src = "main", key = "vehicle-bus-description"}
 speed = 5.0
 capacity = 0.0
 passengers = 16

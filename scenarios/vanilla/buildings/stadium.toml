@@ -4,8 +4,8 @@ id = "stadium"
 category = "entertainment"
 hitpoint = 150.0
 name = {src = "main", key = "building-stadium"}
-summary = {src = "main", key = "building-stadium.summary"}
-description = {src = "main", key = "building-stadium.description"}
+summary = {src = "main", key = "building-stadium-summary"}
+description = {src = "main", key = "building-stadium-description"}
 
 	[[def.shapes]]
 	unit = "Cylinder"
@@ -38,7 +38,7 @@ description = {src = "main", key = "building-stadium.description"}
 	[[def.features]]
 	type = "Reaction"
 	title = {src = "main", key = "reaction-stadium"}
-	description = {src = "main", key = "reaction-stadium.description"}
+	description = {src = "main", key = "reaction-stadium-description"}
 
 		[[def.features.puts]]
 		type = "Skill"
