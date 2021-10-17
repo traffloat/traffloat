@@ -85,6 +85,8 @@ fn main() -> Result<()> {
     let downscale_timer = Rc::new(Timer::new("downscaling textures"));
     let save_timer = Rc::new(Timer::new("saving textures"));
 
+    fs::create_dir(&args.output).context("Creating output directory")?;
+
     {
         context.start_tracking::<def::lang::Def>();
         context.start_tracking::<def::atlas::Def>();
@@ -103,7 +105,9 @@ fn main() -> Result<()> {
 
             context.creation_hook = Some(Rc::new({
                 let input = args.input.clone();
-                let output = args.output.clone();
+                let output = args.output.join("assets");
+                fs::create_dir(&output).context("Creating assets dir")?;
+
                 let render_timer = Rc::clone(&render_timer);
                 let downscale_timer = Rc::clone(&downscale_timer);
                 let save_timer = Rc::clone(&save_timer);
@@ -136,8 +140,6 @@ fn main() -> Result<()> {
             }))
         }
     }
-
-    fs::create_dir(&args.output).context("Creating output directory")?;
 
     log::info!("Loading scenario definition");
     let schema::Main { scenario, config } = {
