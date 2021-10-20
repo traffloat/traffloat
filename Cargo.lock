@@ -1542,6 +1542,7 @@ dependencies = [
  "traffloat-def",
  "traffloat-safety",
  "traffloat-types",
+ "typed-builder",
  "unic-langid",
  "usvg",
 ]

@@ -12,30 +12,44 @@ use serde::Deserialize;
 use tiny_skia::{Pixmap, PixmapPaint};
 use traffloat_def::atlas;
 use traffloat_types::geometry;
+use typed_builder::TypedBuilder;
 
 use crate::{Timer, TimerStart};
 
-pub(crate) fn generate(
-    input: &Path,
-    output: &Path,
-    render_timer: &Timer,
-    downscale_timer: &Timer,
-    save_timer: &Timer,
-    def: &atlas::Def,
-    next_texture_id: &AtomicU32,
-    skip_svg: bool,
-    mut register_icon_texture_id: impl FnMut(&ArcStr, u32),
-    mut register_model_texture_id: impl FnMut(&ArcStr, u32, geometry::Unit),
-) -> Result<()> {
-    let input = input.canonicalize().context("Cannot canonicalize input file")?;
+#[derive(TypedBuilder)]
+pub(crate) struct GenerateArgs<'t, RegisterIcon, RegisterModel>
+where
+    RegisterIcon: FnMut(&ArcStr, u32),
+    RegisterModel: FnMut(&ArcStr, u32, geometry::Unit),
+{
+    input:                     &'t Path,
+    output:                    &'t Path,
+    render_timer:              &'t Timer,
+    downscale_timer:           &'t Timer,
+    save_timer:                &'t Timer,
+    atlas:                     &'t atlas::Def,
+    next_texture_id:           &'t AtomicU32,
+    skip_svg:                  bool,
+    register_icon_texture_id:  RegisterIcon,
+    register_model_texture_id: RegisterModel,
+}
+
+pub(crate) fn generate<RegisterIcon, RegisterModel>(
+    mut args: GenerateArgs<'_, RegisterIcon, RegisterModel>,
+) -> Result<()>
+where
+    RegisterIcon: FnMut(&ArcStr, u32),
+    RegisterModel: FnMut(&ArcStr, u32, geometry::Unit),
+{
+    let input = args.input.canonicalize().context("Cannot canonicalize input file")?;
     let dir = input.parent().context("Regular file has no parent")?;
-    let mut dir = dir.join(def.dir());
+    let mut dir = dir.join(args.atlas.dir());
     dir = dir
         .canonicalize()
         .with_context(|| format!("Cannont canonicalize atlas path {}", dir.display()))?;
 
-    for variant in def.variants() {
-        let variant_dir = output.join(variant.name().as_str());
+    for variant in args.atlas.variants() {
+        let variant_dir = args.output.join(variant.name().as_str());
         if !variant_dir.exists() {
             fs::create_dir(&variant_dir).with_context(|| {
                 format!("Cannot create variant directory {}", variant_dir.display())
@@ -53,31 +67,32 @@ pub(crate) fn generate(
     for file in fs::read_dir(&dir).context("Scanning directory list")? {
         let file = file.context("Scanning directory list")?;
         let path = file.path();
-        let texture_id = next_texture_id.fetch_add(1, atomic::Ordering::SeqCst);
+        let texture_id = args.next_texture_id.fetch_add(1, atomic::Ordering::SeqCst);
 
         if path.extension() == Some(OsStr::new("svg")) {
             log::debug!("Rendering SVG file {}", path.display());
 
-            let pixmap = render_svg(&path, max_dim, &options, skip_svg, render_timer.start())
-                .with_context(|| format!("Rendering SVG file {}", path.display()))?;
-            if !skip_svg {
-                write_variants(
-                    def.variants(),
-                    pixmap,
-                    1, // singleton spritesheet
-                    max_dim,
-                    output,
-                    downscale_timer,
-                    save_timer,
-                    texture_id,
-                )
-                .context("Emitting PNG output")?;
+            let pixmap =
+                render_svg(&path, max_dim, &options, args.skip_svg, args.render_timer.start())
+                    .with_context(|| format!("Rendering SVG file {}", path.display()))?;
+            if !args.skip_svg {
+                let args = WriteVariantsArgs::builder()
+                    .variants(args.atlas.variants())
+                    .pixmap(pixmap)
+                    .side_sprite_count(1) // singleton spritesheet
+                    .pixmap_size(max_dim)
+                    .output(args.output)
+                    .downscale_timer(args.downscale_timer)
+                    .save_timer(args.save_timer)
+                    .texture_id(texture_id)
+                    .build();
+                write_variants(args).context("Emitting PNG output")?;
             }
 
             let name = path.file_name().expect("Path has filename");
             let name = name.to_str().context("Texture name must be ASCII only")?;
             let name = name.strip_suffix(".svg").expect("Path has svg file extension");
-            register_icon_texture_id(&ArcStr::from(name), texture_id);
+            (args.register_icon_texture_id)(&ArcStr::from(name), texture_id);
         } else if path.join("model.toml").exists() {
             log::debug!("Rendering SVG model {}", path.display());
 
@@ -90,9 +105,14 @@ pub(crate) fn generate(
             let mut pixmap = Pixmap::new(dimension, dimension).context("Creating pixmap buffer")?;
             for (sprite_id, file) in model.unit.sprite_names().iter().enumerate() {
                 let svg_path = path.join(file).with_extension("svg");
-                let sprite_pixmap =
-                    render_svg(&svg_path, max_dim, &options, skip_svg, render_timer.start())
-                        .with_context(|| format!("Rendering SVG file {}", svg_path.display()))?;
+                let sprite_pixmap = render_svg(
+                    &svg_path,
+                    max_dim,
+                    &options,
+                    args.skip_svg,
+                    args.render_timer.start(),
+                )
+                .with_context(|| format!("Rendering SVG file {}", svg_path.display()))?;
 
                 let (x, y) = model
                     .unit
@@ -109,53 +129,57 @@ pub(crate) fn generate(
                     .context("Copying pixmap buffer")?;
             }
 
-            if !skip_svg {
-                write_variants(
-                    def.variants(),
-                    pixmap,
-                    model.unit.spritesheet_side(),
-                    dimension,
-                    output,
-                    downscale_timer,
-                    save_timer,
-                    texture_id,
-                )
-                .context("Emitting PNG output")?;
+            if !args.skip_svg {
+                let args = WriteVariantsArgs::builder()
+                    .variants(args.atlas.variants())
+                    .pixmap(pixmap)
+                    .side_sprite_count(model.unit.spritesheet_side())
+                    .pixmap_size(dimension)
+                    .output(args.output)
+                    .downscale_timer(args.downscale_timer)
+                    .save_timer(args.save_timer)
+                    .texture_id(texture_id)
+                    .build();
+                write_variants(args).context("Emitting PNG output")?;
             }
 
             let name = path.file_name().expect("Path has filename");
             let name = name.to_str().context("Texture name must be ASCII only")?;
-            register_model_texture_id(&ArcStr::from(name), texture_id, model.unit);
+            (args.register_model_texture_id)(&ArcStr::from(name), texture_id, model.unit);
         }
     }
 
     Ok(())
 }
 
-fn write_variants(
-    variants: &[atlas::Variant],
-    pixmap: Pixmap,
+#[derive(TypedBuilder)]
+struct WriteVariantsArgs<'t> {
+    variants:          &'t [atlas::Variant],
+    pixmap:            Pixmap,
     side_sprite_count: u32,
-    pixmap_size: u32,
-    output: &Path,
-    downscale_timer: &Timer,
-    save_timer: &Timer,
-    texture_id: u32,
-) -> Result<()> {
-    for variant in variants {
-        let out_png = output
+    pixmap_size:       u32,
+    output:            &'t Path,
+    downscale_timer:   &'t Timer,
+    save_timer:        &'t Timer,
+    texture_id:        u32,
+}
+
+fn write_variants(args: WriteVariantsArgs) -> Result<()> {
+    for variant in args.variants {
+        let out_png = args
+            .output
             .join(variant.name().as_str())
-            .join(format!("{:08x}", texture_id))
+            .join(format!("{:08x}", args.texture_id))
             .with_extension("png");
         log::debug!("Saving downscaled variant {}", out_png.display());
 
         let downscaled_map = {
-            let _timer = downscale_timer.start();
-            downscale(&pixmap, pixmap_size, variant.dimension() * side_sprite_count)
+            let _timer = args.downscale_timer.start();
+            downscale(&args.pixmap, args.pixmap_size, variant.dimension() * args.side_sprite_count)
                 .context("Downscaling sprite")?
         };
         {
-            let _timer = save_timer.start();
+            let _timer = args.save_timer.start();
             downscaled_map
                 .save_png(&out_png)
                 .with_context(|| format!("Saving atlas as PNG at {}", out_png.display()))?;

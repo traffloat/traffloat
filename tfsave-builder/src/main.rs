@@ -124,27 +124,28 @@ fn main() -> Result<()> {
 
                 move |atlas, context| {
                     let context = RefCell::new(context);
-                    atlas::generate(
-                        &input,
-                        &output,
-                        &render_timer,
-                        &downscale_timer,
-                        &save_timer,
-                        atlas,
-                        &next_texture_id,
-                        skip_svg,
-                        |name, id| {
+                    let args = atlas::GenerateArgs::builder()
+                        .input(&input)
+                        .output(&output)
+                        .render_timer(&render_timer)
+                        .downscale_timer(&downscale_timer)
+                        .save_timer(&save_timer)
+                        .atlas(atlas)
+                        .next_texture_id(&next_texture_id)
+                        .skip_svg(skip_svg)
+                        .register_icon_texture_id(|name, id| {
                             let mut context = context.borrow_mut();
                             let mut index = context.get_other::<IconIndex>();
                             index.add(atlas.id(), name.clone(), id);
-                        },
-                        |name, id, shape| {
+                        })
+                        .register_model_texture_id(|name, id, shape| {
                             let mut context = context.borrow_mut();
                             let mut index = context.get_other::<ModelIndex>();
                             index.add(atlas.id(), name.clone(), id, shape);
-                        },
-                    )
-                    .with_context(|| format!("Generating atlas from {}", atlas.dir().display()))
+                        })
+                        .build();
+                    atlas::generate(args)
+                        .with_context(|| format!("Generating atlas from {}", atlas.dir().display()))
                 }
             }))
         }
