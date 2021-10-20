@@ -1,0 +1,16 @@
+population = Population
+population-description = Buildings to support inhabitant population
+traffic = Traffic
+traffic-description = Buildings for traffic control
+electricity = Electricity
+electricity-description = Buildings to manage electricity
+storage = Storage
+storage-description = Buildings to store resources
+industrial = Industrial
+industrial-description = Buildings for processing intermediates
+education = Education
+education-description = Buildings to train inhabitant skills
+entertainment = Entertainment
+entertainment-description = Buildings to restore happiness
+security = Security
+security-description = Buildings related to crimes

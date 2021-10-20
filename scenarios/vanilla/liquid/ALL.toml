@@ -1,0 +1,8 @@
+[[include]]
+file = "./PRELUDE.toml"
+
+[[include]]
+file = "./list.toml"
+
+[[include]]
+file = "./recipes.toml"

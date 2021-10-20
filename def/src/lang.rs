@@ -1,6 +1,7 @@
 //! Language bundle definitions
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 use arcstr::ArcStr;
 use codegen::{Definition, ResolveContext};
@@ -17,7 +18,7 @@ pub struct Def {
     id:        Id,
     /// Paths to language files.
     #[getset(get = "pub")]
-    languages: BTreeMap<ArcStr, ArcStr>,
+    languages: BTreeMap<ArcStr, PathBuf>,
 }
 
 /// A translatable message template.
@@ -37,6 +38,7 @@ pub struct Item {
 #[derive(Default)]
 pub struct LoadedBundles(BTreeMap<Id, Vec<(LanguageIdentifier, FluentBundle<FluentResource>)>>);
 
+#[cfg(feature = "convert-human-friendly")]
 impl LoadedBundles {
     /// Add a localized language bundle.
     pub fn add(

@@ -1,6 +1,7 @@
 //! Texture atlas definitions
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use anyhow::Context;
@@ -21,7 +22,7 @@ pub struct Def {
     ///
     /// In tfsave-builder mode, `dir` contains the original files instead.
     #[getset(get = "pub")]
-    dir:      ArcStr,
+    dir:      PathBuf,
     /// Different variants of the atlas.
     #[getset(get = "pub")]
     variants: Vec<Variant>,

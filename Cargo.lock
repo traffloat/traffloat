@@ -1532,6 +1532,7 @@ dependencies = [
  "log",
  "pretty_env_logger",
  "resvg",
+ "rmp-serde",
  "serde",
  "serde_path_to_error",
  "structopt",

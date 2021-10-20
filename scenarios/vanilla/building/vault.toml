@@ -1,0 +1,31 @@
+[[def]]
+type = "Building"
+id = "vault"
+category = "storage"
+hitpoint = 500.0
+name = {src = "building", key = "vault"}
+summary = {src = "building", key = "vault-summary"}
+description = {src = "building", key = "vault-description"}
+
+	[[def.shapes]]
+	unit = "Cube"
+	texture = {src = "buildings", name = "vault"}
+
+	[def.storage]
+	cargo = 20000.0
+	gas = 1000.0
+
+		[[def.storage.liquid]]
+		id = "buffer0"
+		capacity = 10.0
+		name = {src = "storage-liquid", key = "generic-buffer"}
+
+		[[def.storage.liquid]]
+		id = "buffer1"
+		capacity = 10.0
+		name = {src = "storage-liquid", key = "generic-buffer"}
+
+		[[def.storage.population]]
+		id = "buffer2"
+		capacity = 1
+		name = {src = "storage-population", key = "generic-transit"}

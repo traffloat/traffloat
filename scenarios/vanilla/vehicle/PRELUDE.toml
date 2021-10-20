@@ -1,0 +1,23 @@
+[[def]]
+type = "LangBundle"
+id = "vehicle"
+
+	[def.languages]
+	en = "./lang/en.ftl"
+
+[[def]]
+type = "Atlas"
+id = "vehicles"
+dir = "./texture"
+
+	[[def.variants]]
+	name = "simple"
+	dimension = 64
+
+	[[def.variants]]
+	name = "fancy"
+	dimension = 256
+
+	[[def.variants]]
+	name = "x-fancy"
+	dimension = 1024

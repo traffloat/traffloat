@@ -1,0 +1,103 @@
+[[def]]
+type = "Building"
+id = "prison"
+category = "security"
+hitpoint = 300.0
+name = {src = "building", key = "prison"}
+summary = {src = "building", key = "prison-summary"}
+description = {src = "building", key = "prison-description"}
+
+	[[def.shapes]]
+	unit = "Cube"
+	texture = {src = "buildings", name = "prison"}
+
+	[def.storage]
+	cargo = 1000.0
+	gas = 1000.0
+
+		[[def.storage.liquid]]
+		id = "drinking"
+		capacity = 500.0
+		name = {src = "storage-liquid", key = "housing-drinking"}
+
+		[[def.storage.liquid]]
+		id = "toilet"
+		capacity = 500.0
+		name = {src = "storage-liquid", key = "housing-toilet"}
+
+		[[def.storage.population]]
+		id = "prisoner"
+		capacity = 10
+		name = {src = "storage-population", key = "prison-prisoner"}
+
+		[[def.storage.population]]
+		id = "guard"
+		capacity = 2
+		name = {src = "storage-population", key = "prison-guard"}
+
+	[[def.features]]
+	type = "SecureExit"
+	breach_probability = 0.001
+
+		[[def.features.deny_if]]
+		type = "AtLeast"
+		skill = "infamy"
+		level = 10.0
+
+		[[def.features.catalysts]]
+			[def.features.catalysts.range]
+			type = "Skill"
+			ty = "military-skill"
+			levels = {start = 0.0, end = 20.0}
+			storage = "guard"
+
+			[def.features.catalysts.multipliers]
+			underflow = 1.0
+			min = 1.0
+			max = 0.01
+			overflow = 0.01
+
+		[[def.features.catalysts]]
+			[def.features.catalysts.range]
+			type = "Skill"
+			ty = "infamy"
+			levels = {start = 0.0, end = 1000.0}
+			storage = "prisoner"
+
+			[def.features.catalysts.multipliers]
+			underflow = 1.0
+			min = 1.0
+			max = 10.0
+			overflow = 10.0
+
+	[[def.features]]
+	type = "Reaction"
+	title = {src = "reaction", key = "correctional-service"}
+	description = {src = "reaction", key = "correctional-service-description"}
+
+		[[def.features.catalysts]]
+			[def.features.catalysts.range]
+			type = "Skill"
+			ty = "teaching-skill"
+			levels = {start = 5.0, end = 50.0}
+
+			[def.features.catalysts.multipliers]
+			underflow = 0.0
+			min = 1.0
+			max = 1.0
+			overflow = 1.0
+
+		[[def.features.puts]]
+		type = "Skill"
+		ty = "satisfaction"
+		base = 0.1
+
+		[[def.features.puts]]
+		type = "Skill"
+		ty = "morality"
+		base = 0.01
+
+		[def.features.policy]
+		configurable = false
+		on_underflow = {type = "ReduceRate"}
+		on_overflow = {type = "ReduceRate"}

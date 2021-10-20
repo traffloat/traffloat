@@ -1,0 +1,59 @@
+[[def]]
+type = "Building"
+id = "terminal"
+category = "traffic"
+hitpoint = 100.0
+name = {src = "building", key = "terminal"}
+summary = {src = "building", key = "terminal-summary"}
+description = {src = "building", key = "terminal-description"}
+
+	[[def.shapes]]
+	unit = "Cube"
+	texture = {src = "buildings", name = "terminal"}
+
+		[[def.shapes.transform]]
+		type = "Scale"
+		x = 0.2
+		y = 0.2
+		z = 0.2
+
+	[def.storage]
+	cargo = 1000.0
+	gas = 1000.0
+
+		[[def.storage.liquid]]
+		id = "buffer0"
+		capacity = 10.0
+		name = {src = "storage-liquid", key = "generic-buffer"}
+
+		[[def.storage.liquid]]
+		id = "buffer1"
+		capacity = 10.0
+		name = {src = "storage-liquid", key = "generic-buffer"}
+
+		[[def.storage.liquid]]
+		id = "buffer2"
+		capacity = 10.0
+		name = {src = "storage-liquid", key = "generic-buffer"}
+
+		[[def.storage.liquid]]
+		id = "buffer3"
+		capacity = 10.0
+		name = {src = "storage-liquid", key = "generic-buffer"}
+
+		[[def.storage.population]]
+		id = "buffer4"
+		capacity = 8
+		name = {src = "storage-population", key = "generic-transit"}
+
+	[[def.features]]
+	type = "RailPump"
+	force = 100.0
+
+	[[def.features]]
+	type = "LiquidPump"
+	force = 100.0
+
+	[[def.features]]
+	type = "GasPump"
+	force = 100.0

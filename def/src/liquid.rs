@@ -1,12 +1,13 @@
 //! Liquid definitions.
 
+use arcstr::ArcStr;
 use codegen::Definition;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::units;
 
 use crate::atlas::IconRef;
-use crate::lang;
+use crate::{cargo, lang};
 
 /// A type of liquid.
 #[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]

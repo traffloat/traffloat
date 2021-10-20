@@ -1,0 +1,12 @@
+raw-mineral = Raw mineral
+raw-mineral-description = Raw minerals are obtained by receiving and decomposing incoming asteroids. Deflecting asteroids reduces the production of these minerals.
+organic = Organic
+organic-description = Organic cargo is used for inhabitant birth and survival.
+ammunition = Ammunition
+ammunition-description = Ammunition is ejected by defensive weapons to slow down or deflect asteroids.
+junk = Junk
+junk-description = Other forms of resources can be packaged as container cargo. This allows inhabitants to carry small amount of all resources to poorly developed regions.
+intermediate-material = Intermediate material
+intermediate-material-description = Intermediate materials are derived from raw minerals or other intermediate materials to feed into other factories. They cannot be used in utility facilities.
+container = Container
+container-description = Junk is the useless residue produced in other mechanisms. They must be ejected out of the colony using junk launchers, otherwise they would fill up the space of the colony.

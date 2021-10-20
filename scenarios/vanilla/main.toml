@@ -7,37 +7,19 @@ sun_speed = 0.0020943951
 negligible_volume = 1.0
 
 [[include]]
-file = "./lang.toml"
+file = "./cargo/ALL.toml"
 
 [[include]]
-file = "./atlas.toml"
+file = "./liquid/ALL.toml"
 
 [[include]]
-file = "./cargo-cats.toml"
+file = "./gas/ALL.toml"
 
 [[include]]
-file = "./cargo.toml"
+file = "./skill/ALL.toml"
 
 [[include]]
-file = "./liquid.toml"
+file = "./vehicle/ALL.toml"
 
 [[include]]
-file = "./liquid-recipe.toml"
-
-[[include]]
-file = "./gas.toml"
-
-[[include]]
-file = "./skill.toml"
-
-[[include]]
-file = "./vehicle.toml"
-
-[[include]]
-file = "./building-cats.toml"
-
-[[include]]
-file = "./building.toml"
-
-[[include]]
-file = "./crime.toml"
+file = "./building/ALL.toml"

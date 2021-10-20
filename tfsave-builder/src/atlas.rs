@@ -23,12 +23,13 @@ pub(crate) fn generate(
     save_timer: &Timer,
     def: &atlas::Def,
     next_texture_id: &AtomicU32,
+    skip_svg: bool,
     mut register_icon_texture_id: impl FnMut(&ArcStr, u32),
     mut register_model_texture_id: impl FnMut(&ArcStr, u32, geometry::Unit),
 ) -> Result<()> {
     let input = input.canonicalize().context("Cannot canonicalize input file")?;
     let dir = input.parent().context("Regular file has no parent")?;
-    let mut dir = dir.join(def.dir().as_str());
+    let mut dir = dir.join(def.dir());
     dir = dir
         .canonicalize()
         .with_context(|| format!("Cannont canonicalize atlas path {}", dir.display()))?;
@@ -57,19 +58,21 @@ pub(crate) fn generate(
         if path.extension() == Some(OsStr::new("svg")) {
             log::debug!("Rendering SVG file {}", path.display());
 
-            let pixmap = render_svg(&path, max_dim, &options, render_timer.start())
+            let pixmap = render_svg(&path, max_dim, &options, skip_svg, render_timer.start())
                 .with_context(|| format!("Rendering SVG file {}", path.display()))?;
-            write_variants(
-                def.variants(),
-                pixmap,
-                1, // singleton spritesheet
-                max_dim,
-                output,
-                downscale_timer,
-                save_timer,
-                texture_id,
-            )
-            .context("Emitting PNG output")?;
+            if !skip_svg {
+                write_variants(
+                    def.variants(),
+                    pixmap,
+                    1, // singleton spritesheet
+                    max_dim,
+                    output,
+                    downscale_timer,
+                    save_timer,
+                    texture_id,
+                )
+                .context("Emitting PNG output")?;
+            }
 
             let name = path.file_name().expect("Path has filename");
             let name = name.to_str().context("Texture name must be ASCII only")?;
@@ -87,8 +90,9 @@ pub(crate) fn generate(
             let mut pixmap = Pixmap::new(dimension, dimension).context("Creating pixmap buffer")?;
             for (sprite_id, file) in model.unit.sprite_names().iter().enumerate() {
                 let svg_path = path.join(file).with_extension("svg");
-                let sprite_pixmap = render_svg(&svg_path, max_dim, &options, render_timer.start())
-                    .with_context(|| format!("Rendering SVG file {}", svg_path.display()))?;
+                let sprite_pixmap =
+                    render_svg(&svg_path, max_dim, &options, skip_svg, render_timer.start())
+                        .with_context(|| format!("Rendering SVG file {}", svg_path.display()))?;
 
                 let (x, y) = model
                     .unit
@@ -105,17 +109,19 @@ pub(crate) fn generate(
                     .context("Copying pixmap buffer")?;
             }
 
-            write_variants(
-                def.variants(),
-                pixmap,
-                model.unit.spritesheet_side(),
-                dimension,
-                output,
-                downscale_timer,
-                save_timer,
-                texture_id,
-            )
-            .context("Emitting PNG output")?;
+            if !skip_svg {
+                write_variants(
+                    def.variants(),
+                    pixmap,
+                    model.unit.spritesheet_side(),
+                    dimension,
+                    output,
+                    downscale_timer,
+                    save_timer,
+                    texture_id,
+                )
+                .context("Emitting PNG output")?;
+            }
 
             let name = path.file_name().expect("Path has filename");
             let name = name.to_str().context("Texture name must be ASCII only")?;
@@ -181,15 +187,18 @@ fn render_svg(
     path: &Path,
     dimension: u32,
     options: &usvg::OptionsRef,
+    skip_svg: bool,
     _timer: TimerStart<'_>,
 ) -> Result<Pixmap> {
     let data = fs::read(path).context("Reading SVG")?;
 
-    let tree = usvg::Tree::from_data(&data, options).context("Parsing SVG")?;
     let mut pixmap = Pixmap::new(dimension, dimension).context("Creating pixmap buffer")?;
 
-    resvg::render(&tree, usvg::FitTo::Size(dimension, dimension), pixmap.as_mut())
-        .context("Rendering SVG")?;
+    if !skip_svg {
+        let tree = usvg::Tree::from_data(&data, options).context("Parsing SVG")?;
+        resvg::render(&tree, usvg::FitTo::Size(dimension, dimension), pixmap.as_mut())
+            .context("Rendering SVG")?;
+    }
 
     Ok(pixmap)
 }

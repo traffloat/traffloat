@@ -24,9 +24,14 @@ mod schema;
 #[structopt(about = env!("CARGO_PKG_DESCRIPTION"))]
 struct Args {
     /// The input file
-    input:  PathBuf,
+    input:    PathBuf,
     /// The output file
-    output: PathBuf,
+    output:   PathBuf,
+    /// Skip SVG rendering and exporting.
+    /// This is only useful for fast debugging cycles.
+    /// The scenario generated will be invalid.
+    #[structopt(long)]
+    skip_svg: bool,
 }
 
 struct Timer {
@@ -80,7 +85,7 @@ fn main() -> Result<()> {
     let args = Args::from_args();
 
     let mut defs = Vec::new();
-    let mut context = ResolveContext::default();
+    let mut context = ResolveContext::new(PathBuf::new()); // path to be initialized later
 
     let render_timer = Rc::new(Timer::new("rendering textures"));
     let downscale_timer = Rc::new(Timer::new("downscaling textures"));
@@ -108,6 +113,7 @@ fn main() -> Result<()> {
             context.creation_hook = Some(Rc::new({
                 let input = args.input.clone();
                 let output = args.output.join("assets");
+                let skip_svg = args.skip_svg;
                 fs::create_dir(&output).context("Creating assets dir")?;
 
                 let render_timer = Rc::clone(&render_timer);
@@ -126,6 +132,7 @@ fn main() -> Result<()> {
                         &save_timer,
                         atlas,
                         &next_texture_id,
+                        skip_svg,
                         |name, id| {
                             let mut context = context.borrow_mut();
                             let mut index = context.get_other::<IconIndex>();
@@ -137,12 +144,12 @@ fn main() -> Result<()> {
                             index.add(atlas.id(), name.clone(), id, shape);
                         },
                     )
-                    .with_context(|| format!("Generating atlas from {}", atlas.dir()))
+                    .with_context(|| format!("Generating atlas from {}", atlas.dir().display()))
                 }
             }))
         }
 
-        lang::setup_context(&mut context, &args.input, &args.output, &lang_parse_timer);
+        lang::setup_context(&mut context, &lang_parse_timer);
     }
 
     log::info!("Loading scenario definition");
@@ -160,6 +167,8 @@ fn main() -> Result<()> {
     log::info!("Saving scenario output");
     let schema = Schema::builder().scenario(scenario).config(config).def(defs).build();
     write(&args.output.join("scenario.tfsave"), &schema).context("Saving output")?;
+    lang::save(&args.output.join("assets"), &mut context)
+        .context("Saving processed translations")?;
 
     Ok(())
 }
@@ -198,12 +207,12 @@ fn read_defs(
     file: schema::File,
     path: &Path,
 ) -> Result<()> {
-    for include in file.include {
-        let path = path
-            .canonicalize()
-            .with_context(|| format!("Failed to canonicalize {}", path.display()))?;
-        let dir = path.parent().expect("Regular file has no parent");
+    let path = path
+        .canonicalize()
+        .with_context(|| format!("Failed to canonicalize {}", path.display()))?;
+    let dir = path.parent().expect("Regular file has no parent");
 
+    for include in file.include {
         let mut included = dir.join(&include.file);
         included = included.canonicalize().with_context(|| {
             format!("Failed to canonicalize included file {}", included.display())
@@ -214,6 +223,7 @@ fn read_defs(
 
     log::debug!("Loading {}", path.display());
 
+    context.set_current_dir(dir.to_path_buf());
     for def in file.def {
         let def = Def::convert(def, context)
             .with_context(|| format!("Resolving references in {}", path.display()))?;

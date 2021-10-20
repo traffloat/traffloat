@@ -1,5 +1,6 @@
 //! Language file processing
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::rc::Rc;
@@ -9,20 +10,18 @@ use codegen::ResolveContext;
 use fluent::{FluentBundle, FluentResource};
 use fluent_syntax::parser::ParserError;
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use traffloat_def::lang;
 use unic_langid::LanguageIdentifier;
 
 use crate::Timer;
 
-/// Setup [`ResolveContext`] to validate language file references.
-pub(crate) fn setup_context(
-    context: &mut ResolveContext,
-    input: &Path,
-    output: &Path,
-    lang_parse_timer: &Rc<Timer>,
-) {
-    let dir = input.parent().expect("Regular file has no parent").to_owned();
+/// A data structure containing the raw FTL data for copying.
+#[derive(Default, Serialize, Deserialize)]
+struct RawList(BTreeMap<String, Vec<String>>);
 
+/// Setup [`ResolveContext`] to validate language file references.
+pub(crate) fn setup_context(context: &mut ResolveContext, lang_parse_timer: &Rc<Timer>) {
     context.add_listener::<lang::Def>(Rc::new({
         let lang_parse_timer = Rc::clone(lang_parse_timer);
         move |def: &lang::DefHumanFriendly, context| {
@@ -30,7 +29,10 @@ pub(crate) fn setup_context(
                 let lang: LanguageIdentifier =
                     lang.parse().with_context(|| format!("Invalid language name {}", lang))?;
 
-                fn parse_ftl(path: &Path, lang_parse_timer: &Timer) -> Result<FluentResource> {
+                fn parse_ftl(
+                    path: &Path,
+                    lang_parse_timer: &Timer,
+                ) -> Result<(FluentResource, String)> {
                     let path =
                         fs::canonicalize(path).context("Canonicalizing translation file path")?;
                     let file = fs::read_to_string(path).context("Reading translation file")?;
@@ -46,7 +48,7 @@ pub(crate) fn setup_context(
                         }
                     };
 
-                    Ok(resource)
+                    Ok((resource, file))
                 }
 
                 fn format_err(file: &str, err: &ParserError) -> String {
@@ -58,8 +60,8 @@ pub(crate) fn setup_context(
                     format!("{} on line {}:{}", err.kind, line + 1, col)
                 }
 
-                let path = dir.join(file.as_str());
-                let res = parse_ftl(&path, &lang_parse_timer)
+                let path = context.current_dir().join(file);
+                let (res, raw) = parse_ftl(&path, &lang_parse_timer)
                     .with_context(|| format!("Reading translation file {}", path.display()))?;
 
                 let mut bundle = FluentBundle::new(vec![lang.clone()]);
@@ -71,11 +73,30 @@ pub(crate) fn setup_context(
 
                 {
                     let mut bundles = context.get_other::<lang::LoadedBundles>();
-                    bundles.add(id, lang, bundle);
+                    bundles.add(id, lang.clone(), bundle);
+                }
+
+                {
+                    let mut list = context.get_other::<RawList>();
+                    let vec = list.0.entry(lang.to_string()).or_default();
+                    assert!(vec.len() == id);
+                    vec.push(raw);
                 }
             }
 
             Ok(())
         }
     }));
+}
+
+/// Save translation output.
+pub(crate) fn save(output: &Path, context: &mut ResolveContext) -> Result<()> {
+    let list = context.get_other::<RawList>();
+    for (lang, vec) in &list.0 {
+        let path = output.join(lang.as_str()).with_extension("tflang");
+        let mut bytes = rmp_serde::to_vec(&vec).context("Encoding translations")?;
+        bytes.splice(0..0, b"\xFF\0TFLANG".iter().copied());
+        fs::write(path, bytes).context("Writing tflang file")?;
+    }
+    Ok(())
 }

@@ -130,6 +130,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                         )*
                     }
 
+                    #cfg_gate
                     impl #generics_bounded #human_friendly_ident #generics_unbounded #generics_where {
                         #(
                             #[doc = concat!("See [`", stringify!(#input_ident), "::", stringify!(#field_idents), "`]")]

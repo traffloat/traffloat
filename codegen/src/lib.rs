@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::Range;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 #[cfg(feature = "render-debug")]
 use std::sync::Arc;
@@ -451,13 +452,25 @@ pub trait Definition: Serialize + DeserializeOwned + Sized {
 /// The context used to resolve name references to runtime IDs.
 #[derive(Clone)]
 pub struct ResolveContext {
-    counters: BTreeMap<TypeId, Vec<ArcStr>>,
-    tymap:    Rc<RefCell<TypeMap>>,
+    counters:    BTreeMap<TypeId, Vec<ArcStr>>,
+    tymap:       Rc<RefCell<TypeMap>>,
+    current_dir: PathBuf,
 }
 
-impl Default for ResolveContext {
-    fn default() -> Self {
-        Self { counters: BTreeMap::new(), tymap: Rc::new(RefCell::new(TypeMap::new())) }
+impl ResolveContext {
+    /// Gets the context directory for path resolution.
+    pub fn current_dir(&self) -> &Path { &self.current_dir }
+
+    /// Sets the context directory for path resolution.
+    pub fn set_current_dir(&mut self, path: PathBuf) { self.current_dir = path; }
+
+    /// Constructs a new context.
+    pub fn new(current_dir: PathBuf) -> Self {
+        Self {
+            counters: BTreeMap::new(),
+            tymap: Rc::new(RefCell::new(TypeMap::new())),
+            current_dir,
+        }
     }
 }
 
@@ -562,6 +575,14 @@ impl_definition_by_self!(bool);
 impl_definition_by_self!(u32);
 impl_definition_by_self!(f64);
 impl_definition_by_self!(ArcStr);
+
+impl Definition for PathBuf {
+    type HumanFriendly = PathBuf;
+
+    fn convert(hf: Self::HumanFriendly, context: &mut ResolveContext) -> anyhow::Result<Self> {
+        Ok(context.current_dir().join(hf))
+    }
+}
 
 impl<T: Definition> Definition for Range<T> {
     type HumanFriendly = Range<T::HumanFriendly>;

@@ -1,0 +1,79 @@
+[[def]]
+type = "LangBundle"
+id = "skill"
+
+	[def.languages]
+	en = "./lang/en.ftl"
+
+[[def]]
+type = "Skill"
+id = "age"
+name = {src = "skill", key = "age"}
+description = {src = "skill", key = "age-description"}
+
+[[def]]
+type = "Skill"
+id = "health"
+
+name = {src = "skill", key = "health"}
+description = {src = "skill", key = "health-description"}
+
+[[def]]
+type = "Skill"
+id = "happiness"
+name = {src = "skill", key = "happiness"}
+description = {src = "skill", key = "happiness-description"}
+
+[[def]]
+type = "Skill"
+id = "satisfaction"
+name = {src = "skill", key = "satisfaction"}
+description = {src = "skill", key = "satisfaction-description"}
+
+[[def]]
+type = "Skill"
+id = "infamy"
+name = {src = "skill", key = "infamy"}
+description = {src = "skill", key = "infamy-description"}
+
+[[def]]
+type = "Skill"
+id = "morality"
+name = {src = "skill", key = "morality"}
+description = {src = "skill", key = "morality-description"}
+
+[[def]]
+type = "Skill"
+id = "athletic-skill"
+name = {src = "skill", key = "athletic-skill"}
+description = {src = "skill", key = "athletic-skill-description"}
+
+[[def]]
+type = "Skill"
+id = "driving-skill"
+name = {src = "skill", key = "driving-skill"}
+description = {src = "skill", key = "driving-skill-description"}
+
+[[def]]
+type = "Skill"
+id = "mechanic-skill"
+name = {src = "skill", key = "mechanic-skill"}
+description = {src = "skill", key = "mechanic-skill-description"}
+
+[[def]]
+type = "Skill"
+id = "construction-skill"
+name = {src = "skill", key = "construction-skill"}
+description = {src = "skill", key = "construction-skill-description"}
+
+[[def]]
+type = "Skill"
+id = "teaching-skill"
+name = {src = "skill", key = "teaching-skill"}
+description = {src = "skill", key = "teaching-skill-description"}
+
+[[def]]
+type = "Skill"
+id = "military-skill"
+name = {src = "skill", key = "military-skill"}
+description = {src = "skill", key = "military-skill-description"}

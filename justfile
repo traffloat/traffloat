@@ -14,10 +14,10 @@ client-clean:
 	test ! -d client/dist || rm -r client/dist
 	test ! -d client/pkg || rm -r client/pkg
 
-client-scenarios: client-scenarios-clean
-	cargo run --release --bin tfsave-builder scenarios/vanilla/main.toml client/gen/scenarios/vanilla
-client-scenarios-dev: client-scenarios-clean
-	cargo run --bin tfsave-builder scenarios/vanilla/main.toml client/gen/scenarios/vanilla
+client-scenarios *ARGS: client-scenarios-clean
+	cargo run --release --bin tfsave-builder -- {{ARGS}} scenarios/vanilla/main.toml client/gen/scenarios/vanilla
+client-scenarios-dev *ARGS: client-scenarios-clean
+	cargo run --bin tfsave-builder -- {{ARGS}} scenarios/vanilla/main.toml client/gen/scenarios/vanilla
 
 client-scenarios-clean:
 	rm -r client/gen/scenarios || true
