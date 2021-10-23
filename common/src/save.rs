@@ -31,7 +31,10 @@ impl GameDefinition {
     pub fn pack(&self) -> Vec<def::Def> {
         use def::Def; // don't import this globally because everything is called `Def`.
 
-        self.liquid.iter().cloned().map(Def::Liquid)
+        self.liquid
+            .iter()
+            .cloned()
+            .map(Def::Liquid)
             .chain(self.gas.iter().cloned().map(Def::Gas))
             .chain(self.cargo_category.iter().cloned().map(Def::CargoCategory))
             .chain(self.cargo.iter().cloned().map(Def::Cargo))

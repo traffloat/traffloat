@@ -58,19 +58,15 @@ Colonies are attacked by waves of asteroids in the space,
 which can be propelled or dissolved into raw resources.
 
 ## Compilation
-The following tools are used for compiling the client:
+This project uses Rust nightly-2021-10-09.
+The toolchain version is automatically installed
+if you installed Rust with `rustup`.
 
-- Python 3.8.10
-- Node v14.16.0
-- Rust (default toolchain) nightly-2021-10-09
-
-Node and Python are used for combining the texture images.
-Rust is used to write the main game logic compiled to WebAssembly.
-
-This project requites the wasm target for the Rust toolchain:
+This project requites the wasm target for the Rust toolchain.
+Install it by running the following command inside a traffloat clone:
 
 ```shell
-rustup target add wasm32-unknown-unknown --toolchain nightly-2021-10-09
+rustup target add wasm32-unknown-unknown
 ```
 
 This project uses [just](https://github.com/casey/just)
@@ -86,10 +82,8 @@ cargo install trunk just
 See the [justfile](justfile) for common commands, in particular:
 
 ```shell
-# Install other dependencies
-just deps
-# Preprocess assets
-just pp
+# Compile the scenario files
+just client-scenarios-dev
 # Compile the client for production
 just client-build
 ```
@@ -110,12 +104,12 @@ with optimization level 4, which takes a long time to execute
 ## Contribution
 The game is composed of multiple crates:
 
-- [`codegen`](./codegen)/[`codegen-types`](./codegen-types): Defines procedural macros used in the game.
+- [`codegen`](./codegen)/[`codegen-raw`](./codegen-raw): Defines procedural macros used in the game.
 - [`types`](./types): Defines standard data types of vectors, units and gamerule definition.
-- [`vanilla`](./vanilla): Defines vanilla game configuration.
+- [`types`](./def): Defines scenario schema.
 - [`common`](./common): Implements game world simulation.
 - [`client`](./client): Implements a web game client.
-- [`tsvtool`](./tsvtool): CLI tool to convert save files.
+- [`tfsave-builder`](./tfsave-builder): CLI tool to compile scenarios from human-readable TOML files.
 
 Create a thread in [Discussions](https://github.com/traffloat/traffloat/discussions)
 if you would like to contribute and don't know where to start.
