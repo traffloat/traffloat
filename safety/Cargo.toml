@@ -2,7 +2,7 @@
 name = "traffloat-safety"
 authors = ["SOFe <sofe2038@gmail.com>"]
 version = "0.2.0"
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/traffloat/traffloat"
 homepage = "https://github.com/traffloat/traffloat"
 description = "Safety wrappers"
