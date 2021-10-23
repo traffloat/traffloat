@@ -6,16 +6,17 @@ use legion::Entity;
 use smallvec::SmallVec;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
+use crate::def::cargo;
 use crate::time::Instant;
 use crate::units::CargoSize;
-use crate::{def, util, SetupEcs};
+use crate::{util, SetupEcs};
 
 /// A component attached to nodes to indicate cargo in the node.
 #[derive(new, getset::Getters)]
 pub struct StorageList {
     /// The list of cargos stored in the entity.
     #[getset(get = "pub")]
-    storages: SmallVec<[(def::cargo::TypeId, Entity); 4]>,
+    storages: SmallVec<[(cargo::Id, Entity); 4]>,
 }
 
 /// A component attached to nodes to inidcate cargo capacity of the node.
@@ -31,7 +32,7 @@ pub struct StorageCapacity {
 pub struct Storage {
     /// The type of cargo.
     #[getset(get = "pub")]
-    cargo: def::cargo::TypeId, // TODO should we optimize this to a runtime integer ID?
+    cargo: cargo::Id, // TODO should we optimize this to a runtime integer ID?
 }
 
 /// The size of a cargo storage in the current simulation frame.

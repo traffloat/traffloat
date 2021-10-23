@@ -1,5 +1,7 @@
 //! Management of liquid in buildings
 
+use std::collections::{btree_map, BTreeMap};
+
 use derive_new::new;
 use legion::world::SubWorld;
 use legion::Entity;
@@ -7,10 +9,70 @@ use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
-use crate::def::liquid::TypeId;
+use crate::def::liquid;
 use crate::time::Instant;
 use crate::units::{self, LiquidVolume};
-use crate::{config, def, node, util, SetupEcs};
+use crate::{config, def, node, save, util, SetupEcs};
+
+/// A data structure storing liquid mixing recipes.
+#[derive(Default, getset::MutGetters)]
+pub struct RecipeMap {
+    map:     BTreeMap<RecipeKey, liquid::Id>,
+    default: Option<liquid::Id>,
+}
+
+impl RecipeMap {
+    /// Push a formula definition.
+    pub fn define(&mut self, def: &liquid::Formula) -> anyhow::Result<()> {
+        let key = RecipeKey::new(def.augend(), def.addend());
+        match self.map.entry(key) {
+            btree_map::Entry::Vacant(entry) => {
+                entry.insert(def.sum());
+                Ok(())
+            }
+            btree_map::Entry::Occupied(_) => anyhow::bail!("Duplicate recipe key {:?}", key),
+        }
+    }
+
+    /// Set the default formula definition.
+    pub fn define_default(&mut self, def: &liquid::DefaultFormula) -> anyhow::Result<()> {
+        anyhow::ensure!(self.default.is_none(), "Duplicate default recipe");
+        self.default = Some(def.sum());
+        Ok(())
+    }
+
+    /// Evaluate the mixing result of two liquids.
+    pub fn mix(&self, augend: liquid::Id, addend: liquid::Id) -> liquid::Id {
+        match self.map.get(&RecipeKey::new(augend, addend)) {
+            Some(&sum) => sum,
+            None => self.default(),
+        }
+    }
+
+    /// The default liquid mixing output type.
+    pub fn default(&self) -> liquid::Id { self.default.expect("Uninitialized recipe default") }
+}
+
+/// A recipe key.
+///
+/// `less` is always less than `greater`
+/// to ensure the commutative property of the key.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct RecipeKey {
+    less:    liquid::Id,
+    greater: liquid::Id,
+}
+
+impl RecipeKey {
+    /// Create a new, sorted `RecipeKey`
+    fn new(a: liquid::Id, b: liquid::Id) -> Self {
+        if a < b {
+            Self { less: a, greater: b }
+        } else {
+            Self { less: b, greater: a }
+        }
+    }
+}
 
 /// A component attached to entities that house liquid.
 #[derive(new, getset::Getters)]
@@ -21,12 +83,12 @@ pub struct StorageList {
 }
 
 /// A component attached to storage entities.
-#[derive(new, getset::Getters, getset::Setters)]
+#[derive(new, getset::CopyGetters, getset::Setters)]
 pub struct Storage {
     /// The type of liquid.
-    #[getset(get = "pub")]
+    #[getset(get_copy = "pub")]
     #[getset(set = "pub")]
-    liquid: TypeId,
+    liquid: liquid::Id,
 }
 
 /// A component attached to storages to inidcate capacity.
@@ -40,11 +102,12 @@ pub struct StorageCapacity {
 codegen::component_depends! {
     Storage = (
         Storage,
-        node::Child,
         StorageCapacity,
         StorageSize,
         NextStorageType,
         NextStorageSize,
+        def::lang::Item,
+        node::Child,
     ) + ?()
 }
 
@@ -57,12 +120,12 @@ pub struct StorageSize {
 }
 
 /// The type of a liquid storage in the next simulation frame.
-#[derive(new, getset::Getters, getset::Setters)]
+#[derive(new, getset::CopyGetters, getset::Setters)]
 pub struct NextStorageType {
     /// The liquid type.
-    #[getset(get = "pub")]
+    #[getset(get_copy = "pub")]
     #[getset(set = "pub")]
-    ty: TypeId,
+    ty: liquid::Id,
 }
 
 /// The size of a liquid storage in the next simulation frame.
@@ -117,7 +180,7 @@ pub struct PipeFlow {
     /// The type of liquid flowing over the pipe in the current simulation frame.
     #[getset(get = "pub")]
     #[getset(set = "pub")]
-    ty:    Option<TypeId>,
+    ty:    Option<liquid::Id>,
     /// The flow rate over the pipe in the current simulation frame.
     #[getset(get_copy = "pub")]
     #[getset(set = "pub")]
@@ -154,7 +217,7 @@ pub struct Pump {
 fn simulate_pipes(
     world: &mut SubWorld,
     #[resource] config: &config::Scalar,
-    #[resource(no_init)] def: &def::GameDefinition,
+    #[resource(no_init)] def: &save::GameDefinition,
     #[subscriber] sim_sub: impl Iterator<Item = SimulationEvent>,
 ) {
     use legion::world::ComponentError;
@@ -168,7 +231,7 @@ fn simulate_pipes(
     let (mut query_world, mut entry_world) = world.split_for_query(&query);
     for (pipe, resistance, flow) in query.iter_mut(&mut query_world) {
         struct FetchEndpoint {
-            ty:        TypeId,
+            ty:        liquid::Id,
             force:     units::PipeForce,
             volume:    units::LiquidVolume,
             empty:     units::LiquidVolume,
@@ -206,11 +269,10 @@ fn simulate_pipes(
                 .get_component::<StorageCapacity>()
                 .expect("Pipe endpoint does not have StorageCapacity component");
 
-            let viscosity =
-                def.liquid().get(ty).expect("Storage references undefined liquid").viscosity();
+            let viscosity = def[ty].viscosity();
 
             FetchEndpoint {
-                ty: ty.clone(),
+                ty,
                 force,
                 volume: size.size(),
                 empty: capacity.total() - size.size(),
@@ -222,9 +284,9 @@ fn simulate_pipes(
         let dest = fetch_endpoint(pipe.dest_entity());
 
         let sum_ty = if src.volume < config.negligible_volume {
-            dest.ty.clone()
+            dest.ty
         } else {
-            def.liquid_mixer().mix(&src.ty, &dest.ty).clone()
+            def.liquid_recipes().mix(src.ty, dest.ty)
         };
 
         let force = src.force + dest.force;
@@ -233,7 +295,7 @@ fn simulate_pipes(
         rate = rate.min(src.volume.value()).min(dest.empty.value());
         let rate = units::LiquidVolume(rate);
 
-        flow.set_ty(Some(src.ty.clone()));
+        flow.set_ty(Some(src.ty));
         flow.set_value(rate);
 
         {
@@ -284,7 +346,7 @@ fn update_storage(
         current.size = next.size;
     }
     for (current, next) in <(&mut Storage, &NextStorageType)>::query().iter_mut(world) {
-        current.set_liquid(next.ty.clone());
+        current.set_liquid(next.ty);
     }
 }
 

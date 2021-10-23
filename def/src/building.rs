@@ -60,7 +60,7 @@ pub struct Shape {
     #[hf_serde(default)]
     transform: TransformMatrix,
     /// The texture of the building.
-    #[getset(get = "pub")]
+    #[getset(get_copy = "pub")]
     texture:   ModelRef,
 }
 

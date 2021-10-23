@@ -5,55 +5,37 @@
 use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 
-use arcstr::ArcStr;
 use derive_new::new;
 use legion::systems::CommandBuffer;
-use legion::Entity;
-use serde::{Deserialize, Serialize};
+use legion::world::SubWorld;
+use legion::{Entity, EntityStore};
 use smallvec::{smallvec, SmallVec};
+use traffloat_def::state;
 use typed_builder::TypedBuilder;
 
 use crate::def::feature::Feature;
-use crate::def::{building, GameDefinition};
+pub use crate::def::state::NodeId as Id;
+use crate::def::{building, CustomizableName};
 use crate::space::{Matrix, Position};
 use crate::sun::LightStats;
-use crate::{appearance, cargo, defense, gas, liquid, population, units, vehicle, SetupEcs};
-
-/// Component storing an identifier for a node
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, new, Serialize, Deserialize)]
-pub struct Id {
-    inner: u32,
-}
+use crate::{appearance, cargo, defense, gas, liquid, population, save, units, vehicle, SetupEcs};
 
 codegen::component_depends! {
     Id = (
-        Id,
-        Name,
-        Position,
-        appearance::Appearance,
         LightStats,
-        units::Portion<units::Hitpoint>,
         cargo::StorageList,
         cargo::StorageCapacity,
         liquid::StorageList,
         gas::StorageList,
         gas::StorageCapacity,
+        population::StorageList,
     ) + ?(
         defense::Core,
-        population::Housing,
+        population::Housing, // TODO multiple housing provisions?
         vehicle::RailPump,
         liquid::Pump,
         gas::Pump,
     )
-}
-
-/// Component storing the name of the node
-#[derive(Debug, Clone, new, getset::Getters, getset::Setters, Serialize, Deserialize)]
-pub struct Name {
-    /// Name of the node
-    #[getset(get = "pub")]
-    #[getset(set = "pub")]
-    name: ArcStr,
 }
 
 /// A component applied to child entities of a node.
@@ -130,7 +112,7 @@ fn delete_nodes(
 #[derive(TypedBuilder)]
 pub struct CreationRequest {
     /// Type ID of the building to create.
-    type_id:  building::TypeId,
+    type_id:  building::Id,
     /// The position of the node.
     position: Position,
     /// The rotation matrix of the node.
@@ -142,33 +124,40 @@ fn create_new_node(
     entities: &mut CommandBuffer,
     #[subscriber] requests: impl Iterator<Item = CreationRequest>,
     #[publisher] add_events: impl FnMut(AddEvent),
-    #[resource(no_init)] def: &GameDefinition,
+    #[resource(no_init)] def: &save::GameDefinition,
     #[resource] index: &mut Index,
 ) {
     for request in requests {
-        let building = def.building().get(&request.type_id).expect("Received invalid type ID");
+        let building = &def[request.type_id];
 
-        let id = Id::new(rand::random());
+        let id = loop {
+            let id = Id::new(rand::random());
+            if !index.index.contains_key(&id) {
+                break id;
+            }
+        };
 
-        let arbitrary_liquid_type = def.liquid().first().expect("at least one liquid type").0;
+        let arbitrary_liquid_type = def.liquid_recipes().default();
         let liquids: SmallVec<_> = building
             .storage()
             .liquid()
             .iter()
-            .map(|&volume| {
+            .map(|storage| {
                 entities.push((
-                    liquid::Storage::new(arbitrary_liquid_type.clone()),
-                    liquid::NextStorageType::new(arbitrary_liquid_type.clone()),
-                    liquid::StorageCapacity::new(volume),
+                    liquid::Storage::new(arbitrary_liquid_type),
+                    liquid::NextStorageType::new(arbitrary_liquid_type),
+                    liquid::StorageCapacity::new(storage.capacity()),
                     liquid::StorageSize::new(units::LiquidVolume(0.)),
                     liquid::NextStorageSize::new(units::LiquidVolume(0.)),
+                    CustomizableName::Original(storage.name().clone()),
                 ))
             })
             .collect();
 
         let entity = entities.push((
             id,
-            Name::new(building.name().clone()),
+            request.type_id,
+            CustomizableName::Original(building.name().clone()),
             request.position,
             appearance::Appearance::new(
                 building
@@ -177,17 +166,14 @@ fn create_new_node(
                     .map(|shape| {
                         appearance::Component::builder()
                             .unit(shape.unit())
-                            .matrix(request.rotation * shape.transform())
-                            .texture(appearance::Texture::new(
-                                shape.texture_src().clone(),
-                                shape.texture_name().clone(),
-                            ))
+                            .matrix(request.rotation * shape.transform().0)
+                            .texture(shape.texture())
                             .build()
                     })
                     .collect(),
             ),
-            LightStats::default(),
             units::Portion::full(building.hitpoint()),
+            LightStats::default(),
             cargo::StorageList::new(smallvec![]),
             cargo::StorageCapacity::new(building.storage().cargo()),
             liquid::StorageList::new(liquids.clone()),
@@ -199,39 +185,9 @@ fn create_new_node(
             entities.add_component(liquid, Child::new(entity));
         }
 
-        index.index.insert(id, entity);
+        init_features(entities, entity, building.features());
 
-        for feature in building.features() {
-            match feature {
-                Feature::Core => {
-                    entities.add_component(entity, defense::Core);
-                }
-                Feature::ProvidesHousing(housing) => {
-                    entities.add_component(
-                        entity,
-                        population::Housing::builder().capacity(*housing).build(),
-                    );
-                }
-                Feature::Reaction(reaction) => {
-                    todo!("Create factory for {:?}", reaction)
-                }
-                Feature::RailPump(spec) => entities.add_component(
-                    entity,
-                    vehicle::RailPump::builder().force(spec.force()).build(),
-                ),
-                Feature::LiquidPump(spec) => entities
-                    .add_component(entity, liquid::Pump::builder().force(spec.force()).build()),
-                Feature::GasPump(spec) => {
-                    entities.add_component(entity, gas::Pump::builder().force(spec.force()).build())
-                }
-                Feature::SecureEntry(policy) => {
-                    todo!("Create entity with {:?}", policy)
-                }
-                Feature::SecureExit(policy) => {
-                    todo!("Create entity with {:?}", policy)
-                }
-            }
-        }
+        index.index.insert(id, entity);
 
         add_events(AddEvent { node: id, entity })
     }
@@ -244,7 +200,7 @@ fn create_new_node(
 #[derive(TypedBuilder)]
 pub struct LoadRequest {
     /// The saved node.
-    save: Box<save::Node>,
+    save: Box<state::Node>,
 }
 
 #[codegen::system(Command)]
@@ -252,128 +208,203 @@ fn create_saved_node(
     entities: &mut CommandBuffer,
     #[subscriber] requests: impl Iterator<Item = LoadRequest>,
     #[publisher] add_events: impl FnMut(AddEvent),
+    #[resource(no_init)] def: &save::GameDefinition,
     #[resource] index: &mut Index,
 ) {
     for LoadRequest { save } in requests {
+        let building = &def[save.building()];
+
         let cargo_list = save
-            .cargo
+            .cargo()
             .iter()
-            .map(|(id, &size)| {
+            .map(|&(id, size)| {
                 let entity = entities.push((
-                    cargo::Storage::new(id.clone()),
+                    cargo::Storage::new(id),
                     cargo::StorageSize::new(size),
                     cargo::NextStorageSize::new(size),
                 ));
-                (id.clone(), entity)
+                (id, entity)
             })
             .collect();
+
+        let liquid_storages = building.storage().liquid();
         let liquid_list: SmallVec<_> = save
-            .liquid
+            .liquid()
             .iter()
-            .map(|storage| {
+            .zip(liquid_storages.iter())
+            .map(|(&(id, size), storage_def)| {
                 entities.push((
-                    liquid::Storage::new(storage.ty.clone()),
-                    liquid::NextStorageType::new(storage.ty.clone()),
-                    liquid::StorageCapacity::new(storage.capacity),
-                    liquid::StorageSize::new(storage.volume),
-                    liquid::NextStorageSize::new(storage.volume),
+                    liquid::Storage::new(id),
+                    liquid::NextStorageType::new(id),
+                    liquid::StorageCapacity::new(storage_def.capacity()),
+                    liquid::StorageSize::new(size),
+                    liquid::NextStorageSize::new(size),
+                    storage_def.name().clone(),
                 ))
             })
             .collect();
         let gas_list = save
-            .gas
+            .gas()
             .iter()
-            .map(|(id, &size)| {
+            .map(|&(id, size)| {
                 let entity = entities.push((
-                    gas::Storage::new(id.clone()),
+                    gas::Storage::new(id),
                     gas::StorageSize::new(size),
                     gas::NextStorageSize::new(size),
                 ));
-                (id.clone(), entity)
+                (id, entity)
             })
             .collect();
 
         let entity = entities.push((
-            save.id,
-            save.name.clone(),
-            save.position,
-            save.appearance.clone(),
+            save.id(),
+            save.building(),
+            save.name().clone(),
+            save.position(),
+            save.appearance().clone(),
+            units::Portion::new(save.hitpoint(), building.hitpoint()),
             LightStats::default(),
-            save.hitpoint,
             cargo::StorageList::new(cargo_list),
-            cargo::StorageCapacity::new(save.cargo_capacity),
+            cargo::StorageCapacity::new(building.storage().cargo()),
             liquid::StorageList::new(liquid_list.clone()),
             gas::StorageList::new(gas_list),
-            gas::StorageCapacity::new(save.gas_capacity),
+            gas::StorageCapacity::new(building.storage().gas()),
         ));
 
         for liquid in liquid_list {
             entities.add_component(liquid, Child::new(entity));
         }
 
-        if save.is_core {
-            entities.add_component(entity, defense::Core);
-        }
-        if let Some(housing) = save.housing_provision {
-            entities
-                .add_component(entity, population::Housing::builder().capacity(housing).build());
-        }
-        if let Some(force) = save.rail_pump {
-            entities.add_component(entity, vehicle::RailPump::builder().force(force).build());
-        }
-        if let Some(force) = save.liquid_pump {
-            entities.add_component(entity, liquid::Pump::builder().force(force).build());
-        }
-        if let Some(force) = save.gas_pump {
-            entities.add_component(entity, gas::Pump::builder().force(force).build());
-        }
+        init_features(entities, entity, building.features());
 
-        index.index.insert(save.id, entity);
-        add_events(AddEvent { node: save.id, entity })
+        index.index.insert(save.id(), entity);
+        add_events(AddEvent { node: save.id(), entity })
+    }
+}
+
+fn init_features(entities: &mut CommandBuffer, entity: Entity, features: &[Feature]) {
+    for feature in features {
+        match feature {
+            Feature::Core => entities.add_component(entity, defense::Core),
+            Feature::ProvidesHousing(housing) => {
+                entities.add_component(entity, population::Housing::new(housing.storage()))
+            }
+            Feature::Reaction(_) => todo!(),
+            Feature::RailPump(_) => todo!("refactor to entity list"),
+            Feature::LiquidPump(_) => todo!("refactor to entity list"),
+            Feature::GasPump(_) => todo!("refactor to entity list"),
+            Feature::SecureEntry(_) => todo!(),
+            Feature::SecureExit(_) => todo!(),
+        }
+    }
+}
+
+#[codegen::system(Visualize)]
+#[read_component(Id)]
+#[read_component(building::Id)]
+#[read_component(CustomizableName)]
+#[read_component(Position)]
+#[read_component(appearance::Appearance)]
+#[read_component(units::Portion<units::Hitpoint>)]
+#[read_component(cargo::StorageList)]
+#[read_component(gas::StorageList)]
+#[read_component(liquid::StorageList)]
+fn save_nodes(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item = save::Request>) {
+    use legion::IntoQuery;
+
+    let mut query = <(
+        &Id,
+        &building::Id,
+        &CustomizableName,
+        &Position,
+        &appearance::Appearance,
+        &units::Portion<units::Hitpoint>,
+        &cargo::StorageList,
+        &gas::StorageList,
+        &liquid::StorageList,
+    )>::query();
+
+    let (query_world, ra_world) = world.split_for_query(&query);
+
+    for request in requests {
+        for (
+            &id,
+            &building,
+            name,
+            &position,
+            appearance,
+            hitpoint,
+            cargo_list,
+            gas_list,
+            liquid_list,
+        ) in query.iter(&query_world)
+        {
+            let cargo = cargo_list
+                .storages()
+                .iter()
+                .map(|&(cargo_ty, storage)| {
+                    let storage = ra_world.entry_ref(storage).expect("Dangling entity reference");
+                    // TODO confirm that the deserialized state will setup NextStorageSize correctly.
+                    let size = storage
+                        .get_component::<cargo::StorageSize>()
+                        .expect("Malformed entity reference");
+                    (cargo_ty, size.size())
+                })
+                .collect();
+            let gas = gas_list
+                .storages()
+                .iter()
+                .map(|&(gas_ty, storage)| {
+                    let storage = ra_world.entry_ref(storage).expect("Dangling entity reference");
+                    // TODO confirm that the deserialized state will setup NextStorageSize correctly.
+                    let size = storage
+                        .get_component::<gas::StorageSize>()
+                        .expect("Malformed entity reference");
+                    (gas_ty, size.size())
+                })
+                .collect();
+            let liquid = liquid_list
+                .storages()
+                .iter()
+                .map(|&storage| {
+                    let storage = ra_world.entry_ref(storage).expect("Dangling entity reference");
+                    // TODO confirm that the deserialized state will setup NextStorageType and NextStorageSize correctly.
+                    let liquid_ty = storage
+                        .get_component::<liquid::Storage>()
+                        .expect("Malformed entity reference")
+                        .liquid();
+                    let size = storage
+                        .get_component::<liquid::StorageSize>()
+                        .expect("Malformed entity reference");
+                    (liquid_ty, size.size())
+                })
+                .collect();
+
+            let node = state::Node::builder()
+                .id(id)
+                .building(building)
+                .name(name.clone())
+                .position(position)
+                .appearance(appearance.clone())
+                .hitpoint(hitpoint.current())
+                .cargo(cargo)
+                .gas(gas)
+                .liquid(liquid)
+                .build();
+
+            {
+                let mut file = request.file();
+                file.state_mut().nodes_mut().push(node);
+            }
+        }
     }
 }
 
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.uses(delete_nodes_setup).uses(create_new_node_setup).uses(create_saved_node_setup)
-}
-
-/// Save type for nodes.
-pub mod save {
-    use std::collections::BTreeMap;
-
-    use super::*;
-    use crate::{def, units};
-
-    /// Saves all data related to a node.
-    #[derive(Clone, Serialize, Deserialize)]
-    pub struct Node {
-        pub(crate) id:                super::Id,
-        pub(crate) name:              super::Name,
-        pub(crate) position:          Position,
-        pub(crate) appearance:        appearance::Appearance,
-        pub(crate) hitpoint:          units::Portion<units::Hitpoint>,
-        pub(crate) cargo:             BTreeMap<def::cargo::TypeId, units::CargoSize>,
-        pub(crate) cargo_capacity:    units::CargoSize,
-        pub(crate) liquid:            Vec<LiquidStorage>,
-        pub(crate) gas:               BTreeMap<def::gas::TypeId, units::GasVolume>,
-        pub(crate) gas_capacity:      units::GasVolume,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        pub(crate) is_core:           bool,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        pub(crate) housing_provision: Option<u32>,
-        #[serde(skip_serializing_if = "crate::is_default")]
-        pub(crate) rail_pump:         Option<units::RailForce>,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        pub(crate) liquid_pump:       Option<units::PipeForce>,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        pub(crate) gas_pump:          Option<units::FanForce>,
-    }
-
-    #[derive(Clone, Serialize, Deserialize)]
-    pub(crate) struct LiquidStorage {
-        pub(crate) ty:       def::liquid::TypeId,
-        pub(crate) volume:   units::LiquidVolume,
-        pub(crate) capacity: units::LiquidVolume,
-    }
+    setup
+        .uses(delete_nodes_setup)
+        .uses(create_new_node_setup)
+        .uses(create_saved_node_setup)
+        .uses(save_nodes_setup)
 }

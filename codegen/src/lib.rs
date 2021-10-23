@@ -146,6 +146,10 @@ pub enum SystemClass {
     ///
     /// This is used for client rendering, backup creation process and other roundup systems.
     Visualize,
+    /// Flush results of a visualization request,
+    /// e.g. produce the save artifact after
+    /// the fields have been populated in [`Visualize`][SystemClass::Visualize].
+    PostVisualize,
 }
 
 #[derive(Default)]

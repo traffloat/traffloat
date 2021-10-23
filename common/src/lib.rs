@@ -15,20 +15,16 @@
 #![cfg_attr(any(doc, not(debug_assertions)), deny(missing_docs))]
 #![cfg_attr(
     not(debug_assertions),
-    deny(
-        clippy::cast_possible_truncation,
-        clippy::cast_precision_loss,
-        clippy::dbg_macro,
-        clippy::indexing_slicing,
-    )
+    deny(clippy::cast_possible_truncation, clippy::cast_precision_loss, clippy::dbg_macro,)
 )]
 
 #[macro_use]
 mod macros;
 
-pub use traffloat_types::{def, space, time, units};
+pub use traffloat_def as def;
+pub use traffloat_def::state::{self, appearance};
+pub use traffloat_types::{space, time, units};
 
-pub mod appearance;
 pub mod cargo;
 pub mod clock;
 pub mod config;
@@ -54,7 +50,6 @@ pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
         .uses(clock::setup_ecs)
         .uses(defense::setup_ecs)
         .uses(factory::setup_ecs)
-        .uses(appearance::setup_ecs)
         .uses(node::setup_ecs)
         .uses(|mut setup| {
             setup.builder.flush();

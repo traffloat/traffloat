@@ -23,14 +23,13 @@
     )
 )]
 
-use std::any::{type_name, TypeId};
 use std::convert::TryInto;
 use std::io::Write;
 
 use anyhow::Context;
 use arcstr::ArcStr;
 use codegen::Definition;
-use getset::{CopyGetters, Getters};
+use getset::{CopyGetters, Getters, MutGetters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::{time, units};
 use typed_builder::TypedBuilder;
@@ -45,6 +44,7 @@ pub mod gas;
 pub mod lang;
 pub mod liquid;
 pub mod skill;
+pub mod state;
 pub mod vehicle;
 
 /// The scenario schema version.
@@ -58,7 +58,7 @@ pub const SCHEMA_VERSION: u32 = 1;
 pub const MAGIC_HEADER: &[u8] = b"\xffTSV";
 
 /// The schema for the binary save file.
-#[derive(Getters, TypedBuilder, Serialize, Deserialize)]
+#[derive(Getters, MutGetters, TypedBuilder, Serialize, Deserialize)]
 pub struct Schema {
     /// Scenario metadata.
     #[getset(get = "pub")]
@@ -69,6 +69,10 @@ pub struct Schema {
     /// All gamerule definitions.
     #[getset(get = "pub")]
     def:      Vec<Def>,
+    /// State of game objects.
+    #[getset(get = "pub")]
+    #[getset(get_mut = "pub")]
+    state:    state::State,
 }
 
 impl Schema {
@@ -97,7 +101,7 @@ impl Schema {
 }
 
 /// Metadata for a scenario.
-#[derive(Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, Getters, Serialize, Deserialize)]
 pub struct Scenario {
     /// Name of the scenario.
     #[getset(get = "pub")]
@@ -108,7 +112,7 @@ pub struct Scenario {
 }
 
 /// Scalar config for the scenario.
-#[derive(CopyGetters, Serialize, Deserialize)]
+#[derive(Debug, Clone, CopyGetters, Serialize, Deserialize)]
 pub struct Config {
     /// The angle the sun moves per tick
     #[getset(get_copy = "pub")]
@@ -154,7 +158,9 @@ pub enum Def {
 #[cfg(feature = "convert-human-friendly")]
 impl DefHumanFriendly {
     /// Returns the type ID for the wrapped type.
-    pub fn value_type_id(&self) -> Option<TypeId> {
+    pub fn value_type_id(&self) -> Option<std::any::TypeId> {
+        use std::any::TypeId;
+
         Some(match self {
             Self::LangBundle(_) => TypeId::of::<lang::Def>(),
             Self::Atlas(_) => TypeId::of::<atlas::Def>(),
@@ -174,6 +180,8 @@ impl DefHumanFriendly {
 
     /// Returns the type ID for the wrapped type.
     pub fn value_type_name(&self) -> Option<&'static str> {
+        use std::any::type_name;
+
         Some(match self {
             Self::LangBundle(_) => type_name::<lang::Def>(),
             Self::Atlas(_) => type_name::<atlas::Def>(),
@@ -209,4 +217,13 @@ impl DefHumanFriendly {
             Self::Crime(def) => &def.id,
         })
     }
+}
+
+/// A customizable name that is either a translation or a value from user input.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CustomizableName {
+    /// An original item from a lang file.
+    Original(lang::Item),
+    /// A custom name from user input.
+    Custom(ArcStr),
 }

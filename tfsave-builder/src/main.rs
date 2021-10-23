@@ -9,6 +9,7 @@ use std::{fs, io};
 use anyhow::{Context as _, Result};
 use codegen::{Definition, ResolveContext};
 use def::atlas::{AtlasContext, IconIndex, ModelIndex};
+use def::state::State;
 use def::Schema;
 use structopt::StructOpt;
 use traffloat_def::{self as def, Def};
@@ -165,8 +166,10 @@ fn main() -> Result<()> {
     save_timer.report();
     lang_parse_timer.report();
 
+    let state = State::default(); // TODO
+
     log::info!("Saving scenario output");
-    let schema = Schema::builder().scenario(scenario).config(config).def(defs).build();
+    let schema = Schema::builder().scenario(scenario).config(config).def(defs).state(state).build();
     write(&args.output.join("scenario.tfsave"), &schema).context("Saving output")?;
     lang::save(&args.output.join("assets"), &mut context)
         .context("Saving processed translations")?;

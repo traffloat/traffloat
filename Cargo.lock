@@ -1699,6 +1699,7 @@ dependencies = [
  "shrev",
  "smallvec",
  "traffloat-codegen",
+ "traffloat-def",
  "traffloat-safety",
  "traffloat-types",
  "typed-builder",

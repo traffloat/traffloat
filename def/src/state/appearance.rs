@@ -1,14 +1,13 @@
 //! Shape and appearance of an object
 
-use arcstr::ArcStr;
 use derive_new::new;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 pub use traffloat_types::geometry::Unit;
+use traffloat_types::space::{Matrix, Position};
 use typed_builder::TypedBuilder;
 
-use crate::space::{Matrix, Position};
-use crate::SetupEcs;
+use crate::atlas;
 
 /// Describes the shape and appearance of an object.
 ///
@@ -38,7 +37,7 @@ pub struct Component {
     inv_matrix: Matrix,
     /// The texture for rendering the shape
     #[getset(get = "pub")]
-    texture:    Texture,
+    texture:    atlas::ModelRef,
 }
 
 impl<'de> Deserialize<'de> for Component {
@@ -47,7 +46,7 @@ impl<'de> Deserialize<'de> for Component {
         struct Simple {
             unit:    Unit,
             matrix:  Matrix,
-            texture: Texture,
+            texture: atlas::ModelRef,
         }
 
         let Simple { unit, matrix, texture } = Simple::deserialize(d)?;
@@ -73,17 +72,3 @@ impl Component {
         self.inv_matrix().prepend_translation(&-pos.vector())
     }
 }
-
-/// The texture of a rendered object
-#[derive(Debug, Clone, new, getset::Getters, Serialize, Deserialize)]
-pub struct Texture {
-    /// A URL to an image file
-    #[getset(get = "pub")]
-    url:  ArcStr,
-    /// The name of the texture.
-    #[getset(get = "pub")]
-    name: ArcStr,
-}
-
-/// Initializes systems
-pub fn setup_ecs(setup: SetupEcs) -> SetupEcs { setup }

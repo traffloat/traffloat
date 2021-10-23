@@ -6,12 +6,14 @@
 use derive_new::new;
 use legion::systems::CommandBuffer;
 use legion::world::SubWorld;
-use legion::Entity;
+use legion::{Entity, EntityStore};
 use serde::{Deserialize, Serialize};
+use traffloat_def::state;
+pub use traffloat_def::state::{Direction, DuctType};
 use typed_builder::TypedBuilder;
 
 use crate::space::{Matrix, Position, Vector};
-use crate::{liquid, node, units, SetupEcs};
+use crate::{liquid, node, save, units, SetupEcs};
 
 /// Component storing the endpoints of an edge
 #[derive(Debug, Clone, Copy, PartialEq, Eq, new, getset::CopyGetters, getset::Setters)]
@@ -42,15 +44,6 @@ pub struct Size {
     radius: f64,
 }
 
-/// A direction across an edge.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum Direction {
-    /// A direction starting from [`Id::from`] and ending at [`Id::to`]
-    FromTo,
-    /// A direction starting from [`Id::to`] and ending at [`Id::from`]
-    ToFrom,
-}
-
 /// A position on the cross section of an edge.
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct CrossSectionPosition(nalgebra::Vector2<f64>);
@@ -71,9 +64,9 @@ impl CrossSectionPosition {
 
 /// The geometric design of the edge.
 ///
-/// This is only used for graphical user interaction.
-/// Simulation systems should depend on separate components on capacity
-/// instead of calculating from this data structure.
+/// This is only used during graphical user interaction and serialization.
+/// Simulation systems should depend on the actual duct entities
+/// instead of computing flow rates from this data structure.
 #[derive(Debug, new, getset::Getters)]
 pub struct Design {
     /// The ducts in the edge.
@@ -100,122 +93,67 @@ pub struct Duct {
     entity: Entity,
 }
 
-/// The type of a duct.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DuctType {
-    /// A rail that vehicles can move along.
-    ///
-    /// The first parameter is the direction of the rail,
-    /// or [`None`] if the rail is disabled.
-    Rail(Option<Direction>),
-    /// A pipe that liquids can be transferred through.
-    ///
-    /// The first parameter is the direction of the pipe,
-    /// or [`None`] if the rail is disabled.
-    ///
-    /// The second and third parameters are the liquid storage IDs in the endpoints.
-    /// They refer to the "from" and "to" IDs, and do not change when direction is flipped.
-    Liquid {
-        /// The direction that the pipe runs in
-        dir:          Option<Direction>,
-        /// The storage ordinal in the "from" node.
-        ///
-        /// This value does **not** swap with [`to_storage`] when the direction is flipped.
-        from_storage: usize,
-        /// The storage ordinal in the "to" node.
-        ///
-        /// This value does **not** swap with [`from_storage`] when the direction is flipped.
-        to_storage:   usize,
-    },
-    /// A cable that electricity can pass through.
-    ///
-    /// The first parameter specifies whether the cable is enabled.
-    Electricity(bool),
-}
+/// Creates a duct entity for a duct type.
+fn create_duct(
+    ty: DuctType,
+    entities: &mut CommandBuffer,
+    world: &SubWorld,
+    from: Entity,
+    to: Entity,
+    radius: f64,
+) -> Entity {
+    let from_entry = world.entry_ref(from).expect("The from node entity does not exist");
+    let to_entry = world.entry_ref(to).expect("The to node entity does not exist");
 
-impl DuctType {
-    /// Whether the duct is active.
-    pub fn active(self) -> bool {
-        match self {
-            Self::Rail(option) => option.is_some(),
-            Self::Liquid { dir, .. } => dir.is_some(),
-            Self::Electricity(enabled) => enabled,
+    let from_pos = from_entry
+        .get_component::<Position>()
+        .expect("The from node entity does not have a position");
+    let to_pos =
+        to_entry.get_component::<Position>().expect("The to node entity does not have a position");
+
+    let dist = (*to_pos - *from_pos).norm();
+
+    match ty {
+        DuctType::Electricity(true) => {
+            entities.push(()) // TODO
         }
-    }
-
-    /// The direction of the duct, if any.
-    pub fn direction(self) -> Option<Direction> {
-        match self {
-            Self::Rail(dir) | Self::Liquid { dir, .. } => dir,
-            _ => None,
+        DuctType::Rail(Some(_direction)) => {
+            entities.push(()) // TODO
         }
-    }
+        DuctType::Liquid { dir: Some(direction), from_storage, to_storage } => entities.push({
+            let from_list = from_entry
+                .get_component::<liquid::StorageList>()
+                .expect("The from node entity does not have liquid::StorageList");
+            let from_tank = *from_list
+                .storages()
+                .get(from_storage)
+                .expect("Pipe definition references a nonexistent from-storage");
 
-    /// Creates a duct entity for this duct type.
-    fn create_entity(
-        self,
-        entities: &mut CommandBuffer,
-        world: &SubWorld,
-        from: Entity,
-        to: Entity,
-        radius: f64,
-    ) -> Entity {
-        use legion::EntityStore;
+            let to_list = to_entry
+                .get_component::<liquid::StorageList>()
+                .expect("The to node entity does not have liquid::StorageList");
+            let to_tank = *to_list
+                .storages()
+                .get(to_storage)
+                .expect("Pipe definition references a nonexistent to-storage");
 
-        let from_entry = world.entry_ref(from).expect("The from node entity does not exist");
-        let to_entry = world.entry_ref(to).expect("The to node entity does not exist");
+            let (src, dest) = match direction {
+                Direction::From2To => (from_tank, to_tank),
+                Direction::To2From => (to_tank, from_tank),
+            };
 
-        let from_pos = from_entry
-            .get_component::<Position>()
-            .expect("The from node entity does not have a position");
-        let to_pos = to_entry
-            .get_component::<Position>()
-            .expect("The to node entity does not have a position");
+            let resistance = dist / radius.powi(2);
 
-        let dist = (*to_pos - *from_pos).norm();
-
-        match self {
-            DuctType::Electricity(true) => {
-                entities.push(()) // TODO
-            }
-            DuctType::Rail(Some(_direction)) => {
-                entities.push(()) // TODO
-            }
-            DuctType::Liquid { dir: Some(direction), from_storage, to_storage } => entities.push({
-                let from_list = from_entry
-                    .get_component::<liquid::StorageList>()
-                    .expect("The from node entity does not have liquid::StorageList");
-                let from_tank = *from_list
-                    .storages()
-                    .get(from_storage)
-                    .expect("Pipe definition references a nonexistent from-storage");
-
-                let to_list = to_entry
-                    .get_component::<liquid::StorageList>()
-                    .expect("The to node entity does not have liquid::StorageList");
-                let to_tank = *to_list
-                    .storages()
-                    .get(to_storage)
-                    .expect("Pipe definition references a nonexistent to-storage");
-
-                let (src, dest) = match direction {
-                    Direction::FromTo => (from_tank, to_tank),
-                    Direction::ToFrom => (to_tank, from_tank),
-                };
-
-                let resistance = dist / radius.powi(2);
-
-                (
-                    liquid::Pipe::new(src, dest),
-                    liquid::PipeResistance::new(resistance),
-                    liquid::PipeFlow::default(),
-                )
-            }),
-            DuctType::Electricity(false)
-            | DuctType::Rail(None)
-            | DuctType::Liquid { dir: None, .. } => {
-                entities.push(()) // dummy entity
-            }
+            (
+                liquid::Pipe::new(src, dest),
+                liquid::PipeResistance::new(resistance),
+                liquid::PipeFlow::default(),
+            )
+        }),
+        DuctType::Electricity(false)
+        | DuctType::Rail(None)
+        | DuctType::Liquid { dir: None, .. } => {
+            entities.push(()) // dummy entity
         }
     }
 }
@@ -241,8 +179,6 @@ pub struct RemoveEvent {
 
 /// Computes the transformation matrix from or to the unit cylinder
 pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bool) -> Matrix {
-    use legion::EntityStore;
-
     let from = edge.from();
     let to = edge.to();
 
@@ -276,39 +212,20 @@ pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bo
 /// An event to schedule requests to initialize new edges.
 #[derive(TypedBuilder)]
 pub struct CreateRequest {
-    from:   Entity,
-    to:     Entity,
-    size:   f64,
-    hp:     units::Portion<units::Hitpoint>,
-    design: Vec<save::SavedDuct>,
+    from: Entity,
+    to:   Entity,
+    size: f64,
+    hp:   units::Portion<units::Hitpoint>,
 }
 
 #[codegen::system(CreateChild)]
-#[read_component(Position)]
-#[read_component(liquid::StorageList)]
 fn create_new_edge(
     entities: &mut CommandBuffer,
-    world: &SubWorld,
     #[subscriber] requests: impl Iterator<Item = CreateRequest>,
     #[publisher] add_events: impl FnMut(AddEvent),
 ) {
     for request in requests {
-        let design = request
-            .design
-            .iter()
-            .map(|duct| Duct {
-                center: duct.center,
-                radius: duct.radius,
-                ty:     duct.ty,
-                entity: duct.ty.create_entity(
-                    entities,
-                    world,
-                    request.from,
-                    request.to,
-                    duct.radius,
-                ),
-            })
-            .collect();
+        let design = Vec::new();
         let id = Id::new(request.from, request.to);
         let entity = entities.push((id, Size::new(request.size), request.hp, Design::new(design)));
         add_events(AddEvent { edge: id, entity });
@@ -319,7 +236,7 @@ fn create_new_edge(
 #[derive(TypedBuilder)]
 pub struct LoadRequest {
     /// The saved edge.
-    save: Box<save::Edge>,
+    save: Box<state::Edge>,
 }
 
 #[codegen::system(CreateChild)]
@@ -333,55 +250,80 @@ fn create_saved_edge(
     #[resource] index: &node::Index,
 ) {
     for LoadRequest { save } in requests {
-        let from = index.get(save.from).expect("Edge references nonexistent node");
-        let to = index.get(save.to).expect("Edge references nonexistent node");
+        let from = index.get(save.from()).expect("Edge references nonexistent node");
+        let to = index.get(save.to()).expect("Edge references nonexistent node");
         // FIXME how do we handle the error here properly?
 
         let design = save
-            .design
+            .design()
             .iter()
-            .map(|duct| Duct {
-                center: duct.center,
-                radius: duct.radius,
-                ty:     duct.ty,
-                entity: duct.ty.create_entity(entities, world, from, to, duct.radius),
+            .map(|duct| {
+                Duct::builder()
+                    .center(CrossSectionPosition::new(duct.center().x, duct.center().y))
+                    .radius(duct.radius())
+                    .ty(duct.ty())
+                    .entity(create_duct(duct.ty(), entities, world, from, to, duct.radius()))
+                    .build()
             })
             .collect();
 
         let id = Id::new(from, to);
-        let entity = entities.push((id, save.size, save.hitpoint, Design::new(design)));
+        let entity =
+            entities.push((id, Size::new(save.radius()), save.hitpoint(), Design::new(design)));
         add_events(AddEvent { edge: id, entity });
+    }
+}
+
+#[codegen::system(Visualize)]
+#[read_component(Id)]
+#[read_component(Size)]
+#[read_component(units::Portion<units::Hitpoint>)]
+#[read_component(Design)]
+#[read_component(node::Id)]
+fn save_edges(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item = save::Request>) {
+    use legion::IntoQuery;
+
+    for request in requests {
+        let mut query = <(&Id, &Size, &units::Portion<units::Hitpoint>, &Design)>::query();
+        let (query_world, ra_world) = world.split_for_query(&query);
+
+        for (id, size, &hitpoint, design) in query.iter(&query_world) {
+            let get_node_id = |entity| {
+                let entry = ra_world.entry_ref(entity).expect("Dangling edge endpoint");
+                *entry.get_component::<node::Id>().expect("Edge endpoint is not a node")
+            };
+            let from = get_node_id(id.from());
+            let to = get_node_id(id.to());
+
+            let edge = state::Edge::builder()
+                .from(from)
+                .to(to)
+                .radius(size.radius())
+                .hitpoint(hitpoint)
+                .design(
+                    design
+                        .ducts()
+                        .iter()
+                        .map(|duct| {
+                            state::Duct::builder()
+                                .center(duct.center().vector())
+                                .radius(duct.radius())
+                                .ty(duct.ty())
+                                .build()
+                        })
+                        .collect(),
+                )
+                .build();
+
+            {
+                let mut file = request.file();
+                file.state_mut().edges_mut().push(edge);
+            }
+        }
     }
 }
 
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
-    setup.uses(create_new_edge_setup).uses(create_saved_edge_setup)
-}
-
-/// Save type for edges.
-pub mod save {
-    use super::*;
-    use crate::node;
-
-    /// Saves all data related to an edge.
-    #[derive(Clone, Serialize, Deserialize)]
-    pub struct Edge {
-        pub(crate) from:     node::Id,
-        pub(crate) to:       node::Id,
-        pub(crate) size:     super::Size,
-        pub(crate) design:   Vec<SavedDuct>,
-        pub(crate) hitpoint: units::Portion<units::Hitpoint>,
-    }
-
-    /// Saves all data related to a duct.
-    #[derive(Clone, Serialize, Deserialize)]
-    pub struct SavedDuct {
-        /// Center position of the duct.
-        pub center: CrossSectionPosition,
-        /// Radius of the duct.
-        pub radius: f64,
-        /// Type of the duct.
-        pub ty:     DuctType,
-    }
+    setup.uses(create_new_edge_setup).uses(create_saved_edge_setup).uses(save_edges_setup)
 }

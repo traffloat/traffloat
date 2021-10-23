@@ -7,16 +7,17 @@ use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
 use crate::clock::{SimulationEvent, SIMULATION_PERIOD};
+use crate::def::gas;
 use crate::time::Instant;
 use crate::units::{self, GasVolume};
-use crate::{def, util, SetupEcs};
+use crate::{util, SetupEcs};
 
 /// A component attached to entities that house gas.
 #[derive(new, getset::Getters)]
 pub struct StorageList {
     /// The list of gases stored in the entity.
     #[getset(get = "pub")]
-    storages: SmallVec<[(def::gas::TypeId, Entity); 4]>,
+    storages: SmallVec<[(gas::Id, Entity); 4]>,
 }
 
 /// A component attached to nodes to inidcate cargo capacity of the node.
@@ -28,11 +29,11 @@ pub struct StorageCapacity {
 }
 
 /// A component attached to storage entities.
-#[derive(new, getset::Getters)]
+#[derive(new, getset::CopyGetters)]
 pub struct Storage {
     /// The type of gas.
-    #[getset(get = "pub")]
-    gas: def::gas::TypeId, // TODO should we optimize this to a runtime integer ID?
+    #[getset(get_copy = "pub")]
+    gas: gas::Id,
 }
 
 /// The size of a gas storage in the current simulation frame.

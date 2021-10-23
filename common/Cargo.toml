@@ -28,6 +28,7 @@ serde_yaml = {version = "0.8.21", optional = true}
 shrev = "1.1.1"
 smallvec = "1.7.0"
 traffloat-codegen = {version = "0.2.0", path = "../codegen"}
+traffloat-def = {version = "0.2.0", path = "../def"}
 traffloat-safety = {version = "0.2.0", path = "../safety"}
 traffloat-types = {version = "0.2.0", path = "../types"}
 typed-builder = "0.9.1"

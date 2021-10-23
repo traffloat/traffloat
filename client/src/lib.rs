@@ -16,12 +16,7 @@
 #![cfg_attr(any(doc, not(debug_assertions)), deny(missing_docs))]
 #![cfg_attr(
     not(debug_assertions),
-    deny(
-        clippy::cast_possible_truncation,
-        clippy::cast_precision_loss,
-        clippy::dbg_macro,
-        clippy::indexing_slicing,
-    )
+    deny(clippy::cast_possible_truncation, clippy::cast_precision_loss, clippy::dbg_macro,)
 )]
 
 use wasm_bindgen::prelude::*;

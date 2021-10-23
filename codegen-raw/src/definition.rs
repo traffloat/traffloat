@@ -266,16 +266,30 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
     let id = need_id.then(|| quote! {
         #[doc = stringify!("An ordinal runtime ID for [`", stringify!(#input_ident), "`].")]
         #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-        pub struct Id(usize);
+        pub struct Id(u32);
+
+        impl Id {
+            /// Use this ID as a key to index a Vec.
+            pub fn as_index(&self) -> usize {
+                use ::std::convert::TryInto;
+
+                self.0.try_into().expect("Too many items")
+            }
+        }
 
         #cfg_gate
         impl ::codegen::Definition for Id {
             type HumanFriendly = ::arcstr::ArcStr;
 
             fn convert(human_friendly: Self::HumanFriendly, context: &mut ::codegen::ResolveContext) -> ::anyhow::Result<Self> {
+                use ::std::convert::TryFrom;
+
+                use ::anyhow::Context as _;
+
                 // only #input_ident is used here because generic types are not allowed to have
                 // their own IDs.
                 let id = context.resolve_id::<#input_ident>(human_friendly.as_str())?;
+                let id = u32::try_from(id).context("Too many items")?;
                 Ok(Self(id))
             }
         }

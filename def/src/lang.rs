@@ -4,11 +4,9 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use arcstr::ArcStr;
-use codegen::{Definition, ResolveContext};
-use fluent::{FluentBundle, FluentResource};
+use codegen::Definition;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
-use unic_langid::LanguageIdentifier;
 
 /// A bundle of language files.
 #[derive(Debug, Clone, Serialize, Deserialize, Getters, CopyGetters, Definition)]
@@ -33,39 +31,56 @@ pub struct Item {
     key: ArcStr,
 }
 
-/// A cache of loaded language bundles.
 #[cfg(feature = "convert-human-friendly")]
-#[derive(Default)]
-pub struct LoadedBundles(BTreeMap<Id, Vec<(LanguageIdentifier, FluentBundle<FluentResource>)>>);
+mod hf {
+    use std::collections::BTreeMap;
+    use std::convert::TryInto;
 
-#[cfg(feature = "convert-human-friendly")]
-impl LoadedBundles {
-    /// Add a localized language bundle.
-    pub fn add(
-        &mut self,
-        id: usize,
-        language: LanguageIdentifier,
-        bundle: FluentBundle<FluentResource>,
-    ) {
-        let vec = self.0.entry(Id(id)).or_default();
-        vec.push((language, bundle));
-    }
-}
+    use codegen::ResolveContext;
+    use fluent::{FluentBundle, FluentResource};
+    use unic_langid::LanguageIdentifier;
 
-#[cfg(feature = "convert-human-friendly")]
-fn validate_lang(item: &mut Item, context: &mut ResolveContext) -> anyhow::Result<()> {
-    use anyhow::Context;
+    use super::*;
 
-    {
-        let lb = context.get_other::<LoadedBundles>();
-        let bundles = lb.0.get(&item.src).context("Undefined translation bundle reference")?;
+    /// A cache of loaded language bundles.
+    #[derive(Default)]
+    pub struct LoadedBundles(BTreeMap<Id, Vec<(LanguageIdentifier, FluentBundle<FluentResource>)>>);
 
-        for (lang, bundle) in bundles {
-            if bundle.get_message(item.key()).is_none() {
-                anyhow::bail!("Undefined translation key {} in locale {}", item.key(), lang);
-            }
+    impl LoadedBundles {
+        /// Add a localized language bundle.
+        pub fn add(
+            &mut self,
+            id: usize,
+            language: LanguageIdentifier,
+            bundle: FluentBundle<FluentResource>,
+        ) {
+            let vec = self.0.entry(Id(id.try_into().expect("Too many items"))).or_default();
+            vec.push((language, bundle));
         }
     }
 
-    Ok(())
+    pub(super) fn validate_lang(
+        item: &mut Item,
+        context: &mut ResolveContext,
+    ) -> anyhow::Result<()> {
+        use anyhow::Context;
+
+        {
+            let lb = context.get_other::<LoadedBundles>();
+            let bundles = lb.0.get(&item.src).context("Undefined translation bundle reference")?;
+
+            for (lang, bundle) in bundles {
+                if bundle.get_message(item.key()).is_none() {
+                    anyhow::bail!("Undefined translation key {} in locale {}", item.key(), lang);
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
+
+#[cfg(feature = "convert-human-friendly")]
+use hf::validate_lang;
+#[cfg(feature = "convert-human-friendly")]
+pub use hf::LoadedBundles;
