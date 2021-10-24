@@ -1,6 +1,6 @@
 //! Building definitions
 
-use codegen::Definition;
+use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::space::TransformMatrix;
@@ -17,6 +17,9 @@ pub struct Def {
     /// ID of the building type.
     #[getset(get_copy = "pub")]
     id:          Id,
+    /// String ID of the building type.
+    #[getset(get = "pub")]
+    id_str:      IdStr,
     /// Name of the building type.
     #[getset(get = "pub")]
     name:        lang::Item,
@@ -91,7 +94,7 @@ pub struct Storage {
 pub mod storage {
     /// Liquid storage.
     pub mod liquid {
-        use codegen::Definition;
+        use codegen::{Definition, IdStr};
         use getset::{CopyGetters, Getters};
         use serde::{Deserialize, Serialize};
         use traffloat_types::units;
@@ -109,6 +112,9 @@ pub mod storage {
             /// ID of the liquid storage.
             #[getset(get_copy = "pub")]
             id:       Id,
+            /// String ID of the liquid storage.
+            #[getset(get = "pub")]
+            id_str:   IdStr,
             /// The capacity of this storage.
             #[getset(get_copy = "pub")]
             capacity: units::LiquidVolume,
@@ -120,7 +126,7 @@ pub mod storage {
 
     /// Population storage.
     pub mod population {
-        use codegen::Definition;
+        use codegen::{Definition, IdStr};
         use getset::{CopyGetters, Getters};
         use serde::{Deserialize, Serialize};
 
@@ -132,9 +138,12 @@ pub mod storage {
         /// building would enter a population storage.
         #[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
         pub struct Def {
-            /// ID of the liquid storage.
+            /// ID of the population storage.
             #[getset(get_copy = "pub")]
             id:       Id,
+            /// String ID of the population storage.
+            #[getset(get = "pub")]
+            id_str:   IdStr,
             /// The capacity of this storage.
             #[getset(get_copy = "pub")]
             capacity: u32,
@@ -149,7 +158,7 @@ pub mod storage {
 
 /// Categories of buildings.
 pub mod category {
-    use codegen::Definition;
+    use codegen::{Definition, IdStr};
     use getset::Getters;
     use serde::{Deserialize, Serialize};
 
@@ -161,6 +170,9 @@ pub mod category {
         /// ID of the building category.
         #[getset(get_copy = "pub")]
         id:          Id,
+        /// String ID of the building category.
+        #[getset(get = "pub")]
+        id_str:      IdStr,
         /// Title of the building category.
         #[getset(get = "pub")]
         title:       lang::Item,

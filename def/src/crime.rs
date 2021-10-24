@@ -2,7 +2,7 @@
 
 use std::ops::Range;
 
-use codegen::Definition;
+use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -16,6 +16,9 @@ pub struct Def {
     /// ID of the crime type.
     #[getset(get_copy = "pub")]
     id:           Id,
+    /// String ID of the crime type.
+    #[getset(get = "pub")]
+    id_str:       IdStr,
     /// Name of the crime.
     #[getset(get = "pub")]
     name:         lang::Item,

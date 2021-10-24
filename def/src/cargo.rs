@@ -1,6 +1,6 @@
 //! Cargo definitions.
 
-use codegen::Definition;
+use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +13,9 @@ pub struct Def {
     /// ID of the cargo type.
     #[getset(get_copy = "pub")]
     id:          Id,
+    /// String ID of the cargo type.
+    #[getset(get = "pub")]
+    id_str:      IdStr,
     /// Name of the cargo type.
     #[getset(get = "pub")]
     name:        lang::Item,
@@ -32,7 +35,7 @@ pub struct Def {
 
 /// Categories of cargo.
 pub mod category {
-    use codegen::Definition;
+    use codegen::{Definition, IdStr};
     use getset::{CopyGetters, Getters};
     use serde::{Deserialize, Serialize};
 
@@ -41,9 +44,12 @@ pub mod category {
     /// A category of cargo.
     #[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
     pub struct Def {
-        /// ID of the cargo type.
+        /// ID of the cargo category.
         #[getset(get_copy = "pub")]
         id:          Id,
+        /// String ID of the cargo category.
+        #[getset(get = "pub")]
+        id_str:      IdStr,
         /// Title of the cargo category.
         #[getset(get = "pub")]
         title:       lang::Item,

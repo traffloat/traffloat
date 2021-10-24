@@ -16,7 +16,7 @@ use anyhow::Context as _;
 use arcstr::ArcStr;
 use enum_map::EnumMap;
 use serde::de::DeserializeOwned;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use typemap::TypeMap;
 
 /// [`std::dbg!`] equivalent for wasm log
@@ -633,8 +633,24 @@ impl<T: Definition> Definition for BTreeMap<ArcStr, T> {
     }
 }
 
+/// A data type that has an ID.
 pub trait Identifiable: 'static {
     type Id: fmt::Debug + Copy + Eq + Ord;
 
     fn id(&self) -> Self::Id;
+}
+
+/// The original, raw ID string used in an [`Identifiable`] type.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdStr(ArcStr);
+
+impl IdStr {
+    /// Creates a new `IdStr`.
+    pub fn new(str: ArcStr) -> Self { Self(str) }
+
+    /// Returns the underlying string.
+    pub fn name(&self) -> &ArcStr { &self.0 }
+
+    /// Returns the underlying string slice.
+    pub fn as_str(&self) -> &str { self.0.as_str() }
 }

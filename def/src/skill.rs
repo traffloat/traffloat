@@ -1,6 +1,6 @@
 //! Skill definitions.
 
-use codegen::Definition;
+use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +12,9 @@ pub struct Def {
     /// ID of the skill type.
     #[getset(get_copy = "pub")]
     id:          Id,
+    /// String ID of the skill type.
+    #[getset(get = "pub")]
+    id_str:      IdStr,
     /// Name of the skill type.
     #[getset(get = "pub")]
     name:        lang::Item,

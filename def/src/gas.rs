@@ -1,6 +1,6 @@
 //! Gas definitions.
 
-use codegen::Definition;
+use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +13,9 @@ pub struct Def {
     /// ID of the gas type.
     #[getset(get_copy = "pub")]
     id:          Id,
+    /// String ID of the gas type.
+    #[getset(get = "pub")]
+    id_str:      IdStr,
     /// Name of the gas type.
     #[getset(get = "pub")]
     name:        lang::Item,

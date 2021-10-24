@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use arcstr::ArcStr;
-use codegen::Definition;
+use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 
@@ -14,6 +14,9 @@ pub struct Def {
     /// Identifies the language bundle.
     #[getset(get_copy = "pub")]
     id:        Id,
+    /// String ID of the language bundle.
+    #[getset(get = "pub")]
+    id_str:    IdStr,
     /// Paths to language files.
     #[getset(get = "pub")]
     languages: BTreeMap<ArcStr, PathBuf>,

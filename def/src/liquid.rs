@@ -1,6 +1,6 @@
 //! Liquid definitions.
 
-use codegen::Definition;
+use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::units;
@@ -14,6 +14,9 @@ pub struct Def {
     /// ID of the liquid type.
     #[getset(get_copy = "pub")]
     id:          Id,
+    /// String ID of the liquid type.
+    #[getset(get = "pub")]
+    id_str:      IdStr,
     /// Name of the liquid type.
     #[getset(get = "pub")]
     name:        lang::Item,

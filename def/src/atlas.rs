@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 
 use arcstr::ArcStr;
-use codegen::Definition;
+use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::geometry;
@@ -15,6 +15,9 @@ pub struct Def {
     /// Identifies the atlas.
     #[getset(get_copy = "pub")]
     id:       Id,
+    /// String ID of the atlas.
+    #[getset(get = "pub")]
+    id_str:   IdStr,
     /// The directory containing the variants.
     ///
     /// In tfsave-builder mode, `dir` contains the original files instead.

@@ -72,10 +72,27 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                     false
                 });
 
-                let field_idents: Vec<_> = fields.iter().map(|field| &field.ident).collect();
-                let field_hf_serde: Vec<TokenStream> = fields
-                    .iter()
-                    .map(|field| {
+                let mut field_idents = Vec::new();
+                let mut field_idents_conv = Vec::new();
+                let mut field_hf_serde = Vec::new();
+                let mut field_conversion_ty = Vec::new();
+                let mut field_conversion_expr = Vec::new();
+
+                for field in &fields {
+                    let field_ty = &field.ty;
+                    let field_ident = field.ident.as_ref().expect("named struct");
+
+                    if field_ident == "id_str" {
+                        field_idents_conv.push(field_ident);
+                        field_conversion_expr.push(quote! {
+                            ::codegen::IdStr::new(human_friendly.id.clone())
+                        });
+                        continue;
+                    }
+
+                    field_idents.push(field_ident);
+                    field_idents_conv.push(field_ident);
+                    field_hf_serde.push(
                         field
                             .attrs
                             .iter()
@@ -84,27 +101,19 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                                 let tokens = &attr.tokens;
                                 quote!(#[serde #tokens])
                             })
-                            .collect()
-                    })
-                    .collect();
+                            .collect::<TokenStream>(),
+                    );
+                    field_conversion_ty
+                        .push(quote!(<#field_ty as ::codegen::Definition>::HumanFriendly));
 
-                let (field_conversion_ty, field_conversion_expr): (Vec<_>, Vec<_>) = fields
-                    .iter()
-                    .map(|field| {
-                        let field_ty = &field.ty;
-                        let field_ident = &field.ident;
-
-                        (
-                            quote!(<#field_ty as ::codegen::Definition>::HumanFriendly),
-                            quote!(
-                                <#field_ty as ::codegen::Definition>::convert(
-                                    human_friendly.#field_ident,
-                                    context,
-                                )?
-                            ),
-                        )
-                    })
-                    .unzip();
+                    let clone_call = if field_ident == "id" { quote!(.clone()) } else { quote!() };
+                    field_conversion_expr.push(quote! {
+                        <#field_ty as ::codegen::Definition>::convert(
+                            human_friendly.#field_ident #clone_call,
+                            context,
+                        )?
+                    });
+                }
 
                 let hf_skip = named
                     .named
@@ -143,9 +152,9 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                 human_friendly_conversion = quote! {
                     Self {
                         #(
-                            #field_idents: #field_conversion_expr,
+                            #field_idents_conv: #field_conversion_expr,
                         )*
-                            #(#hf_skip)*
+                        #(#hf_skip)*
                     }
                 };
             }
