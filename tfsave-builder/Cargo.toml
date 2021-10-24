@@ -1,5 +1,5 @@
 [package]
-name = "tfsave-builder"
+name = "traffloat-tfsave-builder"
 authors = ["SOFe <sofe2038@gmail.com>"]
 version = "0.2.0"
 edition = "2018"
@@ -7,6 +7,10 @@ repository = "https://github.com/traffloat/traffloat"
 homepage = "https://github.com/traffloat/traffloat"
 description = "Creates save files from TOML files"
 license = "AGPL-3.0"
+
+[[bin]]
+name = "tfsave-builder"
+path = "./src/main.rs"
 
 [dependencies]
 anyhow = "1.0.44"

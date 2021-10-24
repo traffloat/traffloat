@@ -1521,33 +1521,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tfsave-builder"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "arcstr",
- "fluent",
- "fluent-syntax",
- "itertools",
- "log",
- "pretty_env_logger",
- "resvg",
- "rmp-serde",
- "serde",
- "serde_path_to_error",
- "structopt",
- "tiny-skia",
- "toml",
- "traffloat-codegen",
- "traffloat-def",
- "traffloat-safety",
- "traffloat-types",
- "typed-builder",
- "unic-langid",
- "usvg",
-]
-
-[[package]]
 name = "thiserror"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1732,6 +1705,33 @@ dependencies = [
 [[package]]
 name = "traffloat-safety"
 version = "0.2.0"
+
+[[package]]
+name = "traffloat-tfsave-builder"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "arcstr",
+ "fluent",
+ "fluent-syntax",
+ "itertools",
+ "log",
+ "pretty_env_logger",
+ "resvg",
+ "rmp-serde",
+ "serde",
+ "serde_path_to_error",
+ "structopt",
+ "tiny-skia",
+ "toml",
+ "traffloat-codegen",
+ "traffloat-def",
+ "traffloat-safety",
+ "traffloat-types",
+ "typed-builder",
+ "unic-langid",
+ "usvg",
+]
 
 [[package]]
 name = "traffloat-types"

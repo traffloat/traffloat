@@ -21,7 +21,7 @@ traffloat-types = {opt-level = 0}
 traffloat-def = {opt-level = 0}
 traffloat-common = {opt-level = 0}
 traffloat-client = {opt-level = 0}
-tfsave-builder = {opt-level = 0}
+traffloat-tfsave-builder = {opt-level = 0}
 
 [profile.release]
 lto = true
