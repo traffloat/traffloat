@@ -88,14 +88,27 @@ impl Schema {
         };
         anyhow::ensure!(version == SCHEMA_VERSION, "Incompatible scenario version");
 
-        rmp_serde::from_read(buf).context("Error parsing scenario file")
+        let flate = flate2::read::DeflateDecoder::new(buf);
+        rmp_serde::from_read(flate).context("Error parsing scenario file")
     }
 
     /// Writes a scenario file.
     pub fn write(&self, mut w: impl Write) -> anyhow::Result<()> {
         w.write_all(MAGIC_HEADER)?;
         w.write_all(&SCHEMA_VERSION.to_le_bytes())?;
-        self.serialize(&mut rmp_serde::Serializer::new(&mut w))?;
+
+        {
+            use safety::Safety;
+
+            let mut flate = flate2::write::DeflateEncoder::new(&mut w, flate2::Compression::best());
+            self.serialize(&mut rmp_serde::Serializer::new(&mut flate))?;
+            flate.flush()?;
+            log::debug!(
+                "Compressed scenario file ({}%)",
+                flate.total_out().small_float() / flate.total_in().small_float() * 100.
+            );
+        }
+
         Ok(())
     }
 }
