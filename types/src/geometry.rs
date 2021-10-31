@@ -43,6 +43,12 @@ impl Unit {
         sprite_location(order, spritesheet_side(max))
     }
 
+    /// Search the sprite coordinates by name.
+    pub fn search_sprite_coord_by_name(&self, name: &str) -> Option<(u32, u32)> {
+        let order = self.sprite_names().iter().position(|&item| item == name)?;
+        Some(self.sprite_coords(order.try_into().expect("sprite_names is short")))
+    }
+
     /// Number of sprites on each side of the spritesheet.
     pub fn spritesheet_side(&self) -> u32 {
         spritesheet_side(

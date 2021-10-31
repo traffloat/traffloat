@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use traffloat::SetupEcs;
+use traffloat::{def, SetupEcs};
 
 use crate::util::high_res_time;
 
@@ -27,7 +27,7 @@ impl GameArgs {
     pub fn init(&self, mut setup: SetupEcs) -> SetupEcs {
         match self {
             Self::Sp(args) => {
-                setup = match traffloat::save::load(setup, &args.scenario[..], high_res_time()) {
+                setup = match def::Schema::load(setup, &args.scenario[..], high_res_time()) {
                     Ok(setup) => setup,
                     Err(err) => todo!("Handle error {:?}", err),
                 }

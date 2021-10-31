@@ -3,7 +3,7 @@
 use std::rc::Rc;
 
 use traffloat::def::building;
-use traffloat::save;
+use traffloat::save::{self, GameDefinition};
 use yew::prelude::*;
 
 /// Displays a list of buildings.
@@ -49,7 +49,7 @@ impl Component for Comp {
                 </div>
                 { for self.open.then(|| html! {
                     <div>
-                        { for self.props.file.def().building_cats().iter()
+                        { for self.props.def.building_cats().iter()
                                 .map(|(category_id, category)| html! {
                             <div>
                                 <h4>
@@ -57,7 +57,7 @@ impl Component for Comp {
                                         { category.title() }
                                     </span>
                                 </h4>
-                                { for self.props.file.def().building().iter()
+                                { for self.props.def.building().iter()
                                         .filter(|(_, building)| building.category() == category_id)
                                         .map(|(building_id, building)| html! {
                                     <div>
@@ -86,16 +86,16 @@ pub enum Msg {
     /// Toggle the opening of this navbar component.
     Toggle(MouseEvent),
     /// The user chooses a building.
-    ChooseBuilding(MouseEvent, building::TypeId),
+    ChooseBuilding(MouseEvent, building::Id),
 }
 
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
-    /// The loaded tsv file.
-    pub file:            Rc<save::SaveFile>,
+    /// The loaded scenario definition.
+    pub def:             Rc<GameDefinition>,
     /// Set the main body to a building.
-    pub choose_building: Callback<building::TypeId>,
+    pub choose_building: Callback<building::Id>,
     /// The prefix in the hash-route, e.g. `scenario/vanilla`)
     pub route_prefix:    String,
 }

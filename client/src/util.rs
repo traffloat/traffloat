@@ -52,6 +52,9 @@ pub struct ReifiedPromise<T> {
 
 impl<T> ReifiedPromise<T> {
     /// Wraps a new promise value.
+    ///
+    /// The `attachments` parameter is used to hold some RAII value
+    /// that only get freed when the promise is resolved and checked.
     pub fn new(reified: JsValue, attachments: impl Any) -> Self {
         Self {
             unknown: RefCell::new(Some((reified, Box::new(attachments)))),

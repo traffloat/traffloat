@@ -4,14 +4,14 @@ use safety::Safety;
 use traffloat::space::{Matrix, Vector};
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
-use super::mesh;
 use crate::options;
+use crate::render::mesh;
 use crate::render::util::{create_program, AttrLocation, UniformLocation};
 
 /// Stores the setup data for edge rendering.
 pub struct Program {
     prog:            WebGlProgram,
-    cylinder:        mesh::PreparedIndexedMesh,
+    cylinder:        Box<dyn mesh::Mesh>,
     a_pos:           AttrLocation,
     a_normal:        AttrLocation,
     u_trans:         UniformLocation<Matrix>,
@@ -28,7 +28,10 @@ impl Program {
     /// Initializes edge canvas resources.
     pub fn new(gl: &WebGlRenderingContext) -> Self {
         let prog = create_program(gl, glsl!("edge"));
-        let cylinder = mesh::CYLINDER.prepare(gl);
+        let cylinder = Box::new(mesh::cylinder::prepare(
+            gl,
+            mesh::cylinder::Options::builder().num_vert(16).fused(false).build(),
+        ));
 
         let a_pos = AttrLocation::new(gl, &prog, "a_pos");
         let a_normal = AttrLocation::new(gl, &prog, "a_normal");
@@ -67,7 +70,7 @@ impl Program {
         selected: bool,
         args: &options::ReflectionArgs,
     ) {
-        use mesh::AbstractPreparedMesh;
+        use mesh::Mesh;
 
         gl.use_program(Some(&self.prog));
         self.u_trans.assign(gl, proj);
@@ -79,8 +82,8 @@ impl Program {
         self.u_specular_coef.assign(gl, args.specular_coef().lossy_trunc());
         self.u_inv_gain.assign(gl, if selected { 0.5f32 } else { 1f32 });
 
-        self.a_pos.assign(gl, self.cylinder.positions());
-        self.a_normal.assign(gl, self.cylinder.normals());
+        self.a_pos.assign(gl, self.cylinder.position());
+        self.a_normal.assign(gl, self.cylinder.normal());
         self.cylinder.draw(gl);
     }
 }

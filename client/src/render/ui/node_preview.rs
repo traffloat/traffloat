@@ -6,14 +6,13 @@ use legion::{Entity, EntityStore};
 use smallvec::SmallVec;
 use traffloat::clock::Clock;
 use traffloat::config::Scalar;
-use traffloat::def::GameDefinition;
+use traffloat::save::GameDefinition;
 use traffloat::{cargo, edge, gas, liquid, node, units};
 use yew::prelude::*;
 
 use super::{Update, UpdaterRef};
 use crate::app::icon;
 use crate::input;
-use crate::render::texture;
 
 /// Displays basic info about a node at a corner of the screen.
 pub struct Comp {
@@ -44,8 +43,6 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         use traffloat::units::RoundedUnit;
-
-        use crate::render::texture::Icon;
 
         fn storage_display(
             size: impl RoundedUnit + Into<Html>,

@@ -63,14 +63,14 @@ pub enum Msg {}
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
-    /// The loaded tsv file.
-    pub file:            Rc<save::SaveFile>,
+    /// The loaded scenario definition.
+    pub file:            Rc<save::GameDefinition>,
     /// Set the main body to editor home.
     pub editor_home:     Callback<()>,
     /// Set the main body to a building.
-    pub choose_building: Callback<building::TypeId>,
+    pub choose_building: Callback<building::Id>,
     /// Set the main body to a cargo.
-    pub choose_cargo:    Callback<cargo::TypeId>,
+    pub choose_cargo:    Callback<cargo::Id>,
     /// The prefix in the hash-route, e.g. `scenario/vanilla`)
     pub route_prefix:    String,
 }

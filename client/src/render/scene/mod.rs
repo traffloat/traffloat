@@ -6,6 +6,7 @@ use legion::world::SubWorld;
 use legion::{component, Entity};
 use safety::Safety;
 use traffloat::appearance::{self, Appearance};
+use traffloat::def::atlas::ModelRef;
 use traffloat::space::{Matrix, Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 use traffloat::{lerp, units};
@@ -13,10 +14,9 @@ use web_sys::WebGlRenderingContext;
 
 use super::{CursorType, RenderFlag};
 use crate::camera::Camera;
+use crate::render::texture::AtlasId;
 use crate::util::Bounds;
 use crate::{input, options};
-
-pub mod mesh;
 
 pub mod edge;
 pub mod node;
@@ -91,7 +91,7 @@ fn draw(
     #[resource] camera: &Camera,
     #[resource] layers: &Option<super::Layers>,
     #[resource] sun: &Sun,
-    #[resource] texture_pool: &mut Option<super::texture::Pool>,
+    #[resource(no_init)] texture_pool: &super::texture::Pool,
     #[resource] hover_target: &input::mouse::HoverTarget,
     #[resource] focus_target: &input::FocusTarget,
     #[resource(no_init)] options: &options::Options,
@@ -114,8 +114,6 @@ fn draw(
     scene.clear();
 
     let projection = camera.projection();
-
-    let texture_pool = texture_pool.get_or_insert_with(|| super::texture::Pool::new(&scene.gl));
 
     let sun_dir = sun.direction();
 
@@ -168,8 +166,9 @@ fn draw(
                 // projection matrix transforms real coordinates to canvas
 
                 let unit_to_real = component.transform(*position);
-                let tex: &appearance::Texture = component.texture();
-                let sprite = texture_pool.sprite(tex, &scene.gl);
+                let tex: &ModelRef = component.texture();
+                let id = AtlasId::new(tex.spritesheet_id(), arcstr::literal!("fancy")); // TODO allow choosing variant
+                let sprite = texture_pool.resolve(&scene.gl, &id);
 
                 scene.node_prog.draw(
                     node::DrawArgs::builder()

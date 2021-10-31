@@ -82,16 +82,16 @@ pub enum Msg {
     /// Toggle the opening of this navbar component.
     Toggle(MouseEvent),
     /// The user chooses a cargo.
-    ChooseCargo(MouseEvent, cargo::TypeId),
+    ChooseCargo(MouseEvent, cargo::Id),
 }
 
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
-    /// The loaded tsv file.
-    pub file:         Rc<save::SaveFile>,
+    /// The loaded scenario definition.
+    pub def:          Rc<save::GameDefinition>,
     /// Set the main body to a cargo.
-    pub choose_cargo: Callback<cargo::TypeId>,
+    pub choose_cargo: Callback<cargo::Id>,
     /// The prefix in the hash-route, e.g. `scenario/vanilla`)
     pub route_prefix: String,
 }

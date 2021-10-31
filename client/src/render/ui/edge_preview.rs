@@ -9,7 +9,6 @@ use yew::prelude::*;
 use super::{duct_editor, Update, UpdaterRef};
 use crate::app::icon;
 use crate::input;
-use crate::render::texture;
 
 /// Displays basic info about an edge at a corner of the screen.
 pub struct Comp {

@@ -2,7 +2,8 @@
 
 use std::rc::Rc;
 
-use traffloat::{def, save};
+use traffloat::def;
+use traffloat::save::{self, GameDefinition};
 use yew::prelude::*;
 
 use crate::app::route::*;
@@ -19,7 +20,7 @@ const MAIN_WIDTH_PX: u32 = 750;
 pub struct Comp {
     props: Props,
     link:  ComponentLink<Self>,
-    file:  Option<Rc<save::SaveFile>>,
+    def:   Option<Rc<GameDefinition>>,
     state: State,
 }
 
@@ -28,7 +29,7 @@ impl Component for Comp {
     type Properties = Props;
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        let file = match save::parse(&props.buf) {
+        let file = match def::Schema::parse(&props.buf) {
             Ok(file) => Rc::new(file),
             Err(err) => {
                 props.close_hook.emit(Some(format!("Error reading save file: {}", err)));
@@ -148,9 +149,9 @@ pub enum Switch {
     /// Home page for the editor.
     Home,
     /// Information for a building.
-    Building(def::building::TypeId),
+    Building(def::building::Id),
     /// Information for a cargo.
-    Cargo(def::cargo::TypeId),
+    Cargo(def::cargo::Id),
 }
 
 impl Switch {
@@ -191,9 +192,9 @@ pub enum Msg {
     /// Set the main body to home.
     EditorHome,
     /// Set the main body to a building.
-    ChooseBuilding(def::building::TypeId),
+    ChooseBuilding(def::building::Id),
     /// Set the main body to a cargo.
-    ChooseCargo(def::cargo::TypeId),
+    ChooseCargo(def::cargo::Id),
 }
 
 /// Yew properties for [`Comp`].

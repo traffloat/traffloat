@@ -4,8 +4,8 @@ use std::rc::Rc;
 
 use itertools::Itertools;
 use traffloat::def::feature::{reaction, security, Feature};
-use traffloat::def::{building, catalyst, GameDefinition};
-use traffloat::save::SaveFile;
+use traffloat::def::{building, catalyst};
+use traffloat::save::GameDefinition;
 use yew::prelude::*;
 
 /// Displays a list of buildings.
@@ -27,7 +27,7 @@ impl Component for Comp {
     }
 
     fn view(&self) -> Html {
-        let def = self.props.file.def();
+        let def = self.props.def;
         let building = def
             .building()
             .get(&self.props.building_id)
@@ -119,7 +119,6 @@ fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
             </div>
         },
         Feature::SecureEntry(policy) | Feature::SecureExit(policy) => {
-            let skill = def.skill().get(policy.skill()).expect("Save references undefined skill");
             html! {
                 <div>
                     <h3>{ match feature {
@@ -128,21 +127,9 @@ fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
                         _ => unreachable!(),
                     } }</h3>
 
-                    <p>
-                        { match feature {
-                            Feature::SecureEntry(_) => "Inhabitants entering the building ",
-                            Feature::SecureExit(_) => "Inhabitants leaving the building ",
-                            _ => unreachable!(),
-                        } }
-                        { match policy.deny_if() {
-                            security::SkillRequirement::AtLeast(level) => {
-                                format!("should have at least {} {}.", level, skill.name())
-                            },
-                            security::SkillRequirement::AtMost(level) => {
-                                format!("should have at most {} {}.", level, skill.name())
-                            },
-                        } }
-                    </p>
+                    <p>{
+                        todo!()
+                    }</p>
 
                     <p>
                         { match feature {
@@ -292,8 +279,8 @@ pub enum Msg {}
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
-    /// The loaded tsv file.
-    pub file:        Rc<SaveFile>,
+    /// The loaded scenario definition.
+    pub def:         Rc<GameDefinition>,
     /// The type ID of the active building.
-    pub building_id: building::TypeId,
+    pub building_id: building::Id,
 }

@@ -6,15 +6,14 @@ use traffloat::space::{Matrix, Vector};
 use typed_builder::TypedBuilder;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
 
-use crate::render::scene::mesh;
-use crate::render::texture;
 use crate::render::util::{create_program, AttrLocation, UniformLocation};
+use crate::render::{mesh, texture};
 
 /// Stores the setup data for node rendering.
 pub struct Program {
     prog:           WebGlProgram,
-    cube:           mesh::PreparedMesh,
-    cylinder:       mesh::PreparedIndexedMesh,
+    cube:           Box<dyn mesh::Mesh>,
+    cylinder:       Box<dyn mesh::Mesh>,
     a_pos:          AttrLocation,
     a_normal:       AttrLocation,
     a_tex_pos:      AttrLocation,
@@ -33,8 +32,11 @@ impl Program {
     pub fn new(gl: &WebGlRenderingContext) -> Self {
         let prog = create_program(gl, glsl!("node"));
 
-        let cube = mesh::CUBE.prepare(gl);
-        let cylinder = mesh::FUSED_CYLINDER.prepare(gl);
+        let cube = Box::new(mesh::cube::prepare(gl));
+        let cylinder = Box::new(mesh::cylinder::prepare(
+            gl,
+            mesh::cylinder::Options::builder().num_vert(32).fused(true).build(),
+        ));
 
         let a_pos = AttrLocation::new(gl, &prog, "a_pos");
         let a_normal = AttrLocation::new(gl, &prog, "a_normal");
@@ -69,51 +71,40 @@ impl Program {
     /// Draws a node on the canvas.
     ///
     /// The projection matrix transforms unit model coordinates to projection coordinates directly.
-    pub fn draw(
-        &self,
-        DrawArgs { gl, proj, sun, filter, selected, texture, shape_unit, uses_texture }: DrawArgs<
-            '_,
-        >,
-    ) {
-        use mesh::AbstractPreparedMesh;
+    pub fn draw(&self, args: DrawArgs<'_>) {
+        use mesh::Mesh;
 
-        gl.use_program(Some(&self.prog));
-        self.u_proj.assign(gl, proj);
-        self.u_sun.assign(gl, sun);
-        self.u_filter.assign(gl, filter);
-        self.u_inv_gain.assign(gl, if selected { 0.5f32 } else { 1f32 });
-        self.u_uses_texture.assign(gl, uses_texture);
+        args.gl.use_program(Some(&self.prog));
+        self.u_proj.assign(args.gl, args.proj);
+        self.u_sun.assign(args.gl, args.sun);
+        self.u_filter.assign(args.gl, args.filter);
+        self.u_inv_gain.assign(args.gl, if args.selected { 0.5f32 } else { 1f32 });
+        self.u_uses_texture.assign(args.gl, args.uses_texture);
 
         // The dynamic dispatch here is roughly equialent to
         // an enum matching on the unit type and should not impact performance.
-        let mesh: &dyn AbstractPreparedMesh = match shape_unit {
-            appearance::Unit::Cube => &self.cube,
-            appearance::Unit::Cylinder => &self.cylinder,
+        let mesh: &dyn mesh::Mesh = match args.shape_unit {
+            appearance::Unit::Cube => &*self.cube,
+            appearance::Unit::Cylinder => &*self.cylinder,
             _ => todo!(),
         };
-        self.a_pos.assign(gl, mesh.positions());
-        self.a_normal.assign(gl, mesh.normals());
-        self.a_tex_pos.assign(gl, mesh.tex_pos());
-        texture.apply(
-            mesh.tex_sprite_number(),
-            mesh.tex_offset(),
-            self.a_tex_offset,
-            &self.u_tex,
-            &self.u_tex_dim,
-            gl,
-        );
+        self.a_pos.assign(args.gl, mesh.position());
+        self.a_normal.assign(args.gl, mesh.normal());
+        self.a_tex_pos.assign(args.gl, mesh.tex_pos());
 
-        gl.tex_parameteri(
+        args.texture.apply(args.gl, &self.u_tex);
+
+        args.gl.tex_parameteri(
             WebGlRenderingContext::TEXTURE_2D,
             WebGlRenderingContext::TEXTURE_MAG_FILTER,
             WebGlRenderingContext::NEAREST.homosign(),
         );
-        gl.tex_parameteri(
+        args.gl.tex_parameteri(
             WebGlRenderingContext::TEXTURE_2D,
             WebGlRenderingContext::TEXTURE_MIN_FILTER,
             WebGlRenderingContext::NEAREST_MIPMAP_NEAREST.homosign(),
         );
-        mesh.draw(gl);
+        mesh.draw(args.gl);
     }
 }
 
@@ -132,7 +123,7 @@ pub struct DrawArgs<'t> {
     /// Whether this node is selected.
     selected:     bool,
     /// The spritesheet for the shape.
-    texture:      &'t texture::PreparedTexture,
+    texture:      &'t texture::Texture,
     /// The shape to draw.
     shape_unit:   appearance::Unit,
     /// Whether to draw the texture.

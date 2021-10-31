@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use traffloat::def;
+use traffloat::save::GameDefinition;
 use wasm_bindgen::JsValue;
 
 /// The top level route.
@@ -35,8 +36,8 @@ pub enum SpRoute {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Rules {
     Home,
-    Building(def::building::TypeId),
-    Cargo(def::cargo::TypeId),
+    Building(def::building::Id),
+    Cargo(def::cargo::Id),
 }
 
 impl Default for Route {
@@ -61,10 +62,10 @@ impl Route {
     }
 
     /// Parses a hash-path to a route.
-    pub fn parse_path(mut path: &str) -> Self {
+    pub fn parse_path(mut path: &str, def: &GameDefinition) -> Option<Self> {
         path = path.trim_start_matches(&['#', '/'][..]);
 
-        fn parse_sp(mut sp: &str) -> SpRoute {
+        fn parse_sp(mut sp: &str, def: &GameDefinition) -> Option<SpRoute> {
             sp = sp.trim_start_matches('/');
             if sp == "play" {
                 return SpRoute::Game;
@@ -73,10 +74,10 @@ impl Route {
                 path = path.trim_start_matches('/');
                 if let Some(mut path) = path.strip_prefix("building") {
                     path = path.trim_start_matches('/');
-                    SpRoute::Rules(Rules::Building(def::building::TypeId(path.into())))
+                    SpRoute::Rules(Rules::Building(def.find_building(path)))
                 } else if let Some(mut path) = path.strip_prefix("cargo") {
                     path = path.trim_start_matches('/');
-                    SpRoute::Rules(Rules::Cargo(def::cargo::TypeId(path.into())))
+                    SpRoute::Rules(Rules::Cargo(def.find_cargo(path)))
                 } else {
                     SpRoute::Rules(Rules::Home)
                 }
@@ -88,7 +89,7 @@ impl Route {
         if let Some(mut path) = path.strip_prefix("scenario") {
             path = path.trim_start_matches('/');
             if let Some((name, sp)) = path.split_once('/') {
-                Route::Scenario { name: name.to_string(), sp: parse_sp(sp) }
+                Route::Scenario { name: name.to_string(), sp: parse_sp(sp, def) }
             } else {
                 Route::Scenario { name: path.to_string(), sp: SpRoute::Home }
             }

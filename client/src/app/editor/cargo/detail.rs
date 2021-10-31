@@ -3,7 +3,7 @@
 use std::rc::Rc;
 
 use traffloat::def::cargo;
-use traffloat::save::SaveFile;
+use traffloat::save::GameDefinition;
 use yew::prelude::*;
 
 /// Displays a list of cargo.
@@ -25,7 +25,7 @@ impl Component for Comp {
     }
 
     fn view(&self) -> Html {
-        let def = self.props.file.def();
+        let def = &self.props.def;
         let cargo =
             def.cargo().get(&self.props.cargo_id).expect("Route references undefined cargo");
 
@@ -42,8 +42,8 @@ pub enum Msg {}
 /// Yew properties for [`Comp`].
 #[derive(Clone, Properties)]
 pub struct Props {
-    /// The loaded tsv file.
-    pub file:     Rc<SaveFile>,
+    /// The loaded scenario definition.
+    pub def:      Rc<GameDefinition>,
     /// The type ID of the active cargo.
-    pub cargo_id: cargo::TypeId,
+    pub cargo_id: cargo::Id,
 }

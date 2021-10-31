@@ -22,7 +22,7 @@ impl Component for Mux {
             .location()
             .hash()
             .unwrap_or_else(|_| String::new());
-        let route = super::route::Route::parse_path(&hash);
+        let route = Route::parse_path(&hash).unwrap_or_default();
         log::debug!("Path parsed as {:?}", route);
 
         Self { link, state: State::Home { error: None }, intent_route: Some(route) }

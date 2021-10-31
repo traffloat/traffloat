@@ -12,17 +12,35 @@ use crate::liquid;
 /// Stores all scenario gamerule definitions.
 #[derive(Getters)]
 pub struct GameDefinition {
+    /// Liquid types.
+    #[getset(get = "pub")]
     liquid:            Vec<def::liquid::Def>,
     /// The liquid recipe map.
     #[getset(get = "pub")]
     liquid_recipes:    liquid::RecipeMap,
+    /// Gas types.
+    #[getset(get = "pub")]
     gas:               Vec<def::gas::Def>,
+    /// Cargo category.
+    #[getset(get = "pub")]
     cargo_category:    Vec<def::cargo::category::Def>,
+    /// Cargo types.
+    #[getset(get = "pub")]
     cargo:             Vec<def::cargo::Def>,
+    /// Skill types.
+    #[getset(get = "pub")]
     skill:             Vec<def::skill::Def>,
+    /// Vehicle types.
+    #[getset(get = "pub")]
     vehicle:           Vec<def::vehicle::Def>,
+    /// Building category.
+    #[getset(get = "pub")]
     building_category: Vec<def::building::category::Def>,
+    /// Building types.
+    #[getset(get = "pub")]
     building:          Vec<def::building::Def>,
+    /// Crime types.
+    #[getset(get = "pub")]
     crime:             Vec<def::crime::Def>,
 }
 
@@ -48,7 +66,7 @@ impl GameDefinition {
 }
 
 macro_rules! impl_index {
-    ($field:ident, $($module:tt)*) => {
+    ($field:ident, $find:ident, $($module:tt)*) => {
         impl ops::Index<$($module)*::Id> for GameDefinition {
             type Output = $($module)*::Def;
 
@@ -57,18 +75,25 @@ macro_rules! impl_index {
                 self.$field.get(index).expect("Corrupted game file")
             }
         }
+
+        impl GameDefinition {
+            pub fn $find(&self, name: &str) -> Option<&$($module)*::Def> {
+                self.$field.iter()
+                    .find(|def| def.id_str().as_str() == name)
+            }
+        }
     }
 }
 
-impl_index!(liquid, def::liquid);
-impl_index!(gas, def::gas);
-impl_index!(cargo_category, def::cargo::category);
-impl_index!(cargo, def::cargo);
-impl_index!(skill, def::skill);
-impl_index!(vehicle, def::vehicle);
-impl_index!(building_category, def::building::category);
-impl_index!(building, def::building);
-impl_index!(crime, def::crime);
+impl_index!(liquid, find_liquid, def::liquid);
+impl_index!(gas, find_gas, def::gas);
+impl_index!(cargo_category, find_cargo_category, def::cargo::category);
+impl_index!(cargo, find_cargo, def::cargo);
+impl_index!(skill, find_skill, def::skill);
+impl_index!(vehicle, find_vehicle, def::vehicle);
+impl_index!(building_category, find_building_category, def::building::category);
+impl_index!(building, find_building, def::building);
+impl_index!(crime, find_crime, def::crime);
 
 /// Parameters for saving game state.
 ///

@@ -29,12 +29,13 @@ pub use layers::{Dimension, Layers, LayersStruct};
 mod comm;
 pub use comm::*;
 
-pub mod texture;
-
 pub mod bg;
 pub mod debug;
 pub mod scene;
-pub mod ui;
+// pub mod ui;
+
+pub mod mesh;
+pub mod texture;
 
 pub mod util;
 

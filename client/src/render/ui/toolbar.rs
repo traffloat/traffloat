@@ -21,7 +21,7 @@ impl Component for Comp {
 
     fn update(&mut self, msg: Msg) -> ShouldRender {
         match msg {
-            Msg::SaveButton(format) => {
+            Msg::SaveButton => {
                 let mut legion = self.props.legion.borrow_mut();
                 legion.publish(traffloat::save::Request::builder().format(format).build());
                 false
@@ -48,7 +48,7 @@ impl Component for Comp {
             <nav style=style>
                 <button
                     style=style!("pointer-events": "auto")
-                    onclick=self.link.callback(|_| Msg::SaveButton(save::Format::Binary))
+                    onclick=self.link.callback(|_| Msg::SaveButton)
                 >{ "Save" }</button>
                 <button
                     style=style!("pointer-events": "auto")
@@ -68,7 +68,7 @@ impl Component for Comp {
 /// Events for [`Comp`].
 pub enum Msg {
     /// The user clicks the save button.
-    SaveButton(save::Format),
+    SaveButton,
     /// Open settings menu.
     OpenOptions,
 }
@@ -90,11 +90,7 @@ fn post_save(#[subscriber] responses: impl Iterator<Item = save::Response>) {
         let array = js_sys::Uint8Array::from(&resp.data()[..]);
 
         let mut options = web_sys::BlobPropertyBag::new();
-        options.type_(match resp.format() {
-            #[cfg(feature = "load-tsvt")]
-            save::Format::Text => "text/yaml",
-            save::Format::Binary => "application/octet-stream",
-        });
+        options.type_("application/octet-stream");
         let seq = std::iter::once(array).collect::<js_sys::Array>();
         let blob = web_sys::Blob::new_with_u8_array_sequence_and_options(&seq, &options)
             .expect("Cannot create Blob from Uint8Array");
@@ -110,11 +106,7 @@ fn post_save(#[subscriber] responses: impl Iterator<Item = save::Response>) {
             .dyn_into::<web_sys::HtmlAnchorElement>()
             .expect("<a> is not HtmlAnchorElement");
         elem.set_href(&url);
-        elem.set_download(match resp.format() {
-            #[cfg(feature = "load-tsvt")]
-            save::Format::Text => "save.tsvt",
-            save::Format::Binary => "save.tsv",
-        });
+        elem.set_download("game.tfsave");
         elem.click();
     }
 }
