@@ -2,11 +2,12 @@
 
 use std::rc::Rc;
 
-use itertools::Itertools;
-use traffloat::def::feature::{reaction, security, Feature};
+use traffloat::def::feature::{reaction, Feature};
 use traffloat::def::{building, catalyst};
 use traffloat::save::GameDefinition;
 use yew::prelude::*;
+
+use crate::app::lang;
 
 /// Displays a list of buildings.
 pub struct Comp {
@@ -27,11 +28,8 @@ impl Component for Comp {
     }
 
     fn view(&self) -> Html {
-        let def = self.props.def;
-        let building = def
-            .building()
-            .get(&self.props.building_id)
-            .expect("Route references undefined building");
+        let def = &self.props.def;
+        let building = &def[self.props.building_id];
 
         fn table_entry(name: impl Into<Html>, value: impl Into<Html>) -> Html {
             html! {
@@ -44,36 +42,49 @@ impl Component for Comp {
 
         html! {
             <>
-                <h1>{ building.name() }</h1>
+                <h1><lang::Comp item=building.name() /></h1>
                 <div style=style!("float": "right")>
                     <table>
                         <tbody>
                             { table_entry("Hitpoints", building.hitpoint()) }
                             { table_entry("Cargo capacity", building.storage().cargo()) }
-                            { table_entry(
-                                "Liquid capacity",
-                                building
-                                    .storage()
-                                    .liquid()
-                                    .iter()
-                                    .map(|volume| volume.to_string())
-                                    .join(" + ")
-                            ) }
+                            { for building.storage().liquid().iter().map(|storage| {
+                                table_entry(html! {
+                                    <>
+                                        { "Liquid capacity (" }
+                                        <lang::Comp item=storage.name() />
+                                        { ")" }
+                                    </>
+                                }, storage.capacity())
+                            }) }
                             { table_entry("Gas capacity", building.storage().gas()) }
+                            { for building.storage().population().iter().map(|storage| {
+                                table_entry(html! {
+                                    <>
+                                        { "Inhabitant capacity (" }
+                                        <lang::Comp item=storage.name() />
+                                        { ")" }
+                                    </>
+                                }, storage.capacity())
+                            }) }
                         </tbody>
                     </table>
                 </div>
-                <p style=style!("font-style": "italic")>{ building.summary() }</p>
-                <p>{ building.description() }</p>
+                <p style=style!("font-style": "italic")>
+                    <lang::Comp item=building.summary() />
+                </p>
+                <p>
+                    <lang::Comp item=building.description() />
+                </p>
 
                 <h2>{ "Mechanisms" }</h2>
-                { for building.features().iter().map(|feature| render_feature(feature, def)) }
+                { for building.features().iter().map(|feature| render_feature(building, feature, def)) }
             </>
         }
     }
 }
 
-fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
+fn render_feature(building: &building::Def, feature: &Feature, def: &GameDefinition) -> Html {
     match feature {
         Feature::Core => html! {
             <div>
@@ -81,18 +92,28 @@ fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
                 <p>{ "This is a core building. The game is lost if all core buildings are destroyed." }</p>
             </div>
         },
-        Feature::ProvidesHousing(capacity) => html! {
-            <div>
-                <h3>{ format_args!("Housing ({} capacity)", capacity) }</h3>
-                <p>
-                    { format_args!("This building provides {} housing capacity. ", capacity) }
-                    { "Inhabitants assigned to this building will be affected by " }
-                    { "the skill-related mechanisms of this building, such as food, " }
-                    { "even if they are not currently inside the building." }
-                </p>
-            </div>
-        },
-        Feature::Reaction(reaction) => render_reaction(reaction, def),
+        Feature::ProvidesHousing(housing) => {
+            let storage = building
+                .storage()
+                .population()
+                .get(housing.storage().as_index())
+                .expect("Corrupted definition");
+
+            html! {
+                <div>
+                    <h3>{ "Housing" }</h3>
+                    <p>
+                        { "The " }
+                        <lang::Comp item=storage.name() />
+                        { " facility provides housing to occupants. " }
+                        { "Inhabitants assigned to this building will be affected by " }
+                        { "the skill-related mechanisms of this building, such as food, " }
+                        { "even if they are not currently inside the building." }
+                    </p>
+                </div>
+            }
+        }
+        Feature::Reaction(reaction) => render_reaction(reaction, building, def),
         Feature::RailPump(spec) => html! {
             <div>
                 <h3>{ "Rail terminal" }</h3>
@@ -128,7 +149,7 @@ fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
                     } }</h3>
 
                     <p>{
-                        todo!()
+                        todo!() as String
                     }</p>
 
                     <p>
@@ -150,7 +171,7 @@ fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
                     { for (!policy.catalysts().is_empty()).then(|| html! {
                         <>
                             <h4>{ "Boosts" }</h4>
-                            { for policy.catalysts().iter().map(|catalyst| render_catalyst(catalyst, def)) }
+                            { for policy.catalysts().iter().map(|catalyst| render_catalyst(catalyst, building, def)) }
                         </>
                     }) }
                 </div>
@@ -159,11 +180,15 @@ fn render_feature(feature: &Feature, def: &GameDefinition) -> Html {
     }
 }
 
-fn render_reaction(reaction: &reaction::Reaction, def: &GameDefinition) -> Html {
+fn render_reaction(
+    reaction: &reaction::Reaction,
+    building: &building::Def,
+    def: &GameDefinition,
+) -> Html {
     html! {
         <div>
-            <h3>{ reaction.title() }</h3>
-            <p>{ reaction.description() }</p>
+            <h3><lang::Comp item=reaction.title() /></h3>
+            <p><lang::Comp item=reaction.description() /></p>
             <p>
                 { format_args!(
                     "The rate of reaction {} be configured.",
@@ -187,7 +212,7 @@ fn render_reaction(reaction: &reaction::Reaction, def: &GameDefinition) -> Html 
 
                     { for reaction.catalysts().iter().map(|catalyst| html! {
                         <tr>
-                        { render_catalyst(catalyst, def) }
+                        { render_catalyst(catalyst, building, def) }
                             <td>{ format_args!("{}\u{d7}", catalyst.multipliers().underflow()) }</td>
                             <td>{ format_args!(
                                 "{}\u{d7} to {}\u{d7}",
@@ -205,11 +230,15 @@ fn render_reaction(reaction: &reaction::Reaction, def: &GameDefinition) -> Html 
     }
 }
 
-fn render_catalyst(catalyst: &catalyst::Catalyst, def: &GameDefinition) -> Html {
+fn render_catalyst(
+    catalyst: &catalyst::Catalyst,
+    building: &building::Def,
+    def: &GameDefinition,
+) -> Html {
     match catalyst.range() {
         catalyst::CatalystRange::Cargo { ty, levels } => html! {
             <>
-                <td>{ def.cargo().get(ty).expect("Save references undefined cargo").name() }</td>
+                <td><lang::Comp item=def[*ty].name() /></td>
                 <td>{ format_args!(
                     "{} to {}",
                     levels.start,
@@ -219,7 +248,7 @@ fn render_catalyst(catalyst: &catalyst::Catalyst, def: &GameDefinition) -> Html 
         },
         catalyst::CatalystRange::Liquid { ty, levels } => html! {
             <>
-                <td>{ def.liquid().get(ty).expect("Save references undefined liquid").name() }</td>
+                <td><lang::Comp item=def[*ty].name() /></td>
                 <td>{ format_args!(
                     "{} to {}",
                     levels.start,
@@ -229,7 +258,7 @@ fn render_catalyst(catalyst: &catalyst::Catalyst, def: &GameDefinition) -> Html 
         },
         catalyst::CatalystRange::Gas { ty, levels } => html! {
             <>
-                <td>{ def.gas().get(ty).expect("Save references undefined gas").name() }</td>
+                <td><lang::Comp item=def[*ty].name() /></td>
                 <td>{ format_args!(
                     "{} to {}",
                     levels.start,
@@ -257,12 +286,17 @@ fn render_catalyst(catalyst: &catalyst::Catalyst, def: &GameDefinition) -> Html 
                 ) }</td>
             </>
         },
-        catalyst::CatalystRange::Skill { ty, levels } => html! {
+        catalyst::CatalystRange::Skill { ty, levels, storage } => html! {
             <>
-                <td>{ format_args!(
-                    "Operator with {}",
-                    def.skill().get(ty).expect("Save references undefined skill").name(),
-                ) }</td>
+                <td>
+                    { "Inhabitants (" }
+                    {{
+                        let storage = building.storage().population().get(storage.as_index()).expect("Corrupted definition");
+                        html!(<lang::Comp item=storage.name() />)
+                    }}
+                    { ") with " }
+                    <lang::Comp item=def[*ty].name() />
+                </td>
                 <td>{ format_args!(
                     "{} to {}",
                     levels.start,

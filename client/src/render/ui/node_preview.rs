@@ -1,18 +1,16 @@
 //! Renders node info preview.
 
-use arcstr::ArcStr;
 use legion::world::SubWorld;
 use legion::{Entity, EntityStore};
-use smallvec::SmallVec;
 use traffloat::clock::Clock;
 use traffloat::config::Scalar;
-use traffloat::save::GameDefinition;
-use traffloat::{cargo, edge, gas, liquid, node, units};
+use traffloat::def::CustomizableName;
+use traffloat::{cargo, edge, gas, liquid, save, units};
+use traffloat_def::lang;
 use yew::prelude::*;
 
 use super::{Update, UpdaterRef};
-use crate::app::icon;
-use crate::input;
+use crate::{app, input, ContextPath};
 
 /// Displays basic info about a node at a corner of the screen.
 pub struct Comp {
@@ -36,9 +34,8 @@ impl Component for Comp {
     }
 
     fn change(&mut self, props: Props) -> ShouldRender {
-        let changed = self.props.args != props.args;
         self.props = props;
-        changed
+        true
     }
 
     fn view(&self) -> Html {
@@ -46,30 +43,20 @@ impl Component for Comp {
 
         fn storage_display(
             size: impl RoundedUnit + Into<Html>,
-            name: &ArcStr,
-            icon: &Option<Icon>,
+            _name: &lang::Item,
+            icon: &str,
         ) -> Html {
             html! {
                 <tr>
                     <td>{ size.round(2) }</td>
                     <td>
-                        { match icon {
-                            Some(icon) => html! {
-                                <icon::Comp
-                                    atlas_path=icon.url.to_string()
-                                    atlas_width=icon.dim.0
-                                    atlas_height=icon.dim.1
-                                    x0=icon.pos.x()
-                                    y0=icon.pos.y()
-                                    x1=icon.pos.x() + icon.pos.width()
-                                    y1=icon.pos.y() + icon.pos.height()
-                                    out_width=24
-                                    out_height=24
-                                    text=name.to_string()
-                                    />
-                            },
-                            None => name.into(),
-                        }}
+                        <span> // TODO render translated name as title
+                            <img
+                                src=icon.to_string()
+                                width=24
+                                height=24
+                                />
+                        </span>
                     </td>
                 </tr>
             }
@@ -100,15 +87,15 @@ impl Component for Comp {
                         "cursor": "help",
                     )
                 >
-                    { &self.props.args.node_name }
+                    <app::lang::Comp item=&self.props.args.node_name />
                 </p>
                 <p style=row_style>
                     { self.props.args.hitpoint }
                 </p>
                 <table style=row_style>
-                    { for self.props.args.cargo.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
-                    { for self.props.args.liquid.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
-                    { for self.props.args.gas.iter().map(|(size, name, icon)| storage_display(*size, name, icon)) }
+                    { for self.props.args.cargo.iter().map(|entry| storage_display(entry.size, &entry.name, &entry.icon)) }
+                    { for self.props.args.liquid.iter().map(|entry| storage_display(entry.size, &entry.name, &entry.icon)) }
+                    { for self.props.args.gas.iter().map(|entry| storage_display(entry.size, &entry.name, &entry.icon)) }
                 </table>
             </div>
         }
@@ -129,24 +116,32 @@ pub struct Props {
 }
 
 /// Yew-independent properties.
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub struct Args {
     /// Entity ID of the node.
     pub entity:    Entity,
     /// Name of the targeted node.
-    pub node_name: ArcStr,
+    pub node_name: CustomizableName,
     /// Hitpoint value of the targeted node.
     pub hitpoint:  units::Portion<units::Hitpoint>,
     /// Cargo stored in the targeted node.
-    pub cargo:     SmallVec<[(units::CargoSize, ArcStr, Option<texture::Icon>); 4]>,
+    pub cargo:     Vec<StorageEntry<units::CargoSize>>,
     /// Liquids stored in the targeted node.
-    pub liquid:    SmallVec<[(units::LiquidVolume, ArcStr, Option<texture::Icon>); 4]>,
+    pub liquid:    Vec<StorageEntry<units::LiquidVolume>>,
     /// Gases stored in the targeted node.
-    pub gas:       SmallVec<[(units::GasVolume, ArcStr, Option<texture::Icon>); 4]>,
+    pub gas:       Vec<StorageEntry<units::GasVolume>>,
+}
+
+/// Preview information for a storage.
+#[derive(Clone)]
+pub struct StorageEntry<S: units::Unit> {
+    size: S,
+    name: lang::Item,
+    icon: String,
 }
 
 #[codegen::system(Visualize)]
-#[read_component(node::Name)]
+#[read_component(CustomizableName)]
 #[read_component(edge::Id)]
 #[read_component(units::Portion<units::Hitpoint>)]
 #[read_component(cargo::StorageList)]
@@ -161,19 +156,19 @@ pub struct Args {
 #[read_component(gas::NextStorageSize)]
 #[thread_local]
 fn draw(
-    #[resource(no_init)] def: &GameDefinition,
     #[resource] hover_target: &input::mouse::HoverTarget,
     #[resource] focus_target: &input::FocusTarget,
     world: &mut SubWorld,
     #[resource] updater_ref: &UpdaterRef,
     #[resource] clock: &Clock,
-    #[resource] texture_pool: &Option<texture::Pool>,
+    #[resource(no_init)] def: &save::GameDefinition,
+    #[resource(no_init)] context_path: &ContextPath,
     #[resource] config: &Scalar,
 ) {
     let info = if let Some(entity) = focus_target.entity().or_else(|| hover_target.entity()) {
         let entity_entry = world.entry_ref(entity).expect("Target entity does not exist"); // TODO what if user is hovering over node while deleting it?
         if let (Ok(node_name), Ok(&hitpoint), Ok(cargo_list), Ok(liquid_list), Ok(gas_list)) = (
-            entity_entry.get_component::<node::Name>(),
+            entity_entry.get_component::<CustomizableName>(),
             entity_entry.get_component::<units::Portion<units::Hitpoint>>(),
             entity_entry.get_component::<cargo::StorageList>(),
             entity_entry.get_component::<liquid::StorageList>(),
@@ -184,9 +179,9 @@ fn draw(
                     $list
                         .storages()
                         .iter()
-                        .map(|(id, entity)| {
+                        .map(|&(id, entity)| {
                             let storage_entry =
-                                world.entry_ref(*entity).expect("Storage entity does not exist");
+                                world.entry_ref(entity).expect("Storage entity does not exist");
                             let size = storage_entry
                                 .get_component::<$mod::StorageSize>()
                                 .expect("Storage has no size");
@@ -194,12 +189,11 @@ fn draw(
                                 .get_component::<$mod::NextStorageSize>()
                                 .expect("Storage has no next size");
                             let lerp_size = $mod::lerp(size, next_size, clock.now());
-                            let item = def.$mod().get(id).expect("Undefined reference");
+                            let item = &def[id];
                             let name = item.name();
-                            let icon = texture_pool.as_ref().and_then(|pool| {
-                                pool.icon(item.texture_src(), item.texture_name())
-                            });
-                            (lerp_size, name.clone(), icon)
+                            let icon =
+                                format!("{}/{}", context_path.as_ref(), item.texture().sprite_id());
+                            StorageEntry { size: lerp_size, name: name.clone(), icon }
                         })
                         .collect()
                 };
@@ -229,17 +223,15 @@ fn draw(
                         return None;
                     }
 
-                    let item = def.liquid().get(storage.liquid()).expect("undefined reference");
+                    let item = &def[storage.liquid()];
                     let name = item.name();
-                    let icon = texture_pool
-                        .as_ref()
-                        .and_then(|pool| pool.icon(item.texture_src(), item.texture_name()));
+                    let icon = format!("{}/{}", context_path.as_ref(), item.texture().sprite_id());
 
-                    Some((lerp_size, name.clone(), icon))
+                    Some(StorageEntry { size: lerp_size, name: name.clone(), icon })
                 })
                 .collect();
 
-            Some(Args { entity, node_name: node_name.name().clone(), hitpoint, cargo, liquid, gas })
+            Some(Args { entity, node_name: node_name.clone(), hitpoint, cargo, liquid, gas })
         } else {
             None
         }

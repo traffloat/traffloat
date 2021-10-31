@@ -17,14 +17,12 @@ arcstr = "1.1.1"
 arrayvec = "0.7.1"
 cfg-if = "1.0.0"
 derive-new = "0.5.9"
-flate2 = {version = "1.0.22", optional = true}
 getset = "0.1.1"
 log = "0.4.14"
 nalgebra = "0.29.0"
 rand = "0.8.4"
 rmp-serde = {version = "0.15.5", optional = true}
 serde = {version = "1.0.130", features = ["derive"]}
-serde_yaml = {version = "0.8.21", optional = true}
 shrev = "1.1.1"
 smallvec = "1.7.0"
 traffloat-codegen = {version = "0.2.0", path = "../codegen"}
@@ -44,7 +42,5 @@ features = [
 ]
 
 [features]
-default = ["save-binary"]
-save-binary = ["rmp-serde", "flate2"]
-save-text = ["serde_yaml"]
+default = []
 render-debug = ["traffloat-codegen/render-debug"]

@@ -34,6 +34,9 @@ pub struct Item {
     key: ArcStr,
 }
 
+#[cfg(feature = "yew")]
+impl yew::html::ImplicitClone for Item {}
+
 #[cfg(feature = "convert-human-friendly")]
 mod hf {
     use std::collections::BTreeMap;

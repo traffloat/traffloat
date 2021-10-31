@@ -7,7 +7,7 @@ use getset::CopyGetters;
 use serde::{Deserialize, Serialize};
 use traffloat_types::units;
 
-use crate::{cargo, gas, liquid, skill};
+use crate::{building, cargo, gas, liquid, skill};
 
 /// A condition or catalyst.
 #[derive(
@@ -25,45 +25,48 @@ pub struct Catalyst {
 /// A type of resource whose existence affects a reaction.
 #[derive(Debug, Clone, Serialize, Deserialize, Definition)]
 pub enum CatalystRange {
-    /// Existence of cargo
+    /// Existence of cargo.
     Cargo {
         /// Type of cargo catalyst
         ty:     cargo::Id,
         /// Min and max levels of cargo catalyst
         levels: Range<units::CargoSize>,
     },
-    /// Existence of liquid
+    /// Existence of liquid.
     Liquid {
         /// Type of liquid catalyst
         ty:     liquid::Id,
         /// Min and max levels of liquid catalyst
         levels: Range<units::LiquidVolume>,
     },
-    /// Existence of gas
+    /// Existence of gas.
     Gas {
         /// Type of gas catalyst
         ty:     gas::Id,
         /// Min and max levels of gas catalyst
         levels: Range<units::GasVolume>,
     },
-    /// Existence of power
+    /// Existence of power.
     Electricity {
         /// Min and max levels of electricity catalyst
         levels: Range<units::ElectricPower>,
     },
-    /// Existence of light
+    /// Existence of light.
     Light {
         /// Min and max levels of light catalyst
         levels: Range<units::Brightness>,
     },
-    /// Existence of skilled operators
+    /// Existence of skilled inhabitants.
     ///
-    /// Only the most skilled operator is counted as a catalyst.
+    /// This is computed by the sum of skill level of all inhabitants
+    /// in the specified population storage.
     Skill {
         /// Type of skill catalyst
-        ty:     skill::Id,
+        ty:      skill::Id,
         /// Min and max levels of skill catalyst
-        levels: Range<units::Skill>,
+        levels:  Range<units::Skill>,
+        /// The population storage to compute skills from.
+        storage: building::storage::population::Id,
     },
 }
 

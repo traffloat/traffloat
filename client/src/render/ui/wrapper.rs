@@ -48,10 +48,8 @@ impl Component for Wrapper {
                 true
             }
             Update::SetEdgePreview(args) => {
-                match (&self.edge_preview_args, &args) {
-                    (None, None) => return false,
-                    (Some(old), Some(new)) if old.entity == new.entity => return false,
-                    _ => (),
+                if self.edge_preview_args.is_none() && args.is_none() {
+                    return false;
                 }
                 self.edge_preview_args = args;
                 true

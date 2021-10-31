@@ -43,12 +43,12 @@ impl Component for Comp {
                     { "Game Rules" }
                 </div>
                 <super::building::nav::Comp
-                    file=Rc::clone(&self.props.file)
+                    def=Rc::clone(&self.props.def)
                     choose_building=self.props.choose_building.clone()
                     route_prefix=self.props.route_prefix.clone()
                     />
                 <super::cargo::nav::Comp
-                    file=Rc::clone(&self.props.file)
+                    def=Rc::clone(&self.props.def)
                     choose_cargo=self.props.choose_cargo.clone()
                     route_prefix=self.props.route_prefix.clone()
                     />
@@ -64,7 +64,7 @@ pub enum Msg {}
 #[derive(Clone, Properties)]
 pub struct Props {
     /// The loaded scenario definition.
-    pub file:            Rc<save::GameDefinition>,
+    pub def:             Rc<save::GameDefinition>,
     /// Set the main body to editor home.
     pub editor_home:     Callback<()>,
     /// Set the main body to a building.

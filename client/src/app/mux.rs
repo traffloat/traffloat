@@ -22,7 +22,7 @@ impl Component for Mux {
             .location()
             .hash()
             .unwrap_or_else(|_| String::new());
-        let route = Route::parse_path(&hash).unwrap_or_default();
+        let route = Route::parse_path(&hash);
         log::debug!("Path parsed as {:?}", route);
 
         Self { link, state: State::Home { error: None }, intent_route: Some(route) }
@@ -37,7 +37,7 @@ impl Component for Mux {
                     Some(name) => Route::Scenario { name, sp },
                     None => Route::Custom { sp },
                 };
-                route.replace_state();
+                route.replace_state(None);
                 true
             }
             Msg::EditScenario(name, scenario) => {

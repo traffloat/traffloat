@@ -34,7 +34,8 @@ shrev = "1.1.1"
 smallvec = "1.7.0"
 strum = "0.21.0"
 traffloat-codegen = {version = "0.2.0", path = "../codegen", features = ["web-sys"]}
-traffloat-common = {version = "0.2.0", path = "../common", default-features = false, features = ["save-binary"]}
+traffloat-common = {version = "0.2.0", path = "../common", default-features = false, features = ["yew"]}
+traffloat-def = {version = "0.2.0", path = "../def", default-features = false, features = ["yew"]}
 traffloat-safety = {version = "0.2.0", path = "../safety"}
 traffloat-version = {version = "0.2.0", path = "../version"}
 typed-builder = "0.9.1"
@@ -86,6 +87,5 @@ features = [
 maplit = "1.0.2"
 
 [features]
-default = ["render-debug", "load-tsvt"]
+default = ["render-debug"]
 render-debug = ["traffloat-common/render-debug", "traffloat-codegen/render-debug"]
-load-tsvt = ["traffloat-common/save-text"]

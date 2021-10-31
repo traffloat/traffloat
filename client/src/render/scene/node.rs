@@ -72,8 +72,6 @@ impl Program {
     ///
     /// The projection matrix transforms unit model coordinates to projection coordinates directly.
     pub fn draw(&self, args: DrawArgs<'_>) {
-        use mesh::Mesh;
-
         args.gl.use_program(Some(&self.prog));
         self.u_proj.assign(args.gl, args.proj);
         self.u_sun.assign(args.gl, args.sun);

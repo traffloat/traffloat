@@ -1,9 +1,11 @@
-use std::cell::RefCell;
+//! Utils for texture management.
+
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use arcstr::ArcStr;
 use derive_new::new;
+use traffloat::def::atlas;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture};
@@ -11,6 +13,7 @@ use web_sys::{ImageBitmap, WebGlRenderingContext, WebGlTexture};
 use super::util::UniformLocation;
 use crate::util::ReifiedPromise;
 
+/// Identifies a loaded spritesheet.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, new)]
 pub struct AtlasId {
     // micro optimization: put sprite_id before variant_name for faster comparison.
@@ -18,13 +21,15 @@ pub struct AtlasId {
     variant_name:   ArcStr,
 }
 
+/// Storage for all loaded spritesheets.
 pub struct Pool {
     context_path: String,
     dummy:        Rc<Texture>,
-    map:          RefCell<BTreeMap<AtlasId, Atlas>>,
+    map:          BTreeMap<AtlasId, Atlas>,
 }
 
 impl Pool {
+    /// Initializes a pool.
     pub fn new(gl: &WebGlRenderingContext, context_path: String) -> Self {
         let dummy = {
             let texture = gl.create_texture().expect("Failed to create WebGL texture");
@@ -48,38 +53,39 @@ impl Pool {
             Rc::new(Texture { texture })
         };
 
-        Self { context_path, dummy, map: RefCell::default() }
+        Self { context_path, dummy, map: BTreeMap::default() }
     }
 
-    pub fn resolve(&self, gl: &WebGlRenderingContext, id: &AtlasId) -> Rc<Texture> {
-        let mut map = self.map.borrow_mut();
-        let atlas = map.entry(id.clone()).or_insert_with(|| {
+    /// Resolves an atlas ID to a renderable texture.
+    ///
+    /// If the atlas is not yet ready, the dummy texture is returned instead.
+    pub fn resolve(&mut self, gl: &WebGlRenderingContext, id: &AtlasId) -> &Texture {
+        let atlas = self.map.entry(id.clone()).or_insert_with(|| {
             let url = format!(
-                "{}/assets/{}/{:08x}.png",
-                &self.context_path, &id.variant_name, id.spritesheet_id
+                "{}/{}",
+                &self.context_path,
+                atlas::to_path(&id.variant_name, id.spritesheet_id),
             );
             let promise = ReifiedPromise::new(load_textures(&url), ());
-            Atlas { fsm: RefCell::new(AtlasFsm::Loading(promise)) }
+            Atlas { fsm: AtlasFsm::Loading(promise) }
         });
 
         atlas.check_ready(gl);
 
-        match &*atlas.fsm.borrow() {
-            AtlasFsm::Loading(_) => Rc::clone(&self.dummy),
-            AtlasFsm::Ready(texture) => Rc::clone(&texture),
+        match &atlas.fsm {
+            AtlasFsm::Loading(_) => &self.dummy,
+            AtlasFsm::Ready(texture) => texture,
         }
     }
 }
 
 struct Atlas {
-    fsm: RefCell<AtlasFsm>,
+    fsm: AtlasFsm,
 }
 
 impl Atlas {
-    fn check_ready(&self, gl: &WebGlRenderingContext) {
-        let mut fsm = self.fsm.borrow_mut();
-
-        if let AtlasFsm::Loading(promise) = &*fsm {
+    fn check_ready(&mut self, gl: &WebGlRenderingContext) {
+        if let AtlasFsm::Loading(promise) = &self.fsm {
             let resolve = promise.resolved_or_null().expect("Error retrieving texture");
 
             if let Some(bitmap) = resolve {
@@ -100,7 +106,7 @@ impl Atlas {
                 .expect("Failed to initialize WebGL texture");
                 gl.generate_mipmap(WebGlRenderingContext::TEXTURE_2D);
 
-                *fsm = AtlasFsm::Ready(Rc::new(Texture { texture }));
+                self.fsm = AtlasFsm::Ready(Rc::new(Texture { texture }));
             }
         }
     }
@@ -111,11 +117,13 @@ enum AtlasFsm {
     Ready(Rc<Texture>),
 }
 
+/// A texture loaded onto WebGL.
 pub struct Texture {
     texture: WebGlTexture,
 }
 
 impl Texture {
+    /// Applies a texture to a given uniform.
     pub fn apply(&self, gl: &WebGlRenderingContext, tex_unif: &UniformLocation<i32>) {
         gl.active_texture(WebGlRenderingContext::TEXTURE0);
         gl.bind_texture(WebGlRenderingContext::TEXTURE_2D, Some(&self.texture));

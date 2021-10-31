@@ -90,7 +90,7 @@ impl Component for Home {
                         }
                         None => Route::Custom { sp: SpRoute::Home },
                     };
-                    route.replace_state();
+                    route.replace_state(None);
                 }
 
                 self.chosen_scenario_name = event.name;

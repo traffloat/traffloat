@@ -635,13 +635,27 @@ impl<T: Definition> Definition for BTreeMap<ArcStr, T> {
 
 /// A data type that has an ID.
 pub trait Identifiable: 'static {
-    type Id: fmt::Debug + Copy + Eq + Ord;
+    /// The identifier type.
+    type Id: Identifier<Def = Self>;
 
+    /// The ID for an instance.
     fn id(&self) -> Self::Id;
+
+    /// The human-friendly string ID for an instance.
+    fn id_str(&self) -> &IdStr;
+}
+
+/// An ID for a data type.
+pub trait Identifier: fmt::Debug + Copy + Eq + Ord {
+    /// The data type identified by this type.
+    type Def: Identifiable<Id = Self>;
+
+    /// Extracts the item from a slice using this ID.
+    fn index(self, list: &[Self::Def]) -> Option<&Self::Def>;
 }
 
 /// The original, raw ID string used in an [`Identifiable`] type.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IdStr(ArcStr);
 
 impl IdStr {
@@ -653,4 +667,8 @@ impl IdStr {
 
     /// Returns the underlying string slice.
     pub fn as_str(&self) -> &str { self.0.as_str() }
+}
+
+impl fmt::Display for IdStr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt::Display::fmt(&self.0, f) }
 }

@@ -303,12 +303,23 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
             }
         }
 
-        #cfg_gate
+        impl ::codegen::Identifier for Id {
+            type Def = #input_ident; // identifiable types can't have generics
+
+            fn index(self, list: &[#input_ident]) -> Option<&Self::Def> {
+                list.get(self.as_index())
+            }
+        }
+
         impl #generics_bounded ::codegen::Identifiable for #input_ident #generics_unbounded #generics_where {
             type Id = Id;
 
             fn id(&self) -> Id {
                 self.id
+            }
+
+            fn id_str(&self) -> &IdStr {
+                &self.id_str
             }
         }
     });

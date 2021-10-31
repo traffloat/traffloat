@@ -6,6 +6,8 @@ use traffloat::def::cargo;
 use traffloat::save::GameDefinition;
 use yew::prelude::*;
 
+use crate::app::lang;
+
 /// Displays a list of cargo.
 pub struct Comp {
     props: Props,
@@ -26,11 +28,10 @@ impl Component for Comp {
 
     fn view(&self) -> Html {
         let def = &self.props.def;
-        let cargo =
-            def.cargo().get(&self.props.cargo_id).expect("Route references undefined cargo");
+        let cargo = &def[self.props.cargo_id];
 
         html! {
-            <h1>{ cargo.name() }</h1>
+            <h1><lang::Comp item=cargo.name() /></h1>
             // TODO
         }
     }

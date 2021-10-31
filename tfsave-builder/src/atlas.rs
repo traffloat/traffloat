@@ -166,11 +166,7 @@ struct WriteVariantsArgs<'t> {
 
 fn write_variants(args: WriteVariantsArgs) -> Result<()> {
     for variant in args.variants {
-        let out_png = args
-            .output
-            .join(variant.name().as_str())
-            .join(format!("{:08x}", args.texture_id))
-            .with_extension("png");
+        let out_png = args.output.join(atlas::to_path(variant.name().as_str(), args.texture_id));
         log::debug!("Saving downscaled variant {}", out_png.display());
 
         let downscaled_map = {

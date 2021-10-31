@@ -23,7 +23,7 @@ impl Component for Comp {
         match msg {
             Msg::SaveButton => {
                 let mut legion = self.props.legion.borrow_mut();
-                legion.publish(traffloat::save::Request::builder().format(format).build());
+                legion.publish(traffloat::save::Params::builder().build());
                 false
             }
             Msg::OpenOptions => {
@@ -87,7 +87,7 @@ pub struct Props {
 #[codegen::system(Visualize)]
 fn post_save(#[subscriber] responses: impl Iterator<Item = save::Response>) {
     for resp in responses {
-        let array = js_sys::Uint8Array::from(&resp.data()[..]);
+        let array = js_sys::Uint8Array::from(&resp.buffer()[..]);
 
         let mut options = web_sys::BlobPropertyBag::new();
         options.type_("application/octet-stream");

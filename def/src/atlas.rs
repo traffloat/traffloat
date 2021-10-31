@@ -89,8 +89,6 @@ mod hf {
         def: &mut Def,
         context: &mut ResolveContext,
     ) -> anyhow::Result<()> {
-        use std::rc::Rc;
-
         let hook = {
             let atlas_context = context.get_other::<AtlasContext>();
             let hook = atlas_context.creation_hook.as_ref();
@@ -188,3 +186,10 @@ mod hf {
 use hf::populate_atlas_context;
 #[cfg(feature = "convert-human-friendly")]
 pub use hf::*;
+
+/// Converts variant + sprite ID into asset path.
+///
+/// The return format is in the form `assets/variant/01234567.png`.
+pub fn to_path(variant: &str, sprite_id: u32) -> String {
+    format!("assets/{}/{:08x}.png", variant, sprite_id)
+}

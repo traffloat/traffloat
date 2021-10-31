@@ -1,14 +1,14 @@
 //! Renders edge info preview.
 
-use arcstr::ArcStr;
+use def::lang;
 use legion::world::SubWorld;
 use legion::{Entity, EntityStore};
-use traffloat::{def, edge, liquid, node, units};
+use traffloat::def::atlas;
+use traffloat::{def, edge, liquid, save, units};
 use yew::prelude::*;
 
 use super::{duct_editor, Update, UpdaterRef};
-use crate::app::icon;
-use crate::input;
+use crate::{input, ContextPath};
 
 /// Displays basic info about an edge at a corner of the screen.
 pub struct Comp {
@@ -39,32 +39,22 @@ impl Component for Comp {
     }
 
     fn view(&self) -> Html {
-        codegen::wasm_dbg!(&self.props.args.liquids);
-
         fn flow_display(
             size: impl units::RoundedUnit + Into<Html>,
-            name: &ArcStr,
-            icon: &Option<texture::Icon>,
+            _name: &lang::Item,
+            icon: &str,
         ) -> Html {
             html! {
                 <>
                     { size }
                     { "/s " }
-                    { for icon.as_ref().map(|icon| html! {
-                        <icon::Comp
-                            atlas_path=icon.url.to_string()
-                            atlas_width=icon.dim.0
-                            atlas_height=icon.dim.1
-                            x0=icon.pos.x()
-                            y0=icon.pos.y()
-                            x1=icon.pos.x() + icon.pos.width()
-                            y1=icon.pos.y() + icon.pos.height()
-                            out_width=24
-                            out_height=24
-                            text=name.to_string()
+                    <span> // TODO render translated name as title
+                        <img
+                            src=icon.to_string()
+                            width=24
+                            height=24
                             />
-                    }) }
-                    { for icon.is_none().then(|| name) }
+                    </span>
                 </>
             }
         }
@@ -90,8 +80,8 @@ impl Component for Comp {
                             { flow_display(flow.flow, &flow.name, &flow.icon) }
                             { " " }
                             { match flow.dir {
-                                edge::Direction::FromTo => "forward",
-                                edge::Direction::ToFrom => "backward",
+                                edge::Direction::From2To => "forward",
+                                edge::Direction::To2From => "backward",
                             }}
                             <br />
                         </>
@@ -130,17 +120,16 @@ pub struct Args {
 #[derive(Debug, Clone)]
 pub struct LiquidFlow {
     /// Name of the liquid type
-    pub name: ArcStr,
-    /// Icon name of the liquid type
-    pub icon: Option<texture::Icon>,
+    name: lang::Item,
+    /// Path to liquid icon.
+    icon: String,
     /// Flow rate in the pipe.
-    pub flow: units::LiquidVolume,
+    flow: units::LiquidVolume,
     /// Direction of flow.
-    pub dir:  edge::Direction,
+    dir:  edge::Direction,
 }
 
 #[codegen::system(Visualize)]
-#[read_component(node::Name)]
 #[read_component(edge::Id)]
 #[read_component(edge::Design)]
 #[read_component(liquid::PipeFlow)]
@@ -150,8 +139,8 @@ fn draw(
     #[resource] focus_target: &input::FocusTarget,
     world: &mut SubWorld,
     #[resource] updater_ref: &UpdaterRef,
-    #[resource] texture_pool: &Option<texture::Pool>,
-    #[resource(no_init)] def: &def::GameDefinition,
+    #[resource(no_init)] def: &save::GameDefinition,
+    #[resource(no_init)] context_path: &ContextPath,
 ) {
     let info = if let Some(entity) = focus_target.entity().or_else(|| hover_target.entity()) {
         let entity_entry = world.entry_ref(entity).expect("Target entity does not exist"); // TODO what if user is hovering over node while deleting it?
@@ -171,11 +160,13 @@ fn draw(
                             .expect("Liquid duct does not have pipe flow component");
                         if let Some(dir) = dir {
                             if let Some(ty) = flow.ty() {
-                                let item = def.liquid().get(ty).expect("undefined reference");
+                                let item = &def[ty];
                                 let name = item.name();
-                                let icon = texture_pool.as_ref().and_then(|pool| {
-                                    pool.icon(item.texture_src(), item.texture_name())
-                                });
+                                let icon = format!(
+                                    "{}/{}",
+                                    context_path.as_ref(),
+                                    atlas::to_path("fancy", item.texture().sprite_id()),
+                                ); // TODO customize variant
 
                                 liquids.push(LiquidFlow {
                                     name: name.clone(),

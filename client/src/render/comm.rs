@@ -16,13 +16,10 @@ impl Deref for Comm {
 }
 
 /// The actual fields of Comm
+#[derive(Default)]
 pub struct CommInner {
     /// Performance tracker
     pub perf: Perf,
-}
-
-impl Default for CommInner {
-    fn default() -> Self { Self { perf: Perf::default() } }
 }
 
 /// Resource for the cursor icon.

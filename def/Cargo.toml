@@ -26,6 +26,7 @@ traffloat-safety = {version = "0.2.0", path = "../safety"}
 traffloat-types = {version = "0.2.0", path = "../types"}
 typed-builder = "0.9.1"
 unic-langid = "0.9.0"
+yew = {version = "0.18.0", default-features = false, optional = true}
 
 [features]
 default = []

@@ -1,8 +1,11 @@
+//! A cube model.
+
 use nalgebra::{Vector2, Vector3};
 use safety::Safety;
 use traffloat::appearance;
 use web_sys::WebGlRenderingContext;
 
+/// Creates a cube model.
 pub fn prepare(gl: &WebGlRenderingContext) -> impl super::Mesh {
     let mut builder = super::Builder::default();
 
@@ -78,13 +81,6 @@ enum Sign {
 }
 
 impl Sign {
-    fn invert(self) -> Sign {
-        match self {
-            Self::Positive => Self::Negative,
-            Self::Negative => Self::Positive,
-        }
-    }
-
     fn as_float(self) -> f32 {
         match self {
             Self::Positive => 1.,

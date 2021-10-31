@@ -3,8 +3,10 @@
 use std::rc::Rc;
 
 use traffloat::def::building;
-use traffloat::save::{self, GameDefinition};
+use traffloat::save::GameDefinition;
 use yew::prelude::*;
+
+use crate::app::lang;
 
 /// Displays a list of buildings.
 pub struct Comp {
@@ -49,26 +51,24 @@ impl Component for Comp {
                 </div>
                 { for self.open.then(|| html! {
                     <div>
-                        { for self.props.def.building_cats().iter()
-                                .map(|(category_id, category)| html! {
+                        { for self.props.def.building_category().iter()
+                                .map(|category| html! {
                             <div>
                                 <h4>
-                                    <span title=category.description().to_string()>
-                                        { category.title() }
-                                    </span>
+                                    <lang::Comp item=category.title() />
                                 </h4>
                                 { for self.props.def.building().iter()
-                                        .filter(|(_, building)| building.category() == category_id)
-                                        .map(|(building_id, building)| html! {
+                                        .filter(|building| building.category() == category.id())
+                                        .map(|building| html! {
                                     <div>
                                         <a
-                                            href=format!("#/{}/rules/building/{}", &self.props.route_prefix, &building_id.0)
+                                            href=format!("#/{}/rules/building/{}", &self.props.route_prefix, building.id_str())
                                             onclick=self.link.callback({
-                                                let building_id = building_id.clone();
-                                                move |event| Msg::ChooseBuilding(event, building_id.clone())
+                                                let id = building.id();
+                                                move |event| Msg::ChooseBuilding(event, id)
                                             })
                                         >
-                                            { building.name() }
+                                            <lang::Comp item=building.name() />
                                         </a>
                                     </div>
                                 })}

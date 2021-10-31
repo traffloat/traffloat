@@ -1,13 +1,11 @@
 use std::rc::Rc;
 
-use traffloat::{def, SetupEcs};
-
-use crate::util::high_res_time;
+use traffloat::SetupEcs;
 
 mod editor;
 mod game;
 mod home;
-pub mod icon;
+pub mod lang;
 mod mux;
 pub mod options;
 pub mod route;
@@ -27,10 +25,7 @@ impl GameArgs {
     pub fn init(&self, mut setup: SetupEcs) -> SetupEcs {
         match self {
             Self::Sp(args) => {
-                setup = match def::Schema::load(setup, &args.scenario[..], high_res_time()) {
-                    Ok(setup) => setup,
-                    Err(err) => todo!("Handle error {:?}", err),
-                }
+                todo!("setup ECS")
             }
         }
         setup

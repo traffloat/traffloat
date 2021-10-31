@@ -26,7 +26,7 @@ pub struct Def {
     #[getset(get = "pub")]
     description: lang::Item,
     /// Category of the cargo type.
-    #[getset(get = "pub")]
+    #[getset(get_copy = "pub")]
     category:    category::Id,
     /// The texture of the cargo.
     #[getset(get = "pub")]

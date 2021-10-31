@@ -30,7 +30,7 @@ pub struct Def {
     #[getset(get = "pub")]
     description: lang::Item,
     /// Category of the building type.
-    #[getset(get = "pub")]
+    #[getset(get_copy = "pub")]
     category:    category::Id,
     /// Shape of the building.
     ///
@@ -159,13 +159,13 @@ pub mod storage {
 /// Categories of buildings.
 pub mod category {
     use codegen::{Definition, IdStr};
-    use getset::Getters;
+    use getset::{CopyGetters, Getters};
     use serde::{Deserialize, Serialize};
 
     use crate::lang;
 
     /// A category of building.
-    #[derive(Debug, Clone, Getters, Serialize, Deserialize, Definition)]
+    #[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize, Definition)]
     pub struct Def {
         /// ID of the building category.
         #[getset(get_copy = "pub")]

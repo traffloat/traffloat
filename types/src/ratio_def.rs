@@ -217,10 +217,13 @@ macro_rules! units {
 
 #[cfg(test)]
 mod tests {
-    units! {
-        Blanket(std::fmt::Debug + Clone + Copy + Default + PartialEq + PartialOrd);
+    use serde::de::DeserializeOwned;
+    use serde::{Deserialize, Serialize};
 
-        #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)] f64:
+    units! {
+        Blanket(std::fmt::Debug + Clone + Copy + Default + PartialEq + PartialOrd + Serialize + DeserializeOwned);
+
+        #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Serialize, Deserialize)] f64:
         Accel("", " ms^-2");
         Veloc("", " ms^-1");
         Length("", " m");

@@ -1,18 +1,23 @@
+//! A cylinder model.
+
 use std::f32::consts::PI;
 
-use itertools::Itertools;
 use nalgebra::{Vector2, Vector3};
 use safety::Safety;
 use traffloat::appearance;
 use typed_builder::TypedBuilder;
 use web_sys::WebGlRenderingContext;
 
+/// Options for cylinder model generation.
 #[derive(TypedBuilder)]
 pub struct Options {
+    /// Number of vertices for each circle.
     num_vert: u32,
+    /// Whether the top and bottom sides should be included.
     fused:    bool,
 }
 
+/// Creates a cylinder model.
 pub fn prepare(gl: &WebGlRenderingContext, options: Options) -> impl super::Mesh {
     let mut builder = super::Builder::default();
 

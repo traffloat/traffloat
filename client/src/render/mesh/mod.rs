@@ -1,5 +1,7 @@
+//! Standard generated models.
+
 use nalgebra::{Vector2, Vector3};
-use web_sys::{WebGlBuffer, WebGlRenderingContext};
+use web_sys::WebGlRenderingContext;
 
 use super::util::{BufferUsage, FloatBuffer, IndexBuffer};
 
@@ -52,6 +54,7 @@ impl Builder {
     }
 }
 
+/// A generic model used in node/edge rendering.
 pub trait Mesh {
     /// The buffer for vertex positions.
     fn position(&self) -> &FloatBuffer;

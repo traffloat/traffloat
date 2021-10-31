@@ -3,7 +3,7 @@
 use std::rc::Rc;
 
 use traffloat::def;
-use traffloat::save::{self, GameDefinition};
+use traffloat::save::{GameDefinition, MixedId};
 use yew::prelude::*;
 
 use crate::app::route::*;
@@ -20,7 +20,7 @@ const MAIN_WIDTH_PX: u32 = 750;
 pub struct Comp {
     props: Props,
     link:  ComponentLink<Self>,
-    def:   Option<Rc<GameDefinition>>,
+    def:   Rc<GameDefinition>,
     state: State,
 }
 
@@ -32,13 +32,7 @@ impl Component for Comp {
         let file = match def::Schema::parse(&props.buf) {
             Ok(file) => Rc::new(file),
             Err(err) => {
-                props.close_hook.emit(Some(format!("Error reading save file: {}", err)));
-                return Self {
-                    props,
-                    link,
-                    file: None, // this value shouldn't be used anyway.
-                    state: State::default(),
-                };
+                todo!("Handle erorr: {:?}", err)
             }
         };
 
@@ -47,8 +41,13 @@ impl Component for Comp {
             state.switch = switch;
         }
 
-        let ret = Self { props, link, file: Some(file), state };
-        ret.state.switch.replace_state(&ret.props.name);
+        let def = match GameDefinition::new(file.def().iter().cloned()) {
+            Ok(def) => def,
+            Err(err) => todo!("Handle error: {:?}", err),
+        };
+
+        let ret = Self { props, link, def: Rc::new(def), state };
+        ret.state.switch.replace_state(&ret.props.name, &ret.def);
         ret
     }
 
@@ -56,17 +55,17 @@ impl Component for Comp {
         match msg {
             Msg::EditorHome => {
                 self.state.switch = Switch::Home;
-                self.state.switch.replace_state(&self.props.name);
+                self.state.switch.replace_state(&self.props.name, &self.def);
                 true
             }
             Msg::ChooseBuilding(id) => {
-                self.state.switch = Switch::Building(id);
-                self.state.switch.replace_state(&self.props.name);
+                self.state.switch = Switch::Building(id.into());
+                self.state.switch.replace_state(&self.props.name, &self.def);
                 true
             }
             Msg::ChooseCargo(id) => {
-                self.state.switch = Switch::Cargo(id);
-                self.state.switch.replace_state(&self.props.name);
+                self.state.switch = Switch::Cargo(id.into());
+                self.state.switch.replace_state(&self.props.name, &self.def);
                 true
             }
         }
@@ -80,7 +79,7 @@ impl Component for Comp {
         html! {
             <>
                 <nav::Comp
-                    file=Rc::clone(self.file.as_ref().expect("Error case is unreachable"))
+                    def=&self.def
                     editor_home=self.link.callback(|()| Msg::EditorHome)
                     choose_building=self.link.callback(Msg::ChooseBuilding)
                     choose_cargo=self.link.callback(Msg::ChooseCargo)
@@ -115,18 +114,38 @@ impl Comp {
                     { "Use buttons in the navbar to view/edit details." }
                 </p>
             },
-            Switch::Building(building_id) => html! {
-                <building::detail::Comp
-                    file=Rc::clone(self.file.as_ref().expect("Error case is unreacahable"))
-                    building_id=building_id.clone()
-                    />
-            },
-            Switch::Cargo(cargo_id) => html! {
-                <cargo::detail::Comp
-                    file=Rc::clone(self.file.as_ref().expect("Error case is unreacahable"))
-                    cargo_id=cargo_id.clone()
-                    />
-            },
+            Switch::Building(building_id) => {
+                let building = match self.def.find(building_id) {
+                    Some(def) => def,
+                    None => {
+                        return html! {
+                            <p>{ format!("Nonexistent building {:?}", building_id) }</p>
+                        }
+                    }
+                };
+                html! {
+                    <building::detail::Comp
+                        def=&self.def
+                        building_id=building.id()
+                        />
+                }
+            }
+            Switch::Cargo(cargo_id) => {
+                let cargo = match self.def.find(cargo_id) {
+                    Some(def) => def,
+                    None => {
+                        return html! {
+                            <p>{ format!("Nonexistent building {:?}", cargo_id) }</p>
+                        }
+                    }
+                };
+                html! {
+                    <cargo::detail::Comp
+                        def=&self.def
+                        cargo_id=cargo.id()
+                        />
+                }
+            }
         }
     }
 
@@ -149,13 +168,13 @@ pub enum Switch {
     /// Home page for the editor.
     Home,
     /// Information for a building.
-    Building(def::building::Id),
+    Building(MixedId<def::building::Id>),
     /// Information for a cargo.
-    Cargo(def::cargo::Id),
+    Cargo(MixedId<def::cargo::Id>),
 }
 
 impl Switch {
-    pub fn replace_state(&self, name: &Option<String>) {
+    pub fn replace_state(&self, name: &Option<String>, def: &GameDefinition) {
         let rules = match self {
             Self::Home => Rules::Home,
             Self::Building(id) => Rules::Building(id.clone()),
@@ -166,7 +185,7 @@ impl Switch {
             Some(name) => Route::Scenario { name: name.to_string(), sp },
             None => Route::Custom { sp },
         };
-        route.replace_state();
+        route.replace_state(Some(def));
     }
 
     pub fn from_route(route: &Route) -> Option<Self> {

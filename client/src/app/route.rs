@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use traffloat::def;
-use traffloat::save::GameDefinition;
+use traffloat::save::{GameDefinition, MixedId};
 use wasm_bindgen::JsValue;
 
 /// The top level route.
@@ -36,8 +36,8 @@ pub enum SpRoute {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Rules {
     Home,
-    Building(def::building::Id),
-    Cargo(def::cargo::Id),
+    Building(MixedId<def::building::Id>),
+    Cargo(MixedId<def::cargo::Id>),
 }
 
 impl Default for Route {
@@ -46,7 +46,7 @@ impl Default for Route {
 
 impl Route {
     /// Converts a route to a hash-path.
-    pub fn to_path(&self) -> String {
+    pub fn to_path(&self, def: Option<&GameDefinition>) -> String {
         let (prefix, sp) = match self {
             Route::Scenario { name, sp } => (format!("scenario/{}", name), sp),
             Route::Custom { sp } => (String::from("custom"), sp),
@@ -55,17 +55,25 @@ impl Route {
         match sp {
             SpRoute::Home => prefix,
             SpRoute::Rules(Rules::Home) => format!("{}/rules", prefix),
-            SpRoute::Rules(Rules::Building(id)) => format!("{}/rules/building/{}", prefix, id.0),
-            SpRoute::Rules(Rules::Cargo(id)) => format!("{}/rules/cargo/{}", prefix, id.0),
+            SpRoute::Rules(Rules::Building(id)) => format!(
+                "{}/rules/building/{}",
+                prefix,
+                def.expect("Editor has def").find(id).expect("Corrupted definition").id_str()
+            ),
+            SpRoute::Rules(Rules::Cargo(id)) => format!(
+                "{}/rules/cargo/{}",
+                prefix,
+                def.expect("Editor has def").find(id).expect("Corrupted definition").id_str()
+            ),
             SpRoute::Game => format!("{}/play", prefix),
         }
     }
 
     /// Parses a hash-path to a route.
-    pub fn parse_path(mut path: &str, def: &GameDefinition) -> Option<Self> {
+    pub fn parse_path(mut path: &str) -> Self {
         path = path.trim_start_matches(&['#', '/'][..]);
 
-        fn parse_sp(mut sp: &str, def: &GameDefinition) -> Option<SpRoute> {
+        fn parse_sp(mut sp: &str) -> SpRoute {
             sp = sp.trim_start_matches('/');
             if sp == "play" {
                 return SpRoute::Game;
@@ -74,10 +82,10 @@ impl Route {
                 path = path.trim_start_matches('/');
                 if let Some(mut path) = path.strip_prefix("building") {
                     path = path.trim_start_matches('/');
-                    SpRoute::Rules(Rules::Building(def.find_building(path)))
+                    SpRoute::Rules(Rules::Building(MixedId::new_str(path)))
                 } else if let Some(mut path) = path.strip_prefix("cargo") {
                     path = path.trim_start_matches('/');
-                    SpRoute::Rules(Rules::Cargo(def.find_cargo(path)))
+                    SpRoute::Rules(Rules::Cargo(MixedId::new_str(path)))
                 } else {
                     SpRoute::Rules(Rules::Home)
                 }
@@ -89,7 +97,7 @@ impl Route {
         if let Some(mut path) = path.strip_prefix("scenario") {
             path = path.trim_start_matches('/');
             if let Some((name, sp)) = path.split_once('/') {
-                Route::Scenario { name: name.to_string(), sp: parse_sp(sp, def) }
+                Route::Scenario { name: name.to_string(), sp: parse_sp(sp) }
             } else {
                 Route::Scenario { name: path.to_string(), sp: SpRoute::Home }
             }
@@ -102,7 +110,7 @@ impl Route {
         }
     }
 
-    pub fn replace_state(&self) {
+    pub fn replace_state(&self, def: Option<&GameDefinition>) {
         let window = web_sys::window().expect("window is unset");
         let history = window.history().expect("window.history is unset");
         let json = serde_json::to_string(self).expect("Failed to encode route as JSON");
@@ -110,7 +118,7 @@ impl Route {
             .replace_state_with_url(
                 &JsValue::from_str(&json),
                 "",
-                Some(&format!("#/{}", self.to_path())),
+                Some(&format!("#/{}", self.to_path(def))),
             )
             .expect("replace_state_with_url threw an exception");
     }

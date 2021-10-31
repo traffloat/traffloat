@@ -6,6 +6,8 @@ use traffloat::def::cargo;
 use traffloat::save;
 use yew::prelude::*;
 
+use crate::app::lang;
+
 /// Displays a list of cargo.
 pub struct Comp {
     props: Props,
@@ -49,22 +51,22 @@ impl Component for Comp {
                 </div>
                 { for self.open.then(|| html! {
                     <div>
-                        { for self.props.file.def().cargo_cats().iter()
-                                .map(|(category_id, category)| html! {
+                        { for self.props.def.cargo_category().iter()
+                                .map(|category| html! {
                             <div>
-                                <h4>{ category.title() }</h4>
-                                { for self.props.file.def().cargo().iter()
-                                        .filter(|(_, cargo)| cargo.category() == category_id)
-                                        .map(|(cargo_id, cargo)| html! {
+                                <h4><lang::Comp item=category.title() /></h4>
+                                { for self.props.def.cargo().iter()
+                                        .filter(|cargo| cargo.category() == category.id())
+                                        .map(|cargo| html! {
                                     <div>
                                         <a
-                                            href=format!("#/{}/rules/cargo/{}", &self.props.route_prefix, &cargo_id.0)
+                                            href=format!("#/{}/rules/cargo/{}", &self.props.route_prefix, cargo.id_str())
                                             onclick=self.link.callback({
-                                                let cargo_id = cargo_id.clone();
-                                                move |event| Msg::ChooseCargo(event, cargo_id.clone())
+                                                let id = cargo.id();
+                                                move |event| Msg::ChooseCargo(event, id)
                                             })
                                         >
-                                            { cargo.name() }
+                                            <lang::Comp item=cargo.name() />
                                         </a>
                                     </div>
                                 })}

@@ -175,10 +175,10 @@ impl PipeResistance {
 }
 
 /// A component storing the current flow of a pipe.
-#[derive(Default, getset::Getters, getset::CopyGetters, getset::Setters)]
+#[derive(Default, getset::CopyGetters, getset::Setters)]
 pub struct PipeFlow {
     /// The type of liquid flowing over the pipe in the current simulation frame.
-    #[getset(get = "pub")]
+    #[getset(get_copy = "pub")]
     #[getset(set = "pub")]
     ty:    Option<liquid::Id>,
     /// The flow rate over the pipe in the current simulation frame.

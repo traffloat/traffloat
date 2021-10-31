@@ -240,3 +240,16 @@ pub enum CustomizableName {
     /// A custom name from user input.
     Custom(ArcStr),
 }
+
+#[cfg(feature = "yew")]
+impl<'t> yew::html::ImplicitClone for CustomizableName {}
+
+#[cfg(feature = "yew")]
+impl<'t> yew::html::IntoPropValue<CustomizableName> for &'t lang::Item {
+    fn into_prop_value(self) -> CustomizableName { CustomizableName::Original(self.clone()) }
+}
+
+#[cfg(feature = "yew")]
+impl<'t> yew::html::IntoPropValue<CustomizableName> for &'t str {
+    fn into_prop_value(self) -> CustomizableName { CustomizableName::Custom(ArcStr::from(self)) }
+}

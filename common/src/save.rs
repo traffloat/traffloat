@@ -3,15 +3,21 @@
 use std::ops;
 use std::sync::{Mutex, MutexGuard};
 
-use codegen::SetupEcs;
+use arcstr::ArcStr;
+use codegen::{IdStr, Identifiable, Identifier, SetupEcs};
 use getset::Getters;
+use serde::{Deserialize, Serialize};
+use typed_builder::TypedBuilder;
 
 use crate::def::{self, state};
 use crate::liquid;
 
 /// Stores all scenario gamerule definitions.
-#[derive(Getters)]
+#[derive(Getters, Default)]
 pub struct GameDefinition {
+    /// Language bundles.
+    #[getset(get = "pub")]
+    lang:              Vec<def::lang::Def>,
     /// Liquid types.
     #[getset(get = "pub")]
     liquid:            Vec<def::liquid::Def>,
@@ -45,6 +51,29 @@ pub struct GameDefinition {
 }
 
 impl GameDefinition {
+    /// Creates the object from raw definitions.
+    pub fn new(defs: impl IntoIterator<Item = def::Def>) -> anyhow::Result<Self> {
+        let mut ret = GameDefinition::default();
+        for def in defs {
+            match def {
+                def::Def::LangBundle(def) => ret.lang.push(def),
+                def::Def::Liquid(def) => ret.liquid.push(def),
+                def::Def::LiquidFormula(def) => ret.liquid_recipes.define(&def)?,
+                def::Def::DefaultLiquidFormula(def) => ret.liquid_recipes.define_default(&def)?,
+                def::Def::Gas(def) => ret.gas.push(def),
+                def::Def::CargoCategory(def) => ret.cargo_category.push(def),
+                def::Def::Cargo(def) => ret.cargo.push(def),
+                def::Def::Skill(def) => ret.skill.push(def),
+                def::Def::Vehicle(def) => ret.vehicle.push(def),
+                def::Def::BuildingCategory(def) => ret.building_category.push(def),
+                def::Def::Building(def) => ret.building.push(def),
+                def::Def::Crime(def) => ret.crime.push(def),
+                def::Def::Atlas(_) => (), // unused in runtime
+            }
+        }
+        Ok(ret)
+    }
+
     /// Pack the [`GameDefinition`] into a vector of [`def::Def`] for serialization.
     pub fn pack(&self) -> Vec<def::Def> {
         use def::Def; // don't import this globally because everything is called `Def`.
@@ -63,37 +92,71 @@ impl GameDefinition {
             .chain(self.crime.iter().cloned().map(Def::Crime))
             .collect()
     }
+
+    /// Finds a def object by string or integer ID.
+    pub fn find<I: IdListExt>(&self, id: &MixedId<I>) -> Option<&I::Def> {
+        match id {
+            MixedId::Int(int) => int.index(I::get_list(self)),
+            MixedId::Str(str) => I::get_list(self).iter().find(|def| def.id_str() == str),
+        }
+    }
 }
 
-macro_rules! impl_index {
-    ($field:ident, $find:ident, $($module:tt)*) => {
-        impl ops::Index<$($module)*::Id> for GameDefinition {
-            type Output = $($module)*::Def;
+/// Either integer or string ID.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MixedId<T: Identifier> {
+    /// The integer form.
+    Int(T),
+    /// The string form.
+    Str(IdStr),
+}
 
-            fn index(&self, index: $($module)*::Id) -> &Self::Output {
-                let index = index.as_index();
-                self.$field.get(index).expect("Corrupted game file")
-            }
-        }
+impl<T: Identifier> MixedId<T> {
+    /// Shorthand for `MixedId::Str(IdStr::new(...))`
+    pub fn new_str(str: &str) -> Self { Self::Str(IdStr::new(ArcStr::from(str))) }
+}
 
-        impl GameDefinition {
-            pub fn $find(&self, name: &str) -> Option<&$($module)*::Def> {
-                self.$field.iter()
-                    .find(|def| def.id_str().as_str() == name)
+impl<T: IdListExt> From<T> for MixedId<T> {
+    fn from(t: T) -> Self { Self::Int(t) }
+}
+
+impl<T: IdListExt> From<IdStr> for MixedId<T> {
+    fn from(t: IdStr) -> Self { Self::Str(t) }
+}
+
+/// An extension trait for getting the corresponding Vec field from a [`GameDefinition`].
+pub trait IdListExt: Identifier {
+    /// Gets the list of the identified type from the definition.
+    fn get_list(def: &GameDefinition) -> &[<Self as Identifier>::Def];
+}
+
+impl<I: IdListExt> ops::Index<I> for GameDefinition {
+    type Output = I::Def;
+
+    fn index(&self, id: I) -> &Self::Output {
+        id.index(I::get_list(self)).expect("Corrupted definition")
+    }
+}
+
+macro_rules! impl_id_list_ext {
+    ($field:ident, $($module:tt)*) => {
+        impl IdListExt for $($module)*::Id {
+            fn get_list(def: &GameDefinition) -> &[$($module)*::Def] {
+                &def.$field[..]
             }
         }
     }
 }
 
-impl_index!(liquid, find_liquid, def::liquid);
-impl_index!(gas, find_gas, def::gas);
-impl_index!(cargo_category, find_cargo_category, def::cargo::category);
-impl_index!(cargo, find_cargo, def::cargo);
-impl_index!(skill, find_skill, def::skill);
-impl_index!(vehicle, find_vehicle, def::vehicle);
-impl_index!(building_category, find_building_category, def::building::category);
-impl_index!(building, find_building, def::building);
-impl_index!(crime, find_crime, def::crime);
+impl_id_list_ext!(liquid, def::liquid);
+impl_id_list_ext!(gas, def::gas);
+impl_id_list_ext!(cargo_category, def::cargo::category);
+impl_id_list_ext!(cargo, def::cargo);
+impl_id_list_ext!(skill, def::skill);
+impl_id_list_ext!(vehicle, def::vehicle);
+impl_id_list_ext!(building_category, def::building::category);
+impl_id_list_ext!(building, def::building);
+impl_id_list_ext!(crime, def::crime);
 
 /// Parameters for saving game state.
 ///
@@ -107,7 +170,7 @@ impl_index!(crime, find_crime, def::crime);
 /// The save is eventually flushed in the
 /// [`PostVisualize`][codegen::SystemClass::PostVisualize] stage,
 /// and the result is written to the [`Response`] event stream.
-#[derive(Clone)]
+#[derive(Clone, TypedBuilder)]
 pub struct Params {}
 
 /// A request to save game state.

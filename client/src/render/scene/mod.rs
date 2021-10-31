@@ -91,7 +91,7 @@ fn draw(
     #[resource] camera: &Camera,
     #[resource] layers: &Option<super::Layers>,
     #[resource] sun: &Sun,
-    #[resource(no_init)] texture_pool: &super::texture::Pool,
+    #[resource(no_init)] texture_pool: &mut super::texture::Pool,
     #[resource] hover_target: &input::mouse::HoverTarget,
     #[resource] focus_target: &input::FocusTarget,
     #[resource(no_init)] options: &options::Options,
@@ -177,7 +177,7 @@ fn draw(
                         .sun(sun_dir)
                         .filter(filter)
                         .selected(selected)
-                        .texture(&sprite) // TODO check texture variant name
+                        .texture(sprite) // TODO check texture variant name
                         .shape_unit(component.unit())
                         .uses_texture(options.graphics().node().texture().is_some())
                         .build(),

@@ -71,7 +71,7 @@ impl Component for Comp {
                             />
                     </>
                 }) }
-                { for (self.props.ty.direction() == Some(edge::Direction::FromTo)).then(|| html! {
+                { for (self.props.ty.direction() == Some(edge::Direction::From2To)).then(|| html! {
                     <polygon
                         points="\
                             -4,3 -3,4 0,1 \
@@ -92,7 +92,7 @@ impl Component for Comp {
                         style=style!("pointer-events": "none;")
                         />
                 }) }
-                { for (self.props.ty.direction() == Some(edge::Direction::ToFrom)).then(|| html! {
+                { for (self.props.ty.direction() == Some(edge::Direction::To2From)).then(|| html! {
                     <circle
                         cx=(self.props.origin + self.props.center.vector().x).to_string()
                         cy=(self.props.origin + self.props.center.vector().y).to_string()

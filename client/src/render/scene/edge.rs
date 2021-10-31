@@ -70,8 +70,6 @@ impl Program {
         selected: bool,
         args: &options::ReflectionArgs,
     ) {
-        use mesh::Mesh;
-
         gl.use_program(Some(&self.prog));
         self.u_trans.assign(gl, proj);
         self.u_trans_sun.assign(gl, sun);

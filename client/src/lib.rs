@@ -52,6 +52,14 @@ pub fn run_app() {
     App::<app::Mux>::new().mount_to_body();
 }
 
+/// A component that stores the context path of the game definition.
+#[derive(derive_new::new)]
+pub struct ContextPath(String);
+
+impl AsRef<str> for ContextPath {
+    fn as_ref(&self) -> &str { self.0.as_str() }
+}
+
 /// Sets up legion ECS.
 pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
     setup
