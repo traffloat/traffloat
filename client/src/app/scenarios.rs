@@ -4,5 +4,8 @@ pub struct ScenarioDef {
     pub path: &'static str,
 }
 
-pub const OPTIONS: &[ScenarioDef] =
-    &[ScenarioDef { id: "vanilla", name: "Vanilla", path: "vanilla.tsv" }];
+pub const OPTIONS: &[ScenarioDef] = &[ScenarioDef {
+    id:   "vanilla",
+    name: "Vanilla",
+    path: "gen/scenarios/vanilla/scenario.tfsave",
+}];

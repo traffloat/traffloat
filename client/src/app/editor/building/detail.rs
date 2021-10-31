@@ -148,10 +148,6 @@ fn render_feature(building: &building::Def, feature: &Feature, def: &GameDefinit
                         _ => unreachable!(),
                     } }</h3>
 
-                    <p>{
-                        todo!() as String
-                    }</p>
-
                     <p>
                         { match feature {
                             Feature::SecureEntry(_) => format!("\

@@ -47,6 +47,8 @@ pub mod skill;
 pub mod state;
 pub mod vehicle;
 
+mod tests;
+
 /// The scenario schema version.
 ///
 /// This value is only bumped when necessary to distinguish incompatible formats.
@@ -82,11 +84,13 @@ impl Schema {
             Some(buf) => buf,
             _ => anyhow::bail!("Not a traffloat scenario file"),
         };
+
         let version = match buf.get(0..4) {
             Some(bytes) => u32::from_le_bytes(bytes.try_into().expect("bytes.len() == 4")),
             None => anyhow::bail!("File is too short"),
         };
         anyhow::ensure!(version == SCHEMA_VERSION, "Incompatible scenario version");
+        buf = buf.get(4..).expect("Just checked above");
 
         let flate = flate2::read::DeflateDecoder::new(buf);
         rmp_serde::from_read(flate).context("Error parsing scenario file")
@@ -107,6 +111,7 @@ impl Schema {
                 "Compressed scenario file ({}%)",
                 flate.total_out().small_float() / flate.total_in().small_float() * 100.
             );
+            flate.finish()?;
         }
 
         Ok(())
@@ -114,7 +119,7 @@ impl Schema {
 }
 
 /// Metadata for a scenario.
-#[derive(Debug, Clone, Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, Getters, Serialize, Deserialize, TypedBuilder)]
 pub struct Scenario {
     /// Name of the scenario.
     #[getset(get = "pub")]
@@ -125,7 +130,7 @@ pub struct Scenario {
 }
 
 /// Scalar config for the scenario.
-#[derive(Debug, Clone, CopyGetters, Serialize, Deserialize)]
+#[derive(Debug, Clone, CopyGetters, Serialize, Deserialize, TypedBuilder)]
 pub struct Config {
     /// The angle the sun moves per tick
     #[getset(get_copy = "pub")]

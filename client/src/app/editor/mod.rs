@@ -29,19 +29,12 @@ impl Component for Comp {
     type Properties = Props;
 
     fn create(props: Props, link: ComponentLink<Self>) -> Self {
-        let file = match def::Schema::parse(&props.buf) {
-            Ok(file) => Rc::new(file),
-            Err(err) => {
-                todo!("Handle erorr: {:?}", err)
-            }
-        };
-
         let mut state = State::default();
         if let Some(switch) = props.intent_route.as_ref().and_then(Switch::from_route) {
             state.switch = switch;
         }
 
-        let def = match GameDefinition::new(file.def().iter().cloned()) {
+        let def = match GameDefinition::new(props.schema.def().iter().cloned()) {
             Ok(def) => def,
             Err(err) => todo!("Handle error: {:?}", err),
         };
@@ -222,7 +215,7 @@ pub struct Props {
     /// Name of the scenario, if it is default.
     pub name:         Option<String>,
     /// Buffer storing the tsv buffer.
-    pub buf:          Rc<[u8]>,
+    pub schema:       Rc<def::Schema>,
     /// Callback to return to home.
     pub close_hook:   Callback<Option<String>>,
     /// The intended route to navigate to.

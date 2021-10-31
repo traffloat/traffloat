@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use traffloat::SetupEcs;
+use traffloat::{def, save, SetupEcs};
 
 mod editor;
 mod game;
@@ -13,8 +13,10 @@ mod scenarios;
 
 pub use mux::Mux;
 
+use crate::ContextPath;
+
 /// Arguments for starting a game
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum GameArgs {
     /// Singleplayer mode
     Sp(SpGameArgs),
@@ -25,7 +27,8 @@ impl GameArgs {
     pub fn init(&self, mut setup: SetupEcs) -> SetupEcs {
         match self {
             Self::Sp(args) => {
-                todo!("setup ECS")
+                setup = save::load_scenario(setup, &args.scenario)
+                    .resource(ContextPath::new(args.context_path.to_string()));
             }
         }
         setup
@@ -35,8 +38,10 @@ impl GameArgs {
 impl yew::html::ImplicitClone for GameArgs {}
 
 /// Parameters for starting a game
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SpGameArgs {
     /// The scenario file.
-    pub scenario: Rc<[u8]>,
+    pub scenario:     Rc<def::Schema>,
+    /// Context path of the scenario file.
+    pub context_path: String,
 }

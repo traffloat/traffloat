@@ -1,10 +1,12 @@
 use std::rc::Rc;
 
+use traffloat::def;
 use yew::prelude::*;
 use yew::services::{fetch, reader};
 
 use super::route::{Route, SpRoute};
 use super::{scenarios, SpGameArgs};
+use crate::util::prepend_pathname;
 
 mod scenario_choose;
 
@@ -14,7 +16,7 @@ pub struct Home {
     link:                 ComponentLink<Self>,
     game_mode:            GameMode,
     _loader:              Option<ScenarioLoader>,
-    scenario:             Option<Rc<[u8]>>,
+    scenario:             Option<Rc<def::Schema>>,
     chosen_scenario_name: Option<String>,
 }
 
@@ -47,11 +49,11 @@ impl Component for Home {
             Msg::ChooseScenario(event) => {
                 let loader = match event.scenario {
                     Some(Scenario::Url(url)) => {
-                        log::debug!("URL: {}", url);
-                        let request = fetch::Request::get(url)
+                        let request = fetch::Request::get(prepend_pathname(url))
                             .body(yew::format::Nothing)
                             .expect("Failed to build request");
                         log::debug!("Fetching scenario from URL: {}", url);
+
                         match fetch::FetchService::fetch_binary(
                             request,
                             self.link.callback(Msg::ScenarioUrlLoaded),
@@ -105,8 +107,14 @@ impl Component for Home {
                 }
                 match body {
                     Ok(body) => {
-                        let body = Rc::from(body);
-                        self.scenario = Some(body);
+                        let schema = match def::Schema::parse(&body) {
+                            Ok(schema) => schema,
+                            Err(err) => {
+                                log::error!("Malformed scenario: {:?}", err);
+                                return true;
+                            }
+                        };
+                        self.scenario = Some(Rc::new(schema));
                         if let Some(Route::Scenario { sp: SpRoute::Game, .. }) =
                             &self.props.intent_route
                         {
@@ -126,7 +134,14 @@ impl Component for Home {
             Msg::ScenarioFileLoaded(file) => {
                 self._loader = None;
                 let body = Rc::from(file.content);
-                self.scenario = Some(body);
+                let schema = match def::Schema::parse(&body) {
+                    Ok(schema) => schema,
+                    Err(err) => {
+                        log::error!("Malformed scenario: {:?}", err);
+                        return true;
+                    }
+                };
+                self.scenario = Some(Rc::new(schema));
                 true
             }
             Msg::StartSingle => {
@@ -134,9 +149,11 @@ impl Component for Home {
                     Some(scenario) => Rc::clone(scenario),
                     None => return false,
                 };
-                self.props
-                    .start_single_hook
-                    .emit((SpGameArgs { scenario }, self.chosen_scenario_name.clone()));
+                let args = SpGameArgs {
+                    scenario,
+                    context_path: "gen/scenarios/vanilla".to_string(), /* TODO change this placeholder */
+                };
+                self.props.start_single_hook.emit((args, self.chosen_scenario_name.clone()));
                 false
             }
             Msg::EditScenario => {
@@ -293,7 +310,7 @@ pub struct Props {
     /// Callback to start a singleplayer game.
     pub start_single_hook:  Callback<(SpGameArgs, Option<String>)>,
     /// Callback to edit a scenario.
-    pub edit_scenario_hook: Callback<(Option<String>, Rc<[u8]>)>,
+    pub edit_scenario_hook: Callback<(Option<String>, Rc<def::Schema>)>,
     /// The intended route to navigate to.
     pub intent_route:       Option<Route>,
     /// Displays an error message.

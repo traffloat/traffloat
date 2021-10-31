@@ -12,11 +12,10 @@ use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 use traffloat::{lerp, units};
 use web_sys::WebGlRenderingContext;
 
-use super::{CursorType, RenderFlag};
+use super::{texture, CursorType, RenderFlag};
 use crate::camera::Camera;
-use crate::render::texture::AtlasId;
 use crate::util::Bounds;
-use crate::{input, options};
+use crate::{input, options, ContextPath};
 
 pub mod edge;
 pub mod node;
@@ -91,7 +90,8 @@ fn draw(
     #[resource] camera: &Camera,
     #[resource] layers: &Option<super::Layers>,
     #[resource] sun: &Sun,
-    #[resource(no_init)] texture_pool: &mut super::texture::Pool,
+    #[state(None)] texture_pool: &mut Option<texture::Pool>,
+    #[resource(no_init)] context_path: &ContextPath,
     #[resource] hover_target: &input::mouse::HoverTarget,
     #[resource] focus_target: &input::FocusTarget,
     #[resource(no_init)] options: &options::Options,
@@ -119,6 +119,9 @@ fn draw(
 
     scene.gl.enable(WebGlRenderingContext::CULL_FACE);
     scene.gl.enable(WebGlRenderingContext::BLEND);
+
+    let texture_pool = texture_pool
+        .get_or_insert_with(|| texture::Pool::new(&scene.gl, context_path.as_ref().to_string()));
 
     let base_month: f64 = sun.yaw() / PI / 2. * MONTH_COUNT.small_float::<f64>();
 
@@ -167,7 +170,7 @@ fn draw(
 
                 let unit_to_real = component.transform(*position);
                 let tex: &ModelRef = component.texture();
-                let id = AtlasId::new(tex.spritesheet_id(), arcstr::literal!("fancy")); // TODO allow choosing variant
+                let id = texture::AtlasId::new(tex.spritesheet_id(), arcstr::literal!("fancy")); // TODO allow choosing variant
                 let sprite = texture_pool.resolve(&scene.gl, &id);
 
                 scene.node_prog.draw(

@@ -169,6 +169,11 @@ fn write_variants(args: WriteVariantsArgs) -> Result<()> {
         let out_png = args.output.join(atlas::to_path(variant.name().as_str(), args.texture_id));
         log::debug!("Saving downscaled variant {}", out_png.display());
 
+        let dir = out_png.parent().expect("File has no parent");
+        if !dir.exists() {
+            fs::create_dir(dir).context("Creating variant directory")?;
+        }
+
         let downscaled_map = {
             let _timer = args.downscale_timer.start();
             downscale(&args.pixmap, args.pixmap_size, variant.dimension() * args.side_sprite_count)

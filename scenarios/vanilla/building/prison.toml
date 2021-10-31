@@ -28,12 +28,12 @@ description = {src = "building", key = "prison-description"}
 		[[def.storage.population]]
 		id = "prisoner"
 		capacity = 10
-		name = {src = "storage-population", key = "prison-prisoner"}
+		name = {src = "storage-population", key = "security-prisoner"}
 
 		[[def.storage.population]]
 		id = "guard"
 		capacity = 2
-		name = {src = "storage-population", key = "prison-guard"}
+		name = {src = "storage-population", key = "security-guard"}
 
 	[[def.features]]
 	type = "SecureExit"
@@ -80,6 +80,7 @@ description = {src = "building", key = "prison-description"}
 			type = "Skill"
 			ty = "teaching-skill"
 			levels = {start = 5.0, end = 50.0}
+			storage = "guard"
 
 			[def.features.catalysts.multipliers]
 			underflow = 0.0

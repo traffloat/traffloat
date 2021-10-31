@@ -113,9 +113,9 @@ fn main() -> Result<()> {
 
             context.creation_hook = Some(Rc::new({
                 let input = args.input.clone();
-                let output = args.output.join("assets");
+                let output = args.output.clone();
                 let skip_svg = args.skip_svg;
-                fs::create_dir(&output).context("Creating assets dir")?;
+                fs::create_dir(output.join("assets")).context("Creating assets dir")?;
 
                 let render_timer = Rc::clone(&render_timer);
                 let downscale_timer = Rc::clone(&downscale_timer);

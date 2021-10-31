@@ -112,6 +112,8 @@ pub struct SetupEcs {
 /// A discrete batch of systems to execute.
 #[derive(Debug, Clone, Copy, enum_map::Enum)]
 pub enum SystemClass {
+    /// The very first initial setup.
+    Init,
     /// Receive inputs.
     Input,
     /// Respond to inputs.

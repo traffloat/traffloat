@@ -171,3 +171,17 @@ where
         }
     }
 }
+
+/// Prepend `window.location.pathname` to a relative path.
+///
+/// yew fetch service requires a path that can be converted into an
+/// [`http::Uri`].
+/// This is not compatible with relative paths that contain slashes.
+/// As a workaround, prepend window.location.pathname to the URL
+/// to make it an absolute path.
+pub fn prepend_pathname(path: &str) -> String {
+    let window = web_sys::window().expect("Window does not exist");
+    let location = window.location();
+    let pathname = location.pathname().expect("Location does not provide a pathname");
+    format!("{}{}", pathname, path)
+}

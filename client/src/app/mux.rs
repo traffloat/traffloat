@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use traffloat::def;
 use yew::prelude::*;
 
 use super::route::{Route, SpRoute};
@@ -70,10 +71,10 @@ impl Component for Mux {
                     error_hook=self.link.callback(Msg::Exit)
                     />
             },
-            State::Editor(name, buf) => html! {
+            State::Editor(name, schema) => html! {
                 <editor::Comp
                     name=name.clone()
-                    buf=Rc::clone(buf)
+                    schema=Rc::clone(schema)
                     close_hook=self.link.callback(Msg::Exit)
                     intent_route=self.intent_route.clone()
                     />
@@ -87,7 +88,7 @@ pub enum Msg {
     /// Starts a singleplayer game.
     StartSingle { args: SpGameArgs, scenario: Option<String> },
     /// Edit a scenario..
-    EditScenario(Option<String>, Rc<[u8]>),
+    EditScenario(Option<String>, Rc<def::Schema>),
     /// Ends a game with an optional error message.
     Exit(Option<String>),
 }
@@ -95,5 +96,5 @@ pub enum Msg {
 enum State {
     Home { error: Option<String> },
     Game(GameArgs),
-    Editor(Option<String>, Rc<[u8]>),
+    Editor(Option<String>, Rc<def::Schema>),
 }

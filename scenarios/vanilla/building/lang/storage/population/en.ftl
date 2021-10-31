@@ -4,5 +4,5 @@ generic-user = User
 school-teacher = Teacher
 school-student = Student
 housing-housing = Housing
-prison-prisoner = Prisoner
-prison-guard = Guard
+security-prisoner = Prisoner
+security-guard = Guard

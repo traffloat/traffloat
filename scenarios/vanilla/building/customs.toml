@@ -26,9 +26,9 @@ description = {src = "building", key = "customs-description"}
 		name = {src = "storage-liquid", key = "generic-buffer"}
 
 		[[def.storage.population]]
-		id = "operator"
+		id = "guard"
 		capacity = 2
-		name = {src = "storage-population", key = "generic-operator"}
+		name = {src = "storage-population", key = "security-guard"}
 
 	[[def.features]]
 	type = "SecureEntry"

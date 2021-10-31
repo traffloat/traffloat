@@ -243,6 +243,19 @@ fn save_request(
     }
 }
 
+/// Loads a scenario file.
+pub fn load_scenario(setup: SetupEcs, scenario: &def::Schema) -> SetupEcs {
+    let def = match GameDefinition::new(scenario.def().iter().cloned()) {
+        Ok(def) => def,
+        Err(err) => {
+            log::error!("Error loading scenario: {:?}", err);
+            return setup;
+        }
+    };
+
+    setup.resource(def).resource(scenario.scenario().clone()).resource(scenario.config().clone())
+}
+
 /// Initializes ECS
 pub fn setup_ecs(setup: SetupEcs) -> SetupEcs {
     setup.uses(save_request_setup).uses(save_scenario_setup)
