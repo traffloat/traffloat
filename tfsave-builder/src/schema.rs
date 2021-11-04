@@ -1,10 +1,12 @@
 use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use traffloat_def::{Config, DefHumanFriendly, Scenario};
 
+use crate::init::{self, ScalarState};
+
 /// The schema in the main.toml file.
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct MainFile {
     /// The extra schema in the main.toml file.
     #[serde(flatten)]
@@ -15,16 +17,18 @@ pub struct MainFile {
 }
 
 /// The extra schema in the main.toml file.
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Main {
     /// Scenario metadata.
     pub scenario: Scenario,
     /// Scalar configuration for this scenario.
     pub config:   Config,
+    /// Scalar game states.
+    pub state:    ScalarState,
 }
 
 /// The schema for included TOML files.
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct File {
     /// Extra files to include.
     ///
@@ -35,10 +39,13 @@ pub struct File {
     /// Gamerules defined in this file.
     #[serde(default)]
     pub def:     Vec<DefHumanFriendly>,
+    /// Initialize states.
+    #[serde(default)]
+    pub init:    Vec<init::InitHumanFriendly>,
 }
 
 /// References another file to include.
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Include {
     /// The path to include.
     pub file: PathBuf,

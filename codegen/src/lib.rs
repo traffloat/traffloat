@@ -450,17 +450,30 @@ pub fn hrtime() -> i64 {
 }
 
 pub trait Definition: Serialize + DeserializeOwned + Sized {
-    type HumanFriendly: Serialize + DeserializeOwned;
+    type HumanFriendly: DeserializeOwned;
 
     fn convert(hf: Self::HumanFriendly, context: &mut ResolveContext) -> anyhow::Result<Self>;
 }
 
+struct Listener<T>(PhantomData<T>);
+
+type ListenerFn<T> =
+    dyn Fn(&<T as Definition>::HumanFriendly, &mut ResolveContext) -> anyhow::Result<()>;
+
+impl<T: Definition + 'static> typemap::Key for Listener<T> {
+    type Value = Rc<ListenerFn<T>>;
+}
+
+type IdList = Rc<RefCell<Vec<ArcStr>>>;
+
 /// The context used to resolve name references to runtime IDs.
 #[derive(Clone)]
 pub struct ResolveContext {
-    counters:    BTreeMap<TypeId, Vec<ArcStr>>,
-    tymap:       Rc<RefCell<TypeMap>>,
-    current_dir: PathBuf,
+    counters:         BTreeMap<TypeId, IdList>,
+    scoped_counts:    BTreeMap<TypeId, BTreeMap<usize, BTreeMap<TypeId, IdList>>>,
+    read_only_counts: BTreeMap<TypeId, IdList>,
+    tymap:            Rc<RefCell<TypeMap>>,
+    current_dir:      PathBuf,
 }
 
 impl ResolveContext {
@@ -474,30 +487,69 @@ impl ResolveContext {
     pub fn new(current_dir: PathBuf) -> Self {
         Self {
             counters: BTreeMap::new(),
+            scoped_counts: BTreeMap::new(),
+            read_only_counts: BTreeMap::new(),
             tymap: Rc::new(RefCell::new(TypeMap::new())),
             current_dir,
         }
     }
-}
 
-struct Listener<T>(PhantomData<T>);
-
-type ListenerFn<T> =
-    dyn Fn(&<T as Definition>::HumanFriendly, &mut ResolveContext) -> anyhow::Result<()>;
-
-impl<T: Definition + 'static> typemap::Key for Listener<T> {
-    type Value = Rc<ListenerFn<T>>;
-}
-
-impl ResolveContext {
     /// Start tracking a type.
     pub fn start_tracking<T: Identifiable + 'static>(&mut self) {
-        self.counters.insert(TypeId::of::<T>(), Vec::new());
+        self.counters.insert(TypeId::of::<T>(), Rc::default());
+    }
+
+    /// Start tracking a type, using `id` as the scope.
+    pub fn start_tracking_scoped<T: Identifiable + 'static, I: Identifier + 'static>(
+        &mut self,
+        scope: I,
+    ) {
+        log::debug!(
+            "start_tracking_scoped<{}, {}>({})",
+            type_name::<T>(),
+            type_name::<I>(),
+            scope.as_index()
+        );
+
+        let rc = Rc::default();
+        self.counters.insert(TypeId::of::<T>(), Rc::clone(&rc));
+        self.scoped_counts
+            .entry(TypeId::of::<I::Def>())
+            .or_default()
+            .entry(scope.as_index())
+            .or_default()
+            .insert(TypeId::of::<T>(), rc);
     }
 
     /// Stop tracking a type.
     pub fn stop_tracking<T: Identifiable + 'static>(&mut self) {
         self.counters.remove(&TypeId::of::<T>());
+    }
+
+    pub fn reuse_scoped<T: Identifiable + 'static, I: Identifier + 'static>(
+        &mut self,
+        scope: I,
+    ) -> anyhow::Result<()> {
+        let rc = self
+            .scoped_counts
+            .get(&TypeId::of::<I::Def>())
+            .with_context(|| format!("Reusing unregistered scope {}", type_name::<T>()))?
+            .get(&scope.as_index())
+            .with_context(|| {
+                format!("Reusing unknown scope {}({})", type_name::<T>(), scope.as_index())
+            })?
+            .get(&TypeId::of::<T>())
+            .with_context(|| {
+                format!(
+                    "Cannot reuse scope {}/{} because the hierarchy was not known before",
+                    type_name::<T>(),
+                    type_name::<I>()
+                )
+            })?;
+
+        self.read_only_counts.insert(TypeId::of::<T>(), Rc::clone(rc));
+
+        Ok(())
     }
 
     /// Register a listener when an Identifiable type is being resolved.
@@ -508,11 +560,13 @@ impl ResolveContext {
 
     /// Notify a new name in the type.
     pub fn notify<T: Identifiable + 'static>(&mut self, name: ArcStr) -> anyhow::Result<()> {
-        let list = self
-            .counters
-            .get_mut(&TypeId::of::<T>())
-            .with_context(|| format!("Type {} is not tracked", type_name::<T>()))?;
-        list.push(name);
+        let list = self.counters.get_mut(&TypeId::of::<T>()).with_context(|| {
+            format!("Type {} is not tracked and cannot be notified", type_name::<T>())
+        })?;
+        {
+            let mut list = list.borrow_mut();
+            list.push(name);
+        }
 
         Ok(())
     }
@@ -536,15 +590,24 @@ impl ResolveContext {
 
     /// Resolves a runtime ID by type and name.
     pub fn resolve_id<T: Identifiable + 'static>(&self, name: &str) -> anyhow::Result<usize> {
+        if let Some(count) = self.read_only_counts.get(&TypeId::of::<T>()) {
+            let count = count.borrow();
+            let id = count
+                .iter()
+                .position(|n| n == name)
+                .with_context(|| format!("No match for name {}", name))?;
+            return Ok(id);
+        }
+
         // the entry for T may not be defined yet because of incorrect loading order.
-        self.counters
+        let list = self
+            .counters
             .get(&TypeId::of::<T>())
             .with_context(|| format!("Type {} is not tracked", type_name::<T>()))?
-            .iter()
-            .position(|n| n == name)
-            .with_context(|| {
-                format!("{} ID {} is undefined in this context", type_name::<T>(), name)
-            })
+            .borrow();
+        list.iter().position(|n| n == name).with_context(|| {
+            format!("{} ID {} is undefined in this context", type_name::<T>(), name)
+        })
     }
 
     /// Gets a [`cell::RefMut`] to an arbitrary type stord with the context.
@@ -582,6 +645,9 @@ impl_definition_by_self!(u32);
 impl_definition_by_self!(f64);
 impl_definition_by_self!(ArcStr);
 
+impl_definition_by_self!(nalgebra::Vector2<f64>);
+impl_definition_by_self!(nalgebra::Vector3<f64>);
+
 impl Definition for PathBuf {
     type HumanFriendly = PathBuf;
 
@@ -618,7 +684,7 @@ impl<T: Definition, const N: usize> Definition for SmallVec<[T; N]>
 where
     [T; N]: smallvec::Array<Item = T>,
     Self: Serialize + DeserializeOwned,
-    T::HumanFriendly: Serialize + DeserializeOwned,
+    T::HumanFriendly: DeserializeOwned,
 {
     type HumanFriendly = Vec<T::HumanFriendly>;
 
@@ -651,6 +717,8 @@ pub trait Identifiable: 'static {
 pub trait Identifier: fmt::Debug + Copy + Eq + Ord {
     /// The data type identified by this type.
     type Def: Identifiable<Id = Self>;
+
+    fn as_index(self) -> usize;
 
     /// Extracts the item from a slice using this ID.
     fn index(self, list: &[Self::Def]) -> Option<&Self::Def>;

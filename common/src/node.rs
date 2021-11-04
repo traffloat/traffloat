@@ -217,13 +217,13 @@ fn create_saved_node(
         let cargo_list = save
             .cargo()
             .iter()
-            .map(|&(id, size)| {
+            .map(|entry| {
                 let entity = entities.push((
-                    cargo::Storage::new(id),
-                    cargo::StorageSize::new(size),
-                    cargo::NextStorageSize::new(size),
+                    cargo::Storage::new(entry.cargo()),
+                    cargo::StorageSize::new(entry.size()),
+                    cargo::NextStorageSize::new(entry.size()),
                 ));
-                (id, entity)
+                (entry.cargo(), entity)
             })
             .collect();
 
@@ -232,13 +232,13 @@ fn create_saved_node(
             .liquid()
             .iter()
             .zip(liquid_storages.iter())
-            .map(|(&(id, size), storage_def)| {
+            .map(|(entry, storage_def)| {
                 entities.push((
-                    liquid::Storage::new(id),
-                    liquid::NextStorageType::new(id),
+                    liquid::Storage::new(entry.liquid()),
+                    liquid::NextStorageType::new(entry.liquid()),
                     liquid::StorageCapacity::new(storage_def.capacity()),
-                    liquid::StorageSize::new(size),
-                    liquid::NextStorageSize::new(size),
+                    liquid::StorageSize::new(entry.volume()),
+                    liquid::NextStorageSize::new(entry.volume()),
                     storage_def.name().clone(),
                 ))
             })
@@ -246,13 +246,13 @@ fn create_saved_node(
         let gas_list = save
             .gas()
             .iter()
-            .map(|&(id, size)| {
+            .map(|entry| {
                 let entity = entities.push((
-                    gas::Storage::new(id),
-                    gas::StorageSize::new(size),
-                    gas::NextStorageSize::new(size),
+                    gas::Storage::new(entry.gas()),
+                    gas::StorageSize::new(entry.volume()),
+                    gas::NextStorageSize::new(entry.volume()),
                 ));
-                (id, entity)
+                (entry.gas(), entity)
             })
             .collect();
 
@@ -261,7 +261,19 @@ fn create_saved_node(
             save.building(),
             save.name().clone(),
             save.position(),
-            save.appearance().clone(),
+            appearance::Appearance::new(
+                building
+                    .shapes()
+                    .iter()
+                    .map(|shape| {
+                        appearance::Component::builder()
+                            .unit(shape.unit())
+                            .matrix(save.rotation() * shape.transform().0)
+                            .texture(shape.texture())
+                            .build()
+                    })
+                    .collect(),
+            ),
             units::Portion::new(save.hitpoint(), building.hitpoint()),
             LightStats::default(),
             cargo::StorageList::new(cargo_list),
@@ -348,7 +360,7 @@ fn save_nodes(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item =
                     let size = storage
                         .get_component::<cargo::StorageSize>()
                         .expect("Malformed entity reference");
-                    (cargo_ty, size.size())
+                    state::CargoStorageEntry::new(cargo_ty, size.size())
                 })
                 .collect();
             let gas = gas_list
@@ -360,7 +372,7 @@ fn save_nodes(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item =
                     let size = storage
                         .get_component::<gas::StorageSize>()
                         .expect("Malformed entity reference");
-                    (gas_ty, size.size())
+                    state::GasStorageEntry::new(gas_ty, size.size())
                 })
                 .collect();
             let liquid = liquid_list
@@ -376,7 +388,7 @@ fn save_nodes(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item =
                     let size = storage
                         .get_component::<liquid::StorageSize>()
                         .expect("Malformed entity reference");
-                    (liquid_ty, size.size())
+                    state::LiquidStorageEntry::new(liquid_ty, size.size())
                 })
                 .collect();
 
@@ -385,7 +397,7 @@ fn save_nodes(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item =
                 .building(building)
                 .name(name.clone())
                 .position(position)
-                .appearance(appearance.clone())
+                .rotation(Matrix::identity()) // TODO persist rotation
                 .hitpoint(hitpoint.current())
                 .cargo(cargo)
                 .gas(gas)

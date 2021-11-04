@@ -1,0 +1,19 @@
+[[init]]
+type = "Edge"
+from = "core"
+to = "terminal-core-hut"
+radius = 0.1
+
+	[init.hitpoint]
+	current = 100.0
+	max = 100.0
+
+	[[init.ducts]]
+	center = [0.0, 0.0]
+	radius = 0.01
+
+		[init.ducts.ty]
+		type = "Liquid"
+		dir = "From2To"
+		src_storage = "reservoir0"
+		dest_storage = "buffer0"

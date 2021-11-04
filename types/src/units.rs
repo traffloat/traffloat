@@ -2,11 +2,12 @@
 
 use std::fmt;
 
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 units! {
     /// A common unit type
-    Unit(std::fmt::Debug + Clone + Copy + Default + PartialEq + PartialOrd);
+    Unit(std::fmt::Debug + Clone + Copy + Default + PartialEq + PartialOrd + Serialize + DeserializeOwned);
 
     #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Serialize, Deserialize)] f64:
 
@@ -62,6 +63,7 @@ units! {
     Serialize,
     Deserialize,
 )]
+#[serde(bound = "")]
 pub struct Portion<U: Unit> {
     /// The current value.
     #[getset(get_copy = "pub")]
@@ -86,6 +88,12 @@ impl<U: Unit + fmt::Display> fmt::Display for Portion<U> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} / {}", self.current, self.max)
     }
+}
+
+impl<U: Unit> codegen::Definition for Portion<U> {
+    type HumanFriendly = Self;
+
+    fn convert(hf: Self, _: &mut codegen::ResolveContext) -> anyhow::Result<Self> { Ok(hf) }
 }
 
 /// A unit that can be rounded off.

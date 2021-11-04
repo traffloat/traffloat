@@ -9,12 +9,12 @@ use std::{fs, io};
 use anyhow::{Context as _, Result};
 use codegen::{Definition, ResolveContext};
 use def::atlas::{AtlasContext, IconIndex, ModelIndex};
-use def::state::State;
 use def::Schema;
 use structopt::StructOpt;
 use traffloat_def::{self as def, Def};
 
 mod atlas;
+mod init;
 mod lang;
 mod schema;
 
@@ -86,6 +86,7 @@ fn main() -> Result<()> {
     let args = Args::from_args();
 
     let mut defs = Vec::new();
+    let mut init = Vec::new();
     let mut context = ResolveContext::new(PathBuf::new()); // path to be initialized later
 
     let render_timer = Rc::new(Timer::new("rendering textures"));
@@ -107,6 +108,7 @@ fn main() -> Result<()> {
         context.start_tracking::<def::building::category::Def>();
         context.start_tracking::<def::building::Def>();
         context.start_tracking::<def::crime::Def>();
+        context.start_tracking::<init::node::Def>();
 
         {
             let mut context = context.get_other::<AtlasContext>();
@@ -155,10 +157,11 @@ fn main() -> Result<()> {
     }
 
     log::info!("Loading scenario definition");
-    let schema::Main { scenario, config } = {
+    let schema::Main { scenario, config, state: scalar_state } = {
         let timer = Timer::new("loading scenario definition");
         let _timer = timer.start_and_report();
-        read_main_defs(&mut defs, &mut context, &args.input).context("Parsing input files")?
+        read_main_defs(&mut defs, &mut init, &mut context, &args.input)
+            .context("Parsing input files")?
     };
 
     render_timer.report();
@@ -166,7 +169,7 @@ fn main() -> Result<()> {
     save_timer.report();
     lang_parse_timer.report();
 
-    let state = State::default(); // TODO
+    let state = init::resolve_states(&defs, &init, &scalar_state).context("Initializing states")?;
 
     log::info!("Saving scenario output");
     let schema = Schema::builder().scenario(scenario).config(config).def(defs).state(state).build();
@@ -179,6 +182,7 @@ fn main() -> Result<()> {
 
 fn read_main_defs(
     defs: &mut Vec<Def>,
+    inits: &mut Vec<init::Init>,
     context: &mut ResolveContext,
     path: &Path,
 ) -> Result<schema::Main> {
@@ -187,13 +191,14 @@ fn read_main_defs(
     let toml: schema::MainFile = serde_path_to_error::deserialize(&mut de)
         .with_context(|| format!("Parsing {}", path.display()))?;
 
-    read_defs(defs, context, toml.file, path)?;
+    read_defs(defs, inits, context, toml.file, path)?;
 
     Ok(toml.main)
 }
 
 fn read_included_defs(
     defs: &mut Vec<Def>,
+    inits: &mut Vec<init::Init>,
     context: &mut ResolveContext,
     path: &Path,
 ) -> Result<()> {
@@ -202,11 +207,12 @@ fn read_included_defs(
     let toml: schema::File = serde_path_to_error::deserialize(&mut de)
         .with_context(|| format!("Parsing {}", path.display()))?;
 
-    read_defs(defs, context, toml, path)
+    read_defs(defs, inits, context, toml, path)
 }
 
 fn read_defs(
     defs: &mut Vec<Def>,
+    inits: &mut Vec<init::Init>,
     context: &mut ResolveContext,
     file: schema::File,
     path: &Path,
@@ -221,7 +227,7 @@ fn read_defs(
         included = included.canonicalize().with_context(|| {
             format!("Failed to canonicalize included file {}", included.display())
         })?;
-        read_included_defs(defs, context, &included)
+        read_included_defs(defs, inits, context, &included)
             .with_context(|| format!("Included in {}", path.display()))?;
     }
 
@@ -232,6 +238,12 @@ fn read_defs(
         let def = Def::convert(def, context)
             .with_context(|| format!("Resolving references in {}", path.display()))?;
         defs.push(def);
+    }
+
+    for init in file.init {
+        let init = init::Init::convert(init, context)
+            .with_context(|| format!("Resolving references in {}", path.display()))?;
+        inits.push(init);
     }
 
     Ok(())

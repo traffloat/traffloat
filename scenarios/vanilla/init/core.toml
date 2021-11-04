@@ -1,0 +1,27 @@
+[[init]]
+type = "Node"
+id = "core"
+building = "core"
+position = [0.0, 0.0, 0.0]
+hitpoint = 3000.0
+
+	[[init.cargo]]
+	ty = "dna"
+	size = 500.0
+
+	[[init.cargo]]
+	ty = "sediment"
+	size = 200.0
+
+	[[init.cargo]]
+	ty = "rock"
+	size = 50.0
+
+	[[init.gas]]
+	ty = "oxygen"
+	volume = 1600.0
+
+	[[init.liquid]]
+	storage = "reservoir0"
+	ty = "deionized-water"
+	volume = 2000.0

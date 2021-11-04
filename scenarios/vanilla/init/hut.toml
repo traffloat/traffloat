@@ -1,0 +1,15 @@
+[[init]]
+type = "Node"
+id = "hut"
+building = "hut"
+position = [1.0, -2.0, 3.0]
+hitpoint = 150.0
+
+	[[init.gas]]
+	ty = "oxygen"
+	volume = 200.0
+
+	[[init.liquid]]
+	storage = "drinking"
+	ty = "deionized-water"
+	volume = 100.0

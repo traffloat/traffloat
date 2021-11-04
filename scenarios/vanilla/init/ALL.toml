@@ -1,0 +1,14 @@
+[[include]]
+file = "./core.toml"
+
+[[include]]
+file = "./hut.toml"
+
+[[include]]
+file = "./terminal-core-hut.toml"
+
+[[include]]
+file = "./edge-terminal-core.toml"
+
+[[include]]
+file = "./edge-terminal-hut.toml"

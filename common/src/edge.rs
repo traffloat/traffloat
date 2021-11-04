@@ -120,7 +120,11 @@ fn create_duct(
         DuctType::Rail(Some(_direction)) => {
             entities.push(()) // TODO
         }
-        DuctType::Liquid { dir: Some(direction), from_storage, to_storage } => entities.push({
+        DuctType::Liquid {
+            dir: Some(direction),
+            src_storage: from_storage,
+            dest_storage: to_storage,
+        } => entities.push({
             let from_list = from_entry
                 .get_component::<liquid::StorageList>()
                 .expect("The from node entity does not have liquid::StorageList");

@@ -1,13 +1,17 @@
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote, ToTokens};
 use syn::punctuated::Punctuated;
 use syn::{parse, Error, Result};
 
 pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
-    let cfg_gate = quote!(#[cfg(feature = "convert-human-friendly")]);
-
     let input = syn::parse2::<syn::DeriveInput>(input)?;
     let input_ident = &input.ident;
+
+    let cfg_gate = if input.attrs.iter().any(|attr| attr.path.is_ident("hf_always")) {
+        quote!()
+    } else {
+        quote!(#[cfg(feature = "convert-human-friendly")])
+    };
 
     let human_friendly_ident = format_ident!("{}HumanFriendly", input_ident);
 
@@ -37,14 +41,6 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
         .filter(|attr| attr.path.is_ident("hf_serde"))
         .map(|attr| &attr.tokens)
         .collect();
-
-    let mut context_types = Vec::new();
-    for attr in &input.attrs {
-        if attr.path.is_ident("resolve_context") {
-            let args = syn::parse2::<ResolveContextTypeList>(attr.tokens.clone())?;
-            context_types.extend(args.0.into_iter());
-        }
-    }
 
     let need_id: bool;
     let human_friendly: TokenStream;
@@ -130,7 +126,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
                 human_friendly = quote! {
                     #cfg_gate
                     #[doc = concat!("The human-friendly version of [`", stringify!(#input_ident), "`].")]
-                    #[derive(::serde::Serialize, ::serde::Deserialize)]
+                    #[derive(::serde::Deserialize)]
                     #(#[serde #hf_serde])*
                     pub struct #human_friendly_ident #generics_bounded #generics_where {
                         #(
@@ -250,7 +246,7 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
             human_friendly = quote! {
                 #cfg_gate
                 #[doc = concat!("The human-friendly version of [`", stringify!(#input_ident), "`].")]
-                #[derive(::serde::Serialize, ::serde::Deserialize)]
+                #[derive(::serde::Deserialize)]
                 #[serde(tag = "type")]
                 #(#[serde #hf_serde])*
                 pub enum #human_friendly_ident #generics_bounded #generics_where {
@@ -273,13 +269,20 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
     }
 
     let id = need_id.then(|| quote! {
-        #[doc = stringify!("An ordinal runtime ID for [`", stringify!(#input_ident), "`].")]
-        #[derive(Debug, Clone, Copy, ::serde::Serialize, ::serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+        #[doc = concat!("An ordinal runtime ID for [`", stringify!(#input_ident), "`].")]
+        #[derive(Debug, Clone, Copy, Default, ::serde::Serialize, ::serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
         pub struct Id(u32);
 
         impl Id {
+            /// Creates an ID from the raw index.
+            ///
+            /// Only use in code generation modules.
+            pub fn from_index(index: u32) -> Self {
+                Self(index)
+            }
+
             /// Use this ID as a key to index a Vec.
-            pub fn as_index(&self) -> usize {
+            pub fn as_index(self) -> usize {
                 use ::std::convert::TryInto;
 
                 self.0.try_into().expect("Too many items")
@@ -306,6 +309,12 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
         impl ::codegen::Identifier for Id {
             type Def = #input_ident; // identifiable types can't have generics
 
+            fn as_index(self) -> usize {
+                use ::std::convert::TryInto;
+
+                self.0.try_into().expect("Too many items")
+            }
+
             fn index(self, list: &[#input_ident]) -> Option<&Self::Def> {
                 list.get(self.as_index())
             }
@@ -330,12 +339,25 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
         }
     });
 
+    let mut context_types = Vec::new();
+    for attr in &input.attrs {
+        if attr.path.is_ident("resolve_context") {
+            let args = syn::parse2::<ResolveContextTypeList>(attr.tokens.clone())?;
+            context_types.extend(args.0.into_iter());
+        }
+    }
+
     let context_setup = context_types
         .iter()
         .map(|ty| {
-            quote! {
-                context.start_tracking::<#ty>();
-            }
+            quote! {{
+                use ::std::convert::TryFrom;
+                use ::anyhow::Context as _;
+
+                let scope = context.resolve_id::<#input_ident>(&human_friendly.id)?;
+                let scope = u32::try_from(scope).context("Too many items")?;
+                context.start_tracking_scoped::<#ty, _>(Id(scope));
+            }}
         })
         .collect::<TokenStream>();
     let context_shutdown = context_types
@@ -346,6 +368,51 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
             }
         })
         .collect::<TokenStream>();
+
+    let mut reuse_fields = Vec::new();
+    for attr in &input.attrs {
+        if attr.path.is_ident("reuse_context") {
+            let ctx: ReuseContext = syn::parse2(attr.tokens.clone())?;
+            reuse_fields.push(ctx);
+        }
+    }
+
+    let mut reuse_setup = quote!();
+    let mut reuse_shutdown = quote!();
+    for ReuseContext(ident, child_ty) in reuse_fields {
+        let fields = match &input.data {
+            syn::Data::Struct(data) => &data.fields,
+            _ => return Err(syn::Error::new_spanned(&ident, "Cannot reuse fields on an enum")),
+        };
+        let field = match fields.iter().find(|field| field.ident.as_ref() == Some(&ident)) {
+            Some(field) => field,
+            None => {
+                return Err(syn::Error::new_spanned(
+                    &ident,
+                    "reuse_context attribute must be used on a field",
+                ))
+            }
+        };
+
+        let field_ty = &field.ty;
+        let def_ty = quote!(<#field_ty as ::codegen::Identifier>::Def);
+
+        let child_def_ty = quote!(<#child_ty as ::codegen::Identifier>::Def);
+
+        reuse_setup.extend(quote! {{
+            use ::std::convert::TryFrom;
+
+            use ::anyhow::Context as _;
+
+            let scope = context.resolve_id::<#def_ty>(&human_friendly.#ident)?;
+            let scope = u32::try_from(scope).context("Too many items")?;
+
+            context.reuse_scoped::<#child_def_ty, _>(<#field_ty>::from_index(scope))?;
+        }});
+        reuse_shutdown.extend(quote! {
+            context.stop_tracking::<#child_def_ty>();
+        });
+    }
 
     let post_convert: TokenStream = input
         .attrs
@@ -372,15 +439,16 @@ pub(crate) fn imp(input: TokenStream) -> Result<TokenStream> {
             type HumanFriendly = #human_friendly_ident #generics_unbounded;
 
             fn convert(human_friendly: #human_friendly_ident #generics_unbounded, context: &mut ::codegen::ResolveContext) -> ::anyhow::Result<Self> {
+                #register_id // register ID before setting up scoped context
                 #context_setup
+                #reuse_setup
 
-                #register_id
                 context.trigger_listener::<#input_ident #generics_unbounded>(&human_friendly)?;
 
                 let #ret_mut ret = #human_friendly_conversion;
 
                 #post_convert
-
+                #reuse_shutdown
                 #context_shutdown
 
                 Ok(ret)
@@ -399,6 +467,19 @@ impl parse::Parse for ResolveContextTypeList {
         syn::parenthesized!(inner in input);
         let list = Punctuated::parse_terminated(&inner)?;
         Ok(Self(list))
+    }
+}
+
+struct ReuseContext(Ident, syn::Type);
+
+impl parse::Parse for ReuseContext {
+    fn parse(input: parse::ParseStream) -> Result<Self> {
+        let inner;
+        syn::parenthesized!(inner in input);
+        let ident = inner.parse()?;
+        inner.parse::<syn::Token![=>]>()?;
+        let ty = inner.parse()?;
+        Ok(Self(ident, ty))
     }
 }
 

@@ -69,6 +69,8 @@ impl SubAssign<Vector> for Position {
     fn sub_assign(&mut self, other: Vector) { *self = *self - other; }
 }
 
+codegen::impl_definition_by_self!(Position);
+
 /// Creates a transformation matrix from a cube to a cuboid at `lower..upper`.
 pub fn transform_cuboid(lower: Vector, upper: Vector) -> Matrix {
     let origin = (lower + upper) / 2.;

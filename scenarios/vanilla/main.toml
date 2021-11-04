@@ -6,6 +6,9 @@ description = "The default game rules and minimal setup."
 sun_speed = 0.0020943951
 negligible_volume = 1.0
 
+[state]
+time = 0
+
 [[include]]
 file = "./cargo/ALL.toml"
 
@@ -23,3 +26,6 @@ file = "./vehicle/ALL.toml"
 
 [[include]]
 file = "./building/ALL.toml"
+
+[[include]]
+file = "./init/ALL.toml"

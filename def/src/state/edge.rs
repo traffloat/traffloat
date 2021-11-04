@@ -60,11 +60,11 @@ pub enum DuctType {
         /// The storage ordinal in the "from" node.
         ///
         /// This value does **not** swap with [`to_storage`] when the direction is flipped.
-        from_storage: usize,
+        src_storage:  usize,
         /// The storage ordinal in the "to" node.
         ///
         /// This value does **not** swap with [`from_storage`] when the direction is flipped.
-        to_storage:   usize,
+        dest_storage: usize,
     },
     /// A cable that electricity can pass through.
     ///
@@ -90,6 +90,7 @@ impl DuctType {
         }
     }
 }
+
 /// A direction across an edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Direction {
@@ -98,3 +99,5 @@ pub enum Direction {
     /// A direction starting from [`Edge::to`] and ending at [`Edge::from`]
     To2From,
 }
+
+codegen::impl_definition_by_self!(Direction);
