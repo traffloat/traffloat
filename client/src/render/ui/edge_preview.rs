@@ -80,8 +80,8 @@ impl Component for Comp {
                             { flow_display(flow.flow, &flow.name, &flow.icon) }
                             { " " }
                             { match flow.dir {
-                                edge::Direction::From2To => "forward",
-                                edge::Direction::To2From => "backward",
+                                edge::Direction::AlphaBeta => "forward",
+                                edge::Direction::BetaAlpha => "backward",
                             }}
                             <br />
                         </>

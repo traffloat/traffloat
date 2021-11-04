@@ -142,8 +142,8 @@ fn create_duct(
                 .expect("Pipe definition references a nonexistent to-storage");
 
             let (src, dest) = match direction {
-                Direction::From2To => (from_tank, to_tank),
-                Direction::To2From => (to_tank, from_tank),
+                Direction::AlphaBeta => (from_tank, to_tank),
+                Direction::BetaAlpha => (to_tank, from_tank),
             };
 
             let resistance = dist / radius.powi(2);

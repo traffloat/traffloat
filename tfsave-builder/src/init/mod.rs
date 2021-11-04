@@ -91,10 +91,10 @@ pub fn resolve_states(
                             .ty(match duct.ty {
                                 edge::DuctType::Rail { dir } => state::DuctType::Rail(match dir {
                                     edge::MaybeDirection::From2To => {
-                                        Some(state::Direction::From2To)
+                                        Some(state::Direction::AlphaBeta)
                                     }
                                     edge::MaybeDirection::To2From => {
-                                        Some(state::Direction::To2From)
+                                        Some(state::Direction::BetaAlpha)
                                     }
                                     edge::MaybeDirection::Disabled => None,
                                 }),
@@ -104,10 +104,10 @@ pub fn resolve_states(
                                 edge::DuctType::Liquid(ty) => state::DuctType::Liquid {
                                     dir:          match ty {
                                         edge::LiquidDuctType::From2To { .. } => {
-                                            Some(state::Direction::From2To)
+                                            Some(state::Direction::AlphaBeta)
                                         }
                                         edge::LiquidDuctType::To2From { .. } => {
-                                            Some(state::Direction::To2From)
+                                            Some(state::Direction::BetaAlpha)
                                         }
                                         edge::LiquidDuctType::Disabled => None,
                                     },

@@ -8,12 +8,12 @@ use super::NodeId;
 /// The state of an edge.
 #[derive(Getters, CopyGetters, TypedBuilder, Serialize, Deserialize)]
 pub struct Edge {
-    /// The "from" endpoint of an edge.
+    /// The "alpha" endpoint of an edge.
     #[getset(get_copy = "pub")]
-    from:     NodeId,
-    /// The "to" endpoint of an edge.
+    alpha:     NodeId,
+    /// The "beta" endpoint of an edge.
     #[getset(get_copy = "pub")]
-    to:       NodeId,
+    beta:       NodeId,
     /// The radius of an edge.
     #[getset(get_copy = "pub")]
     radius:   f64,
@@ -53,7 +53,6 @@ pub enum DuctType {
     /// or [`None`] if the rail is disabled.
     ///
     /// The second and third parameters are the liquid storage IDs in the endpoints.
-    /// They refer to the "from" and "to" IDs, and do not change when direction is flipped.
     Liquid {
         /// The direction that the pipe runs in
         dir:          Option<Direction>,
@@ -94,10 +93,10 @@ impl DuctType {
 /// A direction across an edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Direction {
-    /// A direction starting from [`Edge::from`] and ending at [`Edge::to`]
-    From2To,
-    /// A direction starting from [`Edge::to`] and ending at [`Edge::from`]
-    To2From,
+    /// A direction starting from [`Edge::alpha`] and ending at [`Edge::beta`]
+    AlphaBeta,
+    /// A direction starting from [`Edge::beta`] and ending at [`Edge::alpha`]
+    BetaAlpha,
 }
 
 codegen::impl_definition_by_self!(Direction);
