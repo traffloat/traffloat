@@ -449,7 +449,7 @@ pub fn hrtime() -> i64 {
     EPOCH.elapsed().as_micros() as i64
 }
 
-pub trait Definition: Serialize + DeserializeOwned + Sized {
+pub trait Definition: Sized {
     type HumanFriendly: DeserializeOwned;
 
     fn convert(hf: Self::HumanFriendly, context: &mut ResolveContext) -> anyhow::Result<Self>;
