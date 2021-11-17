@@ -21,7 +21,7 @@ client-scenarios-dev *ARGS: client-scenarios-clean
 
 client-scenarios-clean:
 	rm -r client/gen/scenarios || true
-	mkdir client/gen/scenarios
+	mkdir -p client/gen/scenarios
 
 tokei:
 	tokei -C -e "*lock*" -e "*.svg"
