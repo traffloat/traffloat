@@ -16,7 +16,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-10-09
+          toolchain: nightly-2021-11-17
           profile: default
           default: true
       - name: Cache cargo tools

@@ -58,7 +58,7 @@ Colonies are attacked by waves of asteroids in the space,
 which can be propelled or dissolved into raw resources.
 
 ## Compilation
-This project uses Rust nightly-2021-10-09.
+This project uses Rust nightly-2021-11-17.
 The toolchain version is automatically installed
 if you installed Rust with `rustup`.
 

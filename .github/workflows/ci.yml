@@ -12,7 +12,7 @@ jobs:
           submodules: true
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-10-09
+          toolchain: nightly-2021-11-17
           profile: default
           default: true
           components: rustfmt
@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - nightly-2021-10-09
+          - nightly-2021-11-17
         stability:
           - ""
           - "--release"
@@ -59,7 +59,7 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - nightly-2021-10-09
+          - nightly-2021-11-17
         stability:
           - ""
           - "--release"
