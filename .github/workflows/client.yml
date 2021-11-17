@@ -28,6 +28,8 @@ jobs:
           key: trunk-just-2021-11-17
       - run: test -f ~/.cargo/bin/just || cargo install trunk just
 
+      - name: Build scenario files
+        run: just client-scenarios
       - name: Build web client
         run: just client-build /$(echo ${{github.ref}} | cut -d/ -f3)
 
