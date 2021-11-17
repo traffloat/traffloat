@@ -1,7 +1,7 @@
 [[init]]
 type = "Edge"
-from = "core"
-to = "terminal-core-hut"
+alpha = "core"
+beta = "terminal-core-hut"
 radius = 0.1
 
 	[init.hitpoint]
@@ -14,6 +14,6 @@ radius = 0.1
 
 		[init.ducts.ty]
 		type = "Liquid"
-		dir = "From2To"
-		src_storage = "reservoir0"
-		dest_storage = "buffer0"
+		direction = "AlphaToBeta"
+		alpha_storage = "reservoir0"
+		beta_storage = "buffer0"

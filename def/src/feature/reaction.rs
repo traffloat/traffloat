@@ -1,6 +1,5 @@
 //! Reaction definitions
 
-use codegen::Definition;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -11,7 +10,9 @@ use crate::catalyst::Catalyst;
 use crate::{cargo, gas, lang, liquid, skill};
 
 /// A type of reaction.
-#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Reaction {
     /// Title for the reaction.
     #[getset(get = "pub")]
@@ -21,11 +22,11 @@ pub struct Reaction {
     description: lang::Item,
     /// Catalysts for the reaction.
     #[getset(get = "pub")]
-    #[hf_serde(default)]
+    #[cfg_attr(feature = "xy", xylem(serde(default)))]
     catalysts:   SmallVec<[Catalyst; 2]>,
     /// Inputs and outputs for the reaction.
     #[getset(get = "pub")]
-    #[hf_serde(default)]
+    #[cfg_attr(feature = "xy", xylem(serde(default)))]
     puts:        SmallVec<[Put; 2]>,
     /// Policies for the reaction.
     #[getset(get = "pub")]
@@ -33,8 +34,9 @@ pub struct Reaction {
 }
 
 /// The inputs and outputs of a reaction.
-#[derive(Debug, Clone, Serialize, Deserialize, Definition)]
-#[serde(tag = "type")]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize), serde(tag = "type")))]
 pub enum Put {
     /// Consumption or production of cargo
     Cargo {
@@ -94,7 +96,9 @@ impl Put {
 }
 
 /// Reaction behaviour specific to this building.
-#[derive(Debug, Clone, CopyGetters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, CopyGetters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Policy {
     /// Whethre the reaction rate can be configured by the players.
     #[get_copy = "pub"]
@@ -108,7 +112,9 @@ pub struct Policy {
 }
 
 /// behaviour when inputs underflow or outputs overflow.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize), serde(tag = "type")))]
 pub enum FlowPolicy {
     /// Reduce the rate of reaction such that the input/output capacity is just enough.
     ReduceRate,

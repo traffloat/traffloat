@@ -17,7 +17,7 @@ use crate::util::ReifiedPromise;
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, new)]
 pub struct AtlasId {
     // micro optimization: put sprite_id before variant_name for faster comparison.
-    spritesheet_id: u32,
+    spritesheet_id: atlas::SpritesheetId,
     variant_name:   ArcStr,
 }
 

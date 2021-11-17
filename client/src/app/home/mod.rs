@@ -16,7 +16,7 @@ pub struct Home {
     link:                 ComponentLink<Self>,
     game_mode:            GameMode,
     _loader:              Option<ScenarioLoader>,
-    scenario:             Option<Rc<def::Schema>>,
+    scenario:             Option<Rc<def::TfsaveFile>>,
     chosen_scenario_name: Option<String>,
 }
 
@@ -107,7 +107,7 @@ impl Component for Home {
                 }
                 match body {
                     Ok(body) => {
-                        let schema = match def::Schema::parse(&body) {
+                        let schema = match def::TfsaveFile::parse(&body) {
                             Ok(schema) => schema,
                             Err(err) => {
                                 log::error!("Malformed scenario: {:?}", err);
@@ -134,7 +134,7 @@ impl Component for Home {
             Msg::ScenarioFileLoaded(file) => {
                 self._loader = None;
                 let body = Rc::from(file.content);
-                let schema = match def::Schema::parse(&body) {
+                let schema = match def::TfsaveFile::parse(&body) {
                     Ok(schema) => schema,
                     Err(err) => {
                         log::error!("Malformed scenario: {:?}", err);
@@ -310,7 +310,7 @@ pub struct Props {
     /// Callback to start a singleplayer game.
     pub start_single_hook:  Callback<(SpGameArgs, Option<String>)>,
     /// Callback to edit a scenario.
-    pub edit_scenario_hook: Callback<(Option<String>, Rc<def::Schema>)>,
+    pub edit_scenario_hook: Callback<(Option<String>, Rc<def::TfsaveFile>)>,
     /// The intended route to navigate to.
     pub intent_route:       Option<Route>,
     /// Displays an error message.

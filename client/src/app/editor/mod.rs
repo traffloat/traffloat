@@ -161,9 +161,9 @@ pub enum Switch {
     /// Home page for the editor.
     Home,
     /// Information for a building.
-    Building(MixedId<def::building::Id>),
+    Building(MixedId<def::building::Def>),
     /// Information for a cargo.
-    Cargo(MixedId<def::cargo::Id>),
+    Cargo(MixedId<def::cargo::Def>),
 }
 
 impl Switch {
@@ -215,7 +215,7 @@ pub struct Props {
     /// Name of the scenario, if it is default.
     pub name:         Option<String>,
     /// Buffer storing the tsv buffer.
-    pub schema:       Rc<def::Schema>,
+    pub schema:       Rc<def::TfsaveFile>,
     /// Callback to return to home.
     pub close_hook:   Callback<Option<String>>,
     /// The intended route to navigate to.

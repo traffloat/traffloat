@@ -3,14 +3,13 @@
 use std::ops;
 use std::sync::{Mutex, MutexGuard};
 
-use arcstr::ArcStr;
-use codegen::{IdStr, Identifiable, Identifier, SetupEcs};
+use codegen::SetupEcs;
 use getset::Getters;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
+use xylem::Identifiable;
 
-use crate::def::{self, state};
-use crate::liquid;
+use crate::{def, liquid};
 
 /// Stores all scenario gamerule definitions.
 #[derive(Getters, Default)]
@@ -52,111 +51,127 @@ pub struct GameDefinition {
 
 impl GameDefinition {
     /// Creates the object from raw definitions.
-    pub fn new(defs: impl IntoIterator<Item = def::Def>) -> anyhow::Result<Self> {
+    pub fn new(defs: impl IntoIterator<Item = def::AnyDef>) -> anyhow::Result<Self> {
         let mut ret = GameDefinition::default();
         for def in defs {
             match def {
-                def::Def::LangBundle(def) => ret.lang.push(def),
-                def::Def::Liquid(def) => ret.liquid.push(def),
-                def::Def::LiquidFormula(def) => ret.liquid_recipes.define(&def)?,
-                def::Def::DefaultLiquidFormula(def) => ret.liquid_recipes.define_default(&def)?,
-                def::Def::Gas(def) => ret.gas.push(def),
-                def::Def::CargoCategory(def) => ret.cargo_category.push(def),
-                def::Def::Cargo(def) => ret.cargo.push(def),
-                def::Def::Skill(def) => ret.skill.push(def),
-                def::Def::Vehicle(def) => ret.vehicle.push(def),
-                def::Def::BuildingCategory(def) => ret.building_category.push(def),
-                def::Def::Building(def) => ret.building.push(def),
-                def::Def::Crime(def) => ret.crime.push(def),
-                def::Def::Atlas(_) => (), // unused in runtime
+                def::AnyDef::LangBundle(def) => ret.lang.push(def),
+                def::AnyDef::Liquid(def) => ret.liquid.push(def),
+                def::AnyDef::LiquidFormula(def) => ret.liquid_recipes.define(&def)?,
+                def::AnyDef::DefaultLiquidFormula(def) => {
+                    ret.liquid_recipes.define_default(&def)?
+                }
+                def::AnyDef::Gas(def) => ret.gas.push(def),
+                def::AnyDef::CargoCategory(def) => ret.cargo_category.push(def),
+                def::AnyDef::Cargo(def) => ret.cargo.push(def),
+                def::AnyDef::Skill(def) => ret.skill.push(def),
+                def::AnyDef::Vehicle(def) => ret.vehicle.push(def),
+                def::AnyDef::BuildingCategory(def) => ret.building_category.push(def),
+                def::AnyDef::Building(def) => ret.building.push(def),
+                def::AnyDef::Crime(def) => ret.crime.push(def),
+                def::AnyDef::Atlas(_) => (), // unused in runtime
             }
         }
         Ok(ret)
     }
 
     /// Pack the [`GameDefinition`] into a vector of [`def::Def`] for serialization.
-    pub fn pack(&self) -> Vec<def::Def> {
-        use def::Def; // don't import this globally because everything is called `Def`.
+    pub fn pack(&self) -> Vec<def::AnyDef> {
+        use def::AnyDef; // don't import this globally because everything is called `Def`.
 
         self.liquid
             .iter()
             .cloned()
-            .map(Def::Liquid)
-            .chain(self.gas.iter().cloned().map(Def::Gas))
-            .chain(self.cargo_category.iter().cloned().map(Def::CargoCategory))
-            .chain(self.cargo.iter().cloned().map(Def::Cargo))
-            .chain(self.skill.iter().cloned().map(Def::Skill))
-            .chain(self.vehicle.iter().cloned().map(Def::Vehicle))
-            .chain(self.building_category.iter().cloned().map(Def::BuildingCategory))
-            .chain(self.building.iter().cloned().map(Def::Building))
-            .chain(self.crime.iter().cloned().map(Def::Crime))
+            .map(AnyDef::Liquid)
+            .chain(self.gas.iter().cloned().map(AnyDef::Gas))
+            .chain(self.cargo_category.iter().cloned().map(AnyDef::CargoCategory))
+            .chain(self.cargo.iter().cloned().map(AnyDef::Cargo))
+            .chain(self.skill.iter().cloned().map(AnyDef::Skill))
+            .chain(self.vehicle.iter().cloned().map(AnyDef::Vehicle))
+            .chain(self.building_category.iter().cloned().map(AnyDef::BuildingCategory))
+            .chain(self.building.iter().cloned().map(AnyDef::Building))
+            .chain(self.crime.iter().cloned().map(AnyDef::Crime))
             .collect()
     }
 
     /// Finds a def object by string or integer ID.
-    pub fn find<I: IdListExt>(&self, id: &MixedId<I>) -> Option<&I::Def> {
+    pub fn find<T: GameDefObject>(&self, id: &MixedId<T>) -> Option<&T> {
+        let list = <T as GameDefObject>::get_list(self);
+
         match id {
-            MixedId::Int(int) => int.index(I::get_list(self)),
-            MixedId::Str(str) => I::get_list(self).iter().find(|def| def.id_str() == str),
+            MixedId::Int(int) => list.get(int.index()),
+            MixedId::Str(str) => list.iter().find(|def| def.id_str().value() == str),
         }
     }
 }
 
 /// Either integer or string ID.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum MixedId<T: Identifier> {
+pub enum MixedId<T: Identifiable<def::Schema>> {
     /// The integer form.
-    Int(T),
+    Int(def::Id<T>),
     /// The string form.
-    Str(IdStr),
+    Str(String),
 }
 
-impl<T: Identifier> MixedId<T> {
+impl<T: Identifiable<def::Schema>> MixedId<T> {
     /// Shorthand for `MixedId::Str(IdStr::new(...))`
-    pub fn new_str(str: &str) -> Self { Self::Str(IdStr::new(ArcStr::from(str))) }
+    pub fn new_str(str: &str) -> Self { Self::Str(String::from(str)) }
 }
 
-impl<T: IdListExt> From<T> for MixedId<T> {
-    fn from(t: T) -> Self { Self::Int(t) }
+impl<T: Identifiable<def::Schema>> From<def::Id<T>> for MixedId<T> {
+    fn from(t: def::Id<T>) -> Self { Self::Int(t) }
 }
 
-impl<T: IdListExt> From<IdStr> for MixedId<T> {
-    fn from(t: IdStr) -> Self { Self::Str(t) }
+impl<T: Identifiable<def::Schema>> From<def::IdString<T>> for MixedId<T> {
+    fn from(t: def::IdString<T>) -> Self { Self::new_str(t.value()) }
 }
 
-/// An extension trait for getting the corresponding Vec field from a [`GameDefinition`].
-pub trait IdListExt: Identifier {
-    /// Gets the list of the identified type from the definition.
-    fn get_list(def: &GameDefinition) -> &[<Self as Identifier>::Def];
+/// Implemented by def types that can be uniquely indexed in the [`GameDefinition`] scope.
+pub trait GameDefObject: Identifiable<def::Schema> {
+    /// Gets the slice in the [`GameDefinition`] that holds the objects of this type.
+    fn get_list(def: &GameDefinition) -> &[Self];
+
+    /// Returns the original string ID of the object.
+    fn id_str(&self) -> &def::IdString<Self>;
 }
 
-impl<I: IdListExt> ops::Index<I> for GameDefinition {
-    type Output = I::Def;
+macro_rules! impl_game_def_object {
+    ($($field:ident: [$def:ty],)* $(,)?) => {
+        $(
+            impl GameDefObject for $def {
+                fn get_list(def: &GameDefinition) -> &[Self] {
+                    &def.$field[..]
+                }
 
-    fn index(&self, id: I) -> &Self::Output {
-        id.index(I::get_list(self)).expect("Corrupted definition")
-    }
-}
-
-macro_rules! impl_id_list_ext {
-    ($field:ident, $($module:tt)*) => {
-        impl IdListExt for $($module)*::Id {
-            fn get_list(def: &GameDefinition) -> &[$($module)*::Def] {
-                &def.$field[..]
+                fn id_str(&self) -> &def::IdString<Self> {
+                    <$def>::id_str(self)
+                }
             }
-        }
-    }
+        )*
+    };
 }
 
-impl_id_list_ext!(liquid, def::liquid);
-impl_id_list_ext!(gas, def::gas);
-impl_id_list_ext!(cargo_category, def::cargo::category);
-impl_id_list_ext!(cargo, def::cargo);
-impl_id_list_ext!(skill, def::skill);
-impl_id_list_ext!(vehicle, def::vehicle);
-impl_id_list_ext!(building_category, def::building::category);
-impl_id_list_ext!(building, def::building);
-impl_id_list_ext!(crime, def::crime);
+impl_game_def_object! {
+    liquid: [def::liquid::Def],
+    gas: [def::gas::Def],
+    cargo_category: [def::cargo::category::Def],
+    cargo: [def::cargo::Def],
+    skill: [def::skill::Def],
+    vehicle: [def::vehicle::Def],
+    building_category: [def::building::category::Def],
+    building: [def::building::Def],
+    crime: [def::crime::Def],
+}
+
+impl<T: GameDefObject> ops::Index<def::Id<T>> for GameDefinition {
+    type Output = T;
+
+    fn index(&self, id: def::Id<T>) -> &Self::Output {
+        let list = <T as GameDefObject>::get_list(self);
+        list.get(id.index()).expect("Reference out of bounds")
+    }
+}
 
 /// Parameters for saving game state.
 ///
@@ -179,12 +194,12 @@ pub struct Request {
     /// Request parameters.
     #[getset(get = "pub")]
     params: Params,
-    file:   Mutex<def::Schema>,
+    file:   Mutex<def::TfsaveFile>,
 }
 
 impl Request {
     /// Locks the mutex on the serialization target and returns the wrapped value.
-    pub fn file(&self) -> MutexGuard<def::Schema> { self.file.lock().expect("Previous panic") }
+    pub fn file(&self) -> MutexGuard<def::TfsaveFile> { self.file.lock().expect("Previous panic") }
 }
 
 /// Response type for [`Request`].
@@ -210,11 +225,11 @@ fn save_scenario(
         requests(Request {
             params: params.clone(),
             file:   Mutex::new(
-                def::Schema::builder()
+                def::TfsaveFile::builder()
                     .scenario(scenario.clone())
                     .config(config.clone())
                     .def(def.pack())
-                    .state(state::State::default())
+                    .state(def::State::default())
                     .build(),
             ),
         });
@@ -244,7 +259,7 @@ fn save_request(
 }
 
 /// Loads a scenario file.
-pub fn load_scenario(setup: SetupEcs, scenario: &def::Schema) -> SetupEcs {
+pub fn load_scenario(setup: SetupEcs, scenario: &def::TfsaveFile) -> SetupEcs {
     let def = match GameDefinition::new(scenario.def().iter().cloned()) {
         Ok(def) => def,
         Err(err) => {

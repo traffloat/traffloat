@@ -41,7 +41,7 @@ impl yew::html::ImplicitClone for GameArgs {}
 #[derive(Clone)]
 pub struct SpGameArgs {
     /// The scenario file.
-    pub scenario:     Rc<def::Schema>,
+    pub scenario:     Rc<def::TfsaveFile>,
     /// Context path of the scenario file.
     pub context_path: String,
 }

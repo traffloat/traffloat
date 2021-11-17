@@ -28,23 +28,39 @@ use std::io::Write;
 
 use anyhow::Context;
 use arcstr::ArcStr;
-use codegen::Definition;
-use getset::{CopyGetters, Getters, MutGetters};
+use derive_new::new;
+use getset::{CopyGetters, Getters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::{time, units};
 use typed_builder::TypedBuilder;
+#[cfg(feature = "xy")]
+pub use xylem::Xylem;
+
+macro_rules! impl_identifiable {
+    ($ty:ty, $scope:ty) => {
+        impl ::xylem::Identifiable<crate::Schema> for $ty {
+            type Scope = $scope;
+
+            fn id(&self) -> ::xylem::Id<crate::Schema, $ty> { self.id }
+        }
+    };
+    ($ty:ty) => {
+        impl_identifiable!($ty, ());
+    };
+}
 
 pub mod atlas;
 pub mod building;
 pub mod cargo;
 pub mod catalyst;
 pub mod crime;
+pub mod edge;
 pub mod feature;
 pub mod gas;
 pub mod lang;
 pub mod liquid;
+pub mod node;
 pub mod skill;
-pub mod state;
 pub mod vehicle;
 
 mod tests;
@@ -61,7 +77,7 @@ pub const MAGIC_HEADER: &[u8] = b"\xffTSV";
 
 /// The schema for the binary save file.
 #[derive(Getters, MutGetters, TypedBuilder, Serialize, Deserialize)]
-pub struct Schema {
+pub struct TfsaveFile {
     /// Scenario metadata.
     #[getset(get = "pub")]
     scenario: Scenario,
@@ -70,14 +86,14 @@ pub struct Schema {
     config:   Config,
     /// All gamerule definitions.
     #[getset(get = "pub")]
-    def:      Vec<Def>,
+    def:      Vec<AnyDef>,
     /// State of game objects.
     #[getset(get = "pub")]
     #[getset(get_mut = "pub")]
-    state:    state::State,
+    state:    State,
 }
 
-impl Schema {
+impl TfsaveFile {
     /// Parses a scenario file.
     pub fn parse(mut buf: &[u8]) -> anyhow::Result<Self> {
         buf = match buf.strip_prefix(MAGIC_HEADER) {
@@ -140,11 +156,17 @@ pub struct Config {
     negligible_volume: units::LiquidVolume,
 }
 
+mod schema;
+#[cfg(feature = "xy")]
+pub use schema::curdir;
+pub use schema::{Id, IdString, Schema};
+
 /// Defines a game rule.
-#[derive(Debug, Clone, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
-#[resolve_context()]
-pub enum Def {
+#[cfg_attr(feature = "xy", derive(Xylem))]
+#[cfg_attr(feature = "xy", xylem(expose = AnyDefXylem, derive(Deserialize), serde(tag = "type")))]
+pub enum AnyDef {
     /// Defines a language bundle reference.
     LangBundle(lang::Def),
     /// Defines a texture atlas reference.
@@ -173,68 +195,23 @@ pub enum Def {
     Crime(crime::Def),
 }
 
-#[cfg(feature = "convert-human-friendly")]
-impl DefHumanFriendly {
-    /// Returns the type ID for the wrapped type.
-    pub fn value_type_id(&self) -> Option<std::any::TypeId> {
-        use std::any::TypeId;
-
-        Some(match self {
-            Self::LangBundle(_) => TypeId::of::<lang::Def>(),
-            Self::Atlas(_) => TypeId::of::<atlas::Def>(),
-            Self::Liquid(_) => TypeId::of::<liquid::Def>(),
-            Self::LiquidFormula(_) => return None,
-            Self::DefaultLiquidFormula(_) => return None,
-            Self::Gas(_) => TypeId::of::<gas::Def>(),
-            Self::CargoCategory(_) => TypeId::of::<cargo::category::Def>(),
-            Self::Cargo(_) => TypeId::of::<cargo::Def>(),
-            Self::Skill(_) => TypeId::of::<skill::Def>(),
-            Self::Vehicle(_) => TypeId::of::<vehicle::Def>(),
-            Self::BuildingCategory(_) => TypeId::of::<building::category::Def>(),
-            Self::Building(_) => TypeId::of::<building::Def>(),
-            Self::Crime(_) => TypeId::of::<crime::Def>(),
-        })
-    }
-
-    /// Returns the type ID for the wrapped type.
-    pub fn value_type_name(&self) -> Option<&'static str> {
-        use std::any::type_name;
-
-        Some(match self {
-            Self::LangBundle(_) => type_name::<lang::Def>(),
-            Self::Atlas(_) => type_name::<atlas::Def>(),
-            Self::Liquid(_) => type_name::<liquid::Def>(),
-            Self::LiquidFormula(_) => return None,
-            Self::DefaultLiquidFormula(_) => return None,
-            Self::Gas(_) => type_name::<gas::Def>(),
-            Self::CargoCategory(_) => type_name::<cargo::category::Def>(),
-            Self::Cargo(_) => type_name::<cargo::Def>(),
-            Self::Skill(_) => type_name::<skill::Def>(),
-            Self::Vehicle(_) => type_name::<vehicle::Def>(),
-            Self::BuildingCategory(_) => type_name::<building::category::Def>(),
-            Self::Building(_) => type_name::<building::Def>(),
-            Self::Crime(_) => type_name::<crime::Def>(),
-        })
-    }
-
-    /// Returns the human-friendly string ID of the def.
-    pub fn id_str(&self) -> Option<&ArcStr> {
-        Some(match self {
-            Self::LangBundle(def) => &def.id,
-            Self::Atlas(def) => &def.id,
-            Self::Liquid(def) => &def.id,
-            Self::LiquidFormula(_) => return None,
-            Self::DefaultLiquidFormula(_) => return None,
-            Self::Gas(def) => &def.id,
-            Self::CargoCategory(def) => &def.id,
-            Self::Cargo(def) => &def.id,
-            Self::Skill(def) => &def.id,
-            Self::Vehicle(def) => &def.id,
-            Self::BuildingCategory(def) => &def.id,
-            Self::Building(def) => &def.id,
-            Self::Crime(def) => &def.id,
-        })
-    }
+/// The state of objects in a game.
+#[derive(Default, Getters, Setters, CopyGetters, MutGetters, Serialize, Deserialize, new)]
+pub struct State {
+    /// Current game time.
+    #[getset(get_copy = "pub")]
+    #[getset(set = "pub")]
+    time:  time::Instant,
+    /// State of all nodes in the game.
+    #[new(default)]
+    #[getset(get = "pub")]
+    #[getset(get_mut = "pub")]
+    nodes: Vec<node::Node>,
+    /// State of all edges in the game.
+    #[new(default)]
+    #[getset(get = "pub")]
+    #[getset(get_mut = "pub")]
+    edges: Vec<edge::Edge>,
 }
 
 /// A customizable name that is either a translation or a value from user input.

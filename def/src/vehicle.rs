@@ -2,23 +2,31 @@
 
 use std::ops::Range;
 
-use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::units;
 
 use crate::atlas::IconRef;
-use crate::{catalyst, lang, skill};
+use crate::{catalyst, lang, skill, IdString};
+
+/// Identifies a vehicle type.
+pub type Id = crate::Id<Def>;
+
+impl_identifiable!(Def);
 
 /// A type of vehicle.
-#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Def {
     /// ID of the vehicle type.
     #[getset(get_copy = "pub")]
+    #[cfg_attr(feature = "xy", xylem(args(new = true)))]
     id:          Id,
     /// String ID of the vehicle type.
     #[getset(get = "pub")]
-    id_str:      IdStr,
+    #[cfg_attr(feature = "xy", xylem(serde(default)))]
+    id_str:      IdString<Def>,
     /// Name of the vehicle type.
     #[getset(get = "pub")]
     name:        lang::Item,
@@ -45,7 +53,9 @@ pub struct Def {
 }
 
 /// A skill required for driving the vehicle.
-#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Skill {
     /// The skill type.
     #[getset(get = "pub")]

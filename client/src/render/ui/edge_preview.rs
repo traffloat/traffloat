@@ -80,8 +80,8 @@ impl Component for Comp {
                             { flow_display(flow.flow, &flow.name, &flow.icon) }
                             { " " }
                             { match flow.dir {
-                                edge::Direction::AlphaBeta => "forward",
-                                edge::Direction::BetaAlpha => "backward",
+                                edge::Direction::AlphaToBeta => "forward",
+                                edge::Direction::BetaToAlpha => "backward",
                             }}
                             <br />
                         </>
@@ -152,20 +152,20 @@ fn draw(
             for duct in ducts.ducts() {
                 #[allow(clippy::single_match)]
                 match duct.ty() {
-                    edge::DuctType::Liquid { dir, .. } => {
+                    edge::DuctType::Liquid(_) => {
                         let duct_entry =
                             world.entry_ref(duct.entity()).expect("Duct entity does not exist");
                         let flow = duct_entry
                             .get_component::<liquid::PipeFlow>()
                             .expect("Liquid duct does not have pipe flow component");
-                        if let Some(dir) = dir {
+                        if let Some(dir) = duct.ty().direction() {
                             if let Some(ty) = flow.ty() {
                                 let item = &def[ty];
                                 let name = item.name();
                                 let icon = format!(
                                     "{}/{}",
                                     context_path.as_ref(),
-                                    atlas::to_path("fancy", item.texture().sprite_id()),
+                                    atlas::to_path("fancy", item.texture().spritesheet_id()),
                                 ); // TODO customize variant
 
                                 liquids.push(LiquidFlow {

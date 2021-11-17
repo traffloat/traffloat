@@ -2,7 +2,6 @@
 
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
-use codegen::{Definition, ResolveContext};
 use serde::{Deserialize, Serialize};
 
 /// Standard vector type
@@ -69,8 +68,6 @@ impl SubAssign<Vector> for Position {
     fn sub_assign(&mut self, other: Vector) { *self = *self - other; }
 }
 
-codegen::impl_definition_by_self!(Position);
-
 /// Creates a transformation matrix from a cube to a cuboid at `lower..upper`.
 pub fn transform_cuboid(lower: Vector, upper: Vector) -> Matrix {
     let origin = (lower + upper) / 2.;
@@ -84,66 +81,3 @@ pub fn transform_cylinder(x: f64, y: f64, zn: f64, zp: f64) -> Matrix {
     Matrix::new_nonuniform_scaling(&Vector::new(x, y, zn + zp))
         .append_translation(&Vector::new(0., 0., -zn))
 }
-
-/// A transformation matrix used in object schema.
-///
-/// This just wraps the [`Matrix`] type,
-/// but it implements [`codegen::Definition`] manually
-/// to allow expressing the transformation
-/// as a sequence of primitives in TOML format.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct TransformMatrix(pub Matrix);
-
-impl Definition for TransformMatrix {
-    type HumanFriendly = Vec<TransformPrimitive>;
-
-    fn convert(primitives: Self::HumanFriendly, _: &mut ResolveContext) -> anyhow::Result<Self> {
-        let mut matrix = Matrix::identity();
-        for primitive in primitives {
-            matrix = primitive.to_matrix() * matrix;
-        }
-        Ok(Self(matrix))
-    }
-}
-
-/// A primitive linear transformation operation.
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum TransformPrimitive {
-    /// A translation operation.
-    Translate {
-        /// The distance to translate along the X axis. Default 0.
-        #[serde(default)]
-        x: f64,
-        /// The distance to translate along the Y axis. Default 0.
-        #[serde(default)]
-        y: f64,
-        /// The distance to translate along the Z axis. Default 0.
-        #[serde(default)]
-        z: f64,
-    },
-    /// A scaling operation.
-    Scale {
-        /// The ratio to scale along the X axis. Default 1.
-        #[serde(default = "serde_one")]
-        x: f64,
-        /// The ratio to scale along the Y axis. Default 1.
-        #[serde(default = "serde_one")]
-        y: f64,
-        /// The ratio to scale along the Z axis. Default 1.
-        #[serde(default = "serde_one")]
-        z: f64,
-    },
-}
-
-impl TransformPrimitive {
-    /// Represent this primitive as a transformation matrix.
-    pub fn to_matrix(&self) -> Matrix {
-        match *self {
-            Self::Translate { x, y, z } => Matrix::new_translation(&Vector::new(x, y, z)),
-            Self::Scale { x, y, z } => Matrix::new_nonuniform_scaling(&Vector::new(x, y, z)),
-        }
-    }
-}
-
-fn serde_one() -> f64 { 1. }

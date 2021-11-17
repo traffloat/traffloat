@@ -1,18 +1,20 @@
 //! Language file processing
 
+use std::any::TypeId;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 use std::rc::Rc;
 
-use anyhow::{Context, Result};
-use codegen::ResolveContext;
+use anyhow::{Context as _, Result};
 use fluent::{FluentBundle, FluentResource};
 use fluent_syntax::parser::ParserError;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use traffloat_def::lang;
+use traffloat_def::curdir::CurrentDir;
+use traffloat_def::lang::{self, ListenerHook};
 use unic_langid::LanguageIdentifier;
+use xylem::{Context as _, DefaultContext};
 
 use crate::Timer;
 
@@ -20,11 +22,11 @@ use crate::Timer;
 #[derive(Default, Serialize, Deserialize)]
 struct RawList(BTreeMap<String, Vec<String>>);
 
-/// Setup [`ResolveContext`] to validate language file references.
-pub(crate) fn setup_context(context: &mut ResolveContext, lang_parse_timer: &Rc<Timer>) {
-    context.add_listener::<lang::Def>(Rc::new({
+/// Setup [`DefaultContext`] to validate language file references.
+pub(crate) fn setup_context(context: &mut DefaultContext, lang_parse_timer: &Rc<Timer>) {
+    let hook: Rc<ListenerHook> = Rc::new({
         let lang_parse_timer = Rc::clone(lang_parse_timer);
-        move |def: &lang::DefHumanFriendly, context| {
+        move |def, context| {
             for (lang, file) in def.languages() {
                 let lang: LanguageIdentifier =
                     lang.parse().with_context(|| format!("Invalid language name {}", lang))?;
@@ -60,38 +62,42 @@ pub(crate) fn setup_context(context: &mut ResolveContext, lang_parse_timer: &Rc<
                     format!("{} on line {}:{}", err.kind, line + 1, col)
                 }
 
-                let path = context.current_dir().join(file);
+                let path = context
+                    .get::<CurrentDir>(TypeId::of::<()>())
+                    .expect("CurrentDir was not initialized")
+                    .path()
+                    .join(file);
                 let (res, raw) = parse_ftl(&path, &lang_parse_timer)
                     .with_context(|| format!("Reading translation file {}", path.display()))?;
 
                 let mut bundle = FluentBundle::new(vec![lang.clone()]);
                 bundle.add_resource(res).expect("Only one resource is added to the bundle");
 
-                let id = context
-                    .resolve_id::<lang::Def>(def.id())
-                    .expect("Listeners are triggered after ID notification");
-
                 {
-                    let mut bundles = context.get_other::<lang::LoadedBundles>();
-                    bundles.add(id, lang.clone(), bundle);
+                    let bundles = context.get_mut::<lang::xy::LoadedBundles, _>(
+                        TypeId::of::<()>(),
+                        Default::default,
+                    );
+                    bundles.add(def.id(), lang.clone(), bundle);
                 }
 
                 {
-                    let mut list = context.get_other::<RawList>();
+                    let list = context.get_mut::<RawList, _>(TypeId::of::<()>(), Default::default);
                     let vec = list.0.entry(lang.to_string()).or_default();
-                    assert!(vec.len() == id);
+                    assert!(vec.len() == def.id().index());
                     vec.push(raw);
                 }
             }
 
             Ok(())
         }
-    }));
+    });
+    context.get_mut::<lang::Listener, _>(TypeId::of::<()>(), move || lang::Listener { hook });
 }
 
 /// Save translation output.
-pub(crate) fn save(output: &Path, context: &mut ResolveContext) -> Result<()> {
-    let list = context.get_other::<RawList>();
+pub(crate) fn save(output: &Path, context: &mut DefaultContext) -> Result<()> {
+    let list = context.get::<RawList>(TypeId::of::<()>()).expect("No language files included");
     for (lang, vec) in &list.0 {
         let path = output.join(lang.as_str()).with_extension("tflang");
         let mut bytes = rmp_serde::to_vec(&vec).context("Encoding translations")?;

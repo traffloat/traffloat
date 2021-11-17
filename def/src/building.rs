@@ -1,25 +1,32 @@
 //! Building definitions
 
-use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
-use traffloat_types::space::TransformMatrix;
+use traffloat_types::space::Matrix;
 use traffloat_types::{geometry, units};
 
 use crate::atlas::ModelRef;
 use crate::feature::Feature;
-use crate::lang;
+use crate::{lang, IdString};
+
+/// Identifies a building type.
+pub type Id = crate::Id<Def>;
+
+impl_identifiable!(Def);
 
 /// A type of building.
-#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize, Definition)]
-#[resolve_context(storage::liquid::Def, storage::population::Def)]
+#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize), process))]
 pub struct Def {
     /// ID of the building type.
     #[getset(get_copy = "pub")]
+    #[cfg_attr(feature = "xy", xylem(args(new = true)))]
     id:          Id,
     /// String ID of the building type.
     #[getset(get = "pub")]
-    id_str:      IdStr,
+    #[cfg_attr(feature = "xy", xylem(serde(default)))]
+    id_str:      IdString<Def>,
     /// Name of the building type.
     #[getset(get = "pub")]
     name:        lang::Item,
@@ -48,20 +55,56 @@ pub struct Def {
     storage:     Storage,
     /// Extra features associated with the building.
     #[getset(get = "pub")]
-    #[hf_serde(default)]
+    #[cfg_attr(feature = "xy", xylem(serde(default)))]
     features:    Vec<Feature>,
 }
 
+/// Xylem-specific objects.
+#[cfg(feature = "xy")]
+pub mod xy {
+    use std::any::TypeId;
+    use std::collections::BTreeMap;
+
+    use xylem::{Context, DefaultContext, Processable};
+
+    use super::Id;
+    use crate::{lang, Schema};
+
+    /// A mapping of building type IDs to their names.
+    #[derive(Default)]
+    pub struct BuildingNameMap {
+        map: BTreeMap<Id, lang::Item>,
+    }
+
+    impl BuildingNameMap {
+        /// Insert a building ID.
+        pub fn insert(&mut self, id: Id, item: lang::Item) { self.map.insert(id, item); }
+
+        /// Lookup a building ID.
+        pub fn get(&self, id: Id) -> Option<&lang::Item> { self.map.get(&id) }
+    }
+
+    impl Processable<Schema> for super::Def {
+        fn postprocess(&mut self, context: &mut DefaultContext) -> anyhow::Result<()> {
+            let map = context.get_mut::<BuildingNameMap, _>(TypeId::of::<()>(), Default::default);
+            map.insert(self.id, self.name.clone());
+            Ok(())
+        }
+    }
+}
+
 /// Shape of a building.
-#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Shape {
     /// The unit model type.
     #[getset(get_copy = "pub")]
     unit:      geometry::Unit,
     /// The transformation matrix from the unit model to this shape.
     #[getset(get_copy = "pub")]
-    #[hf_serde(default)]
-    transform: TransformMatrix,
+    #[cfg_attr(feature = "xy", xylem(serde(default)))]
+    transform: Matrix,
     /// The texture of the building.
     #[getset(get_copy = "pub")]
     texture:   ModelRef,
@@ -72,7 +115,9 @@ pub struct Shape {
 /// This storage is also used as a buffer for liquid and gas transfer.
 /// The storage size is the maximum total amount of liquid and gas that
 /// pipe systems passing through this building can transfer per frame.
-#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Storage {
     /// Cargo storage provided
     #[getset(get_copy = "pub")]
@@ -82,11 +127,11 @@ pub struct Storage {
     gas:        units::GasVolume,
     /// Liquid storages provided
     #[getset(get = "pub")]
-    #[hf_serde(default)]
+    #[cfg_attr(feature = "xy", xylem(serde(default)))]
     liquid:     Vec<storage::liquid::Def>,
     /// Population storages provided
     #[getset(get = "pub")]
-    #[hf_serde(default)]
+    #[cfg_attr(feature = "xy", xylem(serde(default)))]
     population: Vec<storage::population::Def>,
 }
 
@@ -94,12 +139,16 @@ pub struct Storage {
 pub mod storage {
     /// Liquid storage.
     pub mod liquid {
-        use codegen::{Definition, IdStr};
         use getset::{CopyGetters, Getters};
         use serde::{Deserialize, Serialize};
         use traffloat_types::units;
 
-        use crate::lang;
+        use crate::{lang, IdString};
+
+        /// Identifies a liquid storage.
+        pub type Id = crate::Id<Def>;
+
+        impl_identifiable!(Def, crate::building::Def);
 
         /// A liquid storage.
         ///
@@ -107,14 +156,18 @@ pub mod storage {
         /// which can be individually addressed by their IDs.
         /// Reactions involving liquids can consume, store or use (for catalyst)
         /// specific liquid types from the named  storages.
-        #[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
+        #[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+        #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+        #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
         pub struct Def {
             /// ID of the liquid storage.
             #[getset(get_copy = "pub")]
+            #[cfg_attr(feature = "xy", xylem(args(new = true, track = true)))]
             id:       Id,
             /// String ID of the liquid storage.
             #[getset(get = "pub")]
-            id_str:   IdStr,
+            #[cfg_attr(feature = "xy", xylem(serde(default)))]
+            id_str:   IdString<Def>,
             /// The capacity of this storage.
             #[getset(get_copy = "pub")]
             capacity: units::LiquidVolume,
@@ -126,24 +179,32 @@ pub mod storage {
 
     /// Population storage.
     pub mod population {
-        use codegen::{Definition, IdStr};
         use getset::{CopyGetters, Getters};
         use serde::{Deserialize, Serialize};
 
-        use crate::lang;
+        use crate::{lang, IdString};
+
+        /// Identifies a population storage.
+        pub type Id = crate::Id<Def>;
+
+        impl_identifiable!(Def, crate::building::Def);
 
         /// A population storage, allowing inhabitants to temporarily stay in a node.
         ///
         /// All inhabitants entering a building by swimming or disembarking from a vehicle in the
         /// building would enter a population storage.
-        #[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
+        #[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+        #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+        #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
         pub struct Def {
             /// ID of the population storage.
             #[getset(get_copy = "pub")]
+            #[cfg_attr(feature = "xy", xylem(args(new = true)))]
             id:       Id,
             /// String ID of the population storage.
             #[getset(get = "pub")]
-            id_str:   IdStr,
+            #[cfg_attr(feature = "xy", xylem(serde(default)))]
+            id_str:   IdString<Def>,
             /// The capacity of this storage.
             #[getset(get_copy = "pub")]
             capacity: u32,
@@ -158,21 +219,29 @@ pub mod storage {
 
 /// Categories of buildings.
 pub mod category {
-    use codegen::{Definition, IdStr};
     use getset::{CopyGetters, Getters};
     use serde::{Deserialize, Serialize};
 
-    use crate::lang;
+    use crate::{lang, IdString};
+
+    /// Identifies a building category.
+    pub type Id = crate::Id<Def>;
+
+    impl_identifiable!(Def);
 
     /// A category of building.
-    #[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize, Definition)]
+    #[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize)]
+    #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+    #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
     pub struct Def {
         /// ID of the building category.
         #[getset(get_copy = "pub")]
+        #[cfg_attr(feature = "xy", xylem(args(new = true)))]
         id:          Id,
         /// String ID of the building category.
         #[getset(get = "pub")]
-        id_str:      IdStr,
+        #[cfg_attr(feature = "xy", xylem(serde(default)))]
+        id_str:      IdString<Def>,
         /// Title of the building category.
         #[getset(get = "pub")]
         title:       lang::Item,

@@ -3,12 +3,11 @@
 use traffloat_types::time::Rate;
 use traffloat_types::units::LiquidVolume;
 
-use crate::state::State;
-use crate::{Config, Scenario, Schema};
+use crate::{Config, Scenario, State, TfsaveFile};
 
 #[test]
 fn test_write_parse() {
-    let schema = Schema::builder()
+    let schema = TfsaveFile::builder()
         .scenario(
             Scenario::builder()
                 .name(arcstr::literal!("foo"))
@@ -23,5 +22,5 @@ fn test_write_parse() {
     let mut buf = Vec::new();
     schema.write(&mut buf).expect("<Vec<u8> as Write> is infallible");
 
-    Schema::parse(&buf).expect("Error parsing freshly written schema");
+    TfsaveFile::parse(&buf).expect("Error parsing freshly written schema");
 }

@@ -7,7 +7,7 @@ description = {src = "gas", key = "oxygen-description"}
 texture = {src = "gas", name = "oxygen"}
 
 [[def]]
-type = "Gas"
+type = "Cargo"
 id = "oxygen"
 category = "container"
 name = {src = "gas", key = "oxygen-bottle"}
@@ -24,7 +24,7 @@ description = {src = "gas", key = "carbon-dioxide-description"}
 texture = {src = "gas", name = "carbon-dioxide"}
 
 [[def]]
-type = "Gas"
+type = "Cargo"
 id = "carbon-dioxide"
 category = "container"
 name = {src = "gas", key = "carbon-dioxide-bottle"}
@@ -41,7 +41,7 @@ description = {src = "gas", key = "nitrogen-description"}
 texture = {src = "gas", name = "nitrogen"}
 
 [[def]]
-type = "Gas"
+type = "Cargo"
 id = "nitrogen"
 category = "container"
 name = {src = "gas", key = "nitrogen-bottle"}

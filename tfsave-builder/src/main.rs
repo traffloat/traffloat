@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::any::TypeId;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::atomic::AtomicU32;
@@ -7,11 +7,12 @@ use std::time::{Duration, Instant};
 use std::{fs, io};
 
 use anyhow::{Context as _, Result};
-use codegen::{Definition, ResolveContext};
-use def::atlas::{AtlasContext, IconIndex, ModelIndex};
-use def::Schema;
+use def::atlas::xy::{AtlasContext, AtlasCreationHook, IconIndex, ModelIndex};
+use def::curdir::CurrentDir;
+use def::{Schema, TfsaveFile};
 use structopt::StructOpt;
-use traffloat_def::{self as def, Def};
+use traffloat_def::{self as def, AnyDef};
+use xylem::{Context as _, DefaultContext, NoArgs};
 
 mod atlas;
 mod init;
@@ -87,7 +88,7 @@ fn main() -> Result<()> {
 
     let mut defs = Vec::new();
     let mut init = Vec::new();
-    let mut context = ResolveContext::new(PathBuf::new()); // path to be initialized later
+    let mut context = DefaultContext::default();
 
     let render_timer = Rc::new(Timer::new("rendering textures"));
     let downscale_timer = Rc::new(Timer::new("downscaling textures"));
@@ -97,23 +98,8 @@ fn main() -> Result<()> {
     fs::create_dir(&args.output).context("Creating output directory")?;
 
     {
-        context.start_tracking::<def::lang::Def>();
-        context.start_tracking::<def::atlas::Def>();
-        context.start_tracking::<def::liquid::Def>();
-        context.start_tracking::<def::gas::Def>();
-        context.start_tracking::<def::cargo::category::Def>();
-        context.start_tracking::<def::cargo::Def>();
-        context.start_tracking::<def::skill::Def>();
-        context.start_tracking::<def::vehicle::Def>();
-        context.start_tracking::<def::building::category::Def>();
-        context.start_tracking::<def::building::Def>();
-        context.start_tracking::<def::crime::Def>();
-        context.start_tracking::<init::node::Def>();
-
         {
-            let mut context = context.get_other::<AtlasContext>();
-
-            context.creation_hook = Some(Rc::new({
+            let creation_hook: Rc<AtlasCreationHook> = Rc::new({
                 let input = args.input.clone();
                 let output = args.output.clone();
                 let skip_svg = args.skip_svg;
@@ -126,7 +112,6 @@ fn main() -> Result<()> {
                 let next_texture_id = AtomicU32::new(0);
 
                 move |atlas, context| {
-                    let context = RefCell::new(context);
                     let args = atlas::GenerateArgs::builder()
                         .input(&input)
                         .output(&output)
@@ -136,21 +121,25 @@ fn main() -> Result<()> {
                         .atlas(atlas)
                         .next_texture_id(&next_texture_id)
                         .skip_svg(skip_svg)
-                        .register_icon_texture_id(|name, id| {
-                            let mut context = context.borrow_mut();
-                            let mut index = context.get_other::<IconIndex>();
-                            index.add(atlas.id(), name.clone(), id);
+                        .register_icon_texture_id(|context, name, id| {
+                            let index = context
+                                .get_mut::<IconIndex, _>(TypeId::of::<()>(), Default::default);
+                            index.add(atlas.id(), name.to_string(), id);
                         })
-                        .register_model_texture_id(|name, id, shape| {
-                            let mut context = context.borrow_mut();
-                            let mut index = context.get_other::<ModelIndex>();
-                            index.add(atlas.id(), name.clone(), id, shape);
+                        .register_model_texture_id(|context, name, id, shape| {
+                            let index = context
+                                .get_mut::<ModelIndex, _>(TypeId::of::<()>(), Default::default);
+                            index.add(atlas.id(), name.to_string(), id, shape);
                         })
                         .build();
-                    atlas::generate(args)
+                    atlas::generate(context, args)
                         .with_context(|| format!("Generating atlas from {}", atlas.dir().display()))
                 }
-            }))
+            });
+
+            context.get_mut::<AtlasContext, _>(TypeId::of::<()>(), move || AtlasContext {
+                creation_hook,
+            });
         }
 
         lang::setup_context(&mut context, &lang_parse_timer);
@@ -169,10 +158,11 @@ fn main() -> Result<()> {
     save_timer.report();
     lang_parse_timer.report();
 
-    let state = init::resolve_states(&defs, &init, &scalar_state).context("Initializing states")?;
+    let state = init::resolve_states(init, &scalar_state);
 
     log::info!("Saving scenario output");
-    let schema = Schema::builder().scenario(scenario).config(config).def(defs).state(state).build();
+    let schema =
+        TfsaveFile::builder().scenario(scenario).config(config).def(defs).state(state).build();
     write(&args.output.join("scenario.tfsave"), &schema).context("Saving output")?;
     lang::save(&args.output.join("assets"), &mut context)
         .context("Saving processed translations")?;
@@ -181,9 +171,9 @@ fn main() -> Result<()> {
 }
 
 fn read_main_defs(
-    defs: &mut Vec<Def>,
+    defs: &mut Vec<AnyDef>,
     inits: &mut Vec<init::Init>,
-    context: &mut ResolveContext,
+    context: &mut DefaultContext,
     path: &Path,
 ) -> Result<schema::Main> {
     let string = fs::read_to_string(path).with_context(|| format!("Reading {}", path.display()))?;
@@ -197,9 +187,9 @@ fn read_main_defs(
 }
 
 fn read_included_defs(
-    defs: &mut Vec<Def>,
+    defs: &mut Vec<AnyDef>,
     inits: &mut Vec<init::Init>,
-    context: &mut ResolveContext,
+    context: &mut DefaultContext,
     path: &Path,
 ) -> Result<()> {
     let string = fs::read_to_string(path).with_context(|| format!("Reading {}", path.display()))?;
@@ -211,9 +201,9 @@ fn read_included_defs(
 }
 
 fn read_defs(
-    defs: &mut Vec<Def>,
+    defs: &mut Vec<AnyDef>,
     inits: &mut Vec<init::Init>,
-    context: &mut ResolveContext,
+    context: &mut DefaultContext,
     file: schema::File,
     path: &Path,
 ) -> Result<()> {
@@ -233,15 +223,18 @@ fn read_defs(
 
     log::debug!("Loading {}", path.display());
 
-    context.set_current_dir(dir.to_path_buf());
+    context
+        .get_mut::<CurrentDir, _>(TypeId::of::<()>(), move || CurrentDir::new(PathBuf::new()))
+        .set_path(dir.to_path_buf());
+
     for def in file.def {
-        let def = Def::convert(def, context)
+        let def = <AnyDef as xylem::Xylem<Schema>>::convert(def, context, &NoArgs)
             .with_context(|| format!("Resolving references in {}", path.display()))?;
         defs.push(def);
     }
 
     for init in file.init {
-        let init = init::Init::convert(init, context)
+        let init = <init::Init as xylem::Xylem<Schema>>::convert(init, context, &NoArgs)
             .with_context(|| format!("Resolving references in {}", path.display()))?;
         inits.push(init);
     }
@@ -249,7 +242,7 @@ fn read_defs(
     Ok(())
 }
 
-fn write(scenario: &Path, schema: &Schema) -> Result<()> {
+fn write(scenario: &Path, schema: &TfsaveFile) -> Result<()> {
     let file = fs::File::create(&scenario).context("Writing scenario file")?;
     let file = io::BufWriter::new(file);
     schema.write(file).context("Writing scenario file")?;

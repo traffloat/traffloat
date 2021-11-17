@@ -2,23 +2,31 @@
 
 use std::ops::Range;
 
-use codegen::{Definition, IdStr};
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use traffloat_types::units;
 
-use crate::{lang, skill};
+use crate::{lang, skill, IdString};
+
+/// Identifies a gas type.
+pub type Id = crate::Id<Def>;
+
+impl_identifiable!(Def);
 
 /// A type of crime customized for the game definition.
-#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Def {
     /// ID of the crime type.
     #[getset(get_copy = "pub")]
+    #[cfg_attr(feature = "xy", xylem(args(new = true)))]
     id:           Id,
     /// String ID of the crime type.
     #[getset(get = "pub")]
-    id_str:       IdStr,
+    #[cfg_attr(feature = "xy", xylem(serde(default)))]
+    id_str:       IdString<Def>,
     /// Name of the crime.
     #[getset(get = "pub")]
     name:         lang::Item,
@@ -37,8 +45,10 @@ pub struct Def {
 }
 
 /// Consequence of a crime.
-#[derive(Debug, Clone, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize), serde(tag = "type")))]
 pub enum Action {
     /// Steal random cargo carried by inhabitants in the same node or vehicle.
     ///
@@ -76,7 +86,9 @@ pub enum Action {
 // }
 
 /// Triggering condition for a crime.
-#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct TriggerSkill {
     /// The skill type to trigger the crime.
     #[getset(get_copy = "pub")]
@@ -91,7 +103,9 @@ pub struct TriggerSkill {
 }
 
 /// A change in skill level.
-#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct SkillChange {
     /// The skill type to change.
     #[getset(get_copy = "pub")]

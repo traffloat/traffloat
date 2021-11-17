@@ -19,8 +19,6 @@ pub enum Unit {
     Cylinder,
 }
 
-codegen::impl_definition_by_self!(Unit);
-
 impl Unit {
     /// Returns the names of sprites for model spritesheets for this unit variant.
     ///

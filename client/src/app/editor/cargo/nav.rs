@@ -60,7 +60,7 @@ impl Component for Comp {
                                         .map(|cargo| html! {
                                     <div>
                                         <a
-                                            href=format!("#/{}/rules/cargo/{}", &self.props.route_prefix, cargo.id_str())
+                                            href=format!("#/{}/rules/cargo/{}", &self.props.route_prefix, cargo.id_str().value())
                                             onclick=self.link.callback({
                                                 let id = cargo.id();
                                                 move |event| Msg::ChooseCargo(event, id)

@@ -36,8 +36,8 @@ pub enum SpRoute {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Rules {
     Home,
-    Building(MixedId<def::building::Id>),
-    Cargo(MixedId<def::cargo::Id>),
+    Building(MixedId<def::building::Def>),
+    Cargo(MixedId<def::cargo::Def>),
 }
 
 impl Default for Route {
@@ -58,12 +58,20 @@ impl Route {
             SpRoute::Rules(Rules::Building(id)) => format!(
                 "{}/rules/building/{}",
                 prefix,
-                def.expect("Editor has def").find(id).expect("Corrupted definition").id_str()
+                def.expect("Editor has def")
+                    .find(id)
+                    .expect("Corrupted definition")
+                    .id_str()
+                    .value(),
             ),
             SpRoute::Rules(Rules::Cargo(id)) => format!(
                 "{}/rules/cargo/{}",
                 prefix,
-                def.expect("Editor has def").find(id).expect("Corrupted definition").id_str()
+                def.expect("Editor has def")
+                    .find(id)
+                    .expect("Corrupted definition")
+                    .id_str()
+                    .value(),
             ),
             SpRoute::Game => format!("{}/play", prefix),
         }

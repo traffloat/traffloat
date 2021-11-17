@@ -65,8 +65,6 @@ macro_rules! units {
                 }
             }
 
-            ::codegen::impl_definition_by_self!($tys);
-
             impl $blanket for $tys {
                 #[inline(always)]
                 fn value(self) -> $base {

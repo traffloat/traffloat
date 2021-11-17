@@ -191,8 +191,11 @@ fn draw(
                             let lerp_size = $mod::lerp(size, next_size, clock.now());
                             let item = &def[id];
                             let name = item.name();
-                            let icon =
-                                format!("{}/{}", context_path.as_ref(), item.texture().sprite_id());
+                            let icon = format!(
+                                "{}/{}",
+                                context_path.as_ref(),
+                                item.texture().spritesheet_id().value()
+                            );
                             StorageEntry { size: lerp_size, name: name.clone(), icon }
                         })
                         .collect()
@@ -225,7 +228,11 @@ fn draw(
 
                     let item = &def[storage.liquid()];
                     let name = item.name();
-                    let icon = format!("{}/{}", context_path.as_ref(), item.texture().sprite_id());
+                    let icon = format!(
+                        "{}/{}",
+                        context_path.as_ref(),
+                        item.texture().spritesheet_id().value()
+                    );
 
                     Some(StorageEntry { size: lerp_size, name: name.clone(), icon })
                 })

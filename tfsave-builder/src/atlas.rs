@@ -10,17 +10,18 @@ use arcstr::ArcStr;
 use safety::Safety;
 use serde::Deserialize;
 use tiny_skia::{Pixmap, PixmapPaint};
-use traffloat_def::atlas;
+use traffloat_def::atlas::{self, SpritesheetId};
 use traffloat_types::geometry;
 use typed_builder::TypedBuilder;
+use xylem::DefaultContext;
 
 use crate::{Timer, TimerStart};
 
 #[derive(TypedBuilder)]
 pub(crate) struct GenerateArgs<'t, RegisterIcon, RegisterModel>
 where
-    RegisterIcon: FnMut(&ArcStr, u32),
-    RegisterModel: FnMut(&ArcStr, u32, geometry::Unit),
+    RegisterIcon: FnMut(&mut DefaultContext, &ArcStr, SpritesheetId),
+    RegisterModel: FnMut(&mut DefaultContext, &ArcStr, SpritesheetId, geometry::Unit),
 {
     input:                     &'t Path,
     output:                    &'t Path,
@@ -35,11 +36,12 @@ where
 }
 
 pub(crate) fn generate<RegisterIcon, RegisterModel>(
+    context: &mut DefaultContext,
     mut args: GenerateArgs<'_, RegisterIcon, RegisterModel>,
 ) -> Result<()>
 where
-    RegisterIcon: FnMut(&ArcStr, u32),
-    RegisterModel: FnMut(&ArcStr, u32, geometry::Unit),
+    RegisterIcon: FnMut(&mut DefaultContext, &ArcStr, SpritesheetId),
+    RegisterModel: FnMut(&mut DefaultContext, &ArcStr, SpritesheetId, geometry::Unit),
 {
     let input = args.input.canonicalize().context("Cannot canonicalize input file")?;
     let dir = input.parent().context("Regular file has no parent")?;
@@ -68,6 +70,7 @@ where
         let file = file.context("Scanning directory list")?;
         let path = file.path();
         let texture_id = args.next_texture_id.fetch_add(1, atomic::Ordering::SeqCst);
+        let texture_id = SpritesheetId::new(texture_id);
 
         if path.extension() == Some(OsStr::new("svg")) {
             log::debug!("Rendering SVG file {}", path.display());
@@ -92,7 +95,7 @@ where
             let name = path.file_name().expect("Path has filename");
             let name = name.to_str().context("Texture name must be ASCII only")?;
             let name = name.strip_suffix(".svg").expect("Path has svg file extension");
-            (args.register_icon_texture_id)(&ArcStr::from(name), texture_id);
+            (args.register_icon_texture_id)(context, &ArcStr::from(name), texture_id);
         } else if path.join("model.toml").exists() {
             log::debug!("Rendering SVG model {}", path.display());
 
@@ -145,7 +148,7 @@ where
 
             let name = path.file_name().expect("Path has filename");
             let name = name.to_str().context("Texture name must be ASCII only")?;
-            (args.register_model_texture_id)(&ArcStr::from(name), texture_id, model.unit);
+            (args.register_model_texture_id)(context, &ArcStr::from(name), texture_id, model.unit);
         }
     }
 
@@ -161,7 +164,7 @@ struct WriteVariantsArgs<'t> {
     output:            &'t Path,
     downscale_timer:   &'t Timer,
     save_timer:        &'t Timer,
-    texture_id:        u32,
+    texture_id:        SpritesheetId,
 }
 
 fn write_variants(args: WriteVariantsArgs) -> Result<()> {

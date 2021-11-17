@@ -88,7 +88,7 @@ pub enum Msg {
     /// Starts a singleplayer game.
     StartSingle { args: SpGameArgs, scenario: Option<String> },
     /// Edit a scenario..
-    EditScenario(Option<String>, Rc<def::Schema>),
+    EditScenario(Option<String>, Rc<def::TfsaveFile>),
     /// Ends a game with an optional error message.
     Exit(Option<String>),
 }
@@ -96,5 +96,5 @@ pub enum Msg {
 enum State {
     Home { error: Option<String> },
     Game(GameArgs),
-    Editor(Option<String>, Rc<def::Schema>),
+    Editor(Option<String>, Rc<def::TfsaveFile>),
 }

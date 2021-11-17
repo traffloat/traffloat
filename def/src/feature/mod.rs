@@ -1,12 +1,12 @@
 //! Defines features of a node.
 
-use codegen::Definition;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use traffloat_types::units::{self, Unit};
 
 use crate::catalyst::Catalyst;
+use crate::Schema;
 
 pub mod reaction;
 pub use reaction::Reaction;
@@ -15,8 +15,10 @@ pub mod security;
 pub use housing::Housing;
 
 /// Features of a building.
-#[derive(Debug, Clone, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize), serde(tag = "type")))]
 pub enum Feature {
     /// The building is a core and must not be destroyed.
     Core,
@@ -37,15 +39,43 @@ pub enum Feature {
 }
 
 /// Describes a generic pump.
-#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
 #[serde(bound = "")]
-#[hf_serde(bound = "")]
-pub struct PumpSpec<U: Unit + Definition + 'static> {
+pub struct PumpSpec<U: Unit + 'static> {
     /// Catalysts affecting the pump efficiency.
     #[getset(get = "pub")]
-    #[hf_serde(default)]
     catalysts: SmallVec<[Catalyst; 2]>,
     /// The base force provided by the pump.
     #[getset(get_copy = "pub")]
     force:     U,
 }
+
+#[cfg(feature = "xy")]
+const _: () = {
+    use xylem::{DefaultContext, NoArgs, Xylem};
+
+    impl<U: Unit + Xylem<Schema> + 'static> Xylem<Schema> for PumpSpec<U> {
+        type From = PumpSpecXylem<U>;
+        type Args = NoArgs;
+
+        fn convert_impl(
+            from: Self::From,
+            context: &mut DefaultContext,
+            _: &NoArgs,
+        ) -> anyhow::Result<Self> {
+            Ok(Self {
+                catalysts: SmallVec::convert(from.catalysts, context, &NoArgs)?,
+                force:     from.force,
+            })
+        }
+    }
+
+    /// See [`PumpSpec`].
+    #[derive(Deserialize)]
+    #[serde(bound = "")]
+    pub struct PumpSpecXylem<U: Unit> {
+        #[serde(default)]
+        catalysts: Vec<<Catalyst as Xylem<Schema>>::From>,
+        force:     U,
+    }
+};

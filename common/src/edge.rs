@@ -3,27 +3,29 @@
 //! An edge is also called a "corridor".
 //! It connects two nodes together.
 
+use def::building;
 use derive_new::new;
 use legion::systems::CommandBuffer;
-use legion::world::SubWorld;
+use legion::world::{EntryRef, SubWorld};
 use legion::{Entity, EntityStore};
 use serde::{Deserialize, Serialize};
-use traffloat_def::state;
-pub use traffloat_def::state::{Direction, DuctType};
+pub use traffloat_def::edge::{
+    Direction, DuctType, ElectricityDuctType, LiquidDuctType, RailDuctType,
+};
 use typed_builder::TypedBuilder;
 
 use crate::space::{Matrix, Position, Vector};
-use crate::{liquid, node, save, units, SetupEcs};
+use crate::{def, liquid, node, save, units, SetupEcs};
 
 /// Component storing the endpoints of an edge
 #[derive(Debug, Clone, Copy, PartialEq, Eq, new, getset::CopyGetters, getset::Setters)]
 pub struct Id {
-    /// The "source" node
+    /// The "alpha" node
     #[getset(get_copy = "pub")]
-    from: Entity,
-    /// The "dest" node
+    alpha: Entity,
+    /// The "beta" node
     #[getset(get_copy = "pub")]
-    to:   Entity,
+    beta:  Entity,
 }
 
 codegen::component_depends! {
@@ -98,66 +100,78 @@ fn create_duct(
     ty: DuctType,
     entities: &mut CommandBuffer,
     world: &SubWorld,
-    from: Entity,
-    to: Entity,
+    alpha: Entity,
+    beta: Entity,
     radius: f64,
 ) -> Entity {
-    let from_entry = world.entry_ref(from).expect("The from node entity does not exist");
-    let to_entry = world.entry_ref(to).expect("The to node entity does not exist");
+    let alpha_entry = world.entry_ref(alpha).expect("The alpha node entity does not exist");
+    let beta_entry = world.entry_ref(beta).expect("The beta node entity does not exist");
 
-    let from_pos = from_entry
+    let alpha_pos = alpha_entry
         .get_component::<Position>()
-        .expect("The from node entity does not have a position");
-    let to_pos =
-        to_entry.get_component::<Position>().expect("The to node entity does not have a position");
+        .expect("The alpha node entity does not have a position");
+    let beta_pos = beta_entry
+        .get_component::<Position>()
+        .expect("The beta node entity does not have a position");
 
-    let dist = (*to_pos - *from_pos).norm();
+    let dist = (*beta_pos - *alpha_pos).norm();
 
     match ty {
-        DuctType::Electricity(true) => {
-            entities.push(()) // TODO
+        DuctType::Electricity(ty) => {
+            #[allow(clippy::if_same_then_else)] // TODO fix
+            if ty.disabled() {
+                entities.push(()) // create a dummy entity
+            } else {
+                entities.push(()) // TODO
+            }
         }
-        DuctType::Rail(Some(_direction)) => {
-            entities.push(()) // TODO
+        DuctType::Rail(ty) => {
+            #[allow(clippy::if_same_then_else)] // TODO fix
+            if let Some(_dir) = ty.direction() {
+                entities.push(()) // TODO
+            } else {
+                entities.push(()) // create a dummy entity
+            }
         }
-        DuctType::Liquid {
-            dir: Some(direction),
-            src_storage: from_storage,
-            dest_storage: to_storage,
-        } => entities.push({
-            let from_list = from_entry
-                .get_component::<liquid::StorageList>()
-                .expect("The from node entity does not have liquid::StorageList");
-            let from_tank = *from_list
-                .storages()
-                .get(from_storage)
-                .expect("Pipe definition references a nonexistent from-storage");
+        DuctType::Liquid(ty) => {
+            match ty {
+                LiquidDuctType::AlphaToBeta { alpha_storage, beta_storage }
+                | LiquidDuctType::BetaToAlpha { beta_storage, alpha_storage } => entities.push({
+                    fn get_tank(
+                        entry: EntryRef<'_>,
+                        storage: building::storage::liquid::Id,
+                    ) -> Entity {
+                        let list = entry
+                            .get_component::<liquid::StorageList>()
+                            .expect("Node entity has no liquid::StorageList");
+                        let tank = list
+                            .storages()
+                            .get(storage.index())
+                            .expect("Pipe definition references nonexistent storage");
+                        *tank
+                    }
 
-            let to_list = to_entry
-                .get_component::<liquid::StorageList>()
-                .expect("The to node entity does not have liquid::StorageList");
-            let to_tank = *to_list
-                .storages()
-                .get(to_storage)
-                .expect("Pipe definition references a nonexistent to-storage");
+                    let alpha_tank = get_tank(alpha_entry, alpha_storage);
+                    let beta_tank = get_tank(beta_entry, beta_storage);
 
-            let (src, dest) = match direction {
-                Direction::AlphaBeta => (from_tank, to_tank),
-                Direction::BetaAlpha => (to_tank, from_tank),
-            };
+                    let (src, dest) = match ty {
+                        LiquidDuctType::AlphaToBeta { .. } => (alpha_tank, beta_tank),
+                        LiquidDuctType::BetaToAlpha { .. } => (beta_tank, alpha_tank),
+                        _ => unreachable!("Within match arm"),
+                    };
 
-            let resistance = dist / radius.powi(2);
+                    let resistance = dist / radius.powi(2);
 
-            (
-                liquid::Pipe::new(src, dest),
-                liquid::PipeResistance::new(resistance),
-                liquid::PipeFlow::default(),
-            )
-        }),
-        DuctType::Electricity(false)
-        | DuctType::Rail(None)
-        | DuctType::Liquid { dir: None, .. } => {
-            entities.push(()) // dummy entity
+                    (
+                        liquid::Pipe::new(src, dest),
+                        liquid::PipeResistance::new(resistance),
+                        liquid::PipeFlow::default(),
+                    )
+                }),
+                LiquidDuctType::Disabled => {
+                    entities.push(()) // create a dummy entity
+                }
+            }
         }
     }
 }
@@ -183,21 +197,21 @@ pub struct RemoveEvent {
 
 /// Computes the transformation matrix from or to the unit cylinder
 pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bool) -> Matrix {
-    let from = edge.from();
-    let to = edge.to();
+    let alpha = edge.alpha();
+    let beta = edge.beta();
 
-    let from: Position = *world
-        .entry_ref(from)
-        .expect("from_entity does not exist")
+    let alpha: Position = *world
+        .entry_ref(alpha)
+        .expect("alpha_entity does not exist")
         .get_component()
-        .expect("from node does not have Position");
-    let to: Position = *world
-        .entry_ref(to)
-        .expect("to_entity does not exist")
+        .expect("alpha node does not have Position");
+    let beta: Position = *world
+        .entry_ref(beta)
+        .expect("beta_entity does not exist")
         .get_component()
-        .expect("to node does not have Position");
+        .expect("beta node does not have Position");
 
-    let dir = to - from;
+    let dir = beta - alpha;
     let rot = match nalgebra::Rotation3::rotation_between(&Vector::new(0., 0., 1.), &dir) {
         Some(rot) => rot.to_homogeneous(),
         None => Matrix::identity().append_nonuniform_scaling(&Vector::new(0., 0., -1.)),
@@ -205,9 +219,9 @@ pub fn tf(edge: &Id, size: &Size, world: &legion::world::SubWorld, from_unit: bo
 
     if from_unit {
         rot.prepend_nonuniform_scaling(&Vector::new(size.radius(), size.radius(), dir.norm()))
-            .append_translation(&from.vector())
+            .append_translation(&alpha.vector())
     } else {
-        rot.transpose().prepend_translation(&-from.vector()).append_nonuniform_scaling(
+        rot.transpose().prepend_translation(&-alpha.vector()).append_nonuniform_scaling(
             &Vector::new(1. / size.radius(), 1. / size.radius(), 1. / dir.norm()),
         )
     }
@@ -240,7 +254,7 @@ fn create_new_edge(
 #[derive(TypedBuilder)]
 pub struct LoadRequest {
     /// The saved edge.
-    save: Box<state::Edge>,
+    save: Box<def::edge::Edge>,
 }
 
 #[codegen::system(CreateChild)]
@@ -254,24 +268,24 @@ fn create_saved_edge(
     #[resource] index: &node::Index,
 ) {
     for LoadRequest { save } in requests {
-        let from = index.get(save.from()).expect("Edge references nonexistent node");
-        let to = index.get(save.to()).expect("Edge references nonexistent node");
+        let alpha = index.get(save.endpoints().alpha()).expect("Edge references nonexistent node");
+        let beta = index.get(save.endpoints().beta()).expect("Edge references nonexistent node");
         // FIXME how do we handle the error here properly?
 
         let design = save
-            .design()
+            .ducts()
             .iter()
             .map(|duct| {
                 Duct::builder()
                     .center(CrossSectionPosition::new(duct.center().x, duct.center().y))
                     .radius(duct.radius())
                     .ty(duct.ty())
-                    .entity(create_duct(duct.ty(), entities, world, from, to, duct.radius()))
+                    .entity(create_duct(duct.ty(), entities, world, alpha, beta, duct.radius()))
                     .build()
             })
             .collect();
 
-        let id = Id::new(from, to);
+        let id = Id::new(alpha, beta);
         let entity =
             entities.push((id, Size::new(save.radius()), save.hitpoint(), Design::new(design)));
         add_events(AddEvent { edge: id, entity });
@@ -296,20 +310,19 @@ fn save_edges(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item =
                 let entry = ra_world.entry_ref(entity).expect("Dangling edge endpoint");
                 *entry.get_component::<node::Id>().expect("Edge endpoint is not a node")
             };
-            let from = get_node_id(id.from());
-            let to = get_node_id(id.to());
+            let alpha = get_node_id(id.alpha());
+            let beta = get_node_id(id.beta());
 
-            let edge = state::Edge::builder()
-                .from(from)
-                .to(to)
+            let edge = def::edge::Edge::builder()
+                .endpoints(def::edge::AlphaBeta::new(alpha, beta))
                 .radius(size.radius())
                 .hitpoint(hitpoint)
-                .design(
+                .ducts(
                     design
                         .ducts()
                         .iter()
                         .map(|duct| {
-                            state::Duct::builder()
+                            def::edge::Duct::builder()
                                 .center(duct.center().vector())
                                 .radius(duct.radius())
                                 .ty(duct.ty())

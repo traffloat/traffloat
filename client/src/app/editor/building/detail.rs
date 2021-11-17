@@ -96,7 +96,7 @@ fn render_feature(building: &building::Def, feature: &Feature, def: &GameDefinit
             let storage = building
                 .storage()
                 .population()
-                .get(housing.storage().as_index())
+                .get(housing.storage().index())
                 .expect("Corrupted definition");
 
             html! {
@@ -287,7 +287,7 @@ fn render_catalyst(
                 <td>
                     { "Inhabitants (" }
                     {{
-                        let storage = building.storage().population().get(storage.as_index()).expect("Corrupted definition");
+                        let storage = building.storage().population().get(storage.index()).expect("Corrupted definition");
                         html!(<lang::Comp item=storage.name() />)
                     }}
                     { ") with " }

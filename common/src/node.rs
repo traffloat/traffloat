@@ -10,19 +10,21 @@ use legion::systems::CommandBuffer;
 use legion::world::SubWorld;
 use legion::{Entity, EntityStore};
 use smallvec::{smallvec, SmallVec};
-use traffloat_def::state;
 use typed_builder::TypedBuilder;
 
 use crate::def::feature::Feature;
-pub use crate::def::state::NodeId as Id;
+pub use crate::def::node::NodeId as Id;
 use crate::def::{building, CustomizableName};
 use crate::space::{Matrix, Position};
 use crate::sun::LightStats;
-use crate::{appearance, cargo, defense, gas, liquid, population, save, units, vehicle, SetupEcs};
+use crate::{
+    appearance, cargo, def, defense, gas, liquid, population, save, units, vehicle, SetupEcs,
+};
 
 codegen::component_depends! {
     Id = (
         LightStats,
+        appearance::Appearance,
         cargo::StorageList,
         cargo::StorageCapacity,
         liquid::StorageList,
@@ -166,7 +168,7 @@ fn create_new_node(
                     .map(|shape| {
                         appearance::Component::builder()
                             .unit(shape.unit())
-                            .matrix(request.rotation * shape.transform().0)
+                            .matrix(request.rotation * shape.transform())
                             .texture(shape.texture())
                             .build()
                     })
@@ -200,7 +202,7 @@ fn create_new_node(
 #[derive(TypedBuilder)]
 pub struct LoadRequest {
     /// The saved node.
-    save: Box<state::Node>,
+    save: Box<def::node::Node>,
 }
 
 #[codegen::system(Command)]
@@ -219,11 +221,11 @@ fn create_saved_node(
             .iter()
             .map(|entry| {
                 let entity = entities.push((
-                    cargo::Storage::new(entry.cargo()),
+                    cargo::Storage::new(entry.ty()),
                     cargo::StorageSize::new(entry.size()),
                     cargo::NextStorageSize::new(entry.size()),
                 ));
-                (entry.cargo(), entity)
+                (entry.ty(), entity)
             })
             .collect();
 
@@ -234,8 +236,8 @@ fn create_saved_node(
             .zip(liquid_storages.iter())
             .map(|(entry, storage_def)| {
                 entities.push((
-                    liquid::Storage::new(entry.liquid()),
-                    liquid::NextStorageType::new(entry.liquid()),
+                    liquid::Storage::new(entry.ty()),
+                    liquid::NextStorageType::new(entry.ty()),
                     liquid::StorageCapacity::new(storage_def.capacity()),
                     liquid::StorageSize::new(entry.volume()),
                     liquid::NextStorageSize::new(entry.volume()),
@@ -248,11 +250,11 @@ fn create_saved_node(
             .iter()
             .map(|entry| {
                 let entity = entities.push((
-                    gas::Storage::new(entry.gas()),
+                    gas::Storage::new(entry.ty()),
                     gas::StorageSize::new(entry.volume()),
                     gas::NextStorageSize::new(entry.volume()),
                 ));
-                (entry.gas(), entity)
+                (entry.ty(), entity)
             })
             .collect();
 
@@ -268,7 +270,7 @@ fn create_saved_node(
                     .map(|shape| {
                         appearance::Component::builder()
                             .unit(shape.unit())
-                            .matrix(save.rotation() * shape.transform().0)
+                            .matrix(save.rotation() * shape.transform())
                             .texture(shape.texture())
                             .build()
                     })
@@ -344,7 +346,7 @@ fn save_nodes(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item =
             &building,
             name,
             &position,
-            appearance,
+            _appearance, // TODO use this
             hitpoint,
             cargo_list,
             gas_list,
@@ -360,7 +362,7 @@ fn save_nodes(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item =
                     let size = storage
                         .get_component::<cargo::StorageSize>()
                         .expect("Malformed entity reference");
-                    state::CargoStorageEntry::new(cargo_ty, size.size())
+                    def::node::CargoStorageEntry::new(cargo_ty, size.size())
                 })
                 .collect();
             let gas = gas_list
@@ -372,7 +374,7 @@ fn save_nodes(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item =
                     let size = storage
                         .get_component::<gas::StorageSize>()
                         .expect("Malformed entity reference");
-                    state::GasStorageEntry::new(gas_ty, size.size())
+                    def::node::GasStorageEntry::new(gas_ty, size.size())
                 })
                 .collect();
             let liquid = liquid_list
@@ -388,11 +390,11 @@ fn save_nodes(world: &mut SubWorld, #[subscriber] requests: impl Iterator<Item =
                     let size = storage
                         .get_component::<liquid::StorageSize>()
                         .expect("Malformed entity reference");
-                    state::LiquidStorageEntry::new(liquid_ty, size.size())
+                    def::node::LiquidStorageEntry::new(liquid_ty, size.size())
                 })
                 .collect();
 
-            let node = state::Node::builder()
+            let node = def::node::Node::builder()
                 .id(id)
                 .building(building)
                 .name(name.clone())

@@ -90,12 +90,6 @@ impl<U: Unit + fmt::Display> fmt::Display for Portion<U> {
     }
 }
 
-impl<U: Unit> codegen::Definition for Portion<U> {
-    type HumanFriendly = Self;
-
-    fn convert(hf: Self, _: &mut codegen::ResolveContext) -> anyhow::Result<Self> { Ok(hf) }
-}
-
 /// A unit that can be rounded off.
 pub trait RoundedUnit {
     /// Round off the unit.

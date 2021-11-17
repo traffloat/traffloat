@@ -7,7 +7,7 @@ pub use traffloat_types::geometry::Unit;
 use traffloat_types::space::{Matrix, Position};
 use typed_builder::TypedBuilder;
 
-use crate::atlas;
+use crate::def::atlas;
 
 /// Describes the shape and appearance of an object.
 ///

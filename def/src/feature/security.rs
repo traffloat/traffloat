@@ -1,6 +1,5 @@
 //! Security-related node features.
 
-use codegen::Definition;
 use getset::{CopyGetters, Getters};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
@@ -10,11 +9,13 @@ use crate::catalyst::Catalyst;
 use crate::skill;
 
 /// A security policy affecting entry/exit.
-#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Policy {
     /// The catalysts affecting the breach probability.
     #[getset(get = "pub")]
-    #[hf_serde(default)]
+    #[cfg_attr(feature = "xy", xylem(serde(default)))]
     catalysts: SmallVec<[Catalyst; 2]>,
 
     /// The constraints on skill level to deny entry/exit.
@@ -31,8 +32,9 @@ pub struct Policy {
 }
 
 /// A requirement of skill level.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Definition)]
-#[serde(tag = "type")]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize), serde(tag = "type")))]
 pub enum SkillRequirement {
     /// Minimum skill level.
     AtLeast {

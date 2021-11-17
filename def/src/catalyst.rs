@@ -2,7 +2,6 @@
 
 use std::ops::Range;
 
-use codegen::Definition;
 use getset::CopyGetters;
 use serde::{Deserialize, Serialize};
 use traffloat_types::units;
@@ -10,9 +9,9 @@ use traffloat_types::units;
 use crate::{building, cargo, gas, liquid, skill};
 
 /// A condition or catalyst.
-#[derive(
-    Debug, Clone, getset::Getters, getset::CopyGetters, Serialize, Deserialize, Definition,
-)]
+#[derive(Debug, Clone, getset::Getters, getset::CopyGetters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Catalyst {
     /// The lerp endpoints of the catalyst.
     #[getset(get = "pub")]
@@ -23,7 +22,9 @@ pub struct Catalyst {
 }
 
 /// A type of resource whose existence affects a reaction.
-#[derive(Debug, Clone, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize), serde(tag = "type")))]
 pub enum CatalystRange {
     /// Existence of cargo.
     Cargo {
@@ -71,7 +72,9 @@ pub enum CatalystRange {
 }
 
 /// The multipliers associated with a catalyst.
-#[derive(Debug, Clone, Copy, CopyGetters, Serialize, Deserialize, Definition)]
+#[derive(Debug, Clone, Copy, CopyGetters, Serialize, Deserialize)]
+#[cfg_attr(feature = "xy", derive(xylem::Xylem))]
+#[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Multipliers {
     /// Multiplier to the reaction rate when the catalyst is in deficiency.
     #[getset(get_copy = "pub")]

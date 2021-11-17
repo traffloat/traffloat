@@ -22,9 +22,9 @@
 mod macros;
 
 pub use traffloat_def as def;
-pub use traffloat_def::state::{self, appearance};
 pub use traffloat_types::{space, time, units};
 
+pub mod appearance;
 pub mod cargo;
 pub mod clock;
 pub mod config;

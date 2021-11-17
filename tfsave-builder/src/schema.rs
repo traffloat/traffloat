@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use serde::Deserialize;
-use traffloat_def::{Config, DefHumanFriendly, Scenario};
+use traffloat_def::{AnyDefXylem, Config, Scenario};
 
-use crate::init::{self, ScalarState};
+use crate::init::{InitXylem, ScalarState};
 
 /// The schema in the main.toml file.
 #[derive(Deserialize)]
@@ -38,10 +38,10 @@ pub struct File {
     pub include: Vec<Include>,
     /// Gamerules defined in this file.
     #[serde(default)]
-    pub def:     Vec<DefHumanFriendly>,
+    pub def:     Vec<AnyDefXylem>,
     /// Initialize states.
     #[serde(default)]
-    pub init:    Vec<init::InitHumanFriendly>,
+    pub init:    Vec<InitXylem>,
 }
 
 /// References another file to include.

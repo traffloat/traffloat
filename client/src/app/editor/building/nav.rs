@@ -62,7 +62,7 @@ impl Component for Comp {
                                         .map(|building| html! {
                                     <div>
                                         <a
-                                            href=format!("#/{}/rules/building/{}", &self.props.route_prefix, building.id_str())
+                                            href=format!("#/{}/rules/building/{}", &self.props.route_prefix, building.id_str().value())
                                             onclick=self.link.callback({
                                                 let id = building.id();
                                                 move |event| Msg::ChooseBuilding(event, id)

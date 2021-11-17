@@ -2,7 +2,7 @@
 name = "traffloat-def"
 authors = ["SOFe <sofe2038@gmail.com>"]
 version = "0.2.0"
-edition = "2018"
+edition = "2021"
 repository = "https://github.com/traffloat/traffloat"
 homepage = "https://github.com/traffloat/traffloat"
 description = "Traffloat gamerule definitions"
@@ -15,6 +15,7 @@ derive-new = "0.5.9"
 flate2 = "1.0.22"
 fluent = "0.16.0"
 getset = "0.1.1"
+lazy_static = "1.4.0"
 log = "0.4.14"
 nalgebra = {version = "0.29.0", features = ["serde-serialize"]}
 rmp-serde = "0.15.5"
@@ -26,8 +27,9 @@ traffloat-safety = {version = "0.2.0", path = "../safety"}
 traffloat-types = {version = "0.2.0", path = "../types"}
 typed-builder = "0.9.1"
 unic-langid = "0.9.0"
+xylem = {version = "0.2.6", features = ["serde"]}
 yew = {version = "0.18.0", default-features = false, optional = true}
 
 [features]
-default = []
-convert-human-friendly = []
+default = ["xy"]
+xy = []
