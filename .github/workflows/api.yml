@@ -24,15 +24,11 @@ jobs:
         with:
           path: |
             ~/.cargo
-          key: just-tokei-10-09
+          key: just-tokei-2021-11-17
       - run: test -f ~/.cargo/bin/just || cargo install just tokei
       - name: Setup Graphviz
         uses: ts-graphviz/setup-graphviz@v1
 
-      - name: Install toolchain dependencies
-        run: just deps
-      - name: Preprocess resources
-        run: just pp
       - name: Build documentation
         run: just doc
 

@@ -25,11 +25,9 @@ jobs:
         with:
           path: |
             ~/.cargo
-          key: trunk-just-10-09
+          key: trunk-just-2021-11-17
       - run: test -f ~/.cargo/bin/just || cargo install trunk just
 
-      - name: Install toolchain dependencies
-        run: just deps
       - name: Build web client
         run: just client-build /$(echo ${{github.ref}} | cut -d/ -f3)
 

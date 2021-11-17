@@ -43,10 +43,6 @@ jobs:
             **/target
           key: ${{ matrix.toolchain }}
       - run: test -f ~/.cargo/bin/just || cargo install just
-      - name: Install toolchain dependencies
-        run: just deps
-      - name: Preprocess resources
-        run: just pp
       - name: cargo clippy
         uses: actions-rs/clippy-check@v1
         with:
@@ -78,9 +74,5 @@ jobs:
             **/target
           key: ${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
       - run: test -f ~/.cargo/bin/just || cargo install just
-      - name: Install toolchain dependencies
-        run: just deps
-      - name: Preprocess resources
-        run: just pp
       - name: cargo test
         run: "cargo test --all ${{matrix.stability}}"
