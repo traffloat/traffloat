@@ -76,3 +76,53 @@ jobs:
       - run: test -f ~/.cargo/bin/just || cargo install just
       - name: cargo test
         run: "cargo test --all ${{matrix.stability}}"
+  build:
+    name: test release build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2021-11-17
+          profile: default
+          default: true
+          target: wasm32-unknown-unknown
+      - name: Cache cargo tools
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo
+          key: trunk-just-2021-11-17
+      - run: test -f ~/.cargo/bin/just || cargo install trunk just
+
+      - name: Build scenario files
+        run: just client-scenarios
+      - name: Build web client
+        run: just client-build /$(echo ${{github.ref}} | cut -d/ -f3)
+  build-dev:
+    name: test dev build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2021-11-17
+          profile: default
+          default: true
+          target: wasm32-unknown-unknown
+      - name: Cache cargo tools
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo
+          key: trunk-just-2021-11-17
+      - run: test -f ~/.cargo/bin/just || cargo install trunk just
+
+      - name: Build scenario files
+        run: just client-scenarios
+      - name: Build web client
+        run: just client-build-dev

@@ -5,7 +5,7 @@ client-build path_prefix: client-clean
 client-build-dev: client-clean
 	cd client && trunk build dev.html
 client-watch: client-clean
-	cd client && trunk serve dev.html --watch .. --open
+	cd client && trunk serve dev.html --watch ..
 
 doc:
 	cargo doc --lib --document-private-items
