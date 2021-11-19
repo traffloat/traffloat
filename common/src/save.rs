@@ -7,9 +7,9 @@ use codegen::SetupEcs;
 use getset::Getters;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
-use xylem::Identifiable;
 
-use crate::{def, liquid};
+use crate::clock::Clock;
+use crate::{def, edge, liquid, node};
 
 /// Stores all scenario gamerule definitions.
 #[derive(Getters, Default)]
@@ -107,30 +107,33 @@ impl GameDefinition {
 
 /// Either integer or string ID.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum MixedId<T: Identifiable<def::Schema>> {
+pub enum MixedId<T> {
     /// The integer form.
     Int(def::Id<T>),
     /// The string form.
     Str(String),
 }
 
-impl<T: Identifiable<def::Schema>> MixedId<T> {
+impl<T> MixedId<T> {
     /// Shorthand for `MixedId::Str(IdStr::new(...))`
     pub fn new_str(str: &str) -> Self { Self::Str(String::from(str)) }
 }
 
-impl<T: Identifiable<def::Schema>> From<def::Id<T>> for MixedId<T> {
+impl<T> From<def::Id<T>> for MixedId<T> {
     fn from(t: def::Id<T>) -> Self { Self::Int(t) }
 }
 
-impl<T: Identifiable<def::Schema>> From<def::IdString<T>> for MixedId<T> {
+impl<T> From<def::IdString<T>> for MixedId<T> {
     fn from(t: def::IdString<T>) -> Self { Self::new_str(t.value()) }
 }
 
 /// Implemented by def types that can be uniquely indexed in the [`GameDefinition`] scope.
-pub trait GameDefObject: Identifiable<def::Schema> {
+pub trait GameDefObject: Sized {
     /// Gets the slice in the [`GameDefinition`] that holds the objects of this type.
     fn get_list(def: &GameDefinition) -> &[Self];
+
+    /// Returns the runtime integer ID of the object.
+    fn id(&self) -> def::Id<Self>;
 
     /// Returns the original string ID of the object.
     fn id_str(&self) -> &def::IdString<Self>;
@@ -142,6 +145,10 @@ macro_rules! impl_game_def_object {
             impl GameDefObject for $def {
                 fn get_list(def: &GameDefinition) -> &[Self] {
                     &def.$field[..]
+                }
+
+                fn id(&self) -> def::Id<Self> {
+                    <$def>::id(self)
                 }
 
                 fn id_str(&self) -> &def::IdString<Self> {
@@ -259,7 +266,7 @@ fn save_request(
 }
 
 /// Loads a scenario file.
-pub fn load_scenario(setup: SetupEcs, scenario: &def::TfsaveFile) -> SetupEcs {
+pub fn load_scenario(mut setup: SetupEcs, scenario: &def::TfsaveFile, micros_now: i64) -> SetupEcs {
     let def = match GameDefinition::new(scenario.def().iter().cloned()) {
         Ok(def) => def,
         Err(err) => {
@@ -267,6 +274,20 @@ pub fn load_scenario(setup: SetupEcs, scenario: &def::TfsaveFile) -> SetupEcs {
             return setup;
         }
     };
+
+    {
+        let mut clock = setup.resources.get_mut_or_default::<Clock>();
+        clock.reset_time(scenario.state().time(), micros_now);
+    }
+
+    for node in scenario.state().nodes() {
+        setup =
+            setup.publish_event(node::LoadRequest::builder().save(Box::new(node.clone())).build());
+    }
+    for edge in scenario.state().edges() {
+        setup =
+            setup.publish_event(edge::LoadRequest::builder().save(Box::new(edge.clone())).build());
+    }
 
     setup.resource(def).resource(scenario.scenario().clone()).resource(scenario.config().clone())
 }

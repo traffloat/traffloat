@@ -21,26 +21,34 @@ pub struct Options {
 pub fn prepare(gl: &WebGlRenderingContext, options: Options) -> impl super::Mesh {
     let mut builder = super::Builder::default();
 
+    let spritesheet_dim = 2.; // 2 or 3 sprites, fits on a 2^2 spritesheet.
+
     if options.fused {
         for (name, z) in [("bottom", 0.), ("top", 1.)] {
             let tex_pos = appearance::Unit::Cylinder
                 .search_sprite_coord_by_name(name)
                 .expect("Unit::sprite_name should return top, bottom and curved");
             let tex_pos = Vector2::new(tex_pos.0.small_float(), tex_pos.1.small_float());
+            let tex_pos_fn = |pos: Vector2<f32>| {
+                (tex_pos + Vector2::new(0.5, 0.5) + pos * 0.5) / spritesheet_dim
+            };
 
             let normal = Vector3::new(0., 0., z * 2. - 1.);
             let center =
-                builder.push(Vector3::new(0., 0., z), normal, tex_pos + Vector2::new(0.5, 0.5));
+                builder.push(Vector3::new(0., 0., z), normal, tex_pos_fn(Vector2::new(0., 0.)));
 
-            let mut last_vert_index =
-                builder.push(Vector3::new(1., 0., z), normal, tex_pos + Vector2::new(1., 0.));
-            for vert in 0..options.num_vert {
+            let mut last_vert_index = builder.push(
+                Vector3::new(1., 0., z),
+                normal,
+                tex_pos_fn(Vector2::new(1., 0.)), // cos(0), sin(0)
+            );
+            for vert in 1..=options.num_vert {
                 let mut angle = PI * 2. / options.num_vert.small_float() * vert.small_float();
                 angle *= z * 2. - 1.; // negate the angle if z == 0.
 
                 let pos2 = Vector2::new(angle.cos(), angle.sin());
 
-                let vert_index = builder.push(pos2.fixed_resize(z), normal, tex_pos + pos2);
+                let vert_index = builder.push(pos2.fixed_resize(z), normal, tex_pos_fn(pos2));
                 builder.push_triangle([center, last_vert_index, vert_index]);
                 last_vert_index = vert_index;
             }
@@ -61,7 +69,7 @@ pub fn prepare(gl: &WebGlRenderingContext, options: Options) -> impl super::Mesh
         builder.push(
             Vector3::new(angle.cos(), angle.sin(), z),
             Vector3::new(angle.cos(), angle.sin(), 0.),
-            curved_tex_pos + Vector2::new(ratio, z),
+            (curved_tex_pos + Vector2::new(ratio, z)) / spritesheet_dim,
         )
     };
 
@@ -72,8 +80,8 @@ pub fn prepare(gl: &WebGlRenderingContext, options: Options) -> impl super::Mesh
         let top1 = push_side_vertex(&mut builder, vert, 1.);
         let bottom1 = push_side_vertex(&mut builder, vert, 0.);
 
-        builder.push_triangle([top0, top1, bottom0]);
-        builder.push_triangle([bottom0, top1, bottom1]);
+        builder.push_triangle([top0, bottom0, top1]);
+        builder.push_triangle([bottom0, bottom1, top1]);
 
         top0 = top1;
         bottom0 = bottom1;

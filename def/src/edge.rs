@@ -10,7 +10,7 @@ use crate::building;
 use crate::node::NodeId;
 
 /// The state of an edge.
-#[derive(Getters, CopyGetters, TypedBuilder, Serialize, Deserialize)]
+#[derive(Debug, Clone, Getters, CopyGetters, TypedBuilder, Serialize, Deserialize)]
 #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
 #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Edge {
@@ -31,7 +31,7 @@ pub struct Edge {
 }
 
 /// The endpoints of an edge.
-#[derive(Clone, Copy, CopyGetters, new, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, CopyGetters, new, Serialize, Deserialize)]
 #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
 #[cfg_attr(feature = "xy", xylem(derive(Deserialize), process))]
 pub struct AlphaBeta {
@@ -44,7 +44,7 @@ pub struct AlphaBeta {
 }
 
 /// The state of a duct.
-#[derive(Getters, CopyGetters, TypedBuilder, Serialize, Deserialize)]
+#[derive(Debug, Clone, Getters, CopyGetters, TypedBuilder, Serialize, Deserialize)]
 #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
 #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
 pub struct Duct {

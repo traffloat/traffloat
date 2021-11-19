@@ -13,7 +13,7 @@ anyhow = "1.0.44"
 arcstr = {version = "1.1.1", features = ["serde"]}
 derive-new = "0.5.9"
 flate2 = "1.0.22"
-fluent = "0.16.0"
+fluent = {version = "0.16.0", optional = true}
 getset = "0.1.1"
 lazy_static = "1.4.0"
 log = "0.4.14"
@@ -27,9 +27,9 @@ traffloat-safety = {version = "0.2.0", path = "../safety"}
 traffloat-types = {version = "0.2.0", path = "../types"}
 typed-builder = "0.9.1"
 unic-langid = "0.9.0"
-xylem = {version = "0.2.6", features = ["serde"]}
+xylem = {version = "0.2.7", features = ["serde"]}
 yew = {version = "0.18.0", default-features = false, optional = true}
 
 [features]
 default = ["xy"]
-xy = []
+xy = ["fluent"]

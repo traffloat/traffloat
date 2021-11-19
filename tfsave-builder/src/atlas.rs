@@ -50,15 +50,6 @@ where
         .canonicalize()
         .with_context(|| format!("Cannont canonicalize atlas path {}", dir.display()))?;
 
-    for variant in args.atlas.variants() {
-        let variant_dir = args.output.join(variant.name().as_str());
-        if !variant_dir.exists() {
-            fs::create_dir(&variant_dir).with_context(|| {
-                format!("Cannot create variant directory {}", variant_dir.display())
-            })?;
-        }
-    }
-
     log::info!("Generating atlas for {}", dir.display());
 
     let options = usvg::Options::default();
@@ -174,7 +165,8 @@ fn write_variants(args: WriteVariantsArgs) -> Result<()> {
 
         let dir = out_png.parent().expect("File has no parent");
         if !dir.exists() {
-            fs::create_dir(dir).context("Creating variant directory")?;
+            fs::create_dir(&dir)
+                .with_context(|| format!("Creating variant directory at {}", dir.display()))?;
         }
 
         let downscaled_map = {

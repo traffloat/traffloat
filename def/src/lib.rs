@@ -38,6 +38,7 @@ pub use xylem::Xylem;
 
 macro_rules! impl_identifiable {
     ($ty:ty, $scope:ty) => {
+        #[cfg(feature = "xy")]
         impl ::xylem::Identifiable<crate::Schema> for $ty {
             type Scope = $scope;
 

@@ -1617,7 +1617,6 @@ dependencies = [
  "traffloat-safety",
  "traffloat-types",
  "typed-builder",
- "xylem",
  "yew",
 ]
 
@@ -2051,9 +2050,9 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xylem"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9cede53a6c1fd644097863d151fa0be249496b981b0849b62a79484863a14f5"
+checksum = "1971dfdc5aa87fbea687923a7aed1ebace62db77de96f78ef61e3e5a3e540b79"
 dependencies = [
  "anyhow",
  "getset",
@@ -2065,9 +2064,9 @@ dependencies = [
 
 [[package]]
 name = "xylem-codegen"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bac17a43a5ee848352682b487a2963eeff1a24a4eb0680a26cf2a205e6944661"
+checksum = "91bb325f0cb0ad7464299540d2c974ae33c4527b8469bf321e7d37a0cc4a2a3a"
 dependencies = [
  "proc-macro2",
  "quote",

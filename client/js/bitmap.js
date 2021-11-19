@@ -8,12 +8,5 @@ async function loadBitmapPromise(url) {
 }
 
 export function load_textures(url) {
-	const promise = Promise.all([
-		loadBitmapPromise(url),
-		fetchTextureIndexPromise(url),
-	]).then(pair => ({
-		bitmap: pair[0],
-		index: pair[1],
-	}))
 	return reify_promise(loadBitmapPromise(url))
 }

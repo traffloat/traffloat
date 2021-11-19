@@ -16,6 +16,7 @@ pub struct NodeId {
     inner: u32,
 }
 
+#[cfg(feature = "xy")]
 impl Identifiable<Schema> for Node {
     type Scope = ();
 
@@ -38,7 +39,7 @@ codegen::component_depends! {
 /// The state of a node.
 ///
 /// State of population storages are stored in the inhabitant states.
-#[derive(Getters, CopyGetters, TypedBuilder, Serialize, Deserialize)]
+#[derive(Debug, Clone, Getters, CopyGetters, TypedBuilder, Serialize, Deserialize)]
 #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
 #[cfg_attr(feature = "xy", xylem(derive(Deserialize), process))]
 pub struct Node {

@@ -17,14 +17,12 @@ pub struct Program {
     a_pos:          AttrLocation,
     a_normal:       AttrLocation,
     a_tex_pos:      AttrLocation,
-    a_tex_offset:   AttrLocation,
     u_proj:         UniformLocation<Matrix>,
     u_sun:          UniformLocation<Vector>,
     u_filter:       UniformLocation<Vector>,
     u_inv_gain:     UniformLocation<f32>,
     u_uses_texture: UniformLocation<bool>,
     u_tex:          UniformLocation<i32>,
-    u_tex_dim:      UniformLocation<[f32; 2]>,
 }
 
 impl Program {
@@ -41,14 +39,12 @@ impl Program {
         let a_pos = AttrLocation::new(gl, &prog, "a_pos");
         let a_normal = AttrLocation::new(gl, &prog, "a_normal");
         let a_tex_pos = AttrLocation::new(gl, &prog, "a_tex_pos");
-        let a_tex_offset = AttrLocation::new(gl, &prog, "a_tex_offset");
         let u_proj = UniformLocation::new(gl, &prog, "u_proj");
         let u_sun = UniformLocation::new(gl, &prog, "u_sun");
         let u_filter = UniformLocation::new(gl, &prog, "u_filter");
         let u_inv_gain = UniformLocation::new(gl, &prog, "u_inv_gain");
         let u_uses_texture = UniformLocation::new(gl, &prog, "u_uses_texture");
         let u_tex = UniformLocation::new_optional(gl, &prog, "u_tex");
-        let u_tex_dim = UniformLocation::new_optional(gl, &prog, "u_tex_dim");
 
         Self {
             prog,
@@ -57,14 +53,12 @@ impl Program {
             a_pos,
             a_normal,
             a_tex_pos,
-            a_tex_offset,
             u_proj,
             u_sun,
             u_filter,
             u_inv_gain,
             u_uses_texture,
             u_tex,
-            u_tex_dim,
         }
     }
 

@@ -6,7 +6,7 @@ use traffloat::clock::Clock;
 use traffloat::config::Scalar;
 use traffloat::def::CustomizableName;
 use traffloat::{cargo, edge, gas, liquid, save, units};
-use traffloat_def::lang;
+use traffloat_def::{atlas, lang};
 use yew::prelude::*;
 
 use super::{Update, UpdaterRef};
@@ -194,7 +194,7 @@ fn draw(
                             let icon = format!(
                                 "{}/{}",
                                 context_path.as_ref(),
-                                item.texture().spritesheet_id().value()
+                                atlas::to_path("fancy", item.texture().spritesheet_id()),
                             );
                             StorageEntry { size: lerp_size, name: name.clone(), icon }
                         })
@@ -231,8 +231,8 @@ fn draw(
                     let icon = format!(
                         "{}/{}",
                         context_path.as_ref(),
-                        item.texture().spritesheet_id().value()
-                    );
+                        atlas::to_path("fancy", item.texture().spritesheet_id()),
+                    ); // TODO cutsomize variant
 
                     Some(StorageEntry { size: lerp_size, name: name.clone(), icon })
                 })

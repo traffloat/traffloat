@@ -30,6 +30,7 @@ mod stdext;
 
 impl_xylem_for_self!(ArcStr);
 
+#[cfg(feature = "xy")]
 impl<A: smallvec::Array + 'static> Xylem<Schema> for SmallVec<A>
 where
     <A as smallvec::Array>::Item: Xylem<Schema>,
@@ -62,8 +63,10 @@ pub type Id<T> = xylem::Id<Schema, T>;
 /// such as in URLs for rule browsing.
 pub type IdString<T> = xylem::IdString<Schema, T>;
 
+#[cfg(feature = "xy")]
 mod transform_matrix;
 
+#[cfg(feature = "xy")]
 mod units;
 
 impl_xylem_for_self!(traffloat_types::geometry::Unit);
@@ -72,6 +75,7 @@ impl_xylem_for_self!(traffloat_types::space::Position);
 impl_xylem_for_self!(traffloat_types::space::Vector);
 impl_xylem_for_self!(nalgebra::Vector2<f64>);
 
+#[cfg(feature = "xy")]
 impl Xylem<Schema> for CustomizableName {
     type From = <lang::Item as Xylem<Schema>>::From;
     type Args = <lang::Item as Xylem<Schema>>::Args;

@@ -34,12 +34,15 @@ pub fn prepare(gl: &WebGlRenderingContext) -> impl super::Mesh {
                 Vector2::new(1., 1.),
             ];
 
-            for triangle in [[0, 1, 2], [3, 2, 1]] {
+            for triangle in [[0, 2, 1], [1, 2, 3]] {
                 for corner in triangle {
                     let offset = corners[corner];
 
                     let position = normal + b * offset[0] + c * offset[1];
-                    builder.push(position, normal, tex_pos + Vector2::new(0.5, 0.5) + offset * 0.5);
+
+                    let mut vert_tex_pos = tex_pos + Vector2::new(0.5, 0.5) + offset * 0.5;
+                    vert_tex_pos /= 4.; // 6 sprites for a cube mesh, fits on a 4^2 spritesheet.
+                    builder.push(position, normal, vert_tex_pos);
                 }
             }
         }

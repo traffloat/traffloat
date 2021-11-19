@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use safety::Safety;
 use traffloat::{def, save, SetupEcs};
 
 mod editor;
@@ -13,6 +14,7 @@ mod scenarios;
 
 pub use mux::Mux;
 
+use crate::util::high_res_time;
 use crate::ContextPath;
 
 /// Arguments for starting a game
@@ -27,7 +29,7 @@ impl GameArgs {
     pub fn init(&self, mut setup: SetupEcs) -> SetupEcs {
         match self {
             Self::Sp(args) => {
-                setup = save::load_scenario(setup, &args.scenario)
+                setup = save::load_scenario(setup, &args.scenario, high_res_time().homosign())
                     .resource(ContextPath::new(args.context_path.to_string()));
             }
         }

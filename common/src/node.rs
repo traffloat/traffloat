@@ -304,9 +304,15 @@ fn init_features(entities: &mut CommandBuffer, entity: Entity, features: &[Featu
                 entities.add_component(entity, population::Housing::new(housing.storage()))
             }
             Feature::Reaction(_) => todo!(),
-            Feature::RailPump(_) => todo!("refactor to entity list"),
-            Feature::LiquidPump(_) => todo!("refactor to entity list"),
-            Feature::GasPump(_) => todo!("refactor to entity list"),
+            Feature::RailPump(_) => {
+                // TODO refactor to entity list to support catalysts
+            }
+            Feature::LiquidPump(_) => {
+                // TODO refactor to entity list to support catalysts
+            }
+            Feature::GasPump(_) => {
+                // TODO refactor to entity list to support catalysts
+            }
             Feature::SecureEntry(_) => todo!(),
             Feature::SecureExit(_) => todo!(),
         }
