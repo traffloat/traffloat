@@ -80,10 +80,10 @@ jobs:
             **/target
           key: ${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
       - name: cargo test
-        if: ${{ matrix.toolchain != 'nightly' || matrix.stability != '' }}
+        if: ${{ matrix.stability != '' }}
         run: "cargo test --all ${{matrix.stability}}"
       - name: cargo test
-        if: ${{ matrix.toolchain == 'nightly' && matrix.stability == '' }}
+        if: ${{ matrix.stability == '' }}
         run: "cargo test --no-fail-fast --all"
         env:
           CARGO_INCREMENTAL: "0"
@@ -91,10 +91,10 @@ jobs:
           RUSTDOCFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off"
       - id: coverage
         name: coverage report
-        if: ${{ matrix.toolchain == 'nightly' && matrix.stability == '' }}
+        if: ${{ matrix.stability == '' }}
         uses: actions-rs/grcov@v0.1
       - name: upload to codecov
-        if: ${{ matrix.toolchain == 'nightly' && matrix.stability == '' }}
+        if: ${{ matrix.stability == '' }}
         uses: codecov/codecov-action@v2.1.0
         with:
           files: ${{ steps.coverage.outputs.report }}
