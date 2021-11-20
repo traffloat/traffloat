@@ -45,7 +45,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo
+            /home/runner/.cargo
             **/target
           key: ${{ matrix.toolchain }}
       - run: test -f ~/.cargo/bin/just || cargo install just
@@ -76,12 +76,28 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo
+            /home/runner/.cargo
             **/target
           key: ${{ matrix.toolchain }}-${{ hashFiles('**/Cargo.lock') }}
-      - run: test -f ~/.cargo/bin/just || cargo install just
       - name: cargo test
+        if: ${{ matrix.stability != '' }}
         run: "cargo test --all ${{matrix.stability}}"
+      - name: cargo test
+        if: ${{ matrix.stability == '' }}
+        run: "cargo test --no-fail-fast --all"
+        env:
+          CARGO_INCREMENTAL: "0"
+          RUSTFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off"
+          RUSTDOCFLAGS: "-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off"
+      - id: coverage
+        name: coverage report
+        if: ${{ matrix.stability == '' }}
+        uses: actions-rs/grcov@v0.1
+      - name: upload to codecov
+        if: ${{ matrix.stability == '' }}
+        uses: codecov/codecov-action@v2.1.0
+        with:
+          files: ${{ steps.coverage.outputs.report }}
   build:
     name: test release build
     runs-on: ubuntu-latest
@@ -99,7 +115,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo
+            /home/runner/.cargo
+            **/target
           key: trunk-just-2021-11-17
       - run: test -f ~/.cargo/bin/just || cargo install trunk just
 
@@ -124,7 +141,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: |
-            ~/.cargo
+            /home/runner/.cargo
+            **/target
           key: trunk-just-2021-11-17
       - run: test -f ~/.cargo/bin/just || cargo install trunk just
 
