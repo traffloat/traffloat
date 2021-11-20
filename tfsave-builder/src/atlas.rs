@@ -7,12 +7,12 @@ use std::sync::atomic::AtomicU32;
 
 use anyhow::{Context, Result};
 use arcstr::ArcStr;
-use safety::Safety;
 use serde::Deserialize;
 use tiny_skia::{Pixmap, PixmapPaint};
 use traffloat_def::atlas::{self, SpritesheetId};
 use traffloat_types::geometry;
 use typed_builder::TypedBuilder;
+use xias::Xias;
 use xylem::DefaultContext;
 
 use crate::{Timer, TimerStart};
@@ -187,8 +187,9 @@ fn write_variants(args: WriteVariantsArgs) -> Result<()> {
 
 fn downscale(map: &Pixmap, old_size: u32, new_size: u32) -> Result<Pixmap> {
     debug_assert!(new_size <= old_size, "new_size ({}) > old_size ({})", new_size, old_size);
-    let ratio = new_size.small_float() / old_size.small_float();
-    let side = (map.width().small_float() * ratio).trunc_int();
+    let ratio = new_size.small_float::<f32>() / old_size.small_float::<f32>();
+    let side = map.width().small_float::<f32>() * ratio;
+    let side = side.trunc_int::<u32>();
     let mut submap = Pixmap::new(side, side).context("Creating downscaled pixmap buffer")?;
     submap
         .draw_pixmap(

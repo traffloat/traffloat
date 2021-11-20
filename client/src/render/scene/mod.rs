@@ -4,13 +4,13 @@ use std::f64::consts::PI;
 
 use legion::world::SubWorld;
 use legion::{component, Entity};
-use safety::Safety;
 use traffloat::appearance::{self, Appearance};
 use traffloat::def::atlas::ModelRef;
 use traffloat::space::{Matrix, Position, Vector};
 use traffloat::sun::{LightStats, Sun, MONTH_COUNT};
 use traffloat::{lerp, units};
 use web_sys::WebGlRenderingContext;
+use xias::Xias;
 
 use super::{texture, CursorType, RenderFlag};
 use crate::camera::Camera;

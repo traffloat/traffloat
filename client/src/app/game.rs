@@ -2,9 +2,9 @@ use std::cell::{self, RefCell};
 use std::rc::Rc;
 use std::time::Duration;
 
-use safety::Safety;
 use traffloat::clock::Clock;
 use traffloat::SetupEcs;
+use xias::Xias;
 use yew::prelude::*;
 use yew::services::{interval, keyboard as kb_srv, render as render_srv, resize};
 

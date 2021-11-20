@@ -1,9 +1,9 @@
 //! A cube model.
 
 use nalgebra::{Vector2, Vector3};
-use safety::Safety;
 use traffloat::appearance;
 use web_sys::WebGlRenderingContext;
+use xias::Xias;
 
 /// Creates a cube model.
 pub fn prepare(gl: &WebGlRenderingContext) -> impl super::Mesh {

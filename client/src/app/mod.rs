@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
-use safety::Safety;
 use traffloat::{def, save, SetupEcs};
+use xias::Xias;
 
 mod editor;
 mod game;

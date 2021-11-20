@@ -1,8 +1,8 @@
 //! Edge rendering
 
-use safety::Safety;
 use traffloat::space::{Matrix, Vector};
 use web_sys::{WebGlProgram, WebGlRenderingContext};
+use xias::Xias;
 
 use crate::options;
 use crate::render::mesh;
@@ -74,10 +74,10 @@ impl Program {
         self.u_trans.assign(gl, proj);
         self.u_trans_sun.assign(gl, sun);
         self.u_color.assign(gl, rgba);
-        self.u_ambient.assign(gl, args.ambient().lossy_trunc());
-        self.u_diffuse.assign(gl, args.diffuse().lossy_trunc());
-        self.u_specular.assign(gl, args.specular().lossy_trunc());
-        self.u_specular_coef.assign(gl, args.specular_coef().lossy_trunc());
+        self.u_ambient.assign(gl, args.ambient().lossy_float());
+        self.u_diffuse.assign(gl, args.diffuse().lossy_float());
+        self.u_specular.assign(gl, args.specular().lossy_float());
+        self.u_specular_coef.assign(gl, args.specular_coef().lossy_float());
         self.u_inv_gain.assign(gl, if selected { 0.5f32 } else { 1f32 });
 
         self.a_pos.assign(gl, self.cylinder.position());

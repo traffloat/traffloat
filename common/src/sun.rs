@@ -5,8 +5,8 @@ use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::f64::consts::PI;
 
-use safety::Safety;
 use smallvec::SmallVec;
+use xias::Xias;
 
 use crate::appearance::Appearance;
 use crate::clock::Clock;

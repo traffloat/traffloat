@@ -27,7 +27,7 @@ shrev = "1.1.1"
 smallvec = "1.7.0"
 traffloat-codegen = {version = "0.2.0", path = "../codegen"}
 traffloat-def = {version = "0.2.0", path = "../def", default-features = false}
-traffloat-safety = {version = "0.2.0", path = "../safety"}
+xias = "0.2.1"
 traffloat-types = {version = "0.2.0", path = "../types"}
 typed-builder = "0.9.1"
 yew = {version = "0.18.0", optional = true, default-features = false}

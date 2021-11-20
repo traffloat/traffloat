@@ -1,8 +1,8 @@
 //! Manages the background canvas.
 
-use safety::Safety;
 use traffloat::sun::Sun;
 use web_sys::WebGlRenderingContext;
+use xias::Xias;
 
 use super::{Dimension, RenderFlag};
 use crate::camera::Camera;
@@ -61,7 +61,7 @@ fn draw(
     let sun_pos = sun.direction();
     let screen_pos = camera.projection().transform_vector(&sun_pos);
 
-    bg.sun_prog.draw(&bg.gl, screen_pos, dim.aspect().lossy_trunc());
+    bg.sun_prog.draw(&bg.gl, screen_pos, dim.aspect().lossy_float());
 
     if options.graphics().render_stars() {
         bg.star_prog.draw(&bg.gl, camera.asymptotic_projection());

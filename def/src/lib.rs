@@ -33,6 +33,7 @@ use getset::{CopyGetters, Getters, MutGetters, Setters};
 use serde::{Deserialize, Serialize};
 use traffloat_types::{time, units};
 use typed_builder::TypedBuilder;
+use xias::Xias;
 #[cfg(feature = "xy")]
 pub use xylem::Xylem;
 
@@ -119,14 +120,13 @@ impl TfsaveFile {
         w.write_all(&SCHEMA_VERSION.to_le_bytes())?;
 
         {
-            use safety::Safety;
-
             let mut flate = flate2::write::DeflateEncoder::new(&mut w, flate2::Compression::best());
             self.serialize(&mut rmp_serde::Serializer::new(&mut flate))?;
             flate.flush()?;
             log::debug!(
                 "Compressed scenario file ({}%)",
-                flate.total_out().small_float() / flate.total_in().small_float() * 100.
+                flate.total_out().small_float::<f64>() / flate.total_in().small_float::<f64>()
+                    * 100.
             );
             flate.finish()?;
         }

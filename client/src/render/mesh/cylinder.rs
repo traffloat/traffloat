@@ -3,10 +3,10 @@
 use std::f32::consts::PI;
 
 use nalgebra::{Vector2, Vector3};
-use safety::Safety;
 use traffloat::appearance;
 use typed_builder::TypedBuilder;
 use web_sys::WebGlRenderingContext;
+use xias::Xias;
 
 /// Options for cylinder model generation.
 #[derive(TypedBuilder)]
@@ -43,7 +43,8 @@ pub fn prepare(gl: &WebGlRenderingContext, options: Options) -> impl super::Mesh
                 tex_pos_fn(Vector2::new(1., 0.)), // cos(0), sin(0)
             );
             for vert in 1..=options.num_vert {
-                let mut angle = PI * 2. / options.num_vert.small_float() * vert.small_float();
+                let mut angle =
+                    PI * 2. / options.num_vert.small_float::<f32>() * vert.small_float::<f32>();
                 angle *= z * 2. - 1.; // negate the angle if z == 0.
 
                 let pos2 = Vector2::new(angle.cos(), angle.sin());
@@ -63,7 +64,7 @@ pub fn prepare(gl: &WebGlRenderingContext, options: Options) -> impl super::Mesh
         Vector2::new(curved_tex_pos.0.small_float(), curved_tex_pos.1.small_float());
 
     let push_side_vertex = |builder: &mut super::Builder, vert: u32, z: f32| {
-        let ratio = vert.small_float() / options.num_vert.small_float();
+        let ratio = vert.small_float::<f32>() / options.num_vert.small_float::<f32>();
         let angle = PI * 2. * ratio;
 
         builder.push(

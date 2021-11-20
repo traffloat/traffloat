@@ -1,5 +1,5 @@
-use safety::Safety;
 use web_sys::{WebGlRenderingContext, WebGlUniformLocation};
+use xias::Xias;
 
 use super::Uniform;
 
@@ -18,7 +18,7 @@ macro_rules! impl_glize {
             type Output = nalgebra::$ident<f32>;
 
             fn glize(self) -> Self::Output {
-                nalgebra::$ident::from_iterator(self.iter().map(|&f| f.lossy_trunc()))
+                nalgebra::$ident::from_iterator(self.iter().map(|&f| f.lossy_float()))
             }
         }
     };
@@ -27,7 +27,7 @@ macro_rules! impl_glize {
 impl Glize for f64 {
     type Output = f32;
 
-    fn glize(self) -> Self::Output { self.lossy_trunc() }
+    fn glize(self) -> Self::Output { self.lossy_float() }
 }
 
 impl_glize!(Matrix2);

@@ -30,7 +30,7 @@ tiny-skia = "0.6.1"
 toml = "0.5.8"
 traffloat-codegen = {version = "0.2.0", path = "../codegen"}
 traffloat-def = {version = "0.2.0", path = "../def", features = ["xy"]}
-traffloat-safety = {version = "0.2.0", path = "../safety"}
+xias = "0.2.1"
 traffloat-types = {version = "0.2.0", path = "../types"}
 typed-builder = "0.9.1"
 unic-langid = "0.9.0"

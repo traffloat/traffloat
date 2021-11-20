@@ -36,7 +36,7 @@ strum = "0.23.0"
 traffloat-codegen = {version = "0.2.0", path = "../codegen", features = ["web-sys"]}
 traffloat-common = {version = "0.2.0", path = "../common", default-features = false, features = ["yew"]}
 traffloat-def = {version = "0.2.0", path = "../def", default-features = false, features = ["yew"]}
-traffloat-safety = {version = "0.2.0", path = "../safety"}
+xias = "0.2.1"
 traffloat-version = {version = "0.2.0", path = "../version"}
 typed-builder = "0.9.1"
 wasm-bindgen = {version = "0.2.78"}

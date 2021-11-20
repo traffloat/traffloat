@@ -2,7 +2,7 @@
 
 use std::convert::TryFrom;
 
-use safety::Safety;
+use xias::Xias;
 
 use crate::time::{Instant, Time};
 use crate::SetupEcs;

@@ -1,10 +1,10 @@
 //! Node rendering
 
-use safety::Safety;
 use traffloat::appearance;
 use traffloat::space::{Matrix, Vector};
 use typed_builder::TypedBuilder;
 use web_sys::{WebGlProgram, WebGlRenderingContext};
+use xias::Xias;
 
 use crate::render::util::{create_program, AttrLocation, UniformLocation};
 use crate::render::{mesh, texture};

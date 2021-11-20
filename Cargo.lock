@@ -1554,12 +1554,12 @@ dependencies = [
  "traffloat-codegen",
  "traffloat-common",
  "traffloat-def",
- "traffloat-safety",
  "traffloat-version",
  "typed-builder",
  "wasm-bindgen",
  "wasm-logger",
  "web-sys",
+ "xias",
  "yew",
 ]
 
@@ -1614,9 +1614,9 @@ dependencies = [
  "smallvec",
  "traffloat-codegen",
  "traffloat-def",
- "traffloat-safety",
  "traffloat-types",
  "typed-builder",
+ "xias",
  "yew",
 ]
 
@@ -1638,17 +1638,13 @@ dependencies = [
  "serde_str",
  "smallvec",
  "traffloat-codegen",
- "traffloat-safety",
  "traffloat-types",
  "typed-builder",
  "unic-langid",
+ "xias",
  "xylem",
  "yew",
 ]
-
-[[package]]
-name = "traffloat-safety"
-version = "0.2.0"
 
 [[package]]
 name = "traffloat-tfsave-builder"
@@ -1671,11 +1667,11 @@ dependencies = [
  "toml",
  "traffloat-codegen",
  "traffloat-def",
- "traffloat-safety",
  "traffloat-types",
  "typed-builder",
  "unic-langid",
  "usvg",
+ "xias",
  "xylem",
 ]
 
@@ -2035,6 +2031,12 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "xias"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5201cb773bc9a9fd833a008ba79aa20a15b0b1cb3d0e774230576bee6ee3a08b"
 
 [[package]]
 name = "xmlparser"
