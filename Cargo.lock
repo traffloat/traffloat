@@ -1533,6 +1533,7 @@ dependencies = [
  "arcstr",
  "derive-new",
  "enum-map",
+ "fluent",
  "getrandom",
  "getset",
  "itertools",

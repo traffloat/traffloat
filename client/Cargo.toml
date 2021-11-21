@@ -17,6 +17,7 @@ anyhow = "1.0.47"
 arcstr = "1.1.1"
 derive-new = "0.5.9"
 enum-map = "1.1.0"
+fluent = "0.16.0"
 getrandom = {version = "0.2.3", features = ["js"]}
 getset = "0.1.1"
 itertools = "0.10.1"
@@ -36,11 +37,11 @@ strum = "0.23.0"
 traffloat-codegen = {version = "0.2.0", path = "../codegen", features = ["web-sys"]}
 traffloat-common = {version = "0.2.0", path = "../common", default-features = false, features = ["yew"]}
 traffloat-def = {version = "0.2.0", path = "../def", default-features = false, features = ["yew"]}
-xias = "0.2.1"
 traffloat-version = {version = "0.2.0", path = "../version"}
 typed-builder = "0.9.1"
 wasm-bindgen = {version = "0.2.78"}
 wasm-logger = "0.2.0"
+xias = "0.2.1"
 yew = {version = "0.18.0", default-features = false, features = ["services", "web_sys"]}
 
 [dependencies.legion]
