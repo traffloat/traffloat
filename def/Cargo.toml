@@ -9,7 +9,7 @@ description = "Traffloat gamerule definitions"
 license = "AGPL-3.0"
 
 [dependencies]
-anyhow = "1.0.48"
+anyhow = "1.0.51"
 arcstr = {version = "1.1.1", features = ["serde"]}
 derive-new = "0.5.9"
 flate2 = "1.0.22"
