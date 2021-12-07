@@ -20,7 +20,7 @@ enum-map = "1.1.0"
 fluent = "0.16.0"
 getrandom = {version = "0.2.3", features = ["js"]}
 getset = "0.1.1"
-itertools = "0.10.1"
+itertools = "0.10.3"
 js-sys = "0.3.55"
 lazy_static = "1.4.0"
 log = "0.4.14"
