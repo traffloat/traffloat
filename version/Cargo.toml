@@ -11,7 +11,7 @@ license = "AGPL-3.0"
 build = "build.rs"
 
 [build-dependencies]
-anyhow = "1.0.51"
+anyhow = "1.0.52"
 git2 = "0.13.25"
 hex = "0.4.3"
 proc-macro2 = "1.0.29"
