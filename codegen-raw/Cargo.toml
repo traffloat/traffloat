@@ -13,7 +13,7 @@ proc-macro = true
 
 [dependencies]
 crc64fast = "1.0.0"
-proc-macro2 = "1.0.29"
+proc-macro2 = "1.0.35"
 quote = "1.0.8"
 syn = "1.0.82"
 heck = "0.3.2"
