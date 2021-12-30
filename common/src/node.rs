@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 
 use derive_new::new;
+use gusket::Gusket;
 use legion::systems::CommandBuffer;
 use legion::world::SubWorld;
 use legion::{Entity, EntityStore};
@@ -41,37 +42,40 @@ codegen::component_depends! {
 }
 
 /// A component applied to child entities of a node.
-#[derive(Debug, Clone, new, getset::CopyGetters)]
+#[derive(Debug, Clone, new, Gusket)]
 pub struct Child {
     /// The entity ID of the parent node entity.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     parent: Entity,
 }
 
 /// Indicates that a node is added
-#[derive(Debug, new, getset::CopyGetters)]
+#[derive(Debug, new, Gusket)]
+#[gusket(immut)]
 pub struct AddEvent {
     /// The added node ID
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     node:   Id,
     /// The added node entity
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     entity: Entity,
 }
 
 /// Indicates that a node is flagged for removal
-#[derive(Debug, new, getset::CopyGetters)]
+#[derive(Debug, new, Gusket)]
+#[gusket(immut)]
 pub struct RemoveEvent {
     /// The removed node
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     node: Id,
 }
 
 /// Indicates that nodes have been removed
-#[derive(Debug, new, getset::CopyGetters)]
+#[derive(Debug, new, Gusket)]
+#[gusket(immut)]
 pub struct PostRemoveEvent {
     /// Number of nodes removed
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     count: NonZeroUsize,
 }
 

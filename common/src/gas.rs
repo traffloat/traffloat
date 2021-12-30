@@ -1,6 +1,7 @@
 //! Management of gas in buildings
 
 use derive_new::new;
+use gusket::Gusket;
 use legion::world::SubWorld;
 use legion::Entity;
 use smallvec::SmallVec;
@@ -13,43 +14,42 @@ use crate::units::{self, GasVolume};
 use crate::{util, SetupEcs};
 
 /// A component attached to entities that house gas.
-#[derive(new, getset::Getters)]
+#[derive(new, Gusket)]
 pub struct StorageList {
     /// The list of gases stored in the entity.
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     storages: SmallVec<[(gas::Id, Entity); 4]>,
 }
 
 /// A component attached to nodes to inidcate cargo capacity of the node.
-#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
+#[derive(Debug, Clone, Copy, new, Gusket)]
 pub struct StorageCapacity {
     /// The maximum total cargo size.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     total: GasVolume,
 }
 
 /// A component attached to storage entities.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, Gusket)]
 pub struct Storage {
     /// The type of gas.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     gas: gas::Id,
 }
 
 /// The size of a gas storage in the current simulation frame.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, Gusket)]
 pub struct StorageSize {
     /// The gas size
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     size: GasVolume,
 }
 
 /// The size of a gas storage in the next simulation frame.
-#[derive(new, getset::CopyGetters, getset::MutGetters)]
+#[derive(new, Gusket)]
 pub struct NextStorageSize {
     /// The gas size
-    #[getset(get_copy = "pub")]
-    #[getset(get_mut = "pub")]
+    #[gusket(copy)]
     size: GasVolume,
 }
 
@@ -71,10 +71,10 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Gas
 }
 
 /// A component applied on a node that drives gas.
-#[derive(TypedBuilder, getset::CopyGetters)]
+#[derive(TypedBuilder, Gusket)]
 pub struct Pump {
     /// The force provided by the pump.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     force: units::FanForce,
 }
 

@@ -3,6 +3,7 @@
 use std::collections::{btree_map, BTreeMap};
 
 use derive_new::new;
+use gusket::Gusket;
 use legion::world::SubWorld;
 use legion::Entity;
 use smallvec::SmallVec;
@@ -15,7 +16,7 @@ use crate::units::{self, LiquidVolume};
 use crate::{config, def, node, save, util, SetupEcs};
 
 /// A data structure storing liquid mixing recipes.
-#[derive(Default, getset::MutGetters)]
+#[derive(Default)]
 pub struct RecipeMap {
     map:     BTreeMap<RecipeKey, liquid::Id>,
     default: Option<liquid::Id>,
@@ -75,27 +76,26 @@ impl RecipeKey {
 }
 
 /// A component attached to entities that house liquid.
-#[derive(new, getset::Getters)]
+#[derive(new, Gusket)]
 pub struct StorageList {
     /// The list of liquids stored in the entity.
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     storages: SmallVec<[Entity; 4]>,
 }
 
 /// A component attached to storage entities.
-#[derive(new, getset::CopyGetters, getset::Setters)]
+#[derive(new, Gusket)]
 pub struct Storage {
     /// The type of liquid.
-    #[getset(get_copy = "pub")]
-    #[getset(set = "pub")]
+    #[gusket(copy)]
     liquid: liquid::Id,
 }
 
 /// A component attached to storages to inidcate capacity.
-#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
+#[derive(Debug, Clone, Copy, new, Gusket)]
 pub struct StorageCapacity {
     /// The maximum liquid size.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     total: LiquidVolume,
 }
 
@@ -112,28 +112,26 @@ codegen::component_depends! {
 }
 
 /// The size of a liquid storage in the current simulation frame.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, Gusket)]
 pub struct StorageSize {
     /// The liquid size.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     size: LiquidVolume,
 }
 
 /// The type of a liquid storage in the next simulation frame.
-#[derive(new, getset::CopyGetters, getset::Setters)]
+#[derive(new, Gusket)]
 pub struct NextStorageType {
     /// The liquid type.
-    #[getset(get_copy = "pub")]
-    #[getset(set = "pub")]
+    #[gusket(copy)]
     ty: liquid::Id,
 }
 
 /// The size of a liquid storage in the next simulation frame.
-#[derive(new, getset::CopyGetters, getset::MutGetters)]
+#[derive(new, Gusket)]
 pub struct NextStorageSize {
     /// The liquid size
-    #[getset(get_copy = "pub")]
-    #[getset(get_mut = "pub")]
+    #[gusket(copy)]
     size: LiquidVolume,
 }
 
@@ -150,22 +148,22 @@ pub fn lerp(current: &StorageSize, next: &NextStorageSize, time: Instant) -> Liq
 ///
 /// Note that [`src_entity`] and [`dest_entity`] are entities of the liquid storage, not the node
 /// itself.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, Gusket)]
 pub struct Pipe {
     /// Entity of the source storage
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     src_entity:  Entity,
     /// Entity of the destination storage
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     dest_entity: Entity,
 }
 
 /// A component storing the resistance of a pipe.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, Gusket)]
 pub struct PipeResistance {
     /// The resistance value,
     /// computed by `length / radius^2`
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     value: f64,
 }
 
@@ -175,15 +173,13 @@ impl PipeResistance {
 }
 
 /// A component storing the current flow of a pipe.
-#[derive(Default, getset::CopyGetters, getset::Setters)]
+#[derive(Default, Gusket)]
 pub struct PipeFlow {
     /// The type of liquid flowing over the pipe in the current simulation frame.
-    #[getset(get_copy = "pub")]
-    #[getset(set = "pub")]
+    #[gusket(copy)]
     ty:    Option<liquid::Id>,
     /// The flow rate over the pipe in the current simulation frame.
-    #[getset(get_copy = "pub")]
-    #[getset(set = "pub")]
+    #[gusket(copy)]
     value: LiquidVolume,
 }
 
@@ -196,10 +192,10 @@ codegen::component_depends! {
 }
 
 /// A component applied on a node that drives a pipe.
-#[derive(Debug, TypedBuilder, getset::CopyGetters)]
+#[derive(Debug, TypedBuilder, Gusket)]
 pub struct Pump {
     /// The force provided by the pump.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     force: units::PipeForce,
 }
 

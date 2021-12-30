@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use arcstr::ArcStr;
 use derive_new::new;
-use getset::{CopyGetters, Getters};
+use gusket::Gusket;
 use serde::{Deserialize, Serialize};
 use traffloat_types::geometry;
 
@@ -16,38 +16,36 @@ pub type Id = crate::Id<Def>;
 impl_identifiable!(Def);
 
 /// A directory of source sprites.
-#[derive(Debug, Clone, Serialize, Deserialize, Getters, CopyGetters)]
+#[derive(Debug, Clone, Serialize, Deserialize, Gusket)]
 #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
 #[cfg_attr(feature = "xy", xylem(derive(Deserialize), process))]
+#[gusket(all, immut)]
 pub struct Def {
     /// Identifies the directory.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     #[cfg_attr(feature = "xy", xylem(args(new = true)))]
     id:       Id,
     /// String ID of the atlas.
-    #[getset(get = "pub")]
     #[cfg_attr(feature = "xy", xylem(serde(default)))]
     id_str:   IdString<Def>,
     /// The directory containing the variants.
     ///
     /// In tfsave-builder mode, `dir` contains the original files instead.
-    #[getset(get = "pub")]
     dir:      PathBuf,
     /// Different variants of the atlas.
-    #[getset(get = "pub")]
     variants: Vec<Variant>,
 }
 
 /// A variant (by resolution) of the atlas.
-#[derive(Debug, Clone, Serialize, Deserialize, Getters, CopyGetters)]
+#[derive(Debug, Clone, Serialize, Deserialize, Gusket)]
 #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
 #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
+#[gusket(all, immut)]
 pub struct Variant {
     /// The name of this variant.
-    #[getset(get = "pub")]
     name:      ArcStr,
     /// The dimension of each sprite.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     dimension: u32,
 }
 
@@ -64,26 +62,26 @@ impl SpritesheetId {
 }
 
 /// References a named icon sprite.
-#[derive(Debug, Clone, Serialize, Deserialize, CopyGetters)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Gusket)]
 pub struct IconRef {
     /// The ID of the sprite file in the assets folder.
     ///
     /// The path of the sprite file relative to the tfsave file is `./assets/{variant_name}/{spritesheet_id}.png`.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     spritesheet_id: SpritesheetId,
 }
 
 /// References a named model spritesheet.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Getters, CopyGetters)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Gusket)]
 pub struct ModelRef {
     /// The ID of the model spritesheet in the assets folder.
     ///
     /// The path of the sprite file relative to the tfsave file is `./assets/{variant_name}/{spritesheet_id}.png`.
     /// The position of sprites in a model spritesheet file is defined by the shape.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     spritesheet_id: SpritesheetId,
     /// The shape of the model spritesheet.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     shape:          geometry::Unit,
 }
 

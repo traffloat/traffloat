@@ -472,9 +472,9 @@ dependencies = [
 
 [[package]]
 name = "getset"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24b328c01a4d71d2d8173daa93562a73ab0fe85616876f02500f53d82948c504"
+checksum = "e45727250e75cc04ff2846a66397da8ef2b3db8e40e0cef4df67950a07621eb9"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -549,6 +549,26 @@ dependencies = [
  "js-sys",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "gusket"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df6c3e7a1dd8e0c55ecfb7c680c3c03396787acef5c278ba95f3bd773d42d0c0"
+dependencies = [
+ "gusket-codegen",
+]
+
+[[package]]
+name = "gusket-codegen"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9cbf324a3c9d4ae30e82093f5b163d277a566785c8e5d68431e33eeb9533297e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1535,7 +1555,7 @@ dependencies = [
  "enum-map",
  "fluent",
  "getrandom",
- "getset",
+ "gusket",
  "itertools",
  "js-sys",
  "lazy_static",
@@ -1571,7 +1591,7 @@ dependencies = [
  "anyhow",
  "arcstr",
  "enum-map",
- "getset",
+ "gusket",
  "lazy_static",
  "legion",
  "log",
@@ -1604,7 +1624,7 @@ dependencies = [
  "arrayvec 0.7.2",
  "cfg-if",
  "derive-new",
- "getset",
+ "gusket",
  "legion",
  "log",
  "nalgebra",
@@ -1631,6 +1651,7 @@ dependencies = [
  "flate2",
  "fluent",
  "getset",
+ "gusket",
  "lazy_static",
  "log",
  "nalgebra",

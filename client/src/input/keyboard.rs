@@ -13,12 +13,12 @@ use crate::camera::Camera;
 use crate::{config, render};
 
 /// A raw key event from the yew layer.
-#[derive(TypedBuilder, getset::Getters, getset::CopyGetters)]
+#[derive(TypedBuilder, gusket::Gusket)]
 pub struct RawKeyEvent {
     /// The code of the event.
     key:  RawKey,
     /// Whether the key is pressed down or up.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     down: bool,
 }
 
@@ -115,16 +115,16 @@ impl Command {
 }
 
 /// The state of a command.
-#[derive(Default, getset::CopyGetters)]
+#[derive(Default, gusket::Gusket)]
 pub struct CommandState {
     /// Whether the command is currently active.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     active:    bool,
     /// The last instant at which the command state changed from inactive to active.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     last_down: Instant,
     /// The last instant at which the command state changed from active to inactive.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     last_up:   Instant,
 }
 
@@ -160,18 +160,18 @@ pub enum ClickType {
 pub type CommandStates = EnumMap<Command, CommandState>;
 
 /// A single click event.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, gusket::Gusket)]
 pub struct SingleClick {
     /// The command clicked.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     command: Command,
 }
 
 /// A double click event.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, gusket::Gusket)]
 pub struct DoubleClick {
     /// The command clicked.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     command: Command,
 }
 

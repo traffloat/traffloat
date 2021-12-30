@@ -330,9 +330,9 @@ impl Perf {
 
 /// The resource storing debug entries to render.
 #[cfg(feature = "render-debug")]
-#[derive(Default, getset::Getters)]
+#[derive(Default, gusket::Gusket)]
 pub struct DebugEntries {
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     /// Entries in the format `entries[category][name]`.
     entries: BTreeMap<&'static str, BTreeMap<&'static str, DebugEntry>>,
 }

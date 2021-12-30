@@ -23,11 +23,10 @@ pub struct CommInner {
 }
 
 /// Resource for the cursor icon.
-#[derive(getset::Getters, getset::Setters)]
+#[derive(gusket::Gusket)]
 pub struct CursorType {
     /// The CSS cursor type.
-    #[getset(get = "pub")]
-    #[getset(set = "pub")]
+    #[gusket]
     name: &'static str,
 }
 

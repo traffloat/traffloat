@@ -1,14 +1,15 @@
 //! Vehicle-related components.
 
+use gusket::Gusket;
 use typed_builder::TypedBuilder;
 
 use crate::{units, SetupEcs};
 
 /// A component applied on a node that drives a rail.
-#[derive(TypedBuilder, getset::CopyGetters)]
+#[derive(TypedBuilder, Gusket)]
 pub struct RailPump {
     /// The force provided by the pump.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     force: units::RailForce,
 }
 

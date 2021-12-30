@@ -17,7 +17,7 @@ arcstr = "1.1.1"
 arrayvec = "0.7.1"
 cfg-if = "1.0.0"
 derive-new = "0.5.9"
-getset = "0.1.1"
+gusket = "0.1.0"
 log = "0.4.14"
 nalgebra = "0.29.0"
 rand = "0.8.4"
@@ -27,9 +27,9 @@ shrev = "1.1.1"
 smallvec = "1.7.0"
 traffloat-codegen = {version = "0.2.0", path = "../codegen"}
 traffloat-def = {version = "0.2.0", path = "../def", default-features = false}
-xias = "0.2.1"
 traffloat-types = {version = "0.2.0", path = "../types"}
 typed-builder = "0.9.1"
+xias = "0.2.1"
 yew = {version = "0.18.0", optional = true, default-features = false}
 
 [dependencies.legion]

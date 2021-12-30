@@ -1,6 +1,6 @@
 //! Building definitions
 
-use getset::{CopyGetters, Getters};
+use gusket::Gusket;
 use serde::{Deserialize, Serialize};
 use traffloat_types::space::Matrix;
 use traffloat_types::{geometry, units};
@@ -15,46 +15,40 @@ pub type Id = crate::Id<Def>;
 impl_identifiable!(Def);
 
 /// A type of building.
-#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, Gusket, Serialize, Deserialize)]
 #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
 #[cfg_attr(feature = "xy", xylem(derive(Deserialize), process))]
+#[gusket(all, immut)]
 pub struct Def {
     /// ID of the building type.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     #[cfg_attr(feature = "xy", xylem(args(new = true)))]
     id:          Id,
     /// String ID of the building type.
-    #[getset(get = "pub")]
     #[cfg_attr(feature = "xy", xylem(serde(default)))]
     id_str:      IdString<Def>,
     /// Name of the building type.
-    #[getset(get = "pub")]
     name:        lang::Item,
     /// Short summary of the building type.
-    #[getset(get = "pub")]
     summary:     lang::Item,
     /// Long description of the building type.
-    #[getset(get = "pub")]
     description: lang::Item,
     /// Category of the building type.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     category:    category::Id,
     /// Shape of the building.
     ///
     /// If multiple shapes are provided, they are all rendered together in order.
-    #[getset(get = "pub")]
     shapes:      Vec<Shape>,
     /// Maximum hitpoint of a building.
     ///
     /// The actual hitpoint is subject to asteroid and fire damage.
     /// It can be restored by construction work.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     hitpoint:    units::Hitpoint,
     /// Storage provided by a building
-    #[getset(get = "pub")]
     storage:     Storage,
     /// Extra features associated with the building.
-    #[getset(get = "pub")]
     #[cfg_attr(feature = "xy", xylem(serde(default)))]
     features:    Vec<Feature>,
 }
@@ -94,19 +88,20 @@ pub mod xy {
 }
 
 /// Shape of a building.
-#[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, Gusket, Serialize, Deserialize)]
 #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
 #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
+#[gusket(all, immut)]
 pub struct Shape {
     /// The unit model type.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     unit:      geometry::Unit,
     /// The transformation matrix from the unit model to this shape.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     #[cfg_attr(feature = "xy", xylem(serde(default)))]
     transform: Matrix,
     /// The texture of the building.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     texture:   ModelRef,
 }
 
@@ -115,22 +110,21 @@ pub struct Shape {
 /// This storage is also used as a buffer for liquid and gas transfer.
 /// The storage size is the maximum total amount of liquid and gas that
 /// pipe systems passing through this building can transfer per frame.
-#[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+#[derive(Debug, Clone, Gusket, Serialize, Deserialize)]
 #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
 #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
+#[gusket(all, immut)]
 pub struct Storage {
     /// Cargo storage provided
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     cargo:      units::CargoSize,
     /// Gas storage provided
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     gas:        units::GasVolume,
     /// Liquid storages provided
-    #[getset(get = "pub")]
     #[cfg_attr(feature = "xy", xylem(serde(default)))]
     liquid:     Vec<storage::liquid::Def>,
     /// Population storages provided
-    #[getset(get = "pub")]
     #[cfg_attr(feature = "xy", xylem(serde(default)))]
     population: Vec<storage::population::Def>,
 }
@@ -139,7 +133,7 @@ pub struct Storage {
 pub mod storage {
     /// Liquid storage.
     pub mod liquid {
-        use getset::{CopyGetters, Getters};
+        use gusket::Gusket;
         use serde::{Deserialize, Serialize};
         use traffloat_types::units;
 
@@ -156,30 +150,29 @@ pub mod storage {
         /// which can be individually addressed by their IDs.
         /// Reactions involving liquids can consume, store or use (for catalyst)
         /// specific liquid types from the named  storages.
-        #[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+        #[derive(Debug, Clone, Gusket, Serialize, Deserialize)]
         #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
         #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
+        #[gusket(all, immut)]
         pub struct Def {
             /// ID of the liquid storage.
-            #[getset(get_copy = "pub")]
+            #[gusket(copy)]
             #[cfg_attr(feature = "xy", xylem(args(new = true, track = true)))]
             id:       Id,
             /// String ID of the liquid storage.
-            #[getset(get = "pub")]
             #[cfg_attr(feature = "xy", xylem(serde(default)))]
             id_str:   IdString<Def>,
             /// The capacity of this storage.
-            #[getset(get_copy = "pub")]
+            #[gusket(copy)]
             capacity: units::LiquidVolume,
             /// The name of this storage.
-            #[getset(get = "pub")]
             name:     lang::Item,
         }
     }
 
     /// Population storage.
     pub mod population {
-        use getset::{CopyGetters, Getters};
+        use gusket::Gusket;
         use serde::{Deserialize, Serialize};
 
         use crate::{lang, IdString};
@@ -193,23 +186,22 @@ pub mod storage {
         ///
         /// All inhabitants entering a building by swimming or disembarking from a vehicle in the
         /// building would enter a population storage.
-        #[derive(Debug, Clone, Getters, CopyGetters, Serialize, Deserialize)]
+        #[derive(Debug, Clone, Gusket, Serialize, Deserialize)]
         #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
         #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
+        #[gusket(all, immut)]
         pub struct Def {
             /// ID of the population storage.
-            #[getset(get_copy = "pub")]
+            #[gusket(copy)]
             #[cfg_attr(feature = "xy", xylem(args(new = true)))]
             id:       Id,
             /// String ID of the population storage.
-            #[getset(get = "pub")]
             #[cfg_attr(feature = "xy", xylem(serde(default)))]
             id_str:   IdString<Def>,
             /// The capacity of this storage.
-            #[getset(get_copy = "pub")]
+            #[gusket(copy)]
             capacity: u32,
             /// The name of this storage.
-            #[getset(get = "pub")]
             name:     lang::Item,
         }
     }
@@ -219,7 +211,7 @@ pub mod storage {
 
 /// Categories of buildings.
 pub mod category {
-    use getset::{CopyGetters, Getters};
+    use gusket::Gusket;
     use serde::{Deserialize, Serialize};
 
     use crate::{lang, IdString};
@@ -230,23 +222,21 @@ pub mod category {
     impl_identifiable!(Def);
 
     /// A category of building.
-    #[derive(Debug, Clone, CopyGetters, Getters, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Gusket, Serialize, Deserialize)]
     #[cfg_attr(feature = "xy", derive(xylem::Xylem))]
     #[cfg_attr(feature = "xy", xylem(derive(Deserialize)))]
+    #[gusket(all, immut)]
     pub struct Def {
         /// ID of the building category.
-        #[getset(get_copy = "pub")]
+        #[gusket(copy)]
         #[cfg_attr(feature = "xy", xylem(args(new = true)))]
         id:          Id,
         /// String ID of the building category.
-        #[getset(get = "pub")]
         #[cfg_attr(feature = "xy", xylem(serde(default)))]
         id_str:      IdString<Def>,
         /// Title of the building category.
-        #[getset(get = "pub")]
         title:       lang::Item,
         /// Description of the building category.
-        #[getset(get = "pub")]
         description: lang::Item,
     }
 }

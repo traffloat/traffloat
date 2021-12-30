@@ -169,7 +169,7 @@ fn draw(
                 // projection matrix transforms real coordinates to canvas
 
                 let unit_to_real = component.transform(*position);
-                let tex: &ModelRef = component.texture();
+                let tex = component.texture();
                 let id = texture::AtlasId::new(tex.spritesheet_id(), arcstr::literal!("pixel")); // TODO allow choosing variant
                 let sprite = texture_pool.resolve(&scene.gl, &id);
 

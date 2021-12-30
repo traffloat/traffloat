@@ -5,6 +5,7 @@
 
 use def::building;
 use derive_new::new;
+use gusket::Gusket;
 use legion::systems::CommandBuffer;
 use legion::world::{EntryRef, SubWorld};
 use legion::{Entity, EntityStore};
@@ -18,13 +19,13 @@ use crate::space::{Matrix, Position, Vector};
 use crate::{def, liquid, node, save, units, SetupEcs};
 
 /// Component storing the endpoints of an edge
-#[derive(Debug, Clone, Copy, PartialEq, Eq, new, getset::CopyGetters, getset::Setters)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new, Gusket)]
 pub struct Id {
     /// The "alpha" node
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     alpha: Entity,
     /// The "beta" node
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     beta:  Entity,
 }
 
@@ -39,10 +40,10 @@ codegen::component_depends! {
 }
 
 /// Defines the size of an edge
-#[derive(Debug, Clone, Copy, new, getset::CopyGetters, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, new, Gusket, Serialize, Deserialize)]
 pub struct Size {
     /// The radius of the corridor
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     radius: f64,
 }
 
@@ -69,29 +70,29 @@ impl CrossSectionPosition {
 /// This is only used during graphical user interaction and serialization.
 /// Simulation systems should depend on the actual duct entities
 /// instead of computing flow rates from this data structure.
-#[derive(Debug, new, getset::Getters)]
+#[derive(Debug, new, Gusket)]
 pub struct Design {
     /// The ducts in the edge.
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     ducts: Vec<Duct>,
 }
 
 /// A circular structure in an edge.
 ///
 /// The actual content of the duct is stored in the referred entity.
-#[derive(Debug, TypedBuilder, getset::Getters, getset::CopyGetters)]
+#[derive(Debug, TypedBuilder, Gusket)]
 pub struct Duct {
     /// The center of a circle.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     center: CrossSectionPosition,
     /// The radius of a circle.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     radius: f64,
     /// The type of duct.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     ty:     DuctType,
     /// The entity storing the duct attributes.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     entity: Entity,
 }
 
@@ -177,21 +178,21 @@ fn create_duct(
 }
 
 /// Indicates that an edge is added.
-#[derive(Debug, new, getset::Getters)]
+#[derive(Debug, new, Gusket)]
 pub struct AddEvent {
     /// The added edge ID.
-    #[getset(get = "pub")]
+    #[gusket(immut, copy)]
     edge:   Id,
     /// The added edge entity.
-    #[getset(get = "pub")]
+    #[gusket(immut, copy)]
     entity: Entity,
 }
 
 /// Indicates that an edge is flagged for removal
-#[derive(Debug, new, getset::Getters)]
+#[derive(Debug, new, Gusket)]
 pub struct RemoveEvent {
     /// The removed edge
-    #[getset(get = "pub")]
+    #[gusket(immut, copy)]
     edge: Id,
 }
 

@@ -7,26 +7,25 @@ pub mod keyboard;
 pub mod mouse;
 
 /// A position on the screen.
-#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
+#[derive(Debug, Clone, Copy, new, gusket::Gusket)]
 pub struct ScreenPosition {
     /// X coordinate of the position.
     ///
     /// `0.` indicates left edge and `1.` indicates right edge.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     x: f64,
     /// Y coordinate of the position.
     ///
     /// `0.` indicates top edge and `1.` indicates bottom edge.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     y: f64,
 }
 
 /// Resource storing the entity focused.
-#[derive(Debug, Clone, Default, getset::CopyGetters, getset::Setters)]
+#[derive(Debug, Clone, Default, gusket::Gusket)]
 pub struct FocusTarget {
     /// The focused entity.
-    #[getset(get_copy = "pub")]
-    #[getset(set = "pub")]
+    #[gusket(copy)]
     entity: Option<Entity>,
 }
 

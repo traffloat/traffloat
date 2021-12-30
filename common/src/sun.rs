@@ -5,6 +5,7 @@ use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::f64::consts::PI;
 
+use gusket::Gusket;
 use smallvec::SmallVec;
 use xias::Xias;
 
@@ -16,10 +17,10 @@ use crate::util::Finite;
 use crate::{config, node, SetupEcs};
 
 /// The position of the sun
-#[derive(Default, getset::CopyGetters)]
+#[derive(Default, Gusket)]
 pub struct Sun {
     /// Orientation of the sun, in radians from +x towards +y
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     yaw: f64,
 }
 
@@ -54,12 +55,12 @@ fn move_sun(
 pub const MONTH_COUNT: usize = 12;
 
 /// A component storing the lighting data for a node.
-#[derive(Debug, Default, getset::Getters)]
+#[derive(Debug, Default, Gusket)]
 pub struct LightStats {
     /// The brightness values in each month.
     ///
     /// The brightness value is the area receiving sunlight.
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     brightness: [Brightness; MONTH_COUNT],
 }
 

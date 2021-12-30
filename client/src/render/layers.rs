@@ -27,16 +27,16 @@ pub type Layers = Rc<RefCell<LayersStruct>>;
 ///
 /// This stores three underlying canvas,
 /// namely background, scene and UI.
-#[derive(getset::Getters, getset::MutGetters)]
+#[derive(gusket::Gusket)]
 pub struct LayersStruct {
     /// The background render layer
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     bg:    bg::Canvas,
     /// The object render layer
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     scene: scene::Canvas,
     /// The debug DOM layer
-    #[getset(get = "pub", get_mut = "pub")]
+    #[gusket]
     debug: debug::Canvas,
 }
 

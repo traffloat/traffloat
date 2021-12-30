@@ -14,13 +14,13 @@ pub const SIMULATION_PERIOD: Time = Time(100);
 pub const MICROS_PER_TICK: u64 = 10000;
 
 /// A resource for time read/write.
-#[derive(Debug, Default, getset::CopyGetters)]
+#[derive(Debug, Default, gusket::Gusket)]
 pub struct Clock {
     /// The current time
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     now:           Instant, // TODO multiplayer calibration
     /// Time since the last frame
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     delta:         Time,
     /// The reference time value at epoch.
     epoch_instant: Instant,

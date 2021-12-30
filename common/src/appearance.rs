@@ -12,31 +12,32 @@ use crate::def::atlas;
 /// Describes the shape and appearance of an object.
 ///
 /// An object may be composed of multiple components.
-#[derive(Debug, Clone, new, getset::Getters, Serialize, Deserialize)]
+#[derive(Debug, Clone, new, gusket::Gusket, Serialize, Deserialize)]
 pub struct Appearance {
     /// The list of components.
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     components: SmallVec<[Component; 1]>,
 }
 
 /// Describes the shape and appearance of an object
-#[derive(Debug, Clone, TypedBuilder, getset::CopyGetters, getset::Getters, Serialize)]
+#[derive(Debug, Clone, TypedBuilder, gusket::Gusket, Serialize)]
+#[gusket(immut)]
 pub struct Component {
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     /// Unit shape variant
     unit:       Unit,
     /// The transformation matrix from the unit shape to this shape centered at the origin.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     matrix:     Matrix,
     /// The inverse transformation matrix from this shape centered at the origin to the unit shape.
-    #[getset(get_copy = "pub")]
+    #[gusket(copy)]
     #[builder(
         default_code = r#"matrix.try_inverse().expect("Transformation matrix is singular")"#
     )]
     #[serde(skip)]
     inv_matrix: Matrix,
     /// The texture for rendering the shape
-    #[getset(get = "pub")]
+    #[gusket(copy)]
     texture:    atlas::ModelRef,
 }
 

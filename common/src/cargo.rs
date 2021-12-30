@@ -1,6 +1,7 @@
 //! Management of cargo in buildings
 
 use derive_new::new;
+use gusket::Gusket;
 use legion::world::SubWorld;
 use legion::Entity;
 use smallvec::SmallVec;
@@ -12,43 +13,42 @@ use crate::units::CargoSize;
 use crate::{util, SetupEcs};
 
 /// A component attached to nodes to indicate cargo in the node.
-#[derive(new, getset::Getters)]
+#[derive(new, Gusket)]
 pub struct StorageList {
     /// The list of cargos stored in the entity.
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     storages: SmallVec<[(cargo::Id, Entity); 4]>,
 }
 
 /// A component attached to nodes to inidcate cargo capacity of the node.
-#[derive(Debug, Clone, Copy, new, getset::CopyGetters)]
+#[derive(Debug, Clone, Copy, new, Gusket)]
 pub struct StorageCapacity {
     /// The maximum total cargo size.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     total: CargoSize,
 }
 
 /// A component attached to storage entities.
-#[derive(new, getset::Getters)]
+#[derive(new, Gusket)]
 pub struct Storage {
     /// The type of cargo.
-    #[getset(get = "pub")]
-    cargo: cargo::Id, // TODO should we optimize this to a runtime integer ID?
+    #[gusket(immut, copy)]
+    cargo: cargo::Id,
 }
 
 /// The size of a cargo storage in the current simulation frame.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, Gusket)]
 pub struct StorageSize {
     /// The cargo size
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     size: CargoSize,
 }
 
 /// The size of a cargo storage in the next simulation frame.
-#[derive(new, getset::CopyGetters, getset::MutGetters)]
+#[derive(new, Gusket)]
 pub struct NextStorageSize {
     /// The cargo size
-    #[getset(get_copy = "pub")]
-    #[getset(get_mut = "pub")]
+    #[gusket(immut, copy)]
     size: CargoSize,
 }
 

@@ -17,30 +17,31 @@ mod unsafe_proj {
     use super::*;
 
     /// A resource that stores the view perspective of the user.
-    #[derive(Debug, getset::CopyGetters, typed_builder::TypedBuilder)]
+    #[derive(Debug, gusket::Gusket, typed_builder::TypedBuilder)]
+    #[gusket(immut)]
     pub struct Camera {
         /// The point focused by the camera.
         ///
         /// `projection()` shall transform this point to (0.5, 0.5, z), where `z = zoom / distance`.
-        #[getset(get_copy = "pub")]
+        #[gusket(copy)]
         focus:    Position,
         /// The rotation matrix of the camera.
         ///
         /// This transforms the real coordinates to the coordinates as seen by the user.
-        #[getset(get_copy = "pub")]
+        #[gusket(copy)]
         rotation: Matrix,
 
         /// Canvas width divided by canvas height
-        #[getset(get_copy = "pub")]
+        #[gusket(copy)]
         aspect:   f64,
         /// The distance of the focus from the camera.
-        #[getset(get_copy = "pub")]
+        #[gusket(copy)]
         zoom:     f64,
         /// The rendering distance of the camera.
-        #[getset(get_copy = "pub")]
+        #[gusket(copy)]
         distance: f64,
         /// The vertical field of view in radians.
-        #[getset(get_copy = "pub")]
+        #[gusket(copy)]
         fovy:     f64,
 
         #[builder(default)]

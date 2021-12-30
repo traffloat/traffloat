@@ -4,7 +4,7 @@ use std::ops;
 use std::sync::{Mutex, MutexGuard};
 
 use codegen::SetupEcs;
-use getset::Getters;
+use gusket::Gusket;
 use serde::{Deserialize, Serialize};
 use typed_builder::TypedBuilder;
 
@@ -12,40 +12,41 @@ use crate::clock::Clock;
 use crate::{def, edge, liquid, node};
 
 /// Stores all scenario gamerule definitions.
-#[derive(Getters, Default)]
+#[derive(Gusket, Default)]
+#[gusket(immut)]
 pub struct GameDefinition {
     /// Language bundles.
-    #[getset(get = "pub")]
+    #[gusket]
     lang:              Vec<def::lang::Def>,
     /// Liquid types.
-    #[getset(get = "pub")]
+    #[gusket]
     liquid:            Vec<def::liquid::Def>,
     /// The liquid recipe map.
-    #[getset(get = "pub")]
+    #[gusket]
     liquid_recipes:    liquid::RecipeMap,
     /// Gas types.
-    #[getset(get = "pub")]
+    #[gusket]
     gas:               Vec<def::gas::Def>,
     /// Cargo category.
-    #[getset(get = "pub")]
+    #[gusket]
     cargo_category:    Vec<def::cargo::category::Def>,
     /// Cargo types.
-    #[getset(get = "pub")]
+    #[gusket]
     cargo:             Vec<def::cargo::Def>,
     /// Skill types.
-    #[getset(get = "pub")]
+    #[gusket]
     skill:             Vec<def::skill::Def>,
     /// Vehicle types.
-    #[getset(get = "pub")]
+    #[gusket]
     vehicle:           Vec<def::vehicle::Def>,
     /// Building category.
-    #[getset(get = "pub")]
+    #[gusket]
     building_category: Vec<def::building::category::Def>,
     /// Building types.
-    #[getset(get = "pub")]
+    #[gusket]
     building:          Vec<def::building::Def>,
     /// Crime types.
-    #[getset(get = "pub")]
+    #[gusket]
     crime:             Vec<def::crime::Def>,
 }
 
@@ -196,10 +197,10 @@ impl<T: GameDefObject> ops::Index<def::Id<T>> for GameDefinition {
 pub struct Params {}
 
 /// A request to save game state.
-#[derive(Getters)]
+#[derive(Gusket)]
 pub struct Request {
     /// Request parameters.
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     params: Params,
     file:   Mutex<def::TfsaveFile>,
 }
@@ -210,13 +211,13 @@ impl Request {
 }
 
 /// Response type for [`Request`].
-#[derive(Getters)]
+#[derive(Gusket)]
 pub struct Response {
     /// The params in the initial save request.
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     params: Params,
     /// The encoded save buffer.
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     buffer: Vec<u8>,
 }
 

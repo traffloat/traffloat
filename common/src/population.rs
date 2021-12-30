@@ -1,7 +1,7 @@
 //! Population-related components.
 
 use derive_new::new;
-use getset::Getters;
+use gusket::Gusket;
 use legion::Entity;
 use smallvec::SmallVec;
 
@@ -11,18 +11,18 @@ use crate::SetupEcs;
 /// List of population storages in a node.
 ///
 /// This component is applied on all nodes.
-#[derive(Debug, Getters)]
+#[derive(Debug, Gusket)]
 pub struct StorageList {
     /// The entities containing the Storage.
-    #[getset(get = "pub")]
+    #[gusket(immut)]
     storages: SmallVec<[Entity; 2]>, // usually only 2 storages, "transit" and "operator".
 }
 
 /// A storage of population.
-#[derive(Getters, new)]
+#[derive(new, Gusket)]
 pub struct Storage {
     /// The capacity of the storage.
-    #[getset(get = "pub")]
+    #[gusket(immut, copy)]
     capacity: u32,
 }
 
@@ -33,10 +33,10 @@ codegen::component_depends! {
 }
 
 /// Copmonent applied on nodes to indicate housing provision.
-#[derive(new, getset::CopyGetters)]
+#[derive(new, Gusket)]
 pub struct Housing {
     /// The population storage used as housing.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     storage: storage::Id,
 }
 

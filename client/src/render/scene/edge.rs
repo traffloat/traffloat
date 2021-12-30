@@ -68,7 +68,7 @@ impl Program {
         sun: Vector,
         rgba: nalgebra::Vector4<f64>,
         selected: bool,
-        args: &options::ReflectionArgs,
+        args: options::ReflectionArgs,
     ) {
         gl.use_program(Some(&self.prog));
         self.u_trans.assign(gl, proj);

@@ -9,10 +9,10 @@ use crate::camera::Camera;
 use crate::render;
 
 /// Resource storing the position of the mouse, in the range [0, 1]^2.
-#[derive(Debug, getset::CopyGetters)]
+#[derive(Debug, gusket::Gusket)]
 pub struct CursorPosition {
     /// Position of the mouse.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     position: ScreenPosition,
 }
 
@@ -28,13 +28,13 @@ impl Default for CursorPosition {
 }
 
 /// Resource storing the line segment below the cursor.
-#[derive(getset::CopyGetters)]
+#[derive(gusket::Gusket)]
 pub struct Segment {
     /// The point closest to the camera.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     proximal: Position,
     /// The point furthest from but still visible to the camera.
-    #[getset(get_copy = "pub")]
+    #[gusket(immut, copy)]
     distal:   Position,
 }
 
@@ -74,12 +74,11 @@ fn trace_segment(
 }
 
 /// Resource storing the entity that the cursor hovers over.
-#[derive(Debug, Clone, Default, getset::CopyGetters, getset::Setters)]
+#[derive(Debug, Clone, Default, gusket::Gusket)]
 pub struct HoverTarget {
     /// The target entity pointed by the cursor,
     /// or `None` if none can be detected.
-    #[getset(get_copy = "pub")]
-    #[getset(set = "pub")]
+    #[gusket(copy)]
     entity: Option<Entity>,
 }
 
