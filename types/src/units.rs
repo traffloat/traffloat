@@ -96,5 +96,6 @@ pub trait RoundedUnit {
     ///
     /// The precision is the number of decimal places.
     /// A negative precision means the number of zeros.
+    #[must_use]
     fn round(self, precision: i32) -> Self;
 }

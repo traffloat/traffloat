@@ -43,6 +43,42 @@ pub struct AlphaBeta {
     beta:  NodeId,
 }
 
+impl AlphaBeta {
+    /// The edge endpoints, sorted.
+    #[must_use]
+    pub fn sorted(self) -> Self {
+        if self.alpha > self.beta {
+            Self { alpha: self.beta, beta: self.alpha }
+        } else {
+            self
+        }
+    }
+}
+
+/// An [`AlphaBeta`] wrapper with direction-insensitive equivalence and ordering.
+pub struct UndirectedAlphaBeta(pub AlphaBeta);
+
+impl PartialEq for UndirectedAlphaBeta {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.alpha == other.0.alpha && self.0.beta == other.0.beta
+            || self.0.alpha == other.0.beta && self.0.beta == other.0.alpha
+    }
+}
+
+impl Eq for UndirectedAlphaBeta {}
+
+impl PartialOrd for UndirectedAlphaBeta {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
+}
+
+impl Ord for UndirectedAlphaBeta {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let this = self.0.sorted();
+        let that = other.0.sorted();
+        this.alpha.cmp(&that.alpha).then_with(|| this.beta.cmp(&that.beta))
+    }
+}
+
 /// The state of a duct.
 #[derive(Debug, Clone, Getters, CopyGetters, TypedBuilder, Serialize, Deserialize)]
 #[cfg_attr(feature = "xy", derive(xylem::Xylem))]

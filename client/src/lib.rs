@@ -1,71 +1,36 @@
-//! The webassembly client crate.
+#![feature(div_duration)]
 
-#![recursion_limit = "512"]
-#![deny(
-    anonymous_parameters,
-    bare_trait_objects,
-    clippy::clone_on_ref_ptr,
-    clippy::float_cmp_const,
-    clippy::if_not_else,
-    clippy::unwrap_used
-)]
-#![cfg_attr(
-    debug_assertions,
-    allow(dead_code, unused_imports, unused_variables, clippy::match_single_binding,)
-)]
-#![cfg_attr(any(doc, not(debug_assertions)), deny(missing_docs))]
-#![cfg_attr(
-    not(debug_assertions),
-    deny(clippy::cast_possible_truncation, clippy::cast_precision_loss, clippy::dbg_macro,)
-)]
+mod input;
+mod interface;
+mod state;
+mod windowing;
 
-use wasm_bindgen::prelude::*;
-use yew::prelude::*;
+pub use interface::*;
+pub use state::*;
+pub use windowing::*;
+use xias::Xias;
 
-#[macro_use]
-pub mod style;
-
-mod app;
-pub mod camera;
-pub mod config;
-pub mod input;
-pub mod options;
-pub mod render;
-pub mod util;
-
-/// Entry point.
-#[wasm_bindgen(start)]
-pub fn run_app() {
-    std::panic::set_hook(Box::new(|info| {
-        util::error_handler(&info.to_string());
-    }));
-
-    {
-        let config = wasm_logger::Config::new(if cfg!(debug_assertions) {
-            log::Level::Trace
-        } else {
-            log::Level::Info
-        });
-        wasm_logger::init(config);
-    }
-
-    App::<app::Mux>::new().mount_to_body();
+fn vec(v: traffloat_types::space::Vector) -> three_d::Vec3 {
+    three_d::Vec3::new(v.x.lossy_float(), v.y.lossy_float(), v.z.lossy_float())
 }
 
-/// A component that stores the context path of the game definition.
-#[derive(derive_new::new)]
-pub struct ContextPath(String);
-
-impl AsRef<str> for ContextPath {
-    fn as_ref(&self) -> &str { self.0.as_str() }
-}
-
-/// Sets up legion ECS.
-pub fn setup_ecs(setup: traffloat::SetupEcs) -> traffloat::SetupEcs {
-    setup
-        .uses(traffloat::setup_ecs)
-        .uses(camera::setup_ecs)
-        .uses(input::setup_ecs)
-        .uses(render::setup_ecs)
-        .uses(options::setup_ecs)
+fn mat(m: traffloat_types::space::Matrix) -> three_d::Mat4 {
+    three_d::Mat4::new(
+        m[(0, 0)].lossy_float(),
+        m[(0, 1)].lossy_float(),
+        m[(0, 2)].lossy_float(),
+        m[(0, 3)].lossy_float(),
+        m[(1, 0)].lossy_float(),
+        m[(1, 1)].lossy_float(),
+        m[(1, 2)].lossy_float(),
+        m[(1, 3)].lossy_float(),
+        m[(2, 0)].lossy_float(),
+        m[(2, 1)].lossy_float(),
+        m[(2, 2)].lossy_float(),
+        m[(2, 3)].lossy_float(),
+        m[(3, 0)].lossy_float(),
+        m[(3, 1)].lossy_float(),
+        m[(3, 2)].lossy_float(),
+        m[(3, 3)].lossy_float(),
+    )
 }
