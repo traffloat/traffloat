@@ -97,6 +97,8 @@ where
 
             let dimension = model.unit.spritesheet_side() * max_dim;
             let mut pixmap = Pixmap::new(dimension, dimension).context("Creating pixmap buffer")?;
+            pixmap.fill(tiny_skia::Color::WHITE);
+
             for (sprite_id, file) in model.unit.sprite_names().iter().enumerate() {
                 let svg_path = path.join(file).with_extension("svg");
                 let sprite_pixmap = render_svg(

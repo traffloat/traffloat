@@ -32,7 +32,7 @@ pub fn compute() -> three_d::CPUMesh {
     let mut current = vec![0; NUM_STEPS];
 
     for i in 1..NUM_STEPS {
-        let theta = i.small_float::<f32>() * PI * 2. / NUM_STEPS.small_float::<f32>();
+        let theta = i.small_float::<f32>() * PI / NUM_STEPS.small_float::<f32>();
         let (theta_sin, theta_cos) = theta.sin_cos();
 
         #[allow(clippy::needless_range_loop)]
