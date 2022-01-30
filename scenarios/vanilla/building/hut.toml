@@ -40,4 +40,4 @@ description = {src = "building", key = "hut-description"}
 
 		[[def.shapes.transform]]
 		type = "Scale"
-		z = 0.8
+		z = 0.3

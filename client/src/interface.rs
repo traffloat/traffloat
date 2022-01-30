@@ -1,23 +1,26 @@
 use std::time as walltime;
 
 use anyhow::Result;
-use traffloat_def::edge;
+use traffloat_def::edge::AlphaBeta;
 use traffloat_def::node::NodeId;
 use traffloat_types::time::Instant;
 
-use crate::{EdgeView, NodeView, Sun};
+use crate::{edge, node, Sun};
 
 /// An abstraction of the simulation source.
 pub trait Server: 'static {
     /// Receives an event from the simulation source.
     fn receive(&mut self) -> Result<Option<Event>>;
+
+    /// Resolves the path to load an image asset file.
+    fn load_asset(&self, name: &str) -> String;
 }
 
 pub enum Event {
-    AddNode(NodeView),
+    AddNode(node::View),
     RemoveNode(NodeId),
-    AddEdge(EdgeView),
-    RemoveEdge(edge::AlphaBeta),
+    AddEdge(edge::View),
+    RemoveEdge(AlphaBeta),
     SetClock(SetClock),
     SetSun(Sun),
 }

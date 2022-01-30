@@ -1,54 +1,63 @@
 use std::collections::BTreeMap;
+use std::error::Error;
 use std::f64::consts::PI;
 use std::time as walltime;
 
-use nalgebra::Rotation3;
-use three_d::{CPUMaterial, CPUMesh, GeometryMut};
-use traffloat_def::edge;
+use traffloat_def::edge::UndirectedAlphaBeta;
 use traffloat_def::node::NodeId;
-use traffloat_types::geometry;
-use traffloat_types::space::{Matrix, Position, Vector};
+use traffloat_types::space::Vector;
 use traffloat_types::time::{Instant, Time};
 use typed_builder::TypedBuilder;
 use xias::Xias;
 
-use crate::{mat, Event};
+use crate::{edge, node, texture, Event, Server, StdMeshes};
 
 #[derive(TypedBuilder)]
 pub struct State {
-    pub nodes: BTreeMap<NodeId, PreparedNodeView>,
-    pub edges: BTreeMap<edge::UndirectedAlphaBeta, PreparedEdgeView>,
+    pub nodes: BTreeMap<NodeId, node::Prepared>,
+    pub edges: BTreeMap<UndirectedAlphaBeta, edge::Prepared>,
     pub clock: Clock,
     pub sun:   Sun,
 
-    cylinder: CPUMesh,
+    pub std_meshes:   StdMeshes,
+    pub texture_pool: texture::Pool,
 }
 
 impl Default for State {
     fn default() -> Self {
         Self {
-            nodes:    BTreeMap::new(),
-            edges:    BTreeMap::new(),
-            clock:    Clock {
+            nodes:        BTreeMap::new(),
+            edges:        BTreeMap::new(),
+            clock:        Clock {
                 epoch:              Instant::default(),
                 epoch_wall:         walltime::Instant::now(),
                 wall_time_per_tick: walltime::Duration::from_millis(50),
             },
-            sun:      Sun {
+            sun:          Sun {
                 initial: Vector::new(0.0, 0.0, 1.0),
                 quarter: Vector::new(0.0, 0.0, 0.25),
                 period:  Time(3000),
             },
-            cylinder: CPUMesh::cylinder(16),
+            std_meshes:   StdMeshes::compute(),
+            texture_pool: texture::Pool::default(),
         }
     }
 }
 
 impl State {
-    pub fn handle_event(&mut self, event: Event, gl: &three_d::Context) {
+    pub fn handle_event(
+        &mut self,
+        event: Event,
+        gl: &three_d::Context,
+        server: &mut impl Server,
+    ) -> Result<(), Box<dyn Error>> {
         match event {
             Event::AddNode(node) => {
-                self.nodes.insert(node.id, PreparedNodeView::new(node, &self.cylinder, gl));
+                let id = node.id;
+                let prepared =
+                    node::Prepared::new(node, &self.std_meshes, &self.texture_pool, gl, server)?;
+
+                self.nodes.insert(id, prepared);
             }
             Event::RemoveNode(node) => {
                 self.nodes.remove(&node);
@@ -67,13 +76,13 @@ impl State {
                         .position,
                 ];
 
-                let id = edge::UndirectedAlphaBeta(edge.id);
-                let prepared = PreparedEdgeView::new(edge, &self.cylinder, gl, endpoints);
+                let id = UndirectedAlphaBeta(edge.id);
+                let prepared = edge::Prepared::new(edge, &self.std_meshes.cylinder, gl, endpoints)?;
 
                 self.edges.insert(id, prepared);
             }
             Event::RemoveEdge(edge) => {
-                self.edges.remove(&edge::UndirectedAlphaBeta(edge));
+                self.edges.remove(&UndirectedAlphaBeta(edge));
             }
             Event::SetClock(patch) => {
                 self.clock = Clock {
@@ -86,83 +95,9 @@ impl State {
                 self.sun = sun;
             }
         }
+
+        Ok(())
     }
-}
-
-pub struct PreparedNodeView {
-    view:  NodeView,
-    model: three_d::Model<three_d::ColorMaterial>,
-}
-
-impl PreparedNodeView {
-    pub fn new(view: NodeView, cylinder: &CPUMesh, gl: &three_d::Context) -> Self {
-        Self {
-            view,
-            model: three_d::Model::new_with_material(
-                gl,
-                cylinder,
-                three_d::ColorMaterial::new(gl, &CPUMaterial::default()).unwrap(),
-            )
-            .unwrap(),
-        }
-    }
-
-    pub fn object(&self) -> &dyn three_d::Object { &self.model }
-}
-
-pub struct NodeView {
-    pub id:        NodeId,
-    pub position:  Position,
-    pub transform: Matrix,
-    pub shape:     geometry::Unit,
-}
-
-pub struct PreparedEdgeView {
-    view:  EdgeView,
-    model: three_d::Model<three_d::PhysicalMaterial>,
-}
-
-impl PreparedEdgeView {
-    pub fn new(
-        view: EdgeView,
-        cylinder: &CPUMesh,
-        gl: &three_d::Context,
-        endpoints: [Position; 2],
-    ) -> Self {
-        let mut this = Self {
-            view,
-            model: three_d::Model::new_with_material(
-                gl,
-                cylinder,
-                three_d::PhysicalMaterial { ..Default::default() },
-            )
-            .unwrap(),
-        };
-        this.set_endpoints(endpoints[0], endpoints[1]);
-        this
-    }
-
-    pub fn set_endpoints(&mut self, alpha: Position, beta: Position) {
-        let diff = beta.value() - alpha.value();
-        let mut tf = match Rotation3::rotation_between(&Vector::new(1., 0., 0.), &diff) {
-            Some(rot) => rot.to_homogeneous(),
-            None => Matrix::identity(),
-        };
-        tf.append_nonuniform_scaling_mut(&Vector::new(
-            diff.norm(),
-            self.view.radius,
-            self.view.radius,
-        ));
-        tf.append_translation_mut(&alpha.vector());
-        self.model.set_transformation(mat(tf));
-    }
-
-    pub fn object(&self) -> &dyn three_d::Object { &self.model }
-}
-
-pub struct EdgeView {
-    pub id:     edge::AlphaBeta,
-    pub radius: f64,
 }
 
 pub struct Clock {

@@ -7,16 +7,6 @@ name = {src = "building", key = "terminal"}
 summary = {src = "building", key = "terminal-summary"}
 description = {src = "building", key = "terminal-description"}
 
-	[[def.shapes]]
-	unit = "Cube"
-	texture = {src = "buildings", name = "terminal"}
-
-		[[def.shapes.transform]]
-		type = "Scale"
-		x = 0.2
-		y = 0.2
-		z = 0.2
-
 	[def.storage]
 	cargo = 1000.0
 	gas = 1000.0
@@ -57,3 +47,13 @@ description = {src = "building", key = "terminal-description"}
 	[[def.features]]
 	type = "GasPump"
 	force = 100.0
+
+	[[def.shapes]]
+	unit = "Sphere"
+	texture = {src = "buildings", name = "terminal"}
+
+		[[def.shapes.transform]]
+		type = "Scale"
+		x = 0.5
+		y = 0.5
+		z = 0.5

@@ -10,6 +10,12 @@ license = "AGPL-3.0"
 
 [dependencies]
 anyhow = "1.0.52"
+async-trait = "0.1.52"
+derive-new = "0.5.9"
+futures = "0.3.19"
+log = "0.4.14"
+pretty_env_logger = "0.4.0"
+tokio = {version = "1.15.0", features = ["fs", "macros", "rt-multi-thread"]}
 traffloat-client = {version = "0.2.0", path = "../client"}
 traffloat-def = {version = "0.2.0", path = "../def"}
 traffloat-types = {version = "0.2.0", path = "../types"}

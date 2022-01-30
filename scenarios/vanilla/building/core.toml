@@ -43,3 +43,9 @@ description = {src = "building", key = "core-description"}
 	[[def.shapes]]
 	unit = "Cube"
 	texture = {src = "buildings", name = "core"}
+
+		[[def.shapes.transform]]
+		type = "Scale"
+		x = 0.8
+		y = 0.8
+		z = 0.8
