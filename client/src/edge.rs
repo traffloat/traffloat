@@ -15,8 +15,9 @@ pub struct View {
 }
 
 pub struct Prepared {
-    pub view:  View,
-    pub model: three_d::Model<three_d::PhysicalMaterial>,
+    pub view: View,
+    model:    three_d::Model<three_d::PhysicalMaterial>,
+    picked:   bool,
 }
 
 impl Prepared {
@@ -31,11 +32,14 @@ impl Prepared {
             &three_d::CPUMaterial { metallic: 0.8, roughness: 0.2, ..Default::default() },
         )?;
 
-        let mut this =
-            Self { view, model: three_d::Model::new_with_material(gl, cylinder, material)? };
+        let mut this = Self {
+            view,
+            model: three_d::Model::new_with_material(gl, cylinder, material)?,
+            picked: false,
+        };
         this.set_endpoints(endpoints[0], endpoints[1]);
 
-        this.set_color(this.view.color);
+        this.set_color();
 
         Ok(this)
     }
@@ -55,13 +59,25 @@ impl Prepared {
         self.model.set_transformation(mat(tf));
     }
 
-    pub fn set_color(&mut self, color: [f32; 4]) {
+    pub fn set_color(&mut self) {
+        let mut color = self.view.color;
+        if !self.picked {
+            for ch in &mut color[0..3] {
+                *ch *= 0.8;
+            }
+        }
+
         self.model.material.albedo = three_d::Color::new(
             (color[0] * 255.).trunc_int(),
             (color[1] * 255.).trunc_int(),
             (color[2] * 255.).trunc_int(),
             (color[3] * 255.).trunc_int(),
         );
+    }
+
+    pub fn set_picked(&mut self, picked: bool) {
+        self.picked = picked;
+        self.set_color();
     }
 
     pub fn object(&self) -> &dyn three_d::Object { &self.model as &dyn three_d::Object }

@@ -1,9 +1,8 @@
 use std::f32::consts::PI;
-use std::rc::Rc;
 
 use anyhow::{Context, Result};
 
-use crate::{input, vec, BoxContext, Server, State};
+use crate::{input, vec, BoxContext, PickTarget, Server, State};
 
 struct RenderLoop<S: Server> {
     server:   S,
@@ -75,7 +74,14 @@ impl<S: Server> RenderLoop<S> {
         redraw |= self
             .ctrl
             .handle_events(&mut self.camera, &mut frame_input.events)
-            .context("handling input")?;
+            .context("handling camera input")?;
+
+        if !redraw {
+            redraw = frame_input
+                .events
+                .iter()
+                .any(|event| matches!(event, three_d::Event::MouseMotion { .. }));
+        }
 
         if redraw {
             let sunlight = three_d::DirectionalLight::new(
@@ -86,26 +92,45 @@ impl<S: Server> RenderLoop<S> {
             )
             .context("loading sunlight")?;
 
-            let mut objects: Vec<RcObject<'_>> = Vec::new();
-
-            for node in self.state.nodes.values() {
-                node.get_objects(
+            for node in self.state.nodes.values_mut() {
+                node.check_loading(
                     &self.state.std_meshes,
                     &self.state.texture_pool,
                     &self.gl,
                     &self.server,
-                    &mut objects,
                 )
                 .context("loading objects")?;
             }
 
-            for edge in self.state.edges.values() {
-                objects.push(RcObject::Ref(edge.object()));
+            fn node_edge_objects(
+                state: &State,
+            ) -> impl Iterator<Item = (PickTarget, &dyn three_d::Object)> {
+                state
+                    .nodes
+                    .iter()
+                    .flat_map(|(&k, object)| {
+                        object.models().iter().map(move |object| {
+                            (PickTarget::Node(k), object as &dyn three_d::Object)
+                        })
+                    })
+                    .chain(
+                        state.edges.iter().map(|(&k, edge)| (PickTarget::Edge(k), edge.object())),
+                    )
             }
 
-            if let Some(axes) = &self.axes {
-                objects.push(RcObject::Ref(axes));
-            }
+            let picked = input::handle_pick(
+                &self.gl,
+                &self.camera,
+                &frame_input,
+                node_edge_objects(&self.state),
+            )
+            .context("detecting cursor target")?;
+            self.state.set_picked(picked);
+
+            let objects: Vec<_> = node_edge_objects(&self.state)
+                .map(|(_, object)| object)
+                .chain(self.axes.as_ref().map(|axes| axes as &dyn three_d::Object))
+                .collect();
 
             three_d::Screen::write(&self.gl, three_d::ClearState::default(), || {
                 self.pipeline.render_pass(
@@ -130,69 +155,6 @@ impl<S: Server> RenderLoop<S> {
             ..Default::default()
         })
     }
-}
-
-pub enum RcObject<'t> {
-    Rc(Rc<dyn three_d::Object>),
-    Ref(&'t dyn three_d::Object),
-}
-
-impl<'t> RcObject<'t> {
-    fn object(&self) -> &dyn three_d::Object {
-        match self {
-            Self::Rc(rc) => &**rc,
-            Self::Ref(obj) => obj,
-        }
-    }
-}
-
-impl<'t> three_d::Shadable for RcObject<'t> {
-    fn render_with_material(
-        &self,
-        material: &dyn three_d::Material,
-        camera: &three_d::Camera,
-        lights: &three_d::Lights,
-    ) -> three_d::ThreeDResult<()> {
-        three_d::Shadable::render_with_material(self.object(), material, camera, lights)
-    }
-
-    #[allow(deprecated)]
-    fn render_forward(
-        &self,
-        material: &dyn three_d::Material,
-        camera: &three_d::Camera,
-        lights: &three_d::Lights,
-    ) -> three_d::ThreeDResult<()> {
-        three_d::Shadable::render_forward(self.object(), material, camera, lights)
-    }
-
-    #[allow(deprecated)]
-    fn render_deferred(
-        &self,
-        material: &three_d::DeferredPhysicalMaterial,
-        camera: &three_d::Camera,
-        viewport: three_d::Viewport,
-    ) -> three_d::ThreeDResult<()> {
-        three_d::Shadable::render_deferred(self.object(), material, camera, viewport)
-    }
-}
-
-impl<'t> three_d::Geometry for RcObject<'t> {
-    fn aabb(&self) -> three_d::AxisAlignedBoundingBox { three_d::Geometry::aabb(self.object()) }
-
-    fn transformation(&self) -> three_d::Mat4 { three_d::Geometry::transformation(self.object()) }
-}
-
-impl<'t> three_d::Object for RcObject<'t> {
-    fn render(
-        &self,
-        camera: &three_d::Camera,
-        lights: &three_d::Lights,
-    ) -> three_d::ThreeDResult<()> {
-        three_d::Object::render(self.object(), camera, lights)
-    }
-
-    fn is_transparent(&self) -> bool { three_d::Object::is_transparent(self.object()) }
 }
 
 pub struct Config {

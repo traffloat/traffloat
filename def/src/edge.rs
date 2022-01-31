@@ -56,6 +56,7 @@ impl AlphaBeta {
 }
 
 /// An [`AlphaBeta`] wrapper with direction-insensitive equivalence and ordering.
+#[derive(Debug, Clone, Copy)]
 pub struct UndirectedAlphaBeta(pub AlphaBeta);
 
 impl PartialEq for UndirectedAlphaBeta {

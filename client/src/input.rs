@@ -2,7 +2,8 @@ use std::error::Error;
 use std::time::Instant;
 
 use enum_map::EnumMap;
-use three_d::{Camera, CameraAction, CameraControl, Radians};
+use three_d::{Camera, CameraAction, CameraControl, MetricSpace, Radians};
+use xias::Xias;
 
 #[derive(Debug, enum_map::Enum)]
 pub enum Button {
@@ -140,4 +141,52 @@ impl Control {
 
         Ok(redraw)
     }
+}
+
+pub fn handle_pick<'t, K>(
+    gl: &three_d::Context,
+    camera: &Camera,
+    frame_input: &three_d::FrameInput,
+    objects: impl Iterator<Item = (K, &'t dyn three_d::Object)>,
+) -> Result<Option<K>, Box<dyn Error>> {
+    let mut mouse_position = None;
+
+    for event in &frame_input.events {
+        if let three_d::Event::MouseMotion { position, .. } = event {
+            mouse_position = Some((position.0, position.1));
+            break;
+        }
+    }
+
+    let mouse_position = match mouse_position {
+        Some((x, y)) => (
+            (frame_input.device_pixel_ratio * x).lossy_float(),
+            (frame_input.device_pixel_ratio * y).lossy_float(),
+        ),
+        None => return Ok(None),
+    };
+
+    let mut min = None;
+
+    for (key, object) in objects {
+        if camera.in_frustum(&object.aabb()) {
+            let pos = three_d::pick(gl, camera, mouse_position, &[object])?;
+            if let Some(pos) = pos {
+                match min {
+                    Some((_, min_pos))
+                        if camera.position().distance2(pos)
+                            < camera.position().distance2(min_pos) =>
+                    {
+                        min = Some((key, pos));
+                    }
+                    None => {
+                        min = Some((key, pos));
+                    }
+                    Some(_) => {}
+                }
+            }
+        }
+    }
+
+    Ok(min.map(|(key, _)| key))
 }

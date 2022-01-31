@@ -7,12 +7,10 @@ use traffloat_def::edge::UndirectedAlphaBeta;
 use traffloat_def::node::NodeId;
 use traffloat_types::space::Vector;
 use traffloat_types::time::{Instant, Time};
-use typed_builder::TypedBuilder;
 use xias::Xias;
 
 use crate::{edge, node, texture, Event, Server, StdMeshes};
 
-#[derive(TypedBuilder)]
 pub struct State {
     pub nodes: BTreeMap<NodeId, node::Prepared>,
     pub edges: BTreeMap<UndirectedAlphaBeta, edge::Prepared>,
@@ -21,25 +19,30 @@ pub struct State {
 
     pub std_meshes:   StdMeshes,
     pub texture_pool: texture::Pool,
+
+    picked: Option<PickTarget>,
 }
 
 impl Default for State {
     fn default() -> Self {
         Self {
-            nodes:        BTreeMap::new(),
-            edges:        BTreeMap::new(),
-            clock:        Clock {
+            nodes: BTreeMap::new(),
+            edges: BTreeMap::new(),
+            clock: Clock {
                 epoch:              Instant::default(),
                 epoch_wall:         walltime::Instant::now(),
                 wall_time_per_tick: walltime::Duration::from_millis(50),
             },
-            sun:          Sun {
+            sun:   Sun {
                 initial: Vector::new(0.0, 0.0, 1.0),
                 quarter: Vector::new(0.0, 0.0, 0.25),
                 period:  Time(3000),
             },
+
             std_meshes:   StdMeshes::compute(),
             texture_pool: texture::Pool::default(),
+
+            picked: None,
         }
     }
 }
@@ -98,6 +101,26 @@ impl State {
 
         Ok(())
     }
+
+    pub fn set_picked(&mut self, target: Option<PickTarget>) {
+        for (target, is_picked) in [(self.picked.as_ref(), false), (target.as_ref(), true)] {
+            match &target {
+                Some(PickTarget::Node(id)) => {
+                    if let Some(node) = self.nodes.get_mut(id) {
+                        node.set_picked(is_picked);
+                    }
+                }
+                Some(PickTarget::Edge(id)) => {
+                    if let Some(edge) = self.edges.get_mut(id) {
+                        edge.set_picked(is_picked);
+                    }
+                }
+                None => {}
+            }
+        }
+
+        self.picked = target;
+    }
 }
 
 pub struct Clock {
@@ -129,4 +152,9 @@ impl Sun {
         let (sin, cos) = angle.sin_cos();
         self.initial * cos + self.quarter * sin
     }
+}
+
+pub enum PickTarget {
+    Node(NodeId),
+    Edge(UndirectedAlphaBeta),
 }

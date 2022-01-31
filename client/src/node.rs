@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::error::Error;
 use std::rc::Rc;
 
@@ -9,7 +8,7 @@ use traffloat_types::geometry;
 use traffloat_types::space::{Matrix, Position};
 
 use crate::texture::MaybeTexture;
-use crate::{mat, texture, RcObject, Server, StdMeshes};
+use crate::{mat, texture, Server, StdMeshes};
 
 pub struct View {
     pub id:       NodeId,
@@ -19,13 +18,13 @@ pub struct View {
 }
 
 struct PreparedInner {
-    models:  Vec<Rc<dyn three_d::Object>>,
+    models:  Vec<Model>,
     loading: Vec<MaybeTexture>,
 }
 
 pub struct Prepared {
     pub view: View,
-    inner:    RefCell<PreparedInner>,
+    inner:    PreparedInner,
 }
 
 struct NewModelContext<'t, S: Server> {
@@ -48,13 +47,15 @@ impl<'t, S: Server> Clone for NewModelContext<'t, S> {
 
 impl<'t, S: Server> Copy for NewModelContext<'t, S> {}
 
+pub type Model = three_d::Model<three_d::PhysicalMaterial>;
+
 fn new_model(
     NewModelContext { texture_pool, gl, server, meshes: _ }: NewModelContext<'_, impl Server>,
     loading: &mut Vec<MaybeTexture>,
     shape: &building::Shape,
     mesh: &three_d::CPUMesh,
     tf: Matrix,
-) -> ThreeDResult<Rc<dyn three_d::Object>> {
+) -> ThreeDResult<Model> {
     let path = atlas::to_path("fancy", shape.texture().spritesheet_id());
 
     let texture = texture_pool.request(gl, server, &path);
@@ -78,17 +79,17 @@ fn new_model(
         ..Default::default()
     };
 
-    let mut model = three_d::Model::new_with_material(gl, mesh, material)?;
+    let mut model = Model::new_with_material(gl, mesh, material)?;
     model.set_transformation(mat(tf));
 
-    Ok(Rc::new(model))
+    Ok(model)
 }
 
 fn shape_to_models(
     ctx: NewModelContext<'_, impl Server>,
     shape: &building::Shape,
     tf_base: Matrix,
-    models: &mut Vec<Rc<dyn three_d::Object>>,
+    models: &mut Vec<Model>,
     loading: &mut Vec<MaybeTexture>,
 ) -> ThreeDResult<()> {
     let tf = tf_base * shape.transform();
@@ -134,22 +135,19 @@ impl Prepared {
     ) -> Result<Self, Box<dyn Error>> {
         let inner = shapes_to_inner(NewModelContext { texture_pool, gl, server, meshes }, &view)?;
 
-        Ok(Self { view, inner: RefCell::new(inner) })
+        Ok(Self { view, inner })
     }
 
-    pub fn get_objects(
-        &self,
+    pub fn check_loading(
+        &mut self,
         meshes: &StdMeshes,
         texture_pool: &texture::Pool,
         gl: &three_d::Context,
         server: &impl Server,
-        objects: &mut Vec<RcObject<'_>>,
     ) -> Result<(), Box<dyn Error>> {
-        let mut inner = self.inner.borrow_mut();
-
-        for maybe in &mut inner.loading {
+        for maybe in &mut self.inner.loading {
             if maybe.borrow().is_some() {
-                *inner = shapes_to_inner(
+                self.inner = shapes_to_inner(
                     NewModelContext { texture_pool, gl, server, meshes },
                     &self.view,
                 )?;
@@ -157,10 +155,18 @@ impl Prepared {
             }
         }
 
-        for model in &inner.models {
-            objects.push(RcObject::Rc(Rc::clone(model)));
-        }
-
         Ok(())
+    }
+
+    pub fn models(&self) -> &[Model] { &self.inner.models }
+
+    pub fn set_picked(&mut self, b: bool) {
+        for model in &mut self.inner.models {
+            model.material.albedo = if b {
+                three_d::Color::new(255, 255, 255, 255)
+            } else {
+                three_d::Color::new(200, 200, 200, 255)
+            };
+        }
     }
 }
