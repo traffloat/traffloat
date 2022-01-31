@@ -2,11 +2,7 @@ target
 node_modules
 __pycache__
 
-/client/dist
-/client/pkg
-*.min.vert
-*.min.frag
-*.tsv
+dist
 gen
 
 /docgen/output

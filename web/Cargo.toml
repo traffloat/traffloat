@@ -1,22 +1,25 @@
 [package]
-name = "traffloat-client"
+name = "traffloat-web"
 authors = ["SOFe <sofe2038@gmail.com>"]
 version = "0.2.0"
 edition = "2021"
 repository = "https://github.com/traffloat/traffloat"
 homepage = "https://github.com/traffloat/traffloat"
-description = "Traffloat client module"
+description = "Traffloat desktop client"
 license = "AGPL-3.0"
+
+[lib]
+crate-type = ["cdylib"]
 
 [dependencies]
 anyhow = "1.0.52"
-enum-map = "1.1.1"
-instant = "0.1.12"
+derive-new = "0.5.9"
+js-sys = "0.3.56"
 log = "0.4.14"
-nalgebra = "0.29.0"
-three-d = "0.10.1"
-traffloat-codegen = {version = "0.2.0", path = "../codegen"}
+traffloat-client = {version = "0.2.0", path = "../client"}
 traffloat-def = {version = "0.2.0", path = "../def"}
 traffloat-types = {version = "0.2.0", path = "../types"}
-typed-builder = "0.9.1"
-xias = "0.2.1"
+wasm-bindgen = "0.2.79"
+wasm-bindgen-futures = "0.4.29"
+wasm-logger = "0.2.0"
+web-sys = "0.3.56"

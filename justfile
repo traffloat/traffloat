@@ -1,11 +1,9 @@
-default: client-watch
+default: client-run
 
-client-build path_prefix: client-clean
-	cd client && trunk build --public-url {{path_prefix}} --release release.html
-client-build-dev: client-clean
-	cd client && trunk build dev.html
-client-watch: client-clean
-	cd client && trunk serve dev.html --watch ..
+client-run:
+	cargo run --bin traffloat-desktop
+client-build:
+	cargo build --release --bin traffloat-desktop
 
 doc:
 	cargo doc --lib --document-private-items

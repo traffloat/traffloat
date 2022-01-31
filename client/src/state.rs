@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 use std::error::Error;
 use std::f64::consts::PI;
-use std::time as walltime;
 
+use instant as walltime;
 use traffloat_def::edge::UndirectedAlphaBeta;
 use traffloat_def::node::NodeId;
 use traffloat_types::space::Vector;

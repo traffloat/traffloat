@@ -12,18 +12,12 @@ license = "AGPL-3.0"
 name = "codegen"
 
 [dependencies]
-anyhow = "1.0.48"
-arcstr = "1.1.1"
 enum-map = "1.1.0"
-getset = "0.1.1"
 lazy_static = "1.4.0"
-log = "0.4.14"
-nalgebra = "0.29.0"
 serde = {version = "1.0.130", features = ["derive"]}
 shrev = "1.1.1"
 smallvec = "1.7.0"
 traffloat-codegen-raw = {version = "0.2.0", path = "../codegen-raw"}
-typemap = "0.3.3"
 
 [dependencies.legion]
 version = "0.4.0"
@@ -34,7 +28,7 @@ features = [
 ]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys = {version = "0.3.55", features = ["Window", "Performance"], optional = true}
+web-sys = {version = "0.3.55", features = ["Window", "Performance"]}
 
 [features]
 render-debug = ["traffloat-codegen-raw/render-debug"]
