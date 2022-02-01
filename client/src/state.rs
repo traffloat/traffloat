@@ -3,6 +3,7 @@ use std::error::Error;
 use std::f64::consts::PI;
 use std::time as walltime;
 
+use three_d::ThreeDResult;
 use traffloat_def::edge::UndirectedAlphaBeta;
 use traffloat_def::node::NodeId;
 use traffloat_types::space::Vector;
@@ -102,7 +103,11 @@ impl State {
         Ok(())
     }
 
-    pub fn set_picked(&mut self, target: Option<PickTarget>) {
+    pub fn set_picked(
+        &mut self,
+        gl: &three_d::Context,
+        target: Option<PickTarget>,
+    ) -> ThreeDResult<()> {
         for (target, is_picked) in [(self.picked.as_ref(), false), (target.as_ref(), true)] {
             match &target {
                 Some(PickTarget::Node(id)) => {
@@ -112,7 +117,7 @@ impl State {
                 }
                 Some(PickTarget::Edge(id)) => {
                     if let Some(edge) = self.edges.get_mut(id) {
-                        edge.set_picked(is_picked);
+                        edge.set_picked(gl, &self.std_meshes.cylinder, is_picked)?;
                     }
                 }
                 None => {}
@@ -120,6 +125,8 @@ impl State {
         }
 
         self.picked = target;
+
+        Ok(())
     }
 }
 

@@ -3,6 +3,7 @@ use std::{fs, vec};
 
 use anyhow::{Context, Result};
 use traffloat_client::{edge, node, Config, Event, Server};
+use traffloat_def::edge::DuctType;
 use traffloat_def::{AnyDef, TfsaveFile};
 
 fn main() -> Result<()> {
@@ -52,10 +53,44 @@ impl Static {
         }
 
         for edge in file.state().edges() {
+            fn default_duct(ty: DuctType) -> edge::Duct {
+                match ty {
+                    DuctType::Electricity(..) => edge::Duct {
+                        metallic: 0.2,
+                        roughness: 0.9,
+                        color: [0.6, 0.6, 0.6, 1.],
+                        ..Default::default()
+                    },
+                    DuctType::Liquid(..) => edge::Duct {
+                        metallic: 0.8,
+                        roughness: 0.3,
+                        color: [0.4, 0.7, 0.8, 0.8],
+                        ..Default::default()
+                    },
+                    DuctType::Rail(..) => edge::Duct {
+                        metallic: 0.9,
+                        roughness: 0.6,
+                        color: [0.5, 0.5, 0.5, 1.],
+                        ..Default::default()
+                    },
+                }
+            }
+
             events.push(Event::AddEdge(edge::View {
-                id:     edge.endpoints(),
-                radius: edge.radius(),
-                color:  [0.2, 0.5, 0.9, 0.8],
+                id:        edge.endpoints(),
+                radius:    edge.radius(),
+                color:     [0.2, 0.5, 0.9, 0.6],
+                metallic:  0.8,
+                roughness: 0.2,
+                ducts:     edge
+                    .ducts()
+                    .iter()
+                    .map(|duct| edge::Duct {
+                        position: (duct.center()[0], duct.center()[1]),
+                        radius: duct.radius(),
+                        ..default_duct(duct.ty())
+                    })
+                    .collect(),
             }))
         }
 

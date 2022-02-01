@@ -17,3 +17,10 @@ radius = 0.1
 		direction = "AlphaToBeta"
 		alpha_storage = "reservoir0"
 		beta_storage = "buffer0"
+
+	[[init.ducts]]
+	center = [0.02, 0.05]
+	radius = 0.01
+
+		[init.ducts.ty]
+		type = "Electricity"

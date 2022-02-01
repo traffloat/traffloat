@@ -1,23 +1,108 @@
 use std::error::Error;
 
 use nalgebra::Rotation3;
-use three_d::GeometryMut;
+use three_d::{GeometryMut, ThreeDResult};
 use traffloat_def::edge;
 use traffloat_types::space::{Matrix, Position, Vector};
-use xias::Xias;
 
 use crate::mat;
 
 pub struct View {
-    pub id:     edge::AlphaBeta,
-    pub radius: f64,
-    pub color:  [f32; 4],
+    pub id:        edge::AlphaBeta,
+    pub radius:    f64,
+    pub metallic:  f32,
+    pub roughness: f32,
+    pub color:     [f32; 4],
+    pub ducts:     Vec<Duct>,
+}
+
+#[derive(Default)]
+pub struct Duct {
+    pub position:  (f64, f64),
+    pub radius:    f64,
+    pub metallic:  f32,
+    pub roughness: f32,
+    pub color:     [f32; 4],
 }
 
 pub struct Prepared {
-    pub view: View,
-    model:    three_d::Model<three_d::PhysicalMaterial>,
-    picked:   bool,
+    pub view:  View,
+    models:    Vec<three_d::Model<three_d::PhysicalMaterial>>,
+    endpoints: [Position; 2],
+    picked:    bool,
+}
+
+fn reconstruct_models(
+    gl: &three_d::Context,
+    cylinder: &three_d::CPUMesh,
+    view: &View,
+    tf: Matrix,
+    picked: bool,
+) -> ThreeDResult<Vec<three_d::Model<three_d::PhysicalMaterial>>> {
+    let mut models = Vec::with_capacity(1 + view.ducts.len());
+
+    models.push({
+        let mut color = view.color;
+        if !picked {
+            for ch in &mut color[0..3] {
+                *ch *= 0.8;
+            }
+        }
+        let color = three_d::Color::from_rgba_slice(&color);
+
+        let material = three_d::PhysicalMaterial::new(
+            gl,
+            &three_d::CPUMaterial {
+                metallic: view.metallic,
+                roughness: view.roughness,
+                albedo: color,
+                ..Default::default()
+            },
+        )?;
+        let mut model = three_d::Model::new_with_material(gl, cylinder, material)?;
+        model.set_transformation(mat(tf.prepend_nonuniform_scaling(&Vector::new(
+            view.radius,
+            view.radius,
+            1.,
+        ))));
+        model
+    });
+
+    for duct in &view.ducts {
+        models.push({
+            let material = three_d::PhysicalMaterial::new(
+                gl,
+                &three_d::CPUMaterial {
+                    metallic: duct.metallic,
+                    roughness: duct.roughness,
+                    albedo: three_d::Color::from_rgba_slice(&duct.color),
+                    ..Default::default()
+                },
+            )?;
+            let mut model = three_d::Model::new_with_material(gl, cylinder, material)?;
+            model.set_transformation(mat(tf
+                .prepend_translation(&Vector::new(duct.position.0, duct.position.1, 0.))
+                .prepend_nonuniform_scaling(&Vector::new(duct.radius, duct.radius, 1.))));
+            model
+        });
+    }
+
+    Ok(models)
+}
+
+fn ab_to_tf(alpha: Position, beta: Position) -> Matrix {
+    let diff = beta.value() - alpha.value();
+
+    let mut tf = match Rotation3::rotation_between(&Vector::new(0., 0., 1.), &diff) {
+        Some(rot) => rot.to_homogeneous(),
+        _ => Matrix::identity(),
+    };
+
+    tf.prepend_nonuniform_scaling_mut(&Vector::new(1., 1., diff.norm()));
+
+    tf.append_translation_mut(&alpha.vector());
+
+    tf
 }
 
 impl Prepared {
@@ -27,58 +112,33 @@ impl Prepared {
         gl: &three_d::Context,
         endpoints: [Position; 2],
     ) -> Result<Self, Box<dyn Error>> {
-        let material = three_d::PhysicalMaterial::new(
-            gl,
-            &three_d::CPUMaterial { metallic: 0.8, roughness: 0.2, ..Default::default() },
-        )?;
+        let tf = ab_to_tf(endpoints[0], endpoints[1]);
+        let models = reconstruct_models(gl, cylinder, &view, tf, false)?;
 
-        let mut this = Self {
-            view,
-            model: three_d::Model::new_with_material(gl, cylinder, material)?,
-            picked: false,
-        };
-        this.set_endpoints(endpoints[0], endpoints[1]);
-
-        this.set_color();
+        let this = Self { view, models, endpoints, picked: false };
 
         Ok(this)
     }
 
-    pub fn set_endpoints(&mut self, alpha: Position, beta: Position) {
-        let diff = beta.value() - alpha.value();
-        let mut tf = match Rotation3::rotation_between(&Vector::new(0., 0., 1.), &diff) {
-            Some(rot) => rot.to_homogeneous(),
-            _ => Matrix::identity(),
-        };
-        tf.prepend_nonuniform_scaling_mut(&Vector::new(
-            self.view.radius,
-            self.view.radius,
-            diff.norm(),
-        ));
-        tf.append_translation_mut(&alpha.vector());
-        self.model.set_transformation(mat(tf));
+    fn reconstruct_models(
+        &mut self,
+        gl: &three_d::Context,
+        cylinder: &three_d::CPUMesh,
+    ) -> ThreeDResult<()> {
+        let tf = ab_to_tf(self.endpoints[0], self.endpoints[1]);
+        self.models = reconstruct_models(gl, cylinder, &self.view, tf, self.picked)?;
+        Ok(())
     }
 
-    pub fn set_color(&mut self) {
-        let mut color = self.view.color;
-        if !self.picked {
-            for ch in &mut color[0..3] {
-                *ch *= 0.8;
-            }
-        }
-
-        self.model.material.albedo = three_d::Color::new(
-            (color[0] * 255.).trunc_int(),
-            (color[1] * 255.).trunc_int(),
-            (color[2] * 255.).trunc_int(),
-            (color[3] * 255.).trunc_int(),
-        );
-    }
-
-    pub fn set_picked(&mut self, picked: bool) {
+    pub fn set_picked(
+        &mut self,
+        gl: &three_d::Context,
+        cylinder: &three_d::CPUMesh,
+        picked: bool,
+    ) -> ThreeDResult<()> {
         self.picked = picked;
-        self.set_color();
+        self.reconstruct_models(gl, cylinder)
     }
 
-    pub fn object(&self) -> &dyn three_d::Object { &self.model as &dyn three_d::Object }
+    pub fn objects(&self) -> &[impl three_d::Object] { &self.models }
 }

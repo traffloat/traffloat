@@ -113,9 +113,11 @@ impl<S: Server> RenderLoop<S> {
                             (PickTarget::Node(k), object as &dyn three_d::Object)
                         })
                     })
-                    .chain(
-                        state.edges.iter().map(|(&k, edge)| (PickTarget::Edge(k), edge.object())),
-                    )
+                    .chain(state.edges.iter().flat_map(|(&k, edge)| {
+                        edge.objects().iter().map(move |object| {
+                            (PickTarget::Edge(k), object as &dyn three_d::Object)
+                        })
+                    }))
             }
 
             let picked = input::handle_pick(
@@ -125,7 +127,7 @@ impl<S: Server> RenderLoop<S> {
                 node_edge_objects(&self.state),
             )
             .context("detecting cursor target")?;
-            self.state.set_picked(picked);
+            self.state.set_picked(&self.gl, picked).context("Updating pick target")?;
 
             let objects: Vec<_> = node_edge_objects(&self.state)
                 .map(|(_, object)| object)
