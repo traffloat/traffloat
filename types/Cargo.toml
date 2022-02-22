@@ -9,7 +9,7 @@ description = "Traffloat unit definitions"
 license = "AGPL-3.0"
 
 [dependencies]
-anyhow = "1.0.51"
+anyhow = "1.0.55"
 arcstr = {version = "1.1.1", features = ["serde"]}
 derive-new = "0.5.9"
 fxhash = "0.2.1"
