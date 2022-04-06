@@ -15,7 +15,7 @@ proc-macro = true
 crc64fast = "1.0.0"
 proc-macro2 = "1.0.29"
 quote = "1.0.8"
-syn = "1.0.82"
+syn = "1.0.91"
 heck = "0.3.2"
 
 [features]
