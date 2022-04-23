@@ -5,88 +5,18 @@ version = "0.2.0"
 edition = "2021"
 repository = "https://github.com/traffloat/traffloat"
 homepage = "https://github.com/traffloat/traffloat"
-description = "Traffloat web client"
+description = "Traffloat client module"
 license = "AGPL-3.0"
 
-[lib]
-crate-type = ["cdylib"]
-name = "client"
-
 [dependencies]
-anyhow = "1.0.51"
-arcstr = "1.1.1"
-derive-new = "0.5.9"
-enum-map = "1.1.0"
-fluent = "0.16.0"
-getrandom = {version = "0.2.3", features = ["js"]}
-getset = "0.1.1"
-itertools = "0.10.1"
-js-sys = "0.3.55"
-lazy_static = "1.4.0"
+anyhow = "1.0.52"
+async-trait = "0.1.52"
+enum-map = "1.1.1"
 log = "0.4.14"
-nalgebra = "0.29.0"
-once_cell = "1.8.0"
-rand = "0.8.4"
-rand_distr = "0.4.2"
-rand_xoshiro = "0.6.0"
-serde = { version = "1.0.130", features = ["derive"] }
-serde_json = "1.0.72"
-shrev = "1.1.1"
-smallvec = "1.7.0"
-strum = "0.23.0"
-traffloat-codegen = {version = "0.2.0", path = "../codegen", features = ["web-sys"]}
-traffloat-common = {version = "0.2.0", path = "../common", default-features = false, features = ["yew"]}
-traffloat-def = {version = "0.2.0", path = "../def", default-features = false, features = ["yew"]}
-traffloat-version = {version = "0.2.0", path = "../version"}
+nalgebra = "0.30.1"
+three-d = "0.10.1"
+tokio = "1.15.0"
+traffloat-def = {version = "0.2.0", path = "../def"}
+traffloat-types = {version = "0.2.0", path = "../types"}
 typed-builder = "0.9.1"
-wasm-bindgen = {version = "0.2.78"}
-wasm-logger = "0.2.0"
 xias = "0.2.1"
-yew = {version = "0.18.0", default-features = false, features = ["services", "web_sys"]}
-
-[dependencies.legion]
-version = "0.4.0"
-git = "https://github.com/traffloat/legion"
-default-features = false
-features = [
-	"codegen",
-	"extended-tuple-impls",
-]
-
-[dependencies.web-sys]
-version = "0.3.55"
-features = [
-	"Blob",
-	"BlobPropertyBag",
-	"CanvasGradient",
-	"CanvasRenderingContext2d",
-	"CssStyleDeclaration",
-	"Document",
-	"Element",
-	"History",
-	"HtmlElement",
-	"HtmlAnchorElement",
-	"HtmlCanvasElement",
-	"HtmlImageElement",
-	"ImageBitmap",
-	"Location",
-	"Node",
-	"Performance",
-	"Text",
-	"Touch",
-	"TouchList",
-	"Url",
-	"WebGlBuffer",
-	"WebGlProgram",
-	"WebGlRenderingContext",
-	"WebGlShader",
-	"WebGlTexture",
-	"WebGlUniformLocation",
-]
-
-[dev-dependencies]
-maplit = "1.0.2"
-
-[features]
-default = ["render-debug"]
-render-debug = ["traffloat-common/render-debug", "traffloat-codegen/render-debug"]
