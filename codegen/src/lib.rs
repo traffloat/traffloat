@@ -147,10 +147,12 @@ struct ClassSchedule {
 
 impl SetupEcs {
     /// Register a bundle
+    #[must_use]
     pub fn uses(self, setup_ecs: fn(Self) -> Self) -> Self { setup_ecs(self) }
 
     /// Add a system
     #[allow(clippy::indexing_slicing)]
+    #[must_use]
     pub fn system(
         mut self,
         sys: impl legion::systems::ParallelRunnable + 'static,
@@ -161,6 +163,7 @@ impl SetupEcs {
     }
     /// Add a thread-local system
     #[allow(clippy::indexing_slicing)]
+    #[must_use]
     pub fn system_local(
         mut self,
         sys: impl legion::systems::Runnable + 'static,
@@ -171,6 +174,7 @@ impl SetupEcs {
     }
 
     /// Add an entity
+    #[must_use]
     pub fn entity<T>(mut self, components: T) -> Self
     where
         Option<T>: legion::storage::IntoComponentSource,
@@ -179,27 +183,32 @@ impl SetupEcs {
         self
     }
     /// Add entities
+    #[must_use]
     pub fn entities<T>(mut self, components: impl legion::storage::IntoComponentSource) -> Self {
         self.world.extend(components);
         self
     }
 
     /// Add a resource
+    #[must_use]
     pub fn resource(mut self, res: impl legion::systems::Resource) -> Self {
         self.resources.get_or_insert(res);
         self
     }
     /// Add a default resource
+    #[must_use]
     pub fn resource_default<T: legion::systems::Resource + Default>(mut self) -> Self {
         self.resources.get_or_default::<T>();
         self
     }
     /// Declare a published event
+    #[must_use]
     pub fn publisher<T: shrev::Event>(mut self) -> Self {
         let _ = self.resources.get_or_insert_with(shrev::EventChannel::<T>::new);
         self
     }
     /// Publish an event
+    #[must_use]
     pub fn publish_event<T: shrev::Event>(mut self, t: T) -> Self {
         {
             let mut channel = self.resources.get_mut_or_insert_with(shrev::EventChannel::<T>::new);

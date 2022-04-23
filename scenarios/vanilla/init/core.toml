@@ -2,7 +2,7 @@
 type = "Node"
 id = "core"
 building = "core"
-position = [0.0, 0.0, 0.0]
+position = [-3.0, 0.0, 0.0]
 hitpoint = 3000.0
 
 	[[init.cargo]]

@@ -27,7 +27,7 @@ impl Unit {
     pub fn sprite_names(&self) -> &'static [&'static str] {
         match self {
             Self::Cube => &["xp", "xn", "yp", "yn", "zp", "zn"],
-            Self::Sphere => unimplemented!("Sphere sprites are not supported yet."),
+            Self::Sphere => &["sphere"],
             Self::Cylinder => &["top", "bottom", "curved"],
         }
     }
