@@ -1,0 +1,18 @@
+[package]
+name = "traffloat-spec"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.2.0"
+edition = "2021"
+repository = "https://github.com/traffloat/traffloat"
+homepage = "https://github.com/traffloat/traffloat"
+description = "Traffloat gamerule specification, used for world simulation, scenario editor and documentation generation"
+license = "AGPL-3.0"
+
+[dependencies]
+anyhow = "1.0.51"
+arcstr = {version = "1.1.1", features = ["serde"]}
+paste = "1.0.7"
+log = "0.4.14"
+serde = {version = "1.0.130", features = ["derive"]}
+xias = "0.2.1"
+xylem = {version = "0.2.7", features = ["serde"]}

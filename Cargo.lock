@@ -3047,6 +3047,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "traffloat-spec"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "arcstr",
+ "log",
+ "paste",
+ "serde",
+ "xias",
+ "xylem",
+]
+
+[[package]]
 name = "traffloat-tfsave-builder"
 version = "0.2.0"
 dependencies = [
