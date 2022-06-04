@@ -55,6 +55,11 @@ pub enum Expression {
         #[serde(default)]
         from_zero: bool,
     },
+    /// Takes the absolute value.
+    Abs {
+        /// The base expression.
+        abs: Box<Expression>,
+    },
 }
 
 /// Returns a literal 1, used for default values.
@@ -140,6 +145,9 @@ impl Expression {
                     }
                 }
             }
+            Self::Abs { abs } => {
+                abs.resolve(context).context("Error resolving abs base value")?.abs()
+            }
         };
 
         anyhow::ensure!(output.is_finite(), "Expression produces non-finite value {}", output);
@@ -152,14 +160,23 @@ impl Expression {
 #[derive(Clone, Copy, Deserialize)]
 pub enum BinaryOperator {
     /// `left + right`
+    #[serde(alias = "+")]
     Add,
     /// `left - right`
+    #[serde(alias = "-")]
     Sub,
     /// `left * right`
+    #[serde(alias = "*")]
     Mul,
     /// `left / right`
+    #[serde(alias = "/")]
     Div,
+    /// `left % right`. `0 <= output < right` is always true, even if `left < 0`.
+    #[serde(alias = "%")]
+    Mod,
     /// `left` raised to the power of `right`, i.e. `left.powf(right)`
+    #[serde(alias = "^")]
+    #[serde(alias = "**")]
     Pow,
 }
 
@@ -170,6 +187,13 @@ impl BinaryOperator {
             Self::Sub => left - right,
             Self::Mul => left * right,
             Self::Div => left / right,
+            Self::Mod => {
+                let mut modulus = left % right;
+                if modulus < 0. {
+                    modulus += right;
+                }
+                modulus
+            }
             Self::Pow => left.powf(right),
         }
     }
