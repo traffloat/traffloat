@@ -805,6 +805,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
+name = "fontconfig-parser"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82cea2adebf32a9b104b8ffb308b5fb3b456f04cc76c294c3c85025c8a5d75f4"
+dependencies = [
+ "roxmltree",
+]
+
+[[package]]
 name = "fontdb"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -813,6 +822,18 @@ dependencies = [
  "log",
  "memmap2 0.5.3",
  "ttf-parser 0.12.3",
+]
+
+[[package]]
+name = "fontdb"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "122fa73a5566372f9df09768a16e8e3dad7ad18abe07835f1f0b71f84078ba4c"
+dependencies = [
+ "fontconfig-parser",
+ "log",
+ "memmap2 0.5.3",
+ "ttf-parser 0.15.0",
 ]
 
 [[package]]
@@ -1278,7 +1299,7 @@ dependencies = [
  "byteorder",
  "color_quant",
  "gif",
- "jpeg-decoder",
+ "jpeg-decoder 0.1.22",
  "num-iter",
  "num-rational 0.3.2",
  "num-traits",
@@ -1374,6 +1395,12 @@ name = "jpeg-decoder"
 version = "0.1.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "229d53d58899083193af11e15917b5640cd40b29ff475a1fe4ef725deb02d0f2"
+
+[[package]]
+name = "jpeg-decoder"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9478aa10f73e7528198d75109c8be5cd7d15fb530238040148d5f9a22d4c5b3b"
 
 [[package]]
 name = "js-sys"
@@ -2040,6 +2067,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db8bcd96cb740d03149cbad5518db9fd87126a10ab519c011893b1754134c468"
 
 [[package]]
+name = "pico-args"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5be167a7af36ee22fe3115051bc51f6e6c7054c9348e28deb4f49bd6f705a315"
+
+[[package]]
 name = "pin-project-lite"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2309,18 +2342,20 @@ dependencies = [
 
 [[package]]
 name = "resvg"
-version = "0.19.0"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "256cc9203115db152290219f35f3362e729301b59e2a391fb2721fe3fa155352"
+checksum = "34489194784b86c03c3d688258e2ba73f3c82700ba4673ee2ecad5ae540b9438"
 dependencies = [
- "jpeg-decoder",
+ "gif",
+ "jpeg-decoder 0.2.6",
  "log",
- "pico-args",
+ "pico-args 0.5.0",
  "png 0.17.5",
  "rgb",
  "svgfilters",
+ "svgtypes",
  "tiny-skia",
- "usvg",
+ "usvg 0.23.0",
 ]
 
 [[package]]
@@ -2389,6 +2424,22 @@ dependencies = [
  "bytemuck",
  "smallvec",
  "ttf-parser 0.12.3",
+ "unicode-bidi-mirroring",
+ "unicode-ccc",
+ "unicode-general-category",
+ "unicode-script",
+]
+
+[[package]]
+name = "rustybuzz"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a617c811f5c9a7060fe511d35d13bf5b9f0463ce36d63ce666d05779df2b4eba"
+dependencies = [
+ "bitflags",
+ "bytemuck",
+ "smallvec",
+ "ttf-parser 0.15.0",
  "unicode-bidi-mirroring",
  "unicode-ccc",
  "unicode-general-category",
@@ -2790,7 +2841,7 @@ version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9a53f4706d65497df0c4349241deddf35f84cee19c87ed86ea8ca590f4464437"
 dependencies = [
- "jpeg-decoder",
+ "jpeg-decoder 0.1.22",
  "miniz_oxide 0.4.4",
  "weezl",
 ]
@@ -3070,7 +3121,7 @@ dependencies = [
  "traffloat-types",
  "typed-builder",
  "unic-langid",
- "usvg",
+ "usvg 0.19.0",
  "xias",
  "xylem",
 ]
@@ -3281,13 +3332,13 @@ dependencies = [
  "data-url",
  "flate2",
  "float-cmp",
- "fontdb",
+ "fontdb 0.7.0",
  "kurbo",
  "log",
- "pico-args",
+ "pico-args 0.4.2",
  "rctree",
  "roxmltree",
- "rustybuzz",
+ "rustybuzz 0.4.0",
  "simplecss",
  "siphasher",
  "svgtypes",
@@ -3296,6 +3347,32 @@ dependencies = [
  "unicode-script",
  "unicode-vo",
  "xmlwriter",
+]
+
+[[package]]
+name = "usvg"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28a82565b5c96dcbb58c9bdbb6aa3642abd395a6a6b480658532c6f74c3c4b7a"
+dependencies = [
+ "base64 0.13.0",
+ "data-url",
+ "flate2",
+ "float-cmp",
+ "fontdb 0.9.1",
+ "kurbo",
+ "log",
+ "pico-args 0.5.0",
+ "rctree",
+ "roxmltree",
+ "rustybuzz 0.5.1",
+ "simplecss",
+ "siphasher",
+ "svgtypes",
+ "ttf-parser 0.15.0",
+ "unicode-bidi",
+ "unicode-script",
+ "unicode-vo",
 ]
 
 [[package]]
