@@ -1,3 +1,5 @@
+//! Translations management.
+
 use std::collections::BTreeMap;
 use std::marker::PhantomData;
 
@@ -27,6 +29,7 @@ impl<Arg: Argument> Xylem<Schema> for I18n<Arg> {
     }
 }
 
+/// The type used to resolve an [`I18n`] template.
 pub trait Argument: 'static {}
 
 impl Argument for () {}

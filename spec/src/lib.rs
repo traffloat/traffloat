@@ -59,11 +59,13 @@ use i18n::I18n;
 pub mod attribute;
 pub mod building;
 pub mod cargo;
+pub mod condition;
 pub mod edge;
 pub mod field;
 pub mod fluid;
 pub mod node;
 pub mod population;
+pub mod reaction;
 pub mod skill;
 
 /// Metadata of a scenario.

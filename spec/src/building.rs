@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use xylem::Xylem;
 
 use crate::i18n::I18n;
+use crate::reaction::Reaction;
 use crate::{cargo, fluid, population, unit};
 
 /// Defines a building type.
@@ -25,6 +26,11 @@ pub struct Building {
 
     /// The storages provided by the building.
     pub storage: Storage,
+
+    /// Number of inhabitants that can be assigned to this building as housing.
+    pub housing: unit::PopulationSize,
+
+    pub reactions: Vec<Reaction>,
 }
 
 impl_identifiable!(Building);
@@ -41,10 +47,11 @@ pub struct Storage {
     pub population: Vec<PopulationStorage>,
 }
 
+/// A fluid storage.
 #[derive(Debug, Clone, Serialize, Deserialize, Xylem)]
 #[xylem(derive(Deserialize))]
 pub struct FluidStorage {
-    /// References the fluid storage.
+    /// References the fluid storage type.
     pub id: fluid::StorageId,
 
     /// The volume capacity of this storage.
@@ -54,12 +61,13 @@ pub struct FluidStorage {
     pub volume: unit::FluidVolume,
 }
 
+/// A population storage.
 #[derive(Debug, Clone, Serialize, Deserialize, Xylem)]
 #[xylem(derive(Deserialize))]
 pub struct PopulationStorage {
-    /// References the fluid storage.
+    /// References the population storage type.
     pub id: population::StorageId,
 
     /// The number of inhabitants allowed in the storage.
-    pub capacity: unit::PopulationSize, // TODO should not use float here
+    pub capacity: unit::PopulationSize,
 }

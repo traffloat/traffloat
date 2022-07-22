@@ -1,3 +1,6 @@
+//! Xylem implementation for scalar types,
+//! enabling arithmetic operations and variable definitions.
+
 use std::any::TypeId;
 use std::collections::{hash_map, HashMap};
 
@@ -66,7 +69,7 @@ pub enum Expression {
 fn expression_one() -> Box<Expression> { Box::new(Expression::Literal(1.)) }
 
 impl Expression {
-    pub fn resolve(&self, context: &mut xylem::DefaultContext) -> anyhow::Result<f64> {
+    fn resolve(&self, context: &mut xylem::DefaultContext) -> anyhow::Result<f64> {
         let output = match self {
             &Self::Literal(value) => value,
             Self::Variable(var_name) => {
@@ -215,9 +218,6 @@ pub enum RoundMode {
     /// `0 <= x < 1` down
     Floor,
 }
-impl Default for RoundMode {
-    fn default() -> Self { Self::HalfUp }
-}
 
 impl RoundMode {
     fn is_up(&self, modulus: f64) -> bool {
@@ -228,6 +228,10 @@ impl RoundMode {
             Self::Floor => modulus >= 1.,
         }
     }
+}
+
+impl Default for RoundMode {
+    fn default() -> Self { Self::HalfUp }
 }
 
 impl Xylem<Schema> for f64 {
@@ -300,6 +304,7 @@ struct VarMap {
 /// Defines a variable.
 pub struct Variable;
 
+/// Xylem representation of [`Variable`].
 #[derive(Deserialize)]
 pub struct VariableXylem {
     /// The name of the variable.
