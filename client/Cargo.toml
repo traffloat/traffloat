@@ -13,7 +13,7 @@ anyhow = "1.0.52"
 async-trait = "0.1.52"
 enum-map = "1.1.1"
 log = "0.4.14"
-nalgebra = "0.29.0"
+nalgebra = "0.31.1"
 three-d = "0.10.1"
 tokio = "1.15.0"
 traffloat-def = {version = "0.2.0", path = "../def"}
