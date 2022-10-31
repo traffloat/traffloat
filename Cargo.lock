@@ -3145,9 +3145,9 @@ dependencies = [
 
 [[package]]
 name = "typed-builder"
-version = "0.9.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a46ee5bd706ff79131be9c94e7edcb82b703c487766a114434e5790361cf08c5"
+checksum = "47a126a40dbff39e8320900cd61b8de053a2706e1f782cd27145792feb8fd41e"
 dependencies = [
  "proc-macro2",
  "quote",
