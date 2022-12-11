@@ -1,33 +1,16 @@
 [workspace]
 members = [
 	"version",
-	"codegen-raw",
-	"codegen",
-	"types",
-	"def",
-	"common",
-	"client",
-	"tfsave-builder",
-	"desktop",
+	"graph",
 ]
 
 [profile.dev]
 opt-level = 3
 
 [profile.dev.package]
-traffloat-codegen = {opt-level = 0}
-traffloat-codegen-raw = {opt-level = 0}
-traffloat-types = {opt-level = 0}
-traffloat-def = {opt-level = 0}
-traffloat-common = {opt-level = 0}
-traffloat-client = {opt-level = 0}
-traffloat-desktop = {opt-level = 0}
-traffloat-tfsave-builder = {opt-level = 0}
-fluent-bundle = {opt-level = 2}
+traffloat-version = {opt-level = 0}
+traffloat-graph = {opt-level = 0}
 
 [profile.release]
 lto = true
 opt-level = 3
-
-# [profile.release.package.traffloat-client]
-# opt-level = "s"

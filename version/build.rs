@@ -27,8 +27,8 @@ fn main() -> Result<()> {
             (data, full_version)
         }
         Err(err) => {
-            eprintln!("Failed to load git: {:?}", err);
-            (GitData { sha: None, branch: None, dirty: true }, format!("{}-gitless", semver))
+            eprintln!("Failed to load git: {err:?}");
+            (GitData { sha: None, branch: None, dirty: true }, format!("{semver}-gitless"))
         }
     };
 
@@ -64,7 +64,7 @@ fn main() -> Result<()> {
 }
 
 fn env_var(name: &str) -> Result<String> {
-    env::var(name).with_context(|| format!("Fetching env var ${}", name))
+    env::var(name).with_context(|| format!("Fetching env var ${name}"))
 }
 
 fn git_data(path: &Path) -> Result<GitData> {

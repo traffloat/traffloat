@@ -1,0 +1,9 @@
+[package]
+name = "traffloat-graph"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.0.3"
+edition = "2021"
+repository = "https://github.com/traffloat/traffloat"
+homepage = "https://github.com/traffloat/traffloat"
+description = "Traffloat build version constants"
+license = "AGPL-3.0"

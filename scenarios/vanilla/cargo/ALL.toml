@@ -1,8 +1,0 @@
-[[include]]
-file = "./PRELUDE.toml"
-
-[[include]]
-file = "./CATEGORIES.toml"
-
-[[include]]
-file = "./list.toml"
