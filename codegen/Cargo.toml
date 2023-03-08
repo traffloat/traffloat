@@ -18,7 +18,7 @@ enum-map = "1.1.0"
 getset = "0.1.1"
 lazy_static = "1.4.0"
 log = "0.4.14"
-nalgebra = "0.29.0"
+nalgebra = "0.32.2"
 serde = {version = "1.0.130", features = ["derive"]}
 shrev = "1.1.1"
 smallvec = "1.7.0"
