@@ -14,7 +14,7 @@ name = "codegen"
 [dependencies]
 anyhow = "1.0.51"
 arcstr = "1.1.1"
-enum-map = "1.1.0"
+enum-map = "2.5.0"
 getset = "0.1.1"
 lazy_static = "1.4.0"
 log = "0.4.14"
