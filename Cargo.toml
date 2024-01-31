@@ -1,15 +1,20 @@
 [workspace]
 members = [
 	"version",
+	"base",
 	"graph",
+	"fluid",
 ]
+resolver = "2"
 
 [profile.dev]
 opt-level = 3
 
 [profile.dev.package]
 traffloat-version = {opt-level = 0}
+traffloat-base = {opt-level = 0}
 traffloat-graph = {opt-level = 0}
+traffloat-fluid = {opt-level = 0}
 
 [profile.release]
 lto = true

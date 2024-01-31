@@ -1,13 +1,16 @@
 [package]
-name = "traffloat-graph"
+name = "traffloat-fluid"
 authors = ["SOFe <sofe2038@gmail.com>"]
 version = "0.0.3"
 edition = "2021"
 repository = "https://github.com/traffloat/traffloat"
 homepage = "https://github.com/traffloat/traffloat"
-description = "Traffloat structural graph management"
+description = "Traffloat fluid physics"
 license = "AGPL-3.0"
 
 [dependencies]
+derive_more = "0.99.17"
 dynec = "0.2.0-alpha.2"
-nalgebra = "0.31.4"
+rayon = "1.8.0"
+traffloat-graph = {path = "../graph"}
+traffloat-base = {path = "../base"}
