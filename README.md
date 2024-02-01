@@ -47,7 +47,7 @@ What to expect from the game:
   Explore the dynamically generated map to unlock new resources.
 - **Cooperative**: Cooperative multiplayer is (will be) supported.
   Work together to develop the metropolis and thrive even better.
-- **Diplomatic**: PvP is (will be) supported.
+- **Diplomacy**: PvP is (will be) supported.
   Build trade relations with other players to become a business tycoon,
   but beware sabotages from espionage, both physical and social.
 

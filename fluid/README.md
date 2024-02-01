@@ -109,29 +109,51 @@ which may be modified through construction/renovation.
 
 ### Transfer rate
 
-Fluid transfer across a pipe is computed from four variables:
-resistance, pressure, force and diffusion.
-To generalize, the transfer rate of a fluid type across a link is computed by
+Fluid transfer across a pipe is computed from net force, resistance and diffusion.
 
-```text
-pressure_gradient / resistance + force + concentration_gradient
-```
+#### Forces
+
+The net force is computed as the sum of different forces acting on the link.
+
+##### Pressure difference
+
+The difference in pressure level between two containers induces
+a net flow from the higher-pressure to the lower-pressure container.
+
+##### Pumps
+
+Pumps may be installed on transfer links during construction and renovation.
+
+##### Fields
+
+[Vector fields](../field/README.md) may catalyze transfer in a direction
+depending on the field properties.
 
 #### Resistance
 
 Resistance is the cost of moving a fluid from one link of a storage to another.
+There are multiple factors that multiply into the resistance value.
 
-For corridor links, the resistance is a simplified version
+##### Shape
+
+For corridor links, the base resistance is a simplified version
 of the flow rate multiplier given by the Hagen–Poiseuille equation,
 i.e. `resistance = length / radius^4`, where `length` and `radius` describe the duct.
 
 For inter-building links, we assume the length is the radius of the building itself,
 and assume the whole building space is available for transfer,
-so the resistance is simply `1 / radius^3`.
+so the base resistance is simply `1 / radius^3`.
 
-#### Force
+##### Material
 
-The force is the sum of active transport effects exerted by other modules, for example:
+The fluid type defines a `viscosity` value,
+which is a multiplier applied on the resistance directly.
 
-- A pump installed on the link.
-- A [field](../fluid/README.md) that affects flow rate.
+##### Fields
+
+[Scalar fields](../field/README.md) may affect flow rate depending on the field properties.
+
+#### Diffusion
+
+Diffusion is the result of concentration gradient of a fluid type between containers.
+The net sum of diffusion-induced transfer is zero.
