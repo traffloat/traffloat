@@ -10,7 +10,7 @@ license = "AGPL-3.0"
 
 [dependencies]
 derive_more = "0.99.17"
-dynec = "0.2.0-alpha.2"
+dynec = {version = "0.2.1", features = ["tuple-impl-16-zip"]}
 rayon = "1.8.0"
 traffloat-graph = {path = "../graph"}
 traffloat-base = {path = "../base"}

@@ -1,0 +1,20 @@
+[package]
+name = "traffloat-fluid-viewer"
+authors = ["SOFe <sofe2038@gmail.com>"]
+version = "0.0.3"
+edition = "2021"
+repository = "https://github.com/traffloat/traffloat"
+homepage = "https://github.com/traffloat/traffloat"
+description = "Traffloat fluid algorithm visualization"
+license = "AGPL-3.0"
+
+[dependencies]
+anyhow = "1.0.81"
+crossterm = "0.27.0"
+dynec = {version = "0.2.1", features = ["tuple-impl-16-zip"]}
+log = { version = "0.4.21", features = ["std"] }
+ratatui = "0.26.1"
+traffloat-base = {path = "../../base"}
+traffloat-fluid = {path = ".."}
+traffloat-graph = {path = "../../graph"}
+tui-logger = { version = "0.11.0", features = ["crossterm"] }

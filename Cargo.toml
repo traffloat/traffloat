@@ -4,6 +4,7 @@ members = [
 	"base",
 	"graph",
 	"fluid",
+	"fluid/viewer",
 ]
 resolver = "2"
 

@@ -5,11 +5,10 @@
 use derive_more::{Add, AddAssign, Neg, Sub, SubAssign, Sum};
 use dynec::Discrim;
 
-mod desc;
-pub use desc::*;
+pub mod container;
+pub use container::Container;
 
-pub mod pipe;
-pub mod storage;
+// pub mod pipe;
 
 /// Identifies a type of liquid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Discrim)]
@@ -43,10 +42,17 @@ pub struct Viscosity {
 
 #[dynec::global]
 pub struct TypeDefs {
-    defs: Vec<TypeDef>,
+    pub defs: Vec<TypeDef>,
 }
 
 impl TypeDefs {
+    /// Registers a new fluid type. Only for constructing test cases.
+    pub fn register(&mut self, def: TypeDef) -> Type {
+        let ret = Type(self.defs.len()-1);
+        self.defs.push(def);
+        ret
+    }
+
     /// Gets the definition of a fluid type
     pub fn get(&self, ty: Type) -> &TypeDef {
         self.defs.get(ty.0).expect("reference to unknown fluid type")
@@ -65,19 +71,17 @@ pub struct TypeDef {
     /// and diffusion rate in diffusion respectively.
     pub viscosity: Viscosity,
 
-    /// Compressibility coefficient. For simplicity we assume constant compressibility.
-    ///
-    /// Compressibility is the ratio of relative volume decrease and absolute pressure increase,
-    /// i.e. (1 - V2/V1) / (P2 - P1).
-    pub compress: f64,
+    /// The specific volume (reciprocal of density) of the fluid during vacuum phase.
+    pub vacuum_specific_volume: f64,
 
-    /// Volume of 1.0 mass of the fluid at vacuum.
-    ///
-    /// This value actually makes no sense in realistic physics,
-    /// but is used as a baseline value to estimate the fluid pressure based on volume.
-    pub molar_volume_vacuum: Volume,
+    /// The critical pressure above which the fluid exhibits saturation phase properties.
+    pub critical_pressure: Pressure,
+}
 
-    /// compress multiplied by molar_volume_vacuum,
-    /// used to compute the pressure.
-    pub cmvv: f64,
+pub struct Bundle;
+
+impl dynec::Bundle for Bundle {
+    fn register(&mut self, builder: &mut dynec::world::Builder) {
+        builder.schedule(container::reconcile_container.build());
+    }
 }

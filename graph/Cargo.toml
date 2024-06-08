@@ -9,5 +9,5 @@ description = "Traffloat structural graph management"
 license = "AGPL-3.0"
 
 [dependencies]
-dynec = "0.2.0-alpha.2"
+dynec = "0.2.1"
 nalgebra = "0.31.4"

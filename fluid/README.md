@@ -81,7 +81,7 @@ pressure = sum(
 #### Explosion phase
 
 A container explodes if its pressure exceeds the pressure limit
-for two consecutive simulation frames.
+for three consecutive simulation frames.
 All connections are cut, and an `ExplosionEvent` is emitted,
 the impact of which is to be handled by other modules, for example:
 
