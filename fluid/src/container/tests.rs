@@ -1,46 +1,170 @@
-use std::collections::HashMap;
+use std::iter;
 
-use dynec::tracer;
+use approx::assert_relative_eq;
+use bevy::app::{self, App};
+use bevy::hierarchy::BuildWorldChildren;
 
-use crate::{container, Mass, Pressure, Type, TypeDef, TypeDefs, Viscosity, Volume};
-
-use super::Container;
+use super::element;
+use crate::{config, units};
 
 struct ContainerSetup {
-    pressure: f64,
-    volume: f64,
-    liquids: HashMap<Type, f64>,
+    max_pressure:    f32,
+    max_volume:      f32,
+    expect_pressure: f32,
+    elements:        Vec<ElementSetup>,
 }
 
-struct TestBundle(Vec<ContainerSetup>);
+struct ElementSetup {
+    mass:                   f32,
+    vacuum_specific_volume: f32,
+    critical_pressure:      f32,
+    saturation_gamma:       f32,
+    expect_volume:          f32,
+}
 
-impl dynec::Bundle for TestBundle {
-    fn register(&mut self, builder: &mut dynec::world::Builder) {
-        builder.schedule(super::reconcile_container.build());
-        builder.global(TypeDefs{
-            defs: vec![
-                TypeDef {
-                    viscosity: Viscosity{quantity: 1.0},
-                    vacuum_specific_volume: 1.0,
-                    critical_pressure: Pressure{quantity: 1.0},
-                },
-            ],
+fn do_test(setup: ContainerSetup) {
+    let mut app = App::new();
+
+    let mut types = Vec::new();
+    let defs =
+        setup.elements.iter().fold(config::TypeDefsBuilder::default(), |mut builder, fluid| {
+            let ty = builder.register(config::TypeDef {
+                viscosity:              units::Viscosity::default(), // unused
+                vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
+                critical_pressure:      fluid.critical_pressure.into(),
+                saturation_gamma:       fluid.saturation_gamma,
+            });
+            types.push(ty);
+            builder
         });
-    }
+    app.insert_resource(defs.build());
+    app.add_systems(app::Update, super::rebalance_system);
 
-    fn populate(&mut self, world: &mut dynec::World) {
-        for setup in &self.0 {
-            world.create(dynec::comps![ Container =>
-                container::MaxVolume{volume: Volume{quantity: setup.volume }},
-                container::MaxPressure{pressure: Pressure{quantity: setup.pressure }},
-                @?setup.liquids.iter().map(|(&ty, &quantity)| (ty, container::TypedMass{mass: Mass{quantity}})),
-            ]);
+    let mut container = app.world.spawn(
+        super::Bundle::builder()
+            .max_volume(super::MaxVolume { volume: setup.max_volume.into() })
+            .max_pressure(super::MaxPressure { pressure: setup.max_pressure.into() })
+            .build(),
+    );
+
+    let mut element_entities = Vec::new();
+    container.with_children(|builder| {
+        for (&ty, elemenet) in iter::zip(&types, &setup.elements) {
+            element_entities.push(
+                builder
+                    .spawn(
+                        element::Bundle::builder()
+                            .ty(ty)
+                            .mass(element::Mass { mass: elemenet.mass.into() })
+                            .build(),
+                    )
+                    .id(),
+            );
         }
+    });
+
+    let container_entity = container.id();
+
+    app.update();
+
+    assert_relative_eq!(
+        app.world.get::<super::CurrentVolume>(container_entity).unwrap().volume.quantity,
+        setup.elements.iter().map(|fluid| fluid.expect_volume).sum(),
+    );
+    assert_relative_eq!(
+        app.world.get::<super::CurrentPressure>(container_entity).unwrap().pressure.quantity,
+        setup.expect_pressure,
+    );
+
+    for (element, element_entity) in iter::zip(&setup.elements, element_entities) {
+        assert_relative_eq!(
+            app.world.get::<element::Volume>(element_entity).unwrap().volume.quantity,
+            element.expect_volume,
+        );
     }
 }
 
 #[test]
-fn test_zero_mass() {
-    let mut world = dynec::world::new([Box::new(TestBundle(vec![])) as Box<dyn dynec::Bundle>]);
-    world.execute(&tracer::Noop);
+fn empty_container() {
+    do_test(ContainerSetup {
+        max_pressure:    100.,
+        max_volume:      100.,
+        expect_pressure: 0.,
+        elements:        vec![],
+    });
+}
+
+#[test]
+fn mixture_vacuum() {
+    do_test(ContainerSetup {
+        max_pressure:    100.,
+        max_volume:      100.,
+        expect_pressure: (10. + 6.) / 100.,
+        elements:        vec![
+            ElementSetup {
+                mass:                   5.,
+                vacuum_specific_volume: 2.,
+                critical_pressure:      50.,
+                saturation_gamma:       100.,
+                expect_volume:          10.,
+            },
+            ElementSetup {
+                mass:                   2.,
+                vacuum_specific_volume: 3.,
+                critical_pressure:      50.,
+                saturation_gamma:       100.,
+                expect_volume:          6.,
+            },
+        ],
+    });
+}
+
+#[test]
+fn mixture_compression() {
+    do_test(ContainerSetup {
+        max_pressure:    100.,
+        max_volume:      100.,
+        expect_pressure: (72. + 60.) / 100.,
+        elements:        vec![
+            ElementSetup {
+                mass:                   9.,
+                vacuum_specific_volume: 8.,
+                critical_pressure:      50.,
+                saturation_gamma:       100.,
+                expect_volume:          72. / (72. + 60.) * 100.,
+            },
+            ElementSetup {
+                mass:                   30.,
+                vacuum_specific_volume: 2.,
+                critical_pressure:      50.,
+                saturation_gamma:       100.,
+                expect_volume:          60. / (72. + 60.) * 100.,
+            },
+        ],
+    });
+}
+
+#[test]
+fn mixture_saturation() {
+    do_test(ContainerSetup {
+        max_pressure:    100.,
+        max_volume:      100.,
+        expect_pressure: 200. / 100. + (80. / (80. + 120.)) * (2. - 1.2) * 10.,
+        elements:        vec![
+            ElementSetup {
+                mass:                   80.,
+                vacuum_specific_volume: 1.,
+                critical_pressure:      1.2,
+                saturation_gamma:       10.,
+                expect_volume:          80. / (80. + 120.) * 100.,
+            },
+            ElementSetup {
+                mass:                   60.,
+                vacuum_specific_volume: 2.,
+                critical_pressure:      100.,
+                saturation_gamma:       100.,
+                expect_volume:          120. / (80. + 120.) * 100.,
+            },
+        ],
+    });
 }

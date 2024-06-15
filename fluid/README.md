@@ -12,6 +12,10 @@ which are either building storages, corridor ducts,
 [ambient space](../graph/README.md)
 or [ambient duct](../graph/README.md).
 
+> [!NOTE]
+> Corridor ducts are also containers.
+> Only the link between a corridor and a building is called a "pipe".
+
 Each container contains a mixture of immiscible fluids
 corresponding to different fluid types.
 The amount of each fluid in the mixture is represented by its mass.
@@ -35,7 +39,7 @@ A mixture is in the vacuum phase if `sum(mass[type] / vacuum_density[type]) < vo
 where `vacuum_density` is a property of each fluid type.
 
 During the vacuum phase, the volume is computed as `sum(mass[type] / vacuum_density[type])`.
-The pressure is `sum(mass[type]) / volume_limit`.
+The pressure is `volume / volume_limit`.
 
 > The real-life equivalent of "vacuum density" is approximately
 > the density of a fluid under weightlessness held together by surface tension.
@@ -46,7 +50,7 @@ A mixture is in the compression phase if
 `sum(mass[type] / vacuum_density[type]) > volume_limit`.
 
 During the compression phase, the volume is always `volume_limit`.
-The pressure is computed as `pressure = sum(mass[type]) / volume`.
+The pressure is `sum(mass[type] / vacuum_density[type]) / volume`.
 
 > This is a very rough approximation of the ideal gass law `PV=nRT`,
 > assuming constant molar mass, constant temperature
@@ -58,20 +62,17 @@ For a single type of fluid,
 it transitions from the compression phase to the saturation phase
 when its pressure exceeds the `critical_pressure` defined for the fluid type.
 
-At the saturation phase, each additional mass amplifies the pressure by `gamma` times.
-The value of `gamma` is defined as a constant `65536.0`.
+For a saturated fluid with the saturation coefficient
+`saturation_coef = base_pressure / critical_pressure - 1`,
+the exceeding pressure above the critical pressure is amplified by `GAMMA` times,
+where the value of `GAMMA` varies by fluid type.
 Thus, the volume continues to be `volume_limit`,
-but the pressure is instead computed as
-`mass / volume * gamma + critical_pressure * (1 - gamma)`.
+but the pressure becomes
+`base_pressure + (base_pressure - critical_pressure) * GAMMA`.
 
-For mixtures, the formula above is computed by adding up different pressures, i.e.
-
-```text
-pressure = sum(
-  mass[type] / volume * gamma
-  + critical_pressure[type] * (1 - gamma) * mass[type] / sum(mass)
-)
-```
+For mixtures, the amplification is applied independently
+by multiplying the additional pressure by
+the proportion of the fluid volume in the mixture.
 
 > This is a hack to simulate liquids and fluids with low compressibility,
 > allowing a container to be fully filled without hitting the pressure limit easily.
@@ -96,15 +97,15 @@ The fluid model avoids creating or destroying fluid mass.
 Fluid may move between containers,
 but the total mass is generally consistent.
 
-Due to rounding error or computation efficiency,
+Due to precision and computation efficiency,
 a small amount of mass may be lost/created during simulation,
 but this amount is generally intended to be kept negligible.
 
-### Transfer links
+### Pipes
 
 Fluids may transfer between two containers within the same building
 or between a container in a building and a duct in an adjacent corridor.
-Such pairs are called "container links",
+Such pairs are called "pipes",
 which may be modified through construction/renovation.
 
 ### Transfer rate

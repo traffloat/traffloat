@@ -9,4 +9,4 @@ description = "Traffloat base components"
 license = "AGPL-3.0"
 
 [dependencies]
-dynec = "0.2.1"
+bevy = {workspace = true}

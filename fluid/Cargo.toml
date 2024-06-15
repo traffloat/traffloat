@@ -1,7 +1,7 @@
 [package]
 name = "traffloat-fluid"
 authors = ["SOFe <sofe2038@gmail.com>"]
-version = "0.0.3"
+version = "0.0.4"
 edition = "2021"
 repository = "https://github.com/traffloat/traffloat"
 homepage = "https://github.com/traffloat/traffloat"
@@ -9,8 +9,11 @@ description = "Traffloat fluid physics"
 license = "AGPL-3.0"
 
 [dependencies]
+bevy = {workspace = true}
+traffloat-graph = {workspace = true}
+traffloat-base = {workspace = true}
 derive_more = "0.99.17"
-dynec = {version = "0.2.1", features = ["tuple-impl-16-zip"]}
-rayon = "1.8.0"
-traffloat-graph = {path = "../graph"}
-traffloat-base = {path = "../base"}
+typed-builder = "0.18.2"
+
+[dev-dependencies]
+approx = "0.5.1"

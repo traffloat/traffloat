@@ -1,21 +1,54 @@
 [workspace]
 members = [
-	"version",
-	"base",
-	"graph",
-	"fluid",
-	"fluid/viewer",
+    "graph",
+    "fluid",
+    "version",
+    "base",
 ]
 resolver = "2"
+
+[workspace.dependencies.bevy]
+version = "0.13"
+features = [
+    "dynamic_linking",
+]
+
+[workspace.dependencies.traffloat-graph]
+path = "graph"
+
+[workspace.dependencies.traffloat-fluid]
+path = "fluid"
+
+[workspace.dependencies.traffloat-version]
+path = "version"
+
+[workspace.dependencies.traffloat-base]
+path = "base"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+needless_pass_by_value = "allow"
+
+[workspace.lints.clippy.pedantic]
+level = "warn"
+priority = -1
 
 [profile.dev]
 opt-level = 3
 
-[profile.dev.package]
-traffloat-version = {opt-level = 0}
-traffloat-base = {opt-level = 0}
-traffloat-graph = {opt-level = 0}
-traffloat-fluid = {opt-level = 0}
+[profile.dev.package.traffloat-graph]
+opt-level = 0
+
+[profile.dev.package.traffloat-fluid]
+opt-level = 0
+
+[profile.dev.package.traffloat-version]
+opt-level = 0
+
+[profile.dev.package.traffloat-base]
+opt-level = 0
 
 [profile.release]
 lto = true

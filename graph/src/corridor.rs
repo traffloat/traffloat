@@ -1,17 +1,35 @@
-//! Edges in the structural graph.
+//! A link between two buildings.
 
 use std::ops;
 
-use dynec::{entity, Entity};
+use bevy::app;
+use bevy::ecs::component::Component;
+use bevy::ecs::entity::Entity;
+use bevy::ecs::query::{QueryData, QueryFilter, ROQueryItem};
+use bevy::ecs::{bundle, query, system};
+use typed_builder::TypedBuilder;
 
-use crate::building::Building;
+use crate::building;
 
-dynec::archetype! {
-    /// A link between two buildings
-    pub Corridor;
+pub mod duct;
 
-    /// An internal structure of a corridor.
-    pub Duct;
+/// Maintain corridors.
+pub struct Plugin;
+
+impl app::Plugin for Plugin {
+    fn build(&self, app: &mut bevy::prelude::App) {
+        app.add_systems(app::Update, update_length_system);
+    }
+}
+
+/// Components for a corridor.
+#[derive(bundle::Bundle, TypedBuilder)]
+#[allow(missing_docs)]
+pub struct Bundle {
+    pub endpoints: Endpoints,
+    pub ducts:     DuctList,
+    #[builder(default)]
+    pub length:    Length,
 }
 
 /// The endpoints for a corridor.
@@ -68,52 +86,69 @@ impl<T> Binary<T> {
         }
     }
 
-    /// Returns the value corresponding to first_endpoint and to `!first_endpoint` respectively.
+    /// Returns the value corresponding to `first_endpoint` and to `!first_endpoint` respectively.
     pub fn as_endpoints_mut(&mut self, first_endpoint: Endpoint) -> (&mut T, &mut T) {
         match first_endpoint {
             Endpoint::Alpha => (&mut self.alpha, &mut self.beta),
             Endpoint::Beta => (&mut self.beta, &mut self.alpha),
         }
     }
+
+    /// Converts the values to reference types.
+    pub fn as_ref(&self) -> Binary<&T> { Binary { alpha: &self.alpha, beta: &self.beta } }
+
+    /// Applies the closure to each value.
+    #[must_use]
+    pub fn map<U>(self, mut f: impl FnMut(T) -> U) -> Binary<U> {
+        Binary { alpha: f(self.alpha), beta: f(self.beta) }
+    }
 }
 
-impl<T: entity::Referrer> entity::Referrer for Binary<T> {
-    fn visit_type(arg: &mut dynec::entity::referrer::VisitTypeArg) {
-        if arg.mark::<Self>().is_continue() {
-            T::visit_type(arg);
-        }
-    }
-
-    fn visit_mut<V: dynec::entity::referrer::VisitMutArg>(&mut self, arg: &mut V) {
-        self.alpha.visit_mut(arg);
-        self.beta.visit_mut(arg);
+impl Binary<Entity> {
+    /// Performs a bevy query on both entities.
+    #[must_use]
+    pub fn query<'a, D: QueryData, F: QueryFilter>(
+        &self,
+        query: &'a system::Query<D, F>,
+    ) -> Binary<ROQueryItem<'a, D>> {
+        let [alpha, beta] = query.many([self.alpha, self.beta]);
+        Binary { alpha, beta }
     }
 }
 
 /// The endpoint buildings of a corridor.
-#[dynec::comp(of = Corridor, required)]
+#[derive(Component)]
 pub struct Endpoints {
-    #[entity]
-    pub endpoints: Binary<Entity<Building>>,
+    /// Endpoint buildings.
+    pub endpoints: Binary<Entity>,
+}
+
+/// Length of a corridor.
+///
+/// Cached for reference, maintained by the corridor plugin and computed from endpoint positions.
+#[derive(Default, Component)]
+pub struct Length {
+    /// Length value.
+    pub value: f32,
 }
 
 /// List of ducts in a corridor.
-#[dynec::comp(of = Corridor, required)]
+#[derive(Component)]
 pub struct DuctList {
     /// Non-ambient ducts in this corridor.
     /// The order of entities in this list has no significance.
-    #[entity]
-    pub ducts: Vec<Entity<Duct>>,
+    pub ducts: Vec<Entity>,
 
     /// The ambient duct for this corridor.
-    #[entity]
-    pub ambient: Entity<Duct>,
+    pub ambient: Entity,
 }
 
-/// References the owning building for a facility.
-#[dynec::comp(of = Duct, required)]
-pub struct DuctOwner {
-    /// The corridor in which this duct is installed.
-    #[entity]
-    pub corridor: Entity<Corridor>,
+fn update_length_system(
+    mut corridors: system::Query<(&Endpoints, &mut Length), query::Changed<Endpoints>>,
+    buildings: system::Query<(&building::Position,)>,
+) {
+    corridors.iter_mut().for_each(|(endpoints, mut length)| {
+        let positions = endpoints.endpoints.query(&buildings).map(|(position,)| position);
+        length.value = positions.alpha.vec.distance(positions.beta.vec);
+    });
 }
