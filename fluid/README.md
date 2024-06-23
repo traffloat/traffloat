@@ -9,11 +9,10 @@ For simplicity, both liquids and gases are generalized as fluids.
 
 Fluids are stored in fluid storages ("containers"),
 which are either building storages, corridor ducts,
-[ambient space](../graph/README.md)
-or [ambient duct](../graph/README.md).
+[ambient space](../graph/)
+or [ambient duct](../graph/).
 
-> [!NOTE]
-> Corridor ducts are also containers.
+> Note: corridor ducts are also containers.
 > Only the link between a corridor and a building is called a "pipe".
 
 Each container contains a mixture of immiscible fluids
@@ -86,9 +85,9 @@ for three consecutive simulation frames.
 All connections are cut, and an `ExplosionEvent` is emitted,
 the impact of which is to be handled by other modules, for example:
 
-- The [construction](../construction/README.md) module
+- The [construction](../construction/) module
   may apply effects on the building attributes.
-- The [inhab](../inhab/README.md) module
+- The [inhab](../inhab/) module
   may apply effects on inhabitants adjacent to the container.
 
 ## Transferring fluids
@@ -127,7 +126,7 @@ Pumps may be installed on transfer links during construction and renovation.
 
 ##### Fields
 
-[Vector fields](../field/README.md) may catalyze transfer in a direction
+[Vector fields](../field/) may catalyze transfer in a direction
 depending on the field properties.
 
 #### Resistance
@@ -152,7 +151,7 @@ which is a multiplier applied on the resistance directly.
 
 ##### Fields
 
-[Scalar fields](../field/README.md) may affect flow rate depending on the field properties.
+[Scalar fields](../field/) may affect flow rate depending on the field properties.
 
 #### Diffusion
 

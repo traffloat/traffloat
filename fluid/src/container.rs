@@ -20,6 +20,12 @@ pub mod element;
 #[cfg(test)]
 mod tests;
 
+/// Transferring fluid less than this amount would not trigger container element creation.
+pub const CREATION_THRESHOLD: units::Mass = units::Mass { quantity: 1e-3 };
+
+/// Remaining fluid less than this amount would trigger container element deletion.
+pub const DELETION_THRESHOLD: units::Mass = units::Mass { quantity: 1e-6 };
+
 /// Maintains the state within each container.
 pub struct Plugin;
 
@@ -97,7 +103,7 @@ fn rebalance_system(
         saturation_gamma:  f32,
     }
 
-    let mut buf = Vec::<ElementState>::default();
+    let mut buf = Vec::<Option<ElementState>>::default();
 
     q_containers.iter_mut().for_each(
         |(container_entity, elements, mut pressure, mut occupied, max_volume, max_pressure)| {
@@ -110,13 +116,13 @@ fn rebalance_system(
             // Even if they won't end up as the eventual value if it is not vacuum phase,
             // this would serve as a buffer memory.
             for (state, &element) in iter::zip(&mut buf, elements) {
-                let (&ty, mass, mut volume) = q_elements.get_mut(element).unwrap();
+                let Ok((&ty, mass, mut volume)) = q_elements.get_mut(element) else { continue };
                 let def = defs.get(ty);
 
-                *state = ElementState {
+                *state = Some(ElementState {
                     critical_pressure: def.critical_pressure,
                     saturation_gamma:  def.saturation_gamma,
-                };
+                });
 
                 volume.volume = mass.mass * def.vacuum_specific_volume;
                 total_vacuum_volume += volume.volume;
@@ -137,8 +143,11 @@ fn rebalance_system(
 
             let mut saturated_pressure = base_pressure;
             for (state, &element) in iter::zip(&buf, elements) {
+                let Some(state) = state else { continue };
+
                 // scale volume proportionally to add up to approximately max_volume
-                let (_, _, mut volume) = q_elements.get_mut(element).unwrap();
+                let (_, _, mut volume) =
+                    q_elements.get_mut(element).expect("state.is_some() iff child is an element");
                 volume.volume.quantity /= base_pressure.quantity;
 
                 if base_pressure > state.critical_pressure {

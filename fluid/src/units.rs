@@ -18,6 +18,24 @@ macro_rules! define_unit {
             $vis struct $ident {
                 pub quantity: f32,
             }
+
+            impl ops::Mul<f32> for $ident {
+                type Output = Self;
+
+                fn mul(mut self, other: f32) -> Self {
+                    self.quantity *= other;
+                    self
+                }
+            }
+
+            impl ops::Div<f32> for $ident {
+                type Output = Self;
+
+                fn div(mut self, other: f32) -> Self {
+                    self.quantity /= other;
+                    self
+                }
+            }
          )*
     }
 }

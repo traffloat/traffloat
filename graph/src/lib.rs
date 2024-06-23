@@ -1,5 +1,5 @@
 //! The base structural graph of Traffloat.
-
+#![doc = include_str!("../README.md")]
 use bevy::app;
 
 pub mod building;

@@ -1,6 +1,7 @@
 //! Fluids are items that can diffuse between adjacent storages and pipes.
 //!
 //! "Fluid" is the generalization of gases and liquids.
+#![doc = include_str!("../README.md")]
 
 use bevy::app;
 use config::TypeDefs;
