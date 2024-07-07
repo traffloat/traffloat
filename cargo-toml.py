@@ -22,7 +22,7 @@ contents = {
         "dependencies": {
             "bevy": {
                 # "git": "https://github.com/bevyengine/bevy",
-                "version": "0.13",
+                "version": "0.14",
                 "features": ["dynamic_linking"],
             },
         }
@@ -38,6 +38,15 @@ contents = {
                 "pedantic": {"level": "warn", "priority": -1},
                 "needless_pass_by_value": "allow",
             },
+        },
+        "package": {
+            "authors": ["SOFe <sofe2038@gmail.com>"],
+            "version": "0.0.3",
+            "edition": "2021",
+            "repository": "https://github.com/traffloat/traffloat",
+            "homepage": "https://github.com/traffloat/traffloat",
+            "license": "AGPL-3.0",
+            "rust-version": "1.79",
         },
     },
     "profile": {

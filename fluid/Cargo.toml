@@ -1,12 +1,13 @@
 [package]
 name = "traffloat-fluid"
-authors = ["SOFe <sofe2038@gmail.com>"]
-version = "0.0.4"
-edition = "2021"
-repository = "https://github.com/traffloat/traffloat"
-homepage = "https://github.com/traffloat/traffloat"
 description = "Traffloat fluid physics"
-license = "AGPL-3.0"
+homepage = {workspace = true}
+license = {workspace = true}
+edition = {workspace = true}
+repository = {workspace = true}
+authors = {workspace = true}
+version = {workspace = true}
+rust-version = {workspace = true}
 
 [dependencies]
 bevy = {workspace = true}
@@ -14,6 +15,7 @@ traffloat-graph = {workspace = true}
 traffloat-base = {workspace = true}
 derive_more = "0.99.17"
 typed-builder = "0.18.2"
+smallvec = "1.13.2"
 
 [dev-dependencies]
 approx = "0.5.1"

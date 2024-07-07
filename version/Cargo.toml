@@ -1,12 +1,13 @@
 [package]
 name = "traffloat-version"
-authors = ["SOFe <sofe2038@gmail.com>"]
-version = "0.2.0"
-edition = "2021"
-repository = "https://github.com/traffloat/traffloat"
-homepage = "https://github.com/traffloat/traffloat"
 description = "Traffloat build version constants"
-license = "AGPL-3.0"
+homepage = {workspace = true}
+license = {workspace = true}
+edition = {workspace = true}
+repository = {workspace = true}
+authors = {workspace = true}
+version = {workspace = true}
+rust-version = {workspace = true}
 
 build = "build.rs"
 

@@ -63,6 +63,11 @@ pub struct Binary<T> {
 }
 
 impl<T> Binary<T> {
+    /// Constructs a `Binary` from a function that maps each endpoint to a value.
+    pub fn from_fn(mut f: impl FnMut(Endpoint) -> T) -> Binary<T> {
+        Binary { alpha: f(Endpoint::Alpha), beta: f(Endpoint::Beta) }
+    }
+
     /// Returns the value corresponding to the endpoint.
     pub fn into_endpoint(self, endpoint: Endpoint) -> T {
         match endpoint {
@@ -120,6 +125,38 @@ impl<T> Binary<T> {
     pub fn each_mut(&mut self, mut f: impl FnMut(&mut T)) {
         f(&mut self.alpha);
         f(&mut self.beta);
+    }
+
+    /// Iterates over both components, equivalent to `[&alpha, &beta]`.
+    pub fn iter(&self) -> impl Iterator<Item = &T> { [&self.alpha, &self.beta].into_iter() }
+
+    /// Iterates over both components, equivalent to `[&mut alpha, &mut beta]`.
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        [&mut self.alpha, &mut self.beta].into_iter()
+    }
+}
+
+impl<T> IntoIterator for Binary<T> {
+    type Item = T;
+    type IntoIter = <[T; 2] as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter { [self.alpha, self.beta].into_iter() }
+}
+
+impl<T: PartialEq> Binary<T> {
+    /// Finds `pat` among the operands.
+    ///
+    /// Returns `Some(Alpha)` if the alpha value is equal to `pat`,
+    /// `Some(Beta)` if the beta value is equal but the alpha value is not,
+    /// or `None` if neither is equal.
+    pub fn find(&self, pat: &T) -> Option<Endpoint> {
+        if self.alpha == *pat {
+            Some(Endpoint::Alpha)
+        } else if self.beta == *pat {
+            Some(Endpoint::Beta)
+        } else {
+            None
+        }
     }
 }
 

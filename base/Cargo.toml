@@ -1,12 +1,13 @@
 [package]
 name = "traffloat-base"
-authors = ["SOFe <sofe2038@gmail.com>"]
-version = "0.0.3"
-edition = "2021"
-repository = "https://github.com/traffloat/traffloat"
-homepage = "https://github.com/traffloat/traffloat"
 description = "Traffloat base components"
-license = "AGPL-3.0"
+homepage = {workspace = true}
+license = {workspace = true}
+edition = {workspace = true}
+repository = {workspace = true}
+authors = {workspace = true}
+version = {workspace = true}
+rust-version = {workspace = true}
 
 [dependencies]
 bevy = {workspace = true}

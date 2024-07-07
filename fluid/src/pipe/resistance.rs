@@ -100,6 +100,7 @@ use bevy::prelude::{
     App, Component, Entity, Event, EventReader, IntoSystemConfigs, IntoSystemSetConfigs, Query,
     SystemSet,
 };
+use derive_more::From;
 
 pub(super) struct Plugin;
 
@@ -162,7 +163,7 @@ fn static_to_dynamic_system(mut query: Query<(&Static, &mut Dynamic)>) {
 /// This is affected by factors like corridor length, corridor radius and pipe radius.
 /// The value is determined during construction;
 /// it is not computed under any systems in this plugin.
-#[derive(Component)]
+#[derive(Component, From)]
 pub struct FromShape {
     pub resistance: f32,
 }

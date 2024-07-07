@@ -31,13 +31,12 @@ impl app::Plugin for Plugin {
                 apply_resistance
                     .after(SystemSets::Additive)
                     .before(SystemSets::Relative)
-                    .in_set(SystemSets::Compute)
                     .after(resistance::SystemSets::Compute),
             ),
         );
         app.configure_sets(
             app::Update,
-            (SystemSets::Additive, SystemSets::Relative).before(SystemSets::Compute),
+            (SystemSets::Additive, SystemSets::Relative).in_set(SystemSets::Compute),
         );
     }
 }

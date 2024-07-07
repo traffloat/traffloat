@@ -1,7 +1,7 @@
 use std::iter;
 
 use approx::assert_relative_eq;
-use bevy::app::{self, App};
+use bevy::app::App;
 use bevy::hierarchy::BuildWorldChildren;
 
 use super::element;
@@ -27,8 +27,8 @@ fn do_test(setup: ContainerSetup) {
 
     let mut types = Vec::new();
     let defs =
-        setup.elements.iter().fold(config::TypeDefsBuilder::default(), |mut builder, fluid| {
-            let ty = builder.register(config::TypeDef {
+        setup.elements.iter().fold(config::ConfigBuilder::default(), |mut builder, fluid| {
+            let ty = builder.register_type(config::TypeDef {
                 viscosity:              units::Viscosity::default(), // unused
                 vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
                 critical_pressure:      fluid.critical_pressure.into(),
@@ -38,9 +38,9 @@ fn do_test(setup: ContainerSetup) {
             builder
         });
     app.insert_resource(defs.build());
-    app.add_systems(app::Update, super::rebalance_system);
+    app.add_plugins(super::Plugin);
 
-    let mut container = app.world.spawn(
+    let mut container = app.world_mut().spawn(
         super::Bundle::builder()
             .max_volume(super::MaxVolume { volume: setup.max_volume.into() })
             .max_pressure(super::MaxPressure { pressure: setup.max_pressure.into() })
@@ -68,17 +68,17 @@ fn do_test(setup: ContainerSetup) {
     app.update();
 
     assert_relative_eq!(
-        app.world.get::<super::CurrentVolume>(container_entity).unwrap().volume.quantity,
+        app.world().get::<super::CurrentVolume>(container_entity).unwrap().volume.quantity,
         setup.elements.iter().map(|fluid| fluid.expect_volume).sum(),
     );
     assert_relative_eq!(
-        app.world.get::<super::CurrentPressure>(container_entity).unwrap().pressure.quantity,
+        app.world().get::<super::CurrentPressure>(container_entity).unwrap().pressure.quantity,
         setup.expect_pressure,
     );
 
     for (element, element_entity) in iter::zip(&setup.elements, element_entities) {
         assert_relative_eq!(
-            app.world.get::<element::Volume>(element_entity).unwrap().volume.quantity,
+            app.world().get::<element::Volume>(element_entity).unwrap().volume.quantity,
             element.expect_volume,
         );
     }

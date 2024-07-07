@@ -14,20 +14,31 @@
 //! 3. Compute the [base transfer weight](element::TransferWeight) of each pipe element.
 //! 4. Distribute the available flow rate for each directed pipe element.
 //! 5. Perform container element mass updates, lazily creating/deleting pipe elements during the process.
+//!
+//! A storage for a intra-building inter-facility connections
+//! should reference the building entity as its parent.
+//! A storage for a the connection from a facility to a duct
+//! should reference the duct entity as its parent.
 
 use bevy::ecs::bundle;
-use bevy::hierarchy::BuildChildren;
+use bevy::ecs::component::ComponentId;
+use bevy::ecs::world::DeferredWorld;
+use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::prelude::{App, Commands, Component, Entity, IntoSystemConfigs, Query, Res};
 use bevy::{app, hierarchy};
+use derive_more::From;
 use traffloat_graph::corridor::Binary;
 use typed_builder::TypedBuilder;
 
-use crate::config::{self, TypeDefs};
-use crate::{container, units};
+use crate::config::{self, Config};
+use crate::{commands, container, units};
 
 pub mod element;
 pub mod force;
 pub mod resistance;
+
+#[cfg(test)]
+mod tests;
 
 /// Executes fluid mass transfer between containers.
 pub struct Plugin;
@@ -41,29 +52,40 @@ impl app::Plugin for Plugin {
                 update_transfer_weight_system,
                 distribute_transfer_weight_system
                     .after(update_transfer_weight_system)
-                    .after(force::SystemSets::Compute),
+                    .after(force::SystemSets::Compute)
+                    .before(container::SystemSets::Rebalance),
             ),
         );
+
+        app.world_mut()
+            .register_component_hooks::<container::element::Mass>()
+            .on_remove(remove_element_hook);
     }
 }
 
 /// Components to construct a pipe entity.
 #[derive(bundle::Bundle, TypedBuilder)]
 pub struct Bundle {
-    containers:        Containers,
-    shape_resistance:  resistance::FromShape,
+    #[builder(setter(into))]
+    containers:         Containers,
+    #[builder(setter(into))]
+    shape_resistance:   resistance::FromShape,
     #[builder(default = resistance::Static { resistance: 0. })]
-    static_resistance: resistance::Static,
+    static_resistance:  resistance::Static,
+    #[builder(default = resistance::Dynamic { resistance: 0. })]
+    dynamic_resistance: resistance::Dynamic,
+    #[builder(default = force::Directed { force: <_>::default() })]
+    force:              force::Directed,
 }
 
 /// The containers connected by the pipe.
-#[derive(Component)]
+#[derive(Component, From)]
 pub struct Containers {
     pub endpoints: Binary<Entity>,
 }
 
 fn update_transfer_weight_system(
-    defs: Res<TypeDefs>,
+    config: Res<Config>,
     mut pipe_elements_query: Query<(
         &mut element::TransferWeight,
         &config::Type,
@@ -73,7 +95,7 @@ fn update_transfer_weight_system(
     containers_query: Query<&container::CurrentVolume>,
 ) {
     for (mut weights_write, &ty, endpoints) in pipe_elements_query.iter_mut() {
-        let def = defs.get(ty);
+        let def = config.get_type(ty);
 
         weights_write.output = endpoints.containers.as_ref().map(|&entity| {
             let concentration = entity.map_or(0., |entity| {
@@ -92,6 +114,7 @@ fn update_transfer_weight_system(
 }
 
 fn distribute_transfer_weight_system(
+    config: Res<Config>,
     pipes_query: Query<(&hierarchy::Children, &force::Directed, &Containers)>,
     mut pipe_elements_query: Query<(
         &config::Type,
@@ -146,25 +169,66 @@ fn distribute_transfer_weight_system(
             mass_volume_comps
                 .zip((-mass_ab.mass, mass_ab.mass))
                 .zip(containers.endpoints)
-                .each_mut(|((mass_volume, delta_mass), container)| match mass_volume {
-                    None if *delta_mass < container::CREATION_THRESHOLD => {}
-                    None => {
-                        commands.entity(*container).with_children(|builder| {
-                            builder.spawn(
-                                container::element::Bundle::builder()
+                .zip(container_elements.containers)
+                .each_mut(|(((mass_volume, delta_mass), container), container_element_ref)| {
+                    match mass_volume {
+                        None if *delta_mass < config.creation_threshold() => {} // negligible mass
+                        None => {
+                            commands.add(
+                                commands::CreateContainerElement::builder()
+                                    .container(*container)
                                     .ty(*ty)
                                     .mass(*delta_mass)
                                     .build(),
                             );
-                        });
-                    }
-                    Some((container_element, (mass_comp, _))) => {
-                        mass_comp.mass += *delta_mass;
-                        if mass_comp.mass < container::DELETION_THRESHOLD {
-                            commands.entity(*container_element).despawn();
+                        }
+                        Some((container_element, (mass_comp, _))) => {
+                            mass_comp.mass += *delta_mass;
+                            if mass_comp.mass < config.deletion_threshold() {
+                                commands.entity(*container_element).despawn_recursive();
+                                *container_element_ref = None;
+                            }
                         }
                     }
                 });
+        }
+    }
+}
+
+fn remove_element_hook(mut world: DeferredWorld, container_element: Entity, _: ComponentId) {
+    let ty = world
+        .get::<config::Type>(container_element)
+        .expect("container element must have type component");
+    let container = world
+        .get::<hierarchy::Parent>(container_element)
+        .expect("container element must have container as parent");
+
+    let pipes = world
+        .get::<container::Pipes>(container.get())
+        .expect("container element parent must be container");
+
+    let mut commands = Vec::new(); // TODO optimize this when bevy exposes DeferredWorld splitting capability
+
+    for &pipe in &pipes.pipes {
+        for &pipe_element in world.get::<hierarchy::Children>(pipe).into_iter().flatten() {
+            if world.get::<config::Type>(pipe_element) == Some(ty) {
+                let endpoints = world
+                    .get::<element::ContainerElements>(pipe_element)
+                    .expect("pipe element must have ContainerElements component");
+                if let Some(endpoint) = endpoints.containers.find(&Some(container_element)) {
+                    commands.push((pipe_element, endpoint));
+                }
+            }
+        }
+    }
+
+    for (pipe_element, endpoint) in commands {
+        let mut endpoints =
+            world.get_mut::<element::ContainerElements>(pipe_element).expect("checked above");
+
+        *endpoints.containers.as_endpoint_mut(endpoint) = None;
+        if endpoints.containers.iter().all(Option::is_none) {
+            world.commands().entity(pipe_element).despawn_recursive();
         }
     }
 }

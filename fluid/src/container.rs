@@ -4,15 +4,22 @@
 //!
 //! Each container is the parent entity of a number of "container elements" child entities,
 //! corresponding to all present fluid types in the container.
+//!
+//! A storage for a [facility](traffloat_graph::building::facility)
+//! should reference the facility entity as its parent.
+//! A storage for a [duct](traffloat_graph::corridor::duct)
+//! should reference the duct entity as its parent.
 
 use std::iter;
 
 use bevy::ecs::bundle;
-use bevy::prelude::{Commands, Component, Entity, Query, Res};
+use bevy::prelude::{Commands, Component, Entity, IntoSystemConfigs, Query, Res, SystemSet};
 use bevy::{app, hierarchy};
+use derive_more::From;
+use smallvec::SmallVec;
 use typed_builder::TypedBuilder;
 
-use crate::config::{self, TypeDefs};
+use crate::config::{self, Config};
 use crate::units;
 
 pub mod element;
@@ -20,19 +27,24 @@ pub mod element;
 #[cfg(test)]
 mod tests;
 
-/// Transferring fluid less than this amount would not trigger container element creation.
-pub const CREATION_THRESHOLD: units::Mass = units::Mass { quantity: 1e-3 };
-
-/// Remaining fluid less than this amount would trigger container element deletion.
-pub const DELETION_THRESHOLD: units::Mass = units::Mass { quantity: 1e-6 };
-
 /// Maintains the state within each container.
 pub struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(app::Update, rebalance_system);
+        app.add_systems(app::Update, rebalance_system.in_set(SystemSets::Rebalance));
     }
+}
+
+/// System sets for container fluids.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
+pub enum SystemSets {
+    /// Rebalance volume and pressure within each container based on the mass.
+    ///
+    /// [`element::Mass`]-mutating systems should execute before this set.
+    /// Systems that read [`CurrentVolume`], [`CurrentPressure`], [`element::Volume`] or
+    /// [`ExplosionMarker`] should execute after this set.
+    Rebalance,
 }
 
 /// Components to construct a container.
@@ -42,8 +54,12 @@ pub struct Bundle {
     current_pressure: CurrentPressure,
     #[builder(default = CurrentVolume { volume: <_>::default() })]
     current_volume:   CurrentVolume,
+    #[builder(setter(into))]
     max_volume:       MaxVolume,
+    #[builder(setter(into))]
     max_pressure:     MaxPressure,
+    #[builder(default = Pipes { pipes: <_>::default() })]
+    pipes:            Pipes,
 }
 
 /// Overall pressure of a container.
@@ -63,7 +79,7 @@ pub struct CurrentVolume {
 /// Volume capacity available in a container.
 ///
 /// The occupied volume never (significantly) exceeds this value.
-#[derive(Component)]
+#[derive(Component, From)]
 pub struct MaxVolume {
     pub volume: units::Volume,
 }
@@ -73,9 +89,15 @@ pub struct MaxVolume {
 /// A container entity explodes (with the [`ExplosionMarker`] set)
 /// if the pressure exceeds the threshold for two consecutive cycles
 /// and the pressure of the latter cycle is greater than the previous one.
-#[derive(Component)]
+#[derive(Component, From)]
 pub struct MaxPressure {
     pub pressure: units::Pressure,
+}
+
+/// List of adjacent pipes of a container.
+#[derive(Component)]
+pub struct Pipes {
+    pub pipes: SmallVec<[Entity; 3]>,
 }
 
 /// A marker component on containers indicating that it has exploded.
@@ -85,8 +107,8 @@ pub struct ExplosionMarker;
 
 /// Rebalance the volume of fluids in a system.
 fn rebalance_system(
-    defs: Res<TypeDefs>,
-    mut q_containers: Query<(
+    config: Res<Config>,
+    mut containers_query: Query<(
         Entity,
         &hierarchy::Children,
         &mut CurrentPressure,
@@ -94,7 +116,7 @@ fn rebalance_system(
         &MaxVolume,
         &MaxPressure,
     )>,
-    mut q_elements: Query<(&config::Type, &element::Mass, &mut element::Volume)>,
+    mut elements_query: Query<(&config::Type, &element::Mass, &mut element::Volume)>,
     mut commands: Commands,
 ) {
     #[derive(Default)]
@@ -105,7 +127,7 @@ fn rebalance_system(
 
     let mut buf = Vec::<Option<ElementState>>::default();
 
-    q_containers.iter_mut().for_each(
+    containers_query.iter_mut().for_each(
         |(container_entity, elements, mut pressure, mut occupied, max_volume, max_pressure)| {
             buf.resize_with(elements.len(), <_>::default);
 
@@ -116,8 +138,8 @@ fn rebalance_system(
             // Even if they won't end up as the eventual value if it is not vacuum phase,
             // this would serve as a buffer memory.
             for (state, &element) in iter::zip(&mut buf, elements) {
-                let Ok((&ty, mass, mut volume)) = q_elements.get_mut(element) else { continue };
-                let def = defs.get(ty);
+                let Ok((&ty, mass, mut volume)) = elements_query.get_mut(element) else { continue };
+                let def = config.get_type(ty);
 
                 *state = Some(ElementState {
                     critical_pressure: def.critical_pressure,
@@ -146,8 +168,9 @@ fn rebalance_system(
                 let Some(state) = state else { continue };
 
                 // scale volume proportionally to add up to approximately max_volume
-                let (_, _, mut volume) =
-                    q_elements.get_mut(element).expect("state.is_some() iff child is an element");
+                let (_, _, mut volume) = elements_query
+                    .get_mut(element)
+                    .expect("state.is_some() iff child is an element");
                 volume.volume.quantity /= base_pressure.quantity;
 
                 if base_pressure > state.critical_pressure {
