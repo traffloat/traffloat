@@ -1,7 +1,7 @@
 //! A metric is a type of viewable attribute for an entity.
 
 use std::any::type_name;
-use std::{alloc, mem};
+use std::{alloc, iter, mem};
 
 use bevy::app::{self, App};
 use bevy::ecs::component::{ComponentDescriptor, ComponentId, StorageType};
@@ -275,8 +275,8 @@ fn make_value_broadcast_system(world: &mut World, ty: Type) -> SystemConfigs {
                   viewables_query: Query<(&viewable::Viewers, FilteredEntityMut)>| {
                 let viewers_query = &viewers_query;
 
-                events.send_batch(viewables_query.iter().flat_map(
-                    move |(viewable_viewers, viewable_entity)| {
+                let event_ctors =
+                    viewables_query.iter().flat_map(move |(viewable_viewers, viewable_entity)| {
                         let value_ptr =
                             viewable_entity.get_by_id(value_comp_id).expect("requested in query");
                         // Safety: Value components must have type Value
@@ -292,15 +292,18 @@ fn make_value_broadcast_system(world: &mut World, ty: Type) -> SystemConfigs {
                             // Safety: subscription component must have type Subscription
                             let &Subscription { noise_sd } =
                                 unsafe { sub_ptr.deref::<Subscription>() };
-                            let z: f32 = thread_rng().sample(StandardNormal);
-                            Some(UpdateMetricEvent {
+                            Some(move |z: f32| UpdateMetricEvent {
                                 viewer:    viewer_entity,
                                 viewable:  viewable_id,
                                 magnitude: magnitude + z * noise_sd,
                             })
                         })
-                    },
-                ));
+                    });
+
+                events.send_batch(
+                    iter::zip(event_ctors, thread_rng().sample_iter(StandardNormal))
+                        .map(|(event_ctor, z)| event_ctor(z)),
+                );
             },
         )
         .after(ValueFeederSystemSet(ty))
