@@ -1,6 +1,6 @@
 [package]
-name = "traffloat-fluid"
-description = "Traffloat fluid physics"
+name = "traffloat-desktop"
+description = "Traffloat desktop client"
 homepage = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -11,12 +11,8 @@ rust-version = {workspace = true}
 
 [dependencies]
 bevy = {workspace = true}
-traffloat-base = {workspace = true}
 traffloat-graph = {workspace = true}
-traffloat-view = {workspace = true}
+traffloat-base = {workspace = true}
 derive_more = "0.99.17"
 typed-builder = "0.18.2"
 smallvec = "1.13.2"
-
-[dev-dependencies]
-approx = "0.5.1"

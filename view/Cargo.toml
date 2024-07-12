@@ -1,6 +1,6 @@
 [package]
-name = "traffloat-fluid"
-description = "Traffloat fluid physics"
+name = "traffloat-view"
+description = "Traffloat view manager"
 homepage = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
@@ -13,10 +13,8 @@ rust-version = {workspace = true}
 bevy = {workspace = true}
 traffloat-base = {workspace = true}
 traffloat-graph = {workspace = true}
-traffloat-view = {workspace = true}
 derive_more = "0.99.17"
 typed-builder = "0.18.2"
 smallvec = "1.13.2"
-
-[dev-dependencies]
-approx = "0.5.1"
+rand = "0.8.5"
+rand_distr = "0.4.3"

@@ -49,13 +49,13 @@ fn do_test(setup: ContainerSetup) {
 
     let mut element_entities = Vec::new();
     container.with_children(|builder| {
-        for (&ty, elemenet) in iter::zip(&types, &setup.elements) {
+        for (&ty, element) in iter::zip(&types, &setup.elements) {
             element_entities.push(
                 builder
                     .spawn(
                         element::Bundle::builder()
                             .ty(ty)
-                            .mass(element::Mass { mass: elemenet.mass.into() })
+                            .mass(element::Mass { mass: element.mass.into() })
                             .build(),
                     )
                     .id(),
