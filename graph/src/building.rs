@@ -3,7 +3,7 @@
 use bevy::ecs::bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::math::Vec3A;
+use bevy::transform::components::Transform;
 use typed_builder::TypedBuilder;
 
 pub mod facility;
@@ -12,14 +12,7 @@ pub mod facility;
 #[derive(bundle::Bundle, TypedBuilder)]
 #[allow(missing_docs)]
 pub struct Bundle {
-    pub position: Position,
-}
-
-/// Reference position of a building.
-#[derive(Component)]
-pub struct Position {
-    /// Position relative to the global origin.
-    pub vec: Vec3A,
+    pub position: Transform,
 }
 
 /// List of facilities in a building.

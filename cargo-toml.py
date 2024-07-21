@@ -51,7 +51,7 @@ contents = {
     },
     "profile": {
         "dev": {
-            "opt-level": 1,
+            "opt-level": 3,
             "package": {
                 manifest["package"]["name"]: {"opt-level": 0}
                 for path, manifest in members.items()

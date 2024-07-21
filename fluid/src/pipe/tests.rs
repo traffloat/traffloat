@@ -3,7 +3,6 @@ use std::iter;
 use approx::assert_relative_eq;
 use bevy::app::App;
 use bevy::ecs::world::Command;
-use bevy::hierarchy;
 use traffloat_graph::corridor::Binary;
 use typed_builder::TypedBuilder;
 
@@ -76,7 +75,7 @@ fn do_test(setup: Setup) {
         entity
     });
 
-    let pipe = {
+    let _pipe = {
         let entity = app
             .world_mut()
             .spawn(pipe::Bundle::builder().shape_resistance(1.).containers(containers).build());
@@ -85,17 +84,6 @@ fn do_test(setup: Setup) {
 
     for _ in 0..100 {
         app.update();
-        let pressure = containers.map(|container| {
-            app.world().get::<container::CurrentPressure>(container).unwrap().pressure.quantity
-        });
-        dbg!(pressure);
-
-        let children = app.world().get::<hierarchy::Children>(pipe);
-        for &child in children.into_iter().flatten() {
-            let ty = app.world().get::<config::Type>(child);
-            let transfer = app.world().get::<pipe::element::AbTransferMass>(child);
-            dbg!(ty, transfer.map(|t| t.mass));
-        }
     }
 
     // Assert that the pressure of the containers will reach equilibrium.

@@ -6,10 +6,8 @@ use bevy::app;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::{QueryData, QueryFilter, QueryItem, ROQueryItem};
-use bevy::ecs::{bundle, query, system};
+use bevy::ecs::{bundle, system};
 use typed_builder::TypedBuilder;
-
-use crate::building;
 
 pub mod duct;
 
@@ -17,9 +15,7 @@ pub mod duct;
 pub struct Plugin;
 
 impl app::Plugin for Plugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(app::Update, update_length_system);
-    }
+    fn build(&self, _: &mut bevy::prelude::App) {}
 }
 
 /// Components for a corridor.
@@ -28,7 +24,6 @@ impl app::Plugin for Plugin {
 pub struct Bundle {
     pub endpoints: Endpoints,
     pub ducts:     DuctList,
-    #[builder(default)]
     pub length:    Length,
 }
 
@@ -257,14 +252,4 @@ pub struct DuctList {
 
     /// The ambient duct for this corridor.
     pub ambient: Entity,
-}
-
-fn update_length_system(
-    mut corridors: system::Query<(&Endpoints, &mut Length), query::Changed<Endpoints>>,
-    buildings: system::Query<(&building::Position,)>,
-) {
-    corridors.iter_mut().for_each(|(endpoints, mut length)| {
-        let positions = endpoints.endpoints.query(&buildings).map(|(position,)| position);
-        length.value = positions.alpha.vec.distance(positions.beta.vec);
-    });
 }

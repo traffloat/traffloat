@@ -1,6 +1,8 @@
 //! A metric is a type of viewable attribute for an entity.
 
 use std::any::type_name;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 use std::{alloc, iter, mem};
 
 use bevy::app::{self, App};
@@ -8,28 +10,32 @@ use bevy::ecs::component::{ComponentDescriptor, ComponentId, StorageType};
 use bevy::ecs::event::{Event, EventWriter};
 use bevy::ecs::query::{QueryData, QueryFilter};
 use bevy::ecs::schedule::{IntoSystemConfigs, Schedules, SystemConfigs, SystemSet};
-use bevy::ecs::system::{EntityCommand, StaticSystemParam, SystemParam};
+use bevy::ecs::system::{EntityCommand, Res, StaticSystemParam, SystemParam};
 use bevy::ecs::world::{Command, FilteredEntityMut};
 use bevy::prelude::{Commands, Entity, Query, Resource, SystemBuilder, World};
 use bevy::ptr::OwningPtr;
+use bevy::time::{Time, Timer, TimerMode};
 use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
 
 use crate::viewable;
 
+#[cfg(test)]
+mod tests;
+
 pub struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ShowEvent>();
-        app.add_event::<HideEvent>();
         app.add_event::<UpdateMetricEvent>();
+        app.init_resource::<Config>();
     }
 }
 
-#[derive(Resource)]
+#[derive(Default, Resource)]
 pub struct Config {
-    types: Vec<ConfigTypeEntry>,
+    next_type_id: AtomicUsize,
+    types:        Vec<Option<ConfigTypeEntry>>,
 }
 
 impl Config {
@@ -37,9 +43,38 @@ impl Config {
         let entry = self
             .types
             .get(ty.0)
-            .expect("a Type was constructed without a matching entry in the Config");
+            .expect("a Type was constructed without a matching entry in the Config")
+            .as_ref()
+            .expect("Type has not been initialized yet");
         &entry.def
     }
+
+    /// Allocates a new type and returns a command that initializes the corresponding systems.
+    ///
+    /// The returned [`Type`] must not be used before the command has been applied,
+    /// except in commands that are applied after the [`CreateTypeCommand`].
+    ///
+    /// Equivalent to [`create_type`] but can be used from systems.
+    pub fn create(&self, def: TypeDef) -> (Type, CreateTypeCommand) {
+        let id = self.next_type_id.fetch_add(1, Ordering::Relaxed);
+        let ty = Type(id);
+        (ty, CreateTypeCommand { ty, def })
+    }
+}
+
+/// Creates a new type and initializes the corresponding systems.
+///
+/// This is equivalent to [`Config::create`], but can only be used during sync phase.
+pub fn create_type(world: &mut World, def: TypeDef) -> Type {
+    let mut config = world.resource_mut::<Config>();
+
+    let next_type_id = config.next_type_id.get_mut();
+    let ty = Type(*next_type_id);
+    *next_type_id += 1;
+
+    CreateTypeCommand { ty, def }.apply(world);
+
+    ty
 }
 
 /// The identifier used to distinguish between types of metrics.
@@ -52,7 +87,9 @@ struct ConfigTypeEntry {
     def:           TypeDef,
 }
 
-pub struct TypeDef {}
+pub struct TypeDef {
+    pub update_frequency: Duration,
+}
 
 /// The dynamic component type attached to entities storing the value of this metric.
 pub struct Value {
@@ -70,6 +107,7 @@ pub struct Subscription {
 }
 
 pub struct CreateTypeCommand {
+    ty:  Type,
     def: TypeDef,
 }
 
@@ -91,19 +129,17 @@ fn register_dynamic_component<T>(world: &mut World, ty: Type, storage: StorageTy
 
 impl Command for CreateTypeCommand {
     fn apply(self, world: &mut World) {
-        let ty = Type(world.resource::<Config>().types.len());
-
-        let value_comp_id = register_dynamic_component::<Value>(world, ty, StorageType::Table);
+        let value_comp_id = register_dynamic_component::<Value>(world, self.ty, StorageType::Table);
         let sub_comp_id =
-            register_dynamic_component::<Subscription>(world, ty, StorageType::SparseSet);
+            register_dynamic_component::<Subscription>(world, self.ty, StorageType::SparseSet);
 
-        world.resource_mut::<Config>().types.push(ConfigTypeEntry {
-            sub_comp_id,
-            value_comp_id,
-            def: self.def,
-        });
+        let types = &mut world.resource_mut::<Config>().types;
+        if types.len() <= self.ty.0 {
+            types.resize_with(self.ty.0 + 1, <_>::default);
+        }
+        types[self.ty.0] = Some(ConfigTypeEntry { sub_comp_id, value_comp_id, def: self.def });
 
-        let value_broadcast_system = make_value_broadcast_system(world, ty);
+        let value_broadcast_system = make_value_broadcast_system(world, self.ty);
         world.resource_mut::<Schedules>().add_systems(app::Update, value_broadcast_system);
     }
 }
@@ -121,8 +157,11 @@ pub struct SubscribeCommand {
 impl Command for SubscribeCommand {
     fn apply(self, world: &mut World) {
         let types = &world.resource::<Config>().types;
-        let &ConfigTypeEntry { sub_comp_id, .. } =
-            types.get(self.ty.0).expect("unknown metric type");
+        let &ConfigTypeEntry { sub_comp_id, .. } = types
+            .get(self.ty.0)
+            .expect("unknown metric type")
+            .as_ref()
+            .expect("cannot subscribe to uninitialized metric");
 
         let mut viewer = world.entity_mut(self.viewer);
 
@@ -144,8 +183,11 @@ pub struct UnsubscribeCommand {
 impl Command for UnsubscribeCommand {
     fn apply(self, world: &mut World) {
         let types = &world.resource::<Config>().types;
-        let &ConfigTypeEntry { sub_comp_id, .. } =
-            types.get(self.ty.0).expect("unknown metric type");
+        let &ConfigTypeEntry { sub_comp_id, .. } = types
+            .get(self.ty.0)
+            .expect("unknown metric type")
+            .as_ref()
+            .expect("cannot subscribe to uninitialized metric");
 
         let mut viewer = world.entity_mut(self.viewer);
 
@@ -153,25 +195,12 @@ impl Command for UnsubscribeCommand {
     }
 }
 
-/// The client should start displaying an entity.
-#[derive(Event)]
-pub struct ShowEvent {
-    pub viewer:   Entity,
-    pub viewable: Entity,
-}
-
-/// The client should stop displaying an entity.
-#[derive(Event)]
-pub struct HideEvent {
-    pub viewer:   Entity,
-    pub viewable: Entity,
-}
-
 /// The client should gradually change the metric display to the set value.
 #[derive(Event)]
 pub struct UpdateMetricEvent {
     pub viewer:    Entity,
     pub viewable:  Entity,
+    pub ty:        Type,
     pub magnitude: f32,
 }
 
@@ -181,7 +210,7 @@ pub struct ValueFeederSystemSet(pub Type);
 
 /// Creates a system that updates the magnitude of a metric type
 /// for each entity matching `Query<OtherComps, Filter>`.
-pub fn make_value_feeder_system<Filter, OtherComps, OtherSystemParams, FeederFn>(
+pub fn make_value_feeder_system<OtherComps, Filter, OtherSystemParams, FeederFn>(
     world: &mut World,
     feeder: FeederFn,
     ty: Type,
@@ -190,20 +219,22 @@ where
     OtherComps: QueryData + 'static,
     Filter: QueryFilter + 'static,
     OtherSystemParams: SystemParam + 'static,
-    FeederFn: Fn(OtherComps::Item<'_>, &OtherSystemParams::Item<'_, '_>) -> f32,
+    FeederFn: Fn(&mut FilteredEntityMut<'_>, &OtherSystemParams::Item<'_, '_>) -> f32,
     FeederFn: Send + Sync + 'static,
 {
     let &ConfigTypeEntry { sub_comp_id, value_comp_id, .. } = world
         .resource::<Config>()
         .types
         .get(ty.0)
-        .expect("cannot build value feeder for uninitialized type");
+        .expect("cannot build value feeder for uninitialized type")
+        .as_ref()
+        .expect("system should be registered immediately after initializing metric");
 
     SystemBuilder::<(Commands,)>::new(world)
         .builder::<Query<()>>(|builder| {
             builder.with_id(sub_comp_id);
         })
-        .builder::<Query<(FilteredEntityMut, OtherComps), Filter>>(|builder| {
+        .builder::<Query<FilteredEntityMut, Filter>>(|builder| {
             builder.optional(|builder| {
                 builder.mut_id(value_comp_id);
             });
@@ -213,7 +244,7 @@ where
         .build(
             move |mut commands: Commands,
                   check_has_viewer_query: Query<()>,
-                  mut query: Query<(FilteredEntityMut, OtherComps), Filter>,
+                  mut query: Query<FilteredEntityMut, Filter>,
                   other_params: StaticSystemParam<OtherSystemParams>| {
                 if check_has_viewer_query.is_empty() {
                     return;
@@ -221,8 +252,8 @@ where
 
                 let other_params = other_params.into_inner();
 
-                for (mut entity, other_comps) in query.iter_mut() {
-                    let magnitude = feeder(other_comps, &other_params);
+                for mut entity in query.iter_mut() {
+                    let magnitude = feeder(&mut entity, &other_params);
 
                     match entity.get_mut_by_id(value_comp_id) {
                         Some(value) => {
@@ -249,6 +280,7 @@ struct InitValueCommand {
 
 impl EntityCommand for InitValueCommand {
     fn apply(self, entity: Entity, world: &mut World) {
+        // Safety: ptr is used only within `OwningPtr::make` closure.
         OwningPtr::make(Value { magnitude: self.magnitude }, |ptr| unsafe {
             world.entity_mut(entity).insert_by_id(self.comp_id, ptr);
         })
@@ -256,49 +288,61 @@ impl EntityCommand for InitValueCommand {
 }
 
 fn make_value_broadcast_system(world: &mut World, ty: Type) -> SystemConfigs {
-    let &ConfigTypeEntry { sub_comp_id, value_comp_id, .. } = world
+    let &ConfigTypeEntry { sub_comp_id, value_comp_id, ref def } = world
         .resource::<Config>()
         .types
         .get(ty.0)
-        .expect("cannot build value feeder for uninitialized type");
+        .expect("cannot build value feeder for uninitialized type")
+        .as_ref()
+        .expect("system should be registered after init");
 
-    SystemBuilder::<(EventWriter<UpdateMetricEvent>,)>::new(world)
+    let mut timer = Timer::new(def.update_frequency, TimerMode::Repeating);
+
+    SystemBuilder::<(Res<Time>, EventWriter<UpdateMetricEvent>)>::new(world)
         .builder::<Query<FilteredEntityMut>>(|builder| {
             builder.ref_id(sub_comp_id);
         })
-        .builder::<Query<(&viewable::Viewers, FilteredEntityMut)>>(|builder| {
+        .builder::<Query<FilteredEntityMut>>(|builder| {
             builder.ref_id(value_comp_id);
+            builder.data::<&viewable::Viewers>();
         })
         .build(
-            move |mut events: EventWriter<UpdateMetricEvent>,
+            move |time: Res<Time>,
+                  mut events: EventWriter<UpdateMetricEvent>,
                   viewers_query: Query<FilteredEntityMut>,
-                  viewables_query: Query<(&viewable::Viewers, FilteredEntityMut)>| {
+                  viewables_query: Query<FilteredEntityMut>| {
+                timer.tick(time.delta());
+                if !timer.finished() {
+                    return;
+                }
+
                 let viewers_query = &viewers_query;
 
-                let event_ctors =
-                    viewables_query.iter().flat_map(move |(viewable_viewers, viewable_entity)| {
-                        let value_ptr =
-                            viewable_entity.get_by_id(value_comp_id).expect("requested in query");
-                        // Safety: Value components must have type Value
-                        let &Value { magnitude } = unsafe { value_ptr.deref::<Value>() };
-                        let viewable_id = viewable_entity.id();
+                let event_ctors = viewables_query.iter().flat_map(move |viewable_entity| {
+                    let value_ptr =
+                        viewable_entity.get_by_id(value_comp_id).expect("requested in query");
+                    // Safety: Value components must have type Value
+                    let &Value { magnitude } = unsafe { value_ptr.deref::<Value>() };
+                    let viewable_id = viewable_entity.id();
 
-                        viewable_viewers.viewers.iter().filter_map(move |&viewer_entity| {
-                            let sub_ptr = viewers_query
-                                .get(viewer_entity)
-                                .ok()?
-                                .get_by_id(sub_comp_id)
-                                .expect("requested in query");
-                            // Safety: subscription component must have type Subscription
-                            let &Subscription { noise_sd } =
-                                unsafe { sub_ptr.deref::<Subscription>() };
-                            Some(move |z: f32| UpdateMetricEvent {
-                                viewer:    viewer_entity,
-                                viewable:  viewable_id,
-                                magnitude: magnitude + z * noise_sd,
-                            })
+                    let viewable_viewers =
+                        viewable_entity.get::<viewable::Viewers>().expect("requested in query");
+                    viewable_viewers.viewers.iter().filter_map(move |&viewer_entity| {
+                        let sub_ptr = viewers_query
+                            .get(viewer_entity)
+                            .ok()?
+                            .get_by_id(sub_comp_id)
+                            .expect("requested in query");
+                        // Safety: subscription component must have type Subscription
+                        let &Subscription { noise_sd } = unsafe { sub_ptr.deref::<Subscription>() };
+                        Some(move |z: f32| UpdateMetricEvent {
+                            viewer: viewer_entity,
+                            viewable: viewable_id,
+                            ty,
+                            magnitude: magnitude + z * noise_sd,
                         })
-                    });
+                    })
+                });
 
                 events.send_batch(
                     iter::zip(event_ctors, thread_rng().sample_iter(StandardNormal))
