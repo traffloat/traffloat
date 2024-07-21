@@ -16,7 +16,7 @@ fn main() -> Result<()> {
 
     let (git_data, full_version) = match git_data(workspace) {
         Ok(data) => {
-            let full_version = format!(
+            let mut full_version = format!(
                 "{}{}",
                 semver,
                 match (&data.sha, &data.branch) {
@@ -24,6 +24,9 @@ fn main() -> Result<()> {
                     _ => String::new(),
                 }
             );
+            if data.dirty {
+                full_version.push_str("+dirty");
+            }
             (data, full_version)
         }
         Err(err) => {
