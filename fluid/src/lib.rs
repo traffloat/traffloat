@@ -14,6 +14,14 @@ pub mod units;
 mod commands;
 pub use commands::*;
 
+/// Protobuf save structures.
+#[allow(missing_docs)]
+pub mod proto {
+    pub mod save {
+        include!(concat!(env!("OUT_DIR"), "/traffloat.save.rs"));
+    }
+}
+
 pub struct Plugin {
     pub config: Config,
 }

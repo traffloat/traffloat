@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package traffloat.save;
+
+message Pipe {
+    message Containers {
+        uint32 alpha = 1;
+        uint32 beta = 2;
+    }
+
+    uint32 id = 1;
+    Containers containers = 2;
+
+    float shape_resistance = 3;
+}

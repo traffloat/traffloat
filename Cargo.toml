@@ -9,6 +9,10 @@ members = [
 ]
 resolver = "2"
 
+[workspace.dependencies]
+prost = "0.13"
+prost-build = "0.13"
+
 [workspace.dependencies.bevy]
 version = "0.14"
 features = [
@@ -55,7 +59,7 @@ license = "AGPL-3.0"
 rust-version = "1.79"
 
 [profile.dev]
-opt-level = 1
+opt-level = 3
 
 [profile.dev.package.traffloat-graph]
 opt-level = 0

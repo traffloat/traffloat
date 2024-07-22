@@ -39,3 +39,7 @@ indent_size = 2
 [*.ftl]
 indent_style = space
 indent_size = 4
+[*.proto]
+indent
+indent_style = space
+indent_size = 4

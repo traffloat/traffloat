@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+import "position.proto";
+
+package traffloat.save;
+
+message Building {
+    uint32 id = 1;
+    Vector3 position = 2;
+}

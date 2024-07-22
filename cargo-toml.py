@@ -25,6 +25,8 @@ contents = {
                 "version": "0.14",
                 "features": ["dynamic_linking"],
             },
+            "prost": "0.13",
+            "prost-build": "0.13",
         }
         | {
             manifest["package"]["name"]: {"path": path}

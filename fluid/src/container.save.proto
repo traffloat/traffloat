@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package traffloat.save;
+
+message Container {
+    message Parent {
+        oneof parent {
+            uint32 facility = 1;
+            uint32 duct = 2 ;
+        }
+    }
+
+    uint32 id = 1;
+    Parent parent = 2;
+
+    float max_volume = 3;
+    float max_pressure = 4;
+}
+
+message ContainerElement {
+    uint32 container_id = 1;
+    uint32 type = 2;
+
+    float mass = 3;
+}

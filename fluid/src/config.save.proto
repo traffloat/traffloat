@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package traffloat.save;
+
+message Config {
+    float creation_threshold = 1;
+    float deletion_threshold = 2;
+}
+
+message Type {
+    uint32 id = 1;
+
+    float viscosity = 2;
+    float vacuum_specific_volume = 3;
+    float critical_pressure = 4;
+    float saturation_gamma = 5;
+}

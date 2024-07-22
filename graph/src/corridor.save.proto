@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package traffloat.save;
+
+message Corridor {
+    message Endpoints {
+        uint32 alpha = 1;
+        uint32 beta = 2;
+    }
+
+    uint32 id = 1;
+    Endpoints endpoints = 2;
+}

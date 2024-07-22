@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+import "building.save.proto";
+import "building/facility.save.proto";
+import "corridor.save.proto";
+import "corridor/duct.save.proto";

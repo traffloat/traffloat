@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package traffloat.save;
+
+message Facility {
+    uint32 id = 1;
+    uint32 parent_building = 2;
+    bool is_ambient = 3;
+}
