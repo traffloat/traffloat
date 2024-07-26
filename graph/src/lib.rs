@@ -5,11 +5,9 @@ use bevy::app;
 pub mod building;
 pub mod corridor;
 
-/// Protobuf save structures.
-#[allow(missing_docs)]
+/// Protobuf structures.
 pub mod proto {
-    include!(concat!(env!("OUT_DIR"), "/traffloat.rs"));
-
+    /// Save files.
     pub mod save {
         include!(concat!(env!("OUT_DIR"), "/traffloat.save.rs"));
     }

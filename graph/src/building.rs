@@ -3,6 +3,7 @@
 use bevy::ecs::bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
+use bevy::ecs::world::World;
 use bevy::transform::components::Transform;
 use typed_builder::TypedBuilder;
 
@@ -24,4 +25,8 @@ pub struct FacilityList {
 
     /// The ambient space for this building.
     pub ambient: Entity,
+}
+
+pub fn save_buildings(world: &mut World, defs: &mut Vec<prost_types::Any>) {
+
 }

@@ -15,8 +15,8 @@ mod commands;
 pub use commands::*;
 
 /// Protobuf save structures.
-#[allow(missing_docs)]
 pub mod proto {
+    /// Save files.
     pub mod save {
         include!(concat!(env!("OUT_DIR"), "/traffloat.save.rs"));
     }

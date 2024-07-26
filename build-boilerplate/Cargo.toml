@@ -1,0 +1,13 @@
+[package]
+name = "traffloat-build-boilerplate"
+homepage = {workspace = true}
+license = {workspace = true}
+edition = {workspace = true}
+repository = {workspace = true}
+authors = {workspace = true}
+version = {workspace = true}
+rust-version = {workspace = true}
+
+[dependencies]
+anyhow = "1.0.86"
+prost-build = "0.13.1"

@@ -12,11 +12,12 @@ rust-version = {workspace = true}
 [dependencies]
 bevy = {workspace = true}
 prost = {workspace = true}
+prost-types = {workspace = true}
 typed-builder = "0.18.2"
+traffloat-base = {workspace = true}
 
 [build-dependencies]
-anyhow = "1.0.86"
-prost-build = {workspace = true}
+traffloat-build-boilerplate = {workspace = true}
 
 [lints]
 workspace = true

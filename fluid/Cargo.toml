@@ -12,6 +12,7 @@ rust-version = {workspace = true}
 [dependencies]
 bevy = {workspace = true}
 prost = {workspace = true}
+prost-types = {workspace = true}
 traffloat-base = {workspace = true}
 traffloat-graph = {workspace = true}
 traffloat-view = {workspace = true}
@@ -23,5 +24,4 @@ typed-builder = "0.18.2"
 approx = "0.5.1"
 
 [build-dependencies]
-anyhow = "1.0.86"
-prost-build = {workspace = true}
+traffloat-build-boilerplate = {workspace = true}

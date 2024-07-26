@@ -27,6 +27,7 @@ contents = {
             },
             "prost": "0.13",
             "prost-build": "0.13",
+            "prost-types": "0.13",
         }
         | {
             manifest["package"]["name"]: {"path": path}

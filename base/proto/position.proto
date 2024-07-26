@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package traffloat;
+package traffloat.base;
 
 message Vector3 {
     float x = 1;

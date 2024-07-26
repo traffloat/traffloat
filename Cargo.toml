@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "build-boilerplate",
     "graph",
     "fluid",
     "version",
@@ -12,12 +13,16 @@ resolver = "2"
 [workspace.dependencies]
 prost = "0.13"
 prost-build = "0.13"
+prost-types = "0.13"
 
 [workspace.dependencies.bevy]
 version = "0.14"
 features = [
     "dynamic_linking",
 ]
+
+[workspace.dependencies.traffloat-build-boilerplate]
+path = "build-boilerplate"
 
 [workspace.dependencies.traffloat-graph]
 path = "graph"
@@ -60,6 +65,9 @@ rust-version = "1.79"
 
 [profile.dev]
 opt-level = 3
+
+[profile.dev.package.traffloat-build-boilerplate]
+opt-level = 0
 
 [profile.dev.package.traffloat-graph]
 opt-level = 0

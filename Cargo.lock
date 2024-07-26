@@ -4361,7 +4361,21 @@ dependencies = [
 name = "traffloat-base"
 version = "0.0.3"
 dependencies = [
+ "anyhow",
  "bevy",
+ "prost",
+ "prost-build",
+ "prost-types",
+ "serde",
+ "traffloat-build-boilerplate",
+]
+
+[[package]]
+name = "traffloat-build-boilerplate"
+version = "0.0.3"
+dependencies = [
+ "anyhow",
+ "prost-build",
 ]
 
 [[package]]
@@ -4383,14 +4397,14 @@ dependencies = [
 name = "traffloat-fluid"
 version = "0.0.3"
 dependencies = [
- "anyhow",
  "approx",
  "bevy",
  "derive_more",
  "prost",
- "prost-build",
+ "prost-types",
  "smallvec",
  "traffloat-base",
+ "traffloat-build-boilerplate",
  "traffloat-graph",
  "traffloat-view",
  "typed-builder",
@@ -4400,10 +4414,11 @@ dependencies = [
 name = "traffloat-graph"
 version = "0.0.3"
 dependencies = [
- "anyhow",
  "bevy",
  "prost",
- "prost-build",
+ "prost-types",
+ "traffloat-base",
+ "traffloat-build-boilerplate",
  "typed-builder",
 ]
 

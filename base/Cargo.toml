@@ -11,3 +11,11 @@ rust-version = {workspace = true}
 
 [dependencies]
 bevy = {workspace = true}
+prost = {workspace = true}
+prost-types = {workspace = true}
+serde = "1.0.204"
+
+[build-dependencies]
+anyhow = "1.0.86"
+prost-build = {workspace = true}
+traffloat-build-boilerplate = {workspace = true}
