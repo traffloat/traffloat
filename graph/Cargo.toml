@@ -11,7 +11,7 @@ rust-version = {workspace = true}
 
 [dependencies]
 bevy = {workspace = true}
-typed-builder = "0.18.2"
+typed-builder = "0.19.1"
 
 [lints]
 workspace = true
