@@ -1,6 +1,8 @@
-use bevy::prelude::{App, AppExit, PluginGroup, States, Window};
+use bevy::app::{self, App, AppExit, PluginGroup};
+use bevy::ecs::schedule::{self, ScheduleBuildSettings};
 use bevy::state::app::AppExtStates;
-use bevy::window::WindowPlugin;
+use bevy::state::state::States;
+use bevy::window::{Window, WindowPlugin};
 use bevy::winit::WinitSettings;
 
 mod main_menu;
@@ -25,5 +27,11 @@ fn main() -> AppExit {
         .insert_resource(WinitSettings::desktop_app())
         .init_state::<AppState>()
         .add_plugins(main_menu::Plugin)
+        .edit_schedule(app::Update, |schedule| {
+            schedule.set_build_settings(ScheduleBuildSettings {
+                ambiguity_detection: schedule::LogLevel::Warn,
+                ..<_>::default()
+            });
+        })
         .run()
 }

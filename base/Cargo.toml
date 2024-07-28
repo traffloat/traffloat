@@ -11,3 +11,8 @@ rust-version = {workspace = true}
 
 [dependencies]
 bevy = {workspace = true}
+itertools = "0.13.0"
+prost = {workspace = true}
+prost-types = "0.13.1"
+serde = { version = "1.0.204", features = ["derive"] }
+serde_yaml = "0.9.34"

@@ -26,6 +26,10 @@ contents = {
                 "default-features": False,
                 "features": ["dynamic_linking"],
             },
+            "prost": {
+                "version": "0.13",
+                "features": ["derive"],
+            },
         }
         | {
             manifest["package"]["name"]: {"path": path}
@@ -52,7 +56,7 @@ contents = {
     },
     "profile": {
         "dev": {
-            "opt-level": 3,
+            "opt-level": 1,
             "package": {
                 manifest["package"]["name"]: {"opt-level": 0}
                 for path, manifest in members.items()

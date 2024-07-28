@@ -16,6 +16,12 @@ features = [
     "dynamic_linking",
 ]
 
+[workspace.dependencies.prost]
+version = "0.13"
+features = [
+    "derive",
+]
+
 [workspace.dependencies.traffloat-graph]
 path = "graph"
 

@@ -9,5 +9,7 @@ pub mod corridor;
 pub struct Plugin;
 
 impl app::Plugin for Plugin {
-    fn build(&self, app: &mut bevy::prelude::App) { app.add_plugins(corridor::Plugin); }
+    fn build(&self, app: &mut bevy::prelude::App) {
+        app.add_plugins((building::Plugin, corridor::Plugin));
+    }
 }
