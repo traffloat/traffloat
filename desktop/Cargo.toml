@@ -10,7 +10,6 @@ version = {workspace = true}
 rust-version = {workspace = true}
 
 [dependencies]
-bevy = {workspace = true}
 traffloat-graph = {workspace = true}
 traffloat-base = {workspace = true}
 traffloat-view = {workspace = true}
@@ -19,3 +18,18 @@ derive_more = "0.99.17"
 typed-builder = "0.18.2"
 smallvec = "1.13.2"
 rfd = "0.14.1"
+
+[dependencies.bevy]
+workspace = true
+features = [
+	"bevy_color",
+	"bevy_core_pipeline",
+	"bevy_state",
+	"bevy_winit",
+	"bevy_render",
+	"bevy_text",
+	"bevy_ui",
+	"multi_threaded",
+	"default_font",
+	"x11",
+]

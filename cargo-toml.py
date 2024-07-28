@@ -23,6 +23,7 @@ contents = {
             "bevy": {
                 # "git": "https://github.com/bevyengine/bevy",
                 "version": "0.14",
+                "default-features": False,
                 "features": ["dynamic_linking"],
             },
         }
