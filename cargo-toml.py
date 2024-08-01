@@ -26,10 +26,6 @@ contents = {
                 "default-features": False,
                 "features": ["dynamic_linking"],
             },
-            "prost": {
-                "version": "0.13",
-                "features": ["derive"],
-            },
         }
         | {
             manifest["package"]["name"]: {"path": path}

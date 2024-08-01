@@ -1,18 +1,19 @@
-//! Common protobuf types.
+//! Common network and save types.
 
 use bevy::math::Vec3;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, prost::Message)]
+#[derive(Serialize, Deserialize)]
 pub struct Position {
-    #[prost(float, tag = "1")]
     x: f32,
-    #[prost(float, tag = "2")]
     y: f32,
-    #[prost(float, tag = "3")]
     z: f32,
 }
 
 impl From<Vec3> for Position {
     fn from(value: Vec3) -> Self { Self { x: value.x, y: value.y, z: value.z } }
+}
+
+impl From<Position> for Vec3 {
+    fn from(value: Position) -> Self { Self { x: value.x, y: value.y, z: value.z } }
 }

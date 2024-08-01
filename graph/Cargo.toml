@@ -10,8 +10,8 @@ version = {workspace = true}
 rust-version = {workspace = true}
 
 [dependencies]
+anyhow = "1.0.86"
 bevy = {workspace = true}
-prost = {workspace = true}
 serde = { version = "1.0.204", features = ["derive"] }
 traffloat-base = {workspace = true}
 typed-builder = "0.18.2"

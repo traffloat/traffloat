@@ -16,12 +16,6 @@ features = [
     "dynamic_linking",
 ]
 
-[workspace.dependencies.prost]
-version = "0.13"
-features = [
-    "derive",
-]
-
 [workspace.dependencies.traffloat-graph]
 path = "graph"
 
@@ -62,7 +56,7 @@ license = "AGPL-3.0"
 rust-version = "1.79"
 
 [profile.dev]
-opt-level = 3
+opt-level = 1
 
 [profile.dev.package.traffloat-graph]
 opt-level = 0

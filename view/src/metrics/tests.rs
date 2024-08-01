@@ -17,7 +17,7 @@ use crate::viewable::{self, ShowEvent};
 use crate::viewer;
 
 #[test]
-fn test_report() {
+fn report() {
     let mut app = App::new();
     app.add_plugins((super::Plugin, viewable::Plugin));
     app.insert_resource({

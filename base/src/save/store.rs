@@ -1,52 +1,82 @@
 use std::any::TypeId;
-use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::{iter, mem};
 
-use bevy::app::App;
-use bevy::ecs::entity::Entity;
+use bevy::app::{self, App};
+use bevy::ecs::entity::{Entity, EntityHashMap};
 use bevy::ecs::schedule::{
     IntoSystemConfigs, IntoSystemSetConfigs, ScheduleLabel, SystemConfigs, SystemSet,
     SystemSetConfigs,
 };
 use bevy::ecs::system::{IntoSystem, Res, ResMut, Resource, SystemParam};
 use bevy::ecs::world::{Command, World};
-use itertools::Itertools;
 
-use super::{Def, Id, ProtobufTypedData, YamlTypedData};
+use super::{Def, Format, Id, MsgpackFile, MsgpackTypedData, YamlFile, YamlTypedData};
+
+pub(super) struct Plugin;
+
+impl app::Plugin for Plugin {
+    fn build(&self, app: &mut App) { app.insert_resource(GlobalWriter::Uninit); }
+}
 
 pub(super) fn add_def<D: Def>(app: &mut App) {
+    app.init_schedule(Schedule::Store);
+    app.init_schedule(Schedule::PostStore);
+
+    app.insert_resource(Buffer::<D>(Vec::new()));
+    app.insert_resource(IdRegistry::<D> {
+        entity_to_save_id: <_>::default(),
+        _ph:               PhantomData,
+    });
+
     app.add_systems(
-        Schedule::PostWrite,
-        |mut global_writer: ResMut<GlobalWriter>,
-         mut registry: ResMut<IdRegistry<D>>,
-         mut buffer: ResMut<Buffer<D>>| {
+        Schedule::PostStore,
+        (|mut global_writer: ResMut<GlobalWriter>,
+          mut registry: ResMut<IdRegistry<D>>,
+          mut buffer: ResMut<Buffer<D>>| {
             registry.entity_to_save_id.clear();
             global_writer.write_all(mem::take(&mut buffer.0));
-        },
+        })
+        .in_set(StoreSystemSet(TypeId::of::<D>())),
     );
 
     let store_system = D::store_system();
-    app.add_systems(Schedule::Write, store_system.to_system());
+    app.add_systems(Schedule::Store, store_system.to_system());
 
-    app.configure_sets(Schedule::Write, store_system.configure_sets());
+    app.configure_sets(Schedule::Store, store_system.configure_sets());
+    app.configure_sets(Schedule::PostStore, store_system.configure_sets());
 }
 
-pub struct StoreCommand;
+pub struct StoreCommand {
+    pub format:      Format,
+    #[allow(clippy::type_complexity)] // how is this type complex at all?...
+    pub on_complete: Box<dyn FnOnce(&mut World, StoreResult) + Send>,
+}
+
+pub type StoreResult = Result<Vec<u8>, Error>;
 
 impl Command for StoreCommand {
     fn apply(self, world: &mut World) {
-        world.run_schedule(Schedule::PreWrite);
-        world.run_schedule(Schedule::Write);
-        world.run_schedule(Schedule::PostWrite);
+        *world.resource_mut::<GlobalWriter>() = match self.format {
+            Format::Yaml => GlobalWriter::YamlWriter { data: Vec::new(), errs: Vec::new() },
+            Format::Msgpack => GlobalWriter::MsgpackWriter { data: Vec::new(), errs: Vec::new() },
+        };
+
+        world.run_schedule(Schedule::Store);
+        world.run_schedule(Schedule::PostStore);
+
+        let writer = mem::replace(&mut *world.resource_mut::<GlobalWriter>(), GlobalWriter::Uninit);
+
+        let output = writer.output();
+
+        (self.on_complete)(world, output);
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ScheduleLabel)]
 pub enum Schedule {
-    PreWrite,
-    Write,
-    PostWrite,
+    Store,
+    PostStore,
 }
 
 pub trait StoreSystem {
@@ -58,9 +88,16 @@ pub trait StoreSystem {
 }
 
 #[allow(clippy::type_complexity)]
-pub struct SystemFn<D: Def, Deps, Q, F, Marker>(F, PhantomData<(fn(Writer<D>, Deps, Q), Marker)>);
+pub struct StoreSystemFn<D: Def, Deps, Q, F, Marker>(
+    F,
+    PhantomData<(fn(Writer<D>, Deps, Q), Marker)>,
+);
 
-impl<D: Def, Deps, Q, F, Marker> SystemFn<D, Deps, Q, F, Marker> {
+impl<D: Def, Deps, Q, F, Marker> StoreSystemFn<D, Deps, Q, F, Marker> {
+    /// Construct a SystemFn from a system function.
+    ///
+    /// Due to HRTB requirements, the system must be defined as `fn xxx(...) {}` separately,
+    /// instead of passing a closure.
     pub fn new(f: F) -> Self
     where
         F: IntoSystem<(), (), Marker>,
@@ -70,7 +107,7 @@ impl<D: Def, Deps, Q, F, Marker> SystemFn<D, Deps, Q, F, Marker> {
     }
 }
 
-impl<D, Deps, Q, F, Marker> StoreSystem for SystemFn<D, Deps, Q, F, Marker>
+impl<D, Deps, Q, F, Marker> StoreSystem for StoreSystemFn<D, Deps, Q, F, Marker>
 where
     D: Def,
     Deps: Depends,
@@ -124,7 +161,7 @@ struct Buffer<D>(Vec<D>);
 
 #[derive(Resource)]
 struct IdRegistry<D> {
-    entity_to_save_id: HashMap<Entity, usize>,
+    entity_to_save_id: EntityHashMap<usize>,
     _ph:               PhantomData<fn() -> D>,
 }
 
@@ -147,7 +184,10 @@ pub struct Depend<'w, D: Def> {
 
 impl<'w, D: Def> Depend<'w, D> {
     pub fn get(&self, entity: Entity) -> Option<Id<D>> {
-        self.id_registry.entity_to_save_id.get(&entity).map(|&save_id| Id(save_id, PhantomData))
+        self.id_registry
+            .entity_to_save_id
+            .get(&entity)
+            .map(|&save_id| Id(save_id.try_into().expect("too many items"), PhantomData))
     }
 }
 
@@ -174,43 +214,69 @@ macro_rules! impl_depends {
     }
 }
 
+bevy::utils::all_tuples!(impl_depends, 1, 15, T);
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 struct StoreSystemSet(TypeId);
 
-bevy::utils::all_tuples!(impl_depends, 1, 15, T);
-
 #[derive(Resource)]
 enum GlobalWriter {
+    Uninit,
     YamlWriter { data: Vec<YamlTypedData>, errs: Vec<serde_yaml::Error> },
-    ProtobufWriter(Vec<ProtobufTypedData>),
+    MsgpackWriter { data: Vec<MsgpackTypedData>, errs: Vec<rmp_serde::encode::Error> },
 }
 
 impl GlobalWriter {
     fn write_all<D: Def>(&mut self, objects: Vec<D>) {
         match self {
+            Self::Uninit => panic!("write_all should not be called when world is not saving"),
+            Self::YamlWriter { data, errs } => match serde_yaml::to_value(&objects) {
+                Ok(defs) => data.push(YamlTypedData { r#type: D::TYPE.into(), defs }),
+                Err(err) => errs.push(err),
+            },
+            Self::MsgpackWriter { data, errs } => match rmp_serde::to_vec(&objects) {
+                Ok(defs) => data.push(MsgpackTypedData { r#type: D::TYPE.into(), defs }),
+                Err(err) => errs.push(err),
+            },
+        }
+    }
+
+    fn output(self) -> Result<Vec<u8>, Error> {
+        match self {
+            Self::Uninit => panic!("output should not be called when world is not saving"),
             Self::YamlWriter { data, errs } => {
-                let (defs, new_errs) = objects
-                    .into_iter()
-                    .map(|object| serde_yaml::to_value(object))
-                    .partition_result();
+                if !errs.is_empty() {
+                    return Err(Error::YamlDefToValue(errs));
+                }
 
-                data.push(YamlTypedData { r#type: D::TYPE.into(), defs });
-                errs.extend::<Vec<serde_yaml::Error>>(new_errs);
+                let mut buf = Vec::from(super::YAML_HEADER);
+                serde_yaml::to_writer(&mut buf, &YamlFile { types: data })
+                    .map_err(Error::YamlEncodeValue)?;
+                Ok(buf)
             }
-            Self::ProtobufWriter(data) => {
-                let defs = objects
-                    .into_iter()
-                    .map(|object| {
-                        let value = object.encode_to_vec();
-                        prost_types::Any {
-                            type_url: format!("traffloat.github.io/{}", D::TYPE),
-                            value,
-                        }
-                    })
-                    .collect();
+            Self::MsgpackWriter { data, errs } => {
+                if !errs.is_empty() {
+                    return Err(Error::MsgpackEncodeDef(errs));
+                }
 
-                data.push(ProtobufTypedData { r#type: D::TYPE.into(), defs });
+                let mut buf = Vec::from(super::MSGPACK_HEADER);
+                rmp_serde::encode::write(&mut buf, &MsgpackFile { types: data })
+                    .map_err(Error::MsgpackEncodeFile)?;
+
+                Ok(buf)
             }
         }
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("transforming objects into YAML values: {0:?}")]
+    YamlDefToValue(Vec<serde_yaml::Error>),
+    #[error("encoding objects into YAML string: {0}")]
+    YamlEncodeValue(serde_yaml::Error),
+    #[error("encoding objects into msgpack: {0:?}")]
+    MsgpackEncodeDef(Vec<rmp_serde::encode::Error>),
+    #[error("producing msgpack file: {0}")]
+    MsgpackEncodeFile(rmp_serde::encode::Error),
 }

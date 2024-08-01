@@ -6,6 +6,8 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::With;
 use bevy::ecs::system::Query;
+use bevy::ecs::world::World;
+use bevy::hierarchy::BuildWorldChildren;
 use bevy::transform::components::Transform;
 use serde::{Deserialize, Serialize};
 use traffloat_base::{proto, save};
@@ -40,29 +42,47 @@ pub struct FacilityList {
 }
 
 /// Protobuf structure for saves.
-#[derive(Serialize, Deserialize, prost::Message)]
+#[derive(Serialize, Deserialize)]
 pub struct Save {
     /// Position of a building.
-    #[prost(message, tag = "1")]
-    pub position: Option<proto::Position>,
+    pub position: proto::Position,
 }
 
 impl save::Def for Save {
     const TYPE: &'static str = "traffloat.save.Building";
 
-    fn store_system() -> impl save::store::StoreSystem<Def = Self> {
+    fn store_system() -> impl save::StoreSystem<Def = Self> {
         fn store_system(
-            mut writer: save::store::Writer<Save>,
+            mut writer: save::Writer<Save>,
             (): (),
             query: Query<(Entity, &Transform), With<FacilityList>>,
         ) {
             writer.write_all(query.iter().map(|(entity, transform)| {
-                (entity, Save { position: Some(transform.translation.into()) })
+                (entity, Save { position: transform.translation.into() })
             }));
         }
 
-        save::store::SystemFn::new(store_system)
+        save::StoreSystemFn::new(store_system)
+    }
+
+    fn loader() -> impl save::LoadOnce<Def = Self> {
+        #[allow(clippy::trivially_copy_pass_by_ref, clippy::unnecessary_wraps)]
+        fn loader(world: &mut World, def: Save, (): &()) -> anyhow::Result<Entity> {
+            let ambient = world.spawn_empty().id();
+
+            let mut building = world.spawn(
+                Bundle::builder()
+                    .position(Transform::from_translation(def.position.into()))
+                    .facility_list(FacilityList { facilities: Vec::new(), ambient })
+                    .build(),
+            );
+            building.add_child(ambient);
+
+            // TODO validate that ambient facility is going to be populated
+
+            Ok(building.id())
+        }
+
+        save::LoadFn::new(loader)
     }
 }
-
-fn load_system() {}
