@@ -16,7 +16,7 @@ workspace = true
 
 [build-dependencies]
 anyhow = "1.0.51"
-git2 = "0.13.25"
+git2 = "0.19.0"
 hex = "0.4.3"
 proc-macro2 = "1.0.29"
 quote = "1.0.9"
