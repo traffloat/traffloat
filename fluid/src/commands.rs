@@ -7,33 +7,20 @@ use typed_builder::TypedBuilder;
 
 use crate::{config, container, pipe, units};
 
+/// A command to create a new container element.
 #[derive(TypedBuilder)]
 pub struct CreateContainerElement {
+    /// The container to add element to.
     pub container: Entity,
+    /// The element fluid type.
     pub ty:        config::Type,
+    /// The initial mass of fluid.
     #[builder(setter(into))]
     pub mass:      units::Mass,
 }
 
 impl Command for CreateContainerElement {
     fn apply(self, world: &mut World) {
-        let container_element =
-            world.spawn(container::element::Bundle::builder().ty(self.ty).mass(self.mass).build());
-        let container_element = container_element.id();
-
-        let mut state = SystemState::<(
-            Commands,
-            Query<&container::Pipes>,
-            Query<(Option<&hierarchy::Children>, &pipe::Containers)>,
-            Query<(&config::Type, &mut pipe::element::ContainerElements)>,
-        )>::new(world);
-        let (mut commands, container_query, pipe_query, mut pipe_element_query) =
-            state.get_mut(world);
-
-        let pipes = container_query
-            .get(self.container)
-            .expect("CreateContainerElement.container must be a container entity");
-
         fn populate_pipe(
             commands: &mut Commands,
             pipe_query: &Query<(Option<&hierarchy::Children>, &pipe::Containers), ()>,
@@ -80,6 +67,23 @@ impl Command for CreateContainerElement {
                 );
             });
         }
+
+        let container_element =
+            world.spawn(container::element::Bundle::builder().ty(self.ty).mass(self.mass).build());
+        let container_element = container_element.id();
+
+        let mut state = SystemState::<(
+            Commands,
+            Query<&container::Pipes>,
+            Query<(Option<&hierarchy::Children>, &pipe::Containers)>,
+            Query<(&config::Type, &mut pipe::element::ContainerElements)>,
+        )>::new(world);
+        let (mut commands, container_query, pipe_query, mut pipe_element_query) =
+            state.get_mut(world);
+
+        let pipes = container_query
+            .get(self.container)
+            .expect("CreateContainerElement.container must be a container entity");
 
         for &pipe in &pipes.pipes {
             populate_pipe(

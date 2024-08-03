@@ -14,13 +14,12 @@ pub mod units;
 mod commands;
 pub use commands::*;
 
-pub struct Plugin {
-    pub config: Config,
-}
+/// Initializes fluid simulation systems.
+pub struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.insert_resource(self.config.clone());
+        app.init_resource::<Config>();
         app.add_plugins((container::Plugin, pipe::Plugin));
     }
 }

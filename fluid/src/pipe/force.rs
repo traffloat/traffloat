@@ -47,21 +47,21 @@ fn init_force(
     mut pipe_query: Query<(&mut Directed, &Containers)>,
     container_query: Query<&container::CurrentPressure>,
 ) {
-    for (mut directed, containers) in pipe_query.iter_mut() {
+    pipe_query.iter_mut().for_each(|(mut directed, containers)| {
         let pressure = containers.endpoints.query(&container_query).map(|comp| comp.pressure);
         let ab = (pressure.alpha - pressure.beta).quantity * VOLUME_PER_PRESSURE_DELTA;
         directed.force.alpha = units::Volume { quantity: ab };
         directed.force.beta = units::Volume { quantity: -ab };
-    }
+    });
 }
 
 fn apply_resistance(mut query: Query<(&mut Directed, &resistance::Dynamic)>) {
-    for (mut directed, resistance) in query.iter_mut() {
+    query.iter_mut().for_each(|(mut directed, resistance)| {
         directed.force.each_mut(|force| {
             force.quantity = force.quantity.max(0.);
             force.quantity /= resistance.resistance;
-        })
-    }
+        });
+    });
 }
 
 /// The force acting on each side of the pipe.

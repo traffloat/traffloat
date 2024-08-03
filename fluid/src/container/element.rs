@@ -23,11 +23,13 @@ pub struct Bundle {
 /// Mass of a fluid type in a container.
 #[derive(Component, From)]
 pub struct Mass {
+    /// Typed mass value.
     pub mass: units::Mass,
 }
 
 /// The current volume occupied by a fluid type in a container.
 #[derive(Component, From)]
 pub struct Volume {
+    /// Typed volume value.
     pub volume: units::Volume,
 }

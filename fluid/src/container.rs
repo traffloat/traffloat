@@ -65,6 +65,7 @@ pub struct Bundle {
 /// Overall pressure of a container.
 #[derive(Component)]
 pub struct CurrentPressure {
+    /// Current pressure value.
     pub pressure: units::Pressure,
 }
 
@@ -73,6 +74,7 @@ pub struct CurrentPressure {
 /// `MaxVolume - OccupiedVolume` is contains vacuum.
 #[derive(Component)]
 pub struct CurrentVolume {
+    /// Current volume value.
     pub volume: units::Volume,
 }
 
@@ -81,6 +83,7 @@ pub struct CurrentVolume {
 /// The occupied volume never (significantly) exceeds this value.
 #[derive(Component, From)]
 pub struct MaxVolume {
+    /// Max volume value.
     pub volume: units::Volume,
 }
 
@@ -91,12 +94,14 @@ pub struct MaxVolume {
 /// and the pressure of the latter cycle is greater than the previous one.
 #[derive(Component, From)]
 pub struct MaxPressure {
+    /// Max pressure value.
     pub pressure: units::Pressure,
 }
 
 /// List of adjacent pipes of a container.
 #[derive(Component)]
 pub struct Pipes {
+    /// List of pipe entities.
     pub pipes: SmallVec<[Entity; 3]>,
 }
 

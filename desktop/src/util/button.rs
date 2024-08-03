@@ -57,7 +57,7 @@ fn handle_buttons<E: Event + Clone>(
     >,
     mut event_writer: EventWriter<E>,
 ) {
-    for (interaction, mut bg_color, mut last_interaction, on_click) in query.iter_mut() {
+    query.iter_mut().for_each(|(interaction, mut bg_color, mut last_interaction, on_click)| {
         let last_interaction = mem::replace(&mut last_interaction.0, *interaction);
 
         match *interaction {
@@ -74,7 +74,7 @@ fn handle_buttons<E: Event + Clone>(
                 bg_color.0 = BUTTON_COLOR_PRESSED;
             }
         }
-    }
+    });
 }
 
 #[derive(bundle::Bundle)]

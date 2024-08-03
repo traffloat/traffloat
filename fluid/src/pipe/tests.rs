@@ -38,7 +38,7 @@ fn do_test(setup: Setup) {
     let mut app = App::new();
     app.add_plugins((container::Plugin, pipe::Plugin));
 
-    let mut builder = config::ConfigBuilder::default();
+    let mut builder = config::Builder::default();
     let types: Vec<_> = setup
         .elements
         .iter()

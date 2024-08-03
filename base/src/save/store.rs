@@ -1,4 +1,4 @@
-use std::any::TypeId;
+use std::any::{type_name, TypeId};
 use std::marker::PhantomData;
 use std::{iter, mem};
 
@@ -47,12 +47,15 @@ pub(super) fn add_def<D: Def>(app: &mut App) {
     app.configure_sets(Schedule::PostStore, store_system.configure_sets());
 }
 
+/// Stores world data into a buffer.
 pub struct StoreCommand {
+    /// The format to serialize into.
     pub format:      Format,
-    #[allow(clippy::type_complexity)] // how is this type complex at all?...
+    /// A closure invoked with the serialized data when ready.
     pub on_complete: Box<dyn FnOnce(&mut World, StoreResult) + Send>,
 }
 
+/// The output of a store command.
 pub type StoreResult = Result<Vec<u8>, Error>;
 
 impl Command for StoreCommand {
@@ -74,11 +77,15 @@ impl Command for StoreCommand {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ScheduleLabel)]
-pub enum Schedule {
+enum Schedule {
     Store,
     PostStore,
 }
 
+/// Describes how to create the save entries of a type.
+///
+/// Call [`StoreSystemFn::new`] to construct a new instance.
+#[allow(missing_docs)]
 pub trait StoreSystem {
     type Def: Def;
 
@@ -87,14 +94,16 @@ pub trait StoreSystem {
     fn configure_sets(&self) -> impl IntoSystemSetConfigs;
 }
 
-#[allow(clippy::type_complexity)]
+/// Wraps a function that yields the save entries of the given type.
+///
+/// See save/tests.rs for example usage.
 pub struct StoreSystemFn<D: Def, Deps, Q, F, Marker>(
     F,
     PhantomData<(fn(Writer<D>, Deps, Q), Marker)>,
 );
 
 impl<D: Def, Deps, Q, F, Marker> StoreSystemFn<D, Deps, Q, F, Marker> {
-    /// Construct a SystemFn from a system function.
+    /// Construct a `StoreSystemFn` from a system function.
     ///
     /// Due to HRTB requirements, the system must be defined as `fn xxx(...) {}` separately,
     /// instead of passing a closure.
@@ -125,6 +134,7 @@ where
     }
 }
 
+/// Writes save entries to the output.
 #[derive(SystemParam)]
 pub struct Writer<'w, D: Def> {
     write_buf:   ResMut<'w, Buffer<D>>,
@@ -132,12 +142,17 @@ pub struct Writer<'w, D: Def> {
 }
 
 impl<'w, D: Def> Writer<'w, D> {
+    /// Writes a save entry to the output.
+    ///
+    /// `entity` is required for dependent types to resolve.
     pub fn write(&mut self, entity: Entity, def: D) {
+        // TODO make `Entity` an associated type.
         let save_id = self.write_buf.0.len();
         self.write_buf.0.push(def);
         self.id_registry.add(save_id, entity);
     }
 
+    /// Writes an iterator of save entries to the output.
     pub fn write_all(&mut self, iter: impl IntoIterator<Item = (Entity, D)>) {
         struct MutExtend<'a, T>(&'a mut T);
 
@@ -177,20 +192,44 @@ impl<D> Extend<(Entity, usize)> for IdRegistry<D> {
     }
 }
 
+/// Dependency of a store system.
+///
+/// Must be consistent with the dependencies of the loader.
 #[derive(SystemParam)]
 pub struct Depend<'w, D: Def> {
     id_registry: Res<'w, IdRegistry<D>>,
 }
 
 impl<'w, D: Def> Depend<'w, D> {
+    /// Gets the save ID of an entity.
+    ///
+    /// Returns `None` if this entity did not get saved as an instance of `D`.
+    #[allow(clippy::missing_panics_doc)]
+    #[must_use]
     pub fn get(&self, entity: Entity) -> Option<Id<D>> {
         self.id_registry
             .entity_to_save_id
             .get(&entity)
             .map(|&save_id| Id(save_id.try_into().expect("too many items"), PhantomData))
     }
+
+    /// Gets the save ID of an entity.
+    ///
+    /// # Panics
+    /// Panics if this entity did not get saved as an instance of `D`.
+    #[must_use]
+    pub fn must_get(&self, entity: Entity) -> Id<D> {
+        match self.get(entity) {
+            Some(id) => id,
+            None => panic!("parent {} {entity:?} must have been persisted", type_name::<D>()),
+        }
+    }
 }
 
+/// The dependencies for a store system.
+///
+/// Implemented by tuples of [`Depend`].
+#[allow(missing_docs)]
 pub trait Depends: SystemParam {
     fn configure_system_set(system_set: impl IntoSystemSetConfigs) -> SystemSetConfigs;
 }
@@ -234,7 +273,7 @@ impl GlobalWriter {
                 Ok(defs) => data.push(YamlTypedData { r#type: D::TYPE.into(), defs }),
                 Err(err) => errs.push(err),
             },
-            Self::MsgpackWriter { data, errs } => match rmp_serde::to_vec(&objects) {
+            Self::MsgpackWriter { data, errs } => match rmp_serde::to_vec_named(&objects) {
                 Ok(defs) => data.push(MsgpackTypedData { r#type: D::TYPE.into(), defs }),
                 Err(err) => errs.push(err),
             },
@@ -260,8 +299,11 @@ impl GlobalWriter {
                 }
 
                 let mut buf = Vec::from(super::MSGPACK_HEADER);
-                rmp_serde::encode::write(&mut buf, &MsgpackFile { types: data })
-                    .map_err(Error::MsgpackEncodeFile)?;
+                rmp_serde::encode::write_named(
+                    &mut flate2::write::DeflateEncoder::new(&mut buf, flate2::Compression::best()),
+                    &MsgpackFile { types: data },
+                )
+                .map_err(Error::MsgpackEncodeFile)?;
 
                 Ok(buf)
             }
@@ -269,6 +311,7 @@ impl GlobalWriter {
     }
 }
 
+/// Erorr types during storing.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("transforming objects into YAML values: {0:?}")]

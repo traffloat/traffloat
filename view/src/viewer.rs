@@ -17,5 +17,6 @@ pub struct Bundle {
 /// Due to optimization concerns, the distance is interpreted as max-norm instead of 2-norm.
 #[derive(Component)]
 pub struct Range {
+    /// The maximum distance a viewer can observe.
     pub distance: f32,
 }

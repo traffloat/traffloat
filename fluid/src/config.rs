@@ -1,7 +1,5 @@
 //! Fluid definitions.
 
-use std::sync::Arc;
-
 use bevy::prelude::{Component, Resource};
 
 use crate::units;
@@ -11,29 +9,40 @@ use crate::units;
 pub struct Type(pub u16);
 
 /// A bevy Resource storing all available fluid types.
-#[derive(Resource, Clone)]
-pub struct Config(Arc<ConfigBuilder>);
+#[derive(Resource, Default)]
+pub struct Config(Builder);
 
 impl Config {
     /// Gets the definition of a fluid type
+    ///
+    /// # Panics
+    /// Panics if the fluid type does not exist.
+    #[must_use]
     pub fn get_type(&self, ty: Type) -> &TypeDef {
         self.0.defs.get(usize::from(ty.0)).expect("reference to unknown fluid type")
     }
 
     /// Iterates over all fluid types.
+    #[allow(clippy::missing_panics_doc)]
     pub fn iter_types(&self) -> impl Iterator<Item = (Type, &TypeDef)> {
-        self.0.defs.iter().enumerate().map(|(index, def)| (Type(index as u16), def))
+        self.0
+            .defs
+            .iter()
+            .enumerate()
+            .map(|(index, def)| (Type(u16::try_from(index).expect("too many fluid types")), def))
     }
 
     /// Transferring fluid less than this amount would not trigger container element creation.
+    #[must_use]
     pub fn creation_threshold(&self) -> units::Mass { self.0.creation_threshold }
 
     /// Remaining fluid less than this amount would trigger container element deletion.
+    #[must_use]
     pub fn deletion_threshold(&self) -> units::Mass { self.0.deletion_threshold }
 }
 
 /// Constructs the [`Config`] resource.
-pub struct ConfigBuilder {
+pub struct Builder {
     defs:                   Vec<TypeDef>,
     /// Transferring fluid less than this amount would not trigger container element creation.
     pub creation_threshold: units::Mass,
@@ -41,7 +50,7 @@ pub struct ConfigBuilder {
     pub deletion_threshold: units::Mass,
 }
 
-impl Default for ConfigBuilder {
+impl Default for Builder {
     fn default() -> Self {
         Self {
             defs:               Vec::new(),
@@ -51,8 +60,9 @@ impl Default for ConfigBuilder {
     }
 }
 
-impl ConfigBuilder {
+impl Builder {
     /// Registers a new fluid type. Only for constructing test cases.
+    #[allow(clippy::missing_panics_doc)]
     pub fn register_type(&mut self, def: TypeDef) -> Type {
         let ret = Type(u16::try_from(self.defs.len()).expect("too many types"));
         self.defs.push(def);
@@ -60,7 +70,8 @@ impl ConfigBuilder {
     }
 
     /// Converts the builder into a resource.
-    pub fn build(self) -> Config { Config(Arc::new(self)) }
+    #[must_use]
+    pub fn build(self) -> Config { Config(self) }
 }
 
 /// Defines the properties of a fluid.

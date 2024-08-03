@@ -37,6 +37,7 @@ pub struct TransferWeight {
 /// Net transfer of this type from alpha to beta in the current cycle.
 #[derive(Component)]
 pub struct AbTransferMass {
+    /// Net transfer value.
     pub mass: units::Mass,
 }
 

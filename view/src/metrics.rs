@@ -23,7 +23,7 @@ use crate::viewable;
 #[cfg(test)]
 mod tests;
 
-pub struct Plugin;
+pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
@@ -32,6 +32,7 @@ impl app::Plugin for Plugin {
     }
 }
 
+/// Registry for metric types.
 #[derive(Default, Resource)]
 pub struct Config {
     next_type_id: AtomicUsize,
@@ -39,6 +40,10 @@ pub struct Config {
 }
 
 impl Config {
+    /// Returns the configuration for a metric type.
+    ///
+    /// # Panics
+    /// Panics if the type does not exist.
     pub fn get_type(&self, ty: Type) -> &TypeDef {
         let entry = self
             .types
@@ -87,12 +92,15 @@ struct ConfigTypeEntry {
     def:           TypeDef,
 }
 
+/// Configuration for  ametric type.
 pub struct TypeDef {
+    /// The period between broadcasts of the metric value to viewers.
     pub update_frequency: Duration,
 }
 
 /// The dynamic component type attached to entities storing the value of this metric.
 pub struct Value {
+    /// The actual magnitude of the metric value.
     pub magnitude: f32,
 }
 
@@ -106,6 +114,7 @@ pub struct Subscription {
     pub noise_sd: f32,
 }
 
+/// Creates a new type of metric.
 pub struct CreateTypeCommand {
     ty:  Type,
     def: TypeDef,
@@ -195,12 +204,16 @@ impl Command for UnsubscribeCommand {
     }
 }
 
-/// The client should gradually change the metric display to the set value.
+/// Notifies a viewer that a metric has been updated.
 #[derive(Event)]
 pub struct UpdateMetricEvent {
+    /// The viewer to be notified.
     pub viewer:    Entity,
+    /// The viewable that the metric is updated for.
     pub viewable:  Entity,
+    /// The type of metric updated.
     pub ty:        Type,
+    /// The updated metric magnitude, with noise included.
     pub magnitude: f32,
 }
 
@@ -210,6 +223,9 @@ pub struct ValueFeederSystemSet(pub Type);
 
 /// Creates a system that updates the magnitude of a metric type
 /// for each entity matching `Query<OtherComps, Filter>`.
+///
+/// # Panics
+/// Panics if the type is not initialized yet.
 pub fn make_value_feeder_system<OtherComps, Filter, OtherSystemParams, FeederFn>(
     world: &mut World,
     feeder: FeederFn,
@@ -252,7 +268,7 @@ where
 
                 let other_params = other_params.into_inner();
 
-                for mut entity in query.iter_mut() {
+                query.iter_mut().for_each(|mut entity| {
                     let magnitude = feeder(&mut entity, &other_params);
 
                     match entity.get_mut_by_id(value_comp_id) {
@@ -267,7 +283,7 @@ where
                                 .add(InitValueCommand { comp_id: value_comp_id, magnitude });
                         }
                     }
-                }
+                });
             },
         )
         .in_set(ValueFeederSystemSet(ty))
@@ -283,7 +299,7 @@ impl EntityCommand for InitValueCommand {
         // Safety: ptr is used only within `OwningPtr::make` closure.
         OwningPtr::make(Value { magnitude: self.magnitude }, |ptr| unsafe {
             world.entity_mut(entity).insert_by_id(self.comp_id, ptr);
-        })
+        });
     }
 }
 

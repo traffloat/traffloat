@@ -32,7 +32,7 @@ pub(super) fn add_def<D: Def>(app: &mut App) {
         for (i, def) in defs.into_iter().enumerate() {
             let entity = loader
                 .load(world, def, &depends)
-                .map_err(|err| Error::ValidationError(type_name::<D>(), i, err))?;
+                .map_err(|err| Error::Validation(type_name::<D>(), i, err))?;
             registry.save_id_to_entity.insert(
                 i.try_into().map_err(|_| Error::RegistryOverflow(type_name::<D>()))?,
                 entity,
@@ -74,17 +74,21 @@ pub(super) fn add_def<D: Def>(app: &mut App) {
     );
 }
 
+/// Load the save file in `data` into the world.
 pub struct LoadCommand {
+    /// Bytes of the save file.
     pub data:        Vec<u8>,
-    #[allow(clippy::type_complexity)]
+    /// Closure to be invoked when the save has been loaded.
     pub on_complete: Box<dyn FnOnce(&mut World, LoadResult) + Send>,
 }
 
 fn process_file(buf: &[u8], world: &mut World) -> Result<(), Error> {
     let mut depends = DependSource(HashMap::new());
 
-    if let Some(buf) = buf.strip_prefix(super::MSGPACK_HEADER) {
-        let file: MsgpackFile = rmp_serde::from_slice(buf).map_err(Error::MsgpackDecodeFile)?;
+    if let Some(compressed) = buf.strip_prefix(super::MSGPACK_HEADER) {
+        let file: MsgpackFile =
+            rmp_serde::from_read(flate2::bufread::DeflateDecoder::new(compressed))
+                .map_err(Error::MsgpackDecodeFile)?;
         for ty in file.types {
             let loader = world
                 .resource::<LoaderMap>()
@@ -132,8 +136,14 @@ struct LoaderVtable {
     load_yaml:    fn(&mut World, serde_yaml::Value, &mut DependSource) -> Result<(), Error>,
 }
 
+/// Describes how to load a definition.
+///
+/// Call [`LoadFn::new`] to construct a new instance.
+#[allow(missing_docs, clippy::missing_errors_doc)]
 pub trait LoadOnce {
+    /// The save entry type for this system.
     type Def: Def;
+    /// The depenency types required by this loader.
     type Depends: Depends;
 
     fn resolve_depends(
@@ -149,12 +159,19 @@ pub trait LoadOnce {
     ) -> anyhow::Result<Entity>;
 }
 
+/// Wraps a function that updates a world with definition objects.
+///
+/// See save/tests.rs for example usage.
 pub struct LoadFn<D, Deps, F>(F, PhantomData<fn(D, &Deps)>);
 
 impl<D: Def, Deps: Depends, F> LoadFn<D, Deps, F>
 where
     F: Fn(&mut World, D, &Deps) -> anyhow::Result<Entity>,
 {
+    /// Construct a `LoadFn` from a function.
+    ///
+    /// The function should return an entity corresponding to this save entry.
+    /// It should return an error (instead of panicking) if the save data are invalid.
     pub fn new(f: F) -> Self { Self(f, PhantomData) }
 }
 
@@ -179,12 +196,19 @@ where
     }
 }
 
+/// Dependency of a loader.
+///
+/// Must be consistent with the dependencies of the store system.
 pub struct Depend<D: Def> {
     id_registry: Arc<IdRegistry>,
     _ph:         PhantomData<D>,
 }
 
 impl<D: Def> Depend<D> {
+    /// Retrieves the entity for a dependency type.
+    ///
+    /// # Errors
+    /// Returns an error if the referenced ID did not exist.
     pub fn get(&self, id: Id<D>) -> Result<Entity, Error> {
         self.id_registry
             .save_id_to_entity
@@ -205,6 +229,9 @@ impl DependSource {
     fn get<D: Def>(&self) -> Option<&Arc<IdRegistry>> { self.0.get(&TypeId::of::<D>()) }
 }
 
+/// The dependencies for a store system.
+///
+/// Implemented by tuples of [`Depend`].
 pub trait Depends: Sized {
     const DEPEND_TYPES: &'static [&'static str];
 
@@ -234,8 +261,10 @@ macro_rules! impl_depends {
 
 bevy::utils::all_tuples!(impl_depends, 0, 15, T);
 
+/// Result of a load command.
 pub type LoadResult = Result<(), Error>;
 
+/// Error types during loading.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("msgpack file decode: {0}")]
@@ -251,7 +280,7 @@ pub enum Error {
     #[error("encountered type {0} which must be defined after {1} in save file")]
     UninitDepend(&'static str, &'static str),
     #[error("processing value {0}#{1}: {2:?}")]
-    ValidationError(&'static str, usize, anyhow::Error),
+    Validation(&'static str, usize, anyhow::Error),
     #[error("unresolved reference to {0}#{1}")]
     UnresolvedReference(&'static str, u32),
     #[error("too many defs of type {0}")]

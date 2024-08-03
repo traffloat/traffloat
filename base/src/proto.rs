@@ -3,11 +3,15 @@
 use bevy::math::Vec3;
 use serde::{Deserialize, Serialize};
 
+/// A generic 3D position.
 #[derive(Serialize, Deserialize)]
 pub struct Position {
-    x: f32,
-    y: f32,
-    z: f32,
+    /// X-coordinate.
+    pub x: f32,
+    /// Y-coordinate.
+    pub y: f32,
+    /// Z-coordinate.
+    pub z: f32,
 }
 
 impl From<Vec3> for Position {

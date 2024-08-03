@@ -81,6 +81,7 @@ pub struct Bundle {
 /// The containers connected by the pipe.
 #[derive(Component, From)]
 pub struct Containers {
+    /// Endpoint container references.
     pub endpoints: Binary<Entity>,
 }
 
@@ -94,7 +95,7 @@ fn update_transfer_weight_system(
     container_elements_query: Query<(&container::element::Volume, &hierarchy::Parent)>,
     containers_query: Query<&container::CurrentVolume>,
 ) {
-    for (mut weights_write, &ty, endpoints) in pipe_elements_query.iter_mut() {
+    pipe_elements_query.iter_mut().for_each(|(mut weights_write, &ty, endpoints)| {
         let def = config.get_type(ty);
 
         weights_write.output = endpoints.containers.as_ref().map(|&entity| {
@@ -110,7 +111,7 @@ fn update_transfer_weight_system(
             });
             concentration / def.viscosity.quantity
         });
-    }
+    });
 }
 
 fn distribute_transfer_weight_system(

@@ -28,7 +28,13 @@ impl app::Plugin for Plugin {
 pub struct Bundle {
     position:      Transform,
     facility_list: FacilityList,
+    #[builder(default, setter(skip))]
+    _marker:       Marker,
 }
+
+/// Marks an entity as a building.
+#[derive(Component, Default)]
+pub struct Marker;
 
 /// List of facilities in a building.
 #[derive(Component)]
@@ -41,7 +47,7 @@ pub struct FacilityList {
     pub ambient: Entity,
 }
 
-/// Protobuf structure for saves.
+/// Save schema.
 #[derive(Serialize, Deserialize)]
 pub struct Save {
     /// Position of a building.
@@ -55,7 +61,7 @@ impl save::Def for Save {
         fn store_system(
             mut writer: save::Writer<Save>,
             (): (),
-            query: Query<(Entity, &Transform), With<FacilityList>>,
+            query: Query<(Entity, &Transform), With<Marker>>,
         ) {
             writer.write_all(query.iter().map(|(entity, transform)| {
                 (entity, Save { position: transform.translation.into() })

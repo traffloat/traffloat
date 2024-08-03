@@ -9,10 +9,14 @@ authors = {workspace = true}
 version = {workspace = true}
 rust-version = {workspace = true}
 
+[lints]
+workspace = true
+
 [dependencies]
 anyhow = "1.0.86"
 bevy = {workspace = true}
 either = "1.13.0"
+flate2 = "1.0.30"
 itertools = "0.13.0"
 rmp-serde = "1.3.0"
 serde = { version = "1.0.204", features = ["derive"] }

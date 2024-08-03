@@ -1,3 +1,5 @@
+//! Build script to parse git metadata.
+
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{env, fs};
@@ -95,8 +97,9 @@ struct GitData {
 }
 
 fn option_tokens(os: Option<&str>) -> proc_macro2::TokenStream {
-    match os {
-        Some(str) => quote!(Some(#str)),
-        None => quote!(None),
+    if let Some(str) = os {
+        quote!(Some(#str))
+    } else {
+        quote!(None)
     }
 }

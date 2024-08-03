@@ -8,7 +8,12 @@ use serde::{Deserialize, Serialize};
 use crate::save;
 
 #[test]
-fn e2e() {
+fn e2e_yaml() { e2e(save::Format::Yaml); }
+
+#[test]
+fn e2e_msgpack() { e2e(save::Format::Msgpack); }
+
+fn e2e(format: save::Format) {
     fn init() -> App {
         let mut app = App::new();
         app.add_plugins(save::Plugin);
@@ -23,8 +28,8 @@ fn e2e() {
     app.world_mut().spawn((ChildParent(parent), ChildLabel("Child".into())));
 
     save::StoreCommand {
-        format:      save::Format::Yaml,
-        on_complete: Box::new(|_, result| {
+        format,
+        on_complete: Box::new(move |_, result| {
             let result = result.unwrap();
 
             // test entity creation in a new world

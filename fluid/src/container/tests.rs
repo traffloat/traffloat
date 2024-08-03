@@ -26,17 +26,16 @@ fn do_test(setup: ContainerSetup) {
     let mut app = App::new();
 
     let mut types = Vec::new();
-    let defs =
-        setup.elements.iter().fold(config::ConfigBuilder::default(), |mut builder, fluid| {
-            let ty = builder.register_type(config::TypeDef {
-                viscosity:              units::Viscosity::default(), // unused
-                vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
-                critical_pressure:      fluid.critical_pressure.into(),
-                saturation_gamma:       fluid.saturation_gamma,
-            });
-            types.push(ty);
-            builder
+    let defs = setup.elements.iter().fold(config::Builder::default(), |mut builder, fluid| {
+        let ty = builder.register_type(config::TypeDef {
+            viscosity:              units::Viscosity::default(), // unused
+            vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
+            critical_pressure:      fluid.critical_pressure.into(),
+            saturation_gamma:       fluid.saturation_gamma,
         });
+        types.push(ty);
+        builder
+    });
     app.insert_resource(defs.build());
     app.add_plugins(super::Plugin);
 

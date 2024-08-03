@@ -1,3 +1,5 @@
+//! Binary for the desktop client app.
+
 use bevy::app::{self, App, AppExit, PluginGroup};
 use bevy::ecs::schedule::{self, ScheduleBuildSettings};
 use bevy::state::app::AppExtStates;

@@ -153,9 +153,9 @@ fn init_static(
 /// - All static resistance contributors must execute before this.
 /// - All dynamic resistance contributors must execute after this.
 fn static_to_dynamic_system(mut query: Query<(&Static, &mut Dynamic)>) {
-    for (static_, mut dynamic) in query.iter_mut() {
+    query.iter_mut().for_each(|(static_, mut dynamic)| {
         dynamic.resistance += static_.resistance;
-    }
+    });
 }
 
 /// Resistance due to shape of a pipe.
@@ -165,6 +165,7 @@ fn static_to_dynamic_system(mut query: Query<(&Static, &mut Dynamic)>) {
 /// it is not computed under any systems in this plugin.
 #[derive(Component, From)]
 pub struct FromShape {
+    /// Resistance value from shape.
     pub resistance: f32,
 }
 
@@ -178,6 +179,7 @@ pub struct FromShape {
 /// in a system in the [`SystemSets::Static`] set.
 #[derive(Component)]
 pub struct Static {
+    /// Total static resistance.
     pub resistance: f32,
 }
 
@@ -192,6 +194,7 @@ pub struct Static {
 /// The value should only be read after [`SystemSets::Compute`].
 #[derive(Component)]
 pub struct Dynamic {
+    /// Total dynamic resistance.
     pub resistance: f32,
 }
 

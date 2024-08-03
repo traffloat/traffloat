@@ -37,7 +37,10 @@ contents = {
             },
             "clippy": {
                 "pedantic": {"level": "warn", "priority": -1},
+                # basically every system query parameter.
                 "needless_pass_by_value": "allow",
+                # too many false positives for system params that should not be treated as a whole.
+                "type_complexity": "allow",
             },
         },
         "package": {

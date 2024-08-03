@@ -10,7 +10,7 @@ use typed_builder::TypedBuilder;
 
 use crate::viewable;
 
-pub struct Plugin;
+pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, _: &mut App) {}

@@ -21,7 +21,7 @@ use typed_builder::TypedBuilder;
 
 use crate::viewer;
 
-pub struct Plugin;
+pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
@@ -46,14 +46,18 @@ impl app::Plugin for Plugin {
 /// The client should start displaying a viewable.
 #[derive(Debug, Event)]
 pub struct ShowEvent {
+    /// The viewer to show to.
     pub viewer:   Entity,
+    /// The viewable to be showed.
     pub viewable: Entity,
 }
 
 /// The client should stop displaying a viewable.
 #[derive(Debug, Event)]
 pub struct HideEvent {
+    /// The viewer to hide from.
     pub viewer:   Entity,
+    /// The viewable to be hidden.
     pub viewable: Entity,
 }
 
@@ -68,6 +72,7 @@ pub struct Bundle {
 /// Viewers of the viewable.
 #[derive(Component)]
 pub struct Viewers {
+    /// The list of viewers.
     pub viewers: SmallVec<[Entity; VIEWERS_SMALL_LEN]>,
 }
 
@@ -134,68 +139,72 @@ fn maintain_viewers_system(
         return; // tree is currently inaccurate
     };
 
-    for (viewer, &Transform { translation: new_pos, .. }, &viewer::Range { distance }, last_pos) in
-        &viewer_query
-    {
-        match last_pos {
-            None => {
-                commands.entity(viewer).insert(LastPos(new_pos));
-                // TODO benchmark if it is better to simply run this branch every time
+    viewer_query.iter().for_each(
+        |(
+            viewer,
+            &Transform { translation: new_pos, .. },
+            &viewer::Range { distance },
+            last_pos,
+        )| {
+            match last_pos {
+                None => {
+                    commands.entity(viewer).insert(LastPos(new_pos));
+                    // TODO benchmark if it is better to simply run this branch every time
 
-                let visible = Aabb3d::new(new_pos, Vec3A::splat(distance));
-                let viewables = kdtree.within(&[visible.min.to_array(), visible.max.to_array()]);
+                    let visible = Aabb3d::new(new_pos, Vec3A::splat(distance));
+                    let viewables =
+                        kdtree.within(&[visible.min.to_array(), visible.max.to_array()]);
 
-                for &&(_, viewable) in &viewables {
-                    viewable_query
-                        .get_mut(viewable)
-                        .expect("kvtree contains nonexistent viewable entity")
-                        .viewers
-                        .push(viewer);
-                }
-
-                show_events.send_batch(
-                    viewables.into_iter().map(|&(_, viewable)| ShowEvent { viewable, viewer }),
-                );
-            }
-            Some(&LastPos(last_pos)) => {
-                let last_aabb = Aabb3d::new(last_pos, Vec3A::splat(distance));
-                let new_aabb = Aabb3d::new(new_pos, Vec3A::splat(distance));
-
-                for bb in subtract_aabb(new_aabb, last_aabb) {
-                    let new_viewables = kdtree.within(&[bb.min.to_array(), bb.max.to_array()]);
-                    for &(_, viewable) in new_viewables {
-                        let viewers = &mut viewable_query
+                    for &&(_, viewable) in &viewables {
+                        viewable_query
                             .get_mut(viewable)
                             .expect("kvtree contains nonexistent viewable entity")
-                            .viewers;
-                        if !viewers.iter().any(|v| *v == viewable) {
-                            viewers.push(viewer);
-                            show_events.send(ShowEvent { viewable, viewer });
+                            .viewers
+                            .push(viewer);
+                    }
+
+                    show_events.send_batch(
+                        viewables.into_iter().map(|&(_, viewable)| ShowEvent { viewer, viewable }),
+                    );
+                }
+                Some(&LastPos(last_pos)) => {
+                    let last_aabb = Aabb3d::new(last_pos, Vec3A::splat(distance));
+                    let new_aabb = Aabb3d::new(new_pos, Vec3A::splat(distance));
+
+                    for bb in subtract_aabb(new_aabb, last_aabb) {
+                        let new_viewables = kdtree.within(&[bb.min.to_array(), bb.max.to_array()]);
+                        for &(_, viewable) in new_viewables {
+                            let viewers = &mut viewable_query
+                                .get_mut(viewable)
+                                .expect("kvtree contains nonexistent viewable entity")
+                                .viewers;
+                            if !viewers.iter().any(|v| *v == viewable) {
+                                viewers.push(viewer);
+                                show_events.send(ShowEvent { viewer, viewable });
+                            }
+                        }
+                    }
+
+                    for bb in subtract_aabb(last_aabb, new_aabb) {
+                        let new_viewables = kdtree.within(&[bb.min.to_array(), bb.max.to_array()]);
+                        for &(_, viewable) in new_viewables {
+                            let viewers = &mut viewable_query
+                                .get_mut(viewable)
+                                .expect("kvtree contains nonexistent viewable entity")
+                                .viewers;
+                            if let Some(index) = viewers.iter().position(|v| *v == viewable) {
+                                viewers.swap_remove(index);
+                                hide_events.send(HideEvent { viewer, viewable });
+                            }
                         }
                     }
                 }
-
-                for bb in subtract_aabb(last_aabb, new_aabb) {
-                    let new_viewables = kdtree.within(&[bb.min.to_array(), bb.max.to_array()]);
-                    for &(_, viewable) in new_viewables {
-                        let viewers = &mut viewable_query
-                            .get_mut(viewable)
-                            .expect("kvtree contains nonexistent viewable entity")
-                            .viewers;
-                        if let Some(index) = viewers.iter().position(|v| *v == viewable) {
-                            viewers.swap_remove(index);
-                            hide_events.send(HideEvent { viewable, viewer });
-                        }
-                    }
-                }
             }
-        }
-    }
+        },
+    );
 }
 
 fn subtract_aabb(mut superset: Aabb3d, subset: Aabb3d) -> ArrayVec<Aabb3d, 6> {
-    let mut output = ArrayVec::new();
-
     fn shrink(
         output: &mut ArrayVec<Aabb3d, 6>,
         superset: &mut Aabb3d,
@@ -223,6 +232,8 @@ fn subtract_aabb(mut superset: Aabb3d, subset: Aabb3d) -> ArrayVec<Aabb3d, 6> {
             *field_mut(&mut superset.min) = partition;
         }
     }
+
+    let mut output = ArrayVec::new();
 
     shrink(&mut output, &mut superset, &subset, |v| v.x, |v| &mut v.x);
     shrink(&mut output, &mut superset, &subset, |v| v.y, |v| &mut v.y);

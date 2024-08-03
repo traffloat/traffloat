@@ -9,6 +9,9 @@ authors = {workspace = true}
 version = {workspace = true}
 rust-version = {workspace = true}
 
+[lints]
+workspace = true
+
 [dependencies]
 traffloat-graph = {workspace = true}
 traffloat-base = {workspace = true}
