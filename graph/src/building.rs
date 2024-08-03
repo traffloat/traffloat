@@ -19,7 +19,10 @@ pub mod facility;
 pub struct Plugin;
 
 impl app::Plugin for Plugin {
-    fn build(&self, app: &mut App) { save::add_def::<Save>(app); }
+    fn build(&self, app: &mut App) {
+        save::add_def::<Save>(app);
+        save::add_def::<facility::Save>(app);
+    }
 }
 
 /// Components for a building.
@@ -41,7 +44,7 @@ pub struct Marker;
 pub struct FacilityList {
     /// Non-ambient facilities in this building.
     /// The order of entities in this list has no significance.
-    pub facilities: Vec<Entity>, // entities with facility components
+    pub facility_list: Vec<Entity>, // entities with facility components
 
     /// The ambient space for this building.
     pub ambient: Entity,
@@ -56,6 +59,8 @@ pub struct Save {
 
 impl save::Def for Save {
     const TYPE: &'static str = "traffloat.save.Building";
+
+    type Runtime = Entity;
 
     fn store_system() -> impl save::StoreSystem<Def = Self> {
         fn store_system(
@@ -79,7 +84,7 @@ impl save::Def for Save {
             let mut building = world.spawn(
                 Bundle::builder()
                     .position(Transform::from_translation(def.position.into()))
-                    .facility_list(FacilityList { facilities: Vec::new(), ambient })
+                    .facility_list(FacilityList { facility_list: Vec::new(), ambient })
                     .build(),
             );
             building.add_child(ambient);

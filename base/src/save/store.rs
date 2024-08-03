@@ -3,13 +3,13 @@ use std::marker::PhantomData;
 use std::{iter, mem};
 
 use bevy::app::{self, App};
-use bevy::ecs::entity::{Entity, EntityHashMap};
 use bevy::ecs::schedule::{
     IntoSystemConfigs, IntoSystemSetConfigs, ScheduleLabel, SystemConfigs, SystemSet,
     SystemSetConfigs,
 };
 use bevy::ecs::system::{IntoSystem, Res, ResMut, Resource, SystemParam};
 use bevy::ecs::world::{Command, World};
+use bevy::utils::HashMap;
 
 use super::{Def, Format, Id, MsgpackFile, MsgpackTypedData, YamlFile, YamlTypedData};
 
@@ -25,8 +25,8 @@ pub(super) fn add_def<D: Def>(app: &mut App) {
 
     app.insert_resource(Buffer::<D>(Vec::new()));
     app.insert_resource(IdRegistry::<D> {
-        entity_to_save_id: <_>::default(),
-        _ph:               PhantomData,
+        rt_to_save_id: <_>::default(),
+        _ph:           PhantomData,
     });
 
     app.add_systems(
@@ -34,7 +34,7 @@ pub(super) fn add_def<D: Def>(app: &mut App) {
         (|mut global_writer: ResMut<GlobalWriter>,
           mut registry: ResMut<IdRegistry<D>>,
           mut buffer: ResMut<Buffer<D>>| {
-            registry.entity_to_save_id.clear();
+            registry.rt_to_save_id.clear();
             global_writer.write_all(mem::take(&mut buffer.0));
         })
         .in_set(StoreSystemSet(TypeId::of::<D>())),
@@ -145,15 +145,14 @@ impl<'w, D: Def> Writer<'w, D> {
     /// Writes a save entry to the output.
     ///
     /// `entity` is required for dependent types to resolve.
-    pub fn write(&mut self, entity: Entity, def: D) {
-        // TODO make `Entity` an associated type.
+    pub fn write(&mut self, rt: D::Runtime, def: D) {
         let save_id = self.write_buf.0.len();
         self.write_buf.0.push(def);
-        self.id_registry.add(save_id, entity);
+        self.id_registry.add(save_id, rt);
     }
 
     /// Writes an iterator of save entries to the output.
-    pub fn write_all(&mut self, iter: impl IntoIterator<Item = (Entity, D)>) {
+    pub fn write_all(&mut self, iter: impl IntoIterator<Item = (D::Runtime, D)>) {
         struct MutExtend<'a, T>(&'a mut T);
 
         impl<'a, A, T: Extend<A>> Extend<A> for MutExtend<'a, T> {
@@ -175,20 +174,18 @@ impl<'w, D: Def> Writer<'w, D> {
 struct Buffer<D>(Vec<D>);
 
 #[derive(Resource)]
-struct IdRegistry<D> {
-    entity_to_save_id: EntityHashMap<usize>,
-    _ph:               PhantomData<fn() -> D>,
+struct IdRegistry<D: Def> {
+    rt_to_save_id: HashMap<D::Runtime, usize>,
+    _ph:           PhantomData<fn() -> D>,
 }
 
-impl<D> IdRegistry<D> {
-    fn add(&mut self, save_id: usize, entity: Entity) {
-        self.entity_to_save_id.insert(entity, save_id);
-    }
+impl<D: Def> IdRegistry<D> {
+    fn add(&mut self, save_id: usize, rt: D::Runtime) { self.rt_to_save_id.insert(rt, save_id); }
 }
 
-impl<D> Extend<(Entity, usize)> for IdRegistry<D> {
-    fn extend<T: IntoIterator<Item = (Entity, usize)>>(&mut self, iter: T) {
-        self.entity_to_save_id.extend(iter);
+impl<D: Def> Extend<(D::Runtime, usize)> for IdRegistry<D> {
+    fn extend<T: IntoIterator<Item = (D::Runtime, usize)>>(&mut self, iter: T) {
+        self.rt_to_save_id.extend(iter);
     }
 }
 
@@ -206,10 +203,10 @@ impl<'w, D: Def> Depend<'w, D> {
     /// Returns `None` if this entity did not get saved as an instance of `D`.
     #[allow(clippy::missing_panics_doc)]
     #[must_use]
-    pub fn get(&self, entity: Entity) -> Option<Id<D>> {
+    pub fn get(&self, rt: D::Runtime) -> Option<Id<D>> {
         self.id_registry
-            .entity_to_save_id
-            .get(&entity)
+            .rt_to_save_id
+            .get(&rt)
             .map(|&save_id| Id(save_id.try_into().expect("too many items"), PhantomData))
     }
 
@@ -218,10 +215,10 @@ impl<'w, D: Def> Depend<'w, D> {
     /// # Panics
     /// Panics if this entity did not get saved as an instance of `D`.
     #[must_use]
-    pub fn must_get(&self, entity: Entity) -> Id<D> {
-        match self.get(entity) {
+    pub fn must_get(&self, rt: D::Runtime) -> Id<D> {
+        match self.get(rt) {
             Some(id) => id,
-            None => panic!("parent {} {entity:?} must have been persisted", type_name::<D>()),
+            None => panic!("parent {} {rt:?} must have been persisted", type_name::<D>()),
         }
     }
 }
@@ -311,7 +308,7 @@ impl GlobalWriter {
     }
 }
 
-/// Erorr types during storing.
+/// Error types during storing.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("transforming objects into YAML values: {0:?}")]

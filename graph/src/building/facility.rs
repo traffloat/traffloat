@@ -38,13 +38,15 @@ pub struct Save {
 }
 
 impl save::Def for Save {
-    const TYPE: &'static str = "traffloat.save.Building";
+    const TYPE: &'static str = "traffloat.save.Facility";
+
+    type Runtime = Entity;
 
     fn store_system() -> impl save::StoreSystem<Def = Self> {
         fn store_system(
             mut writer: save::Writer<Save>,
-            (buildings,): (save::StoreDepend<super::Save>,),
-            (query, buildings_query): (
+            (building_dep,): (save::StoreDepend<super::Save>,),
+            (query, building_query): (
                 Query<(Entity, &hierarchy::Parent, &Transform), With<Marker>>,
                 Query<&super::FacilityList, With<super::Marker>>,
             ),
@@ -53,9 +55,9 @@ impl save::Def for Save {
                 (
                     entity,
                     Save {
-                        parent:         buildings.must_get(parent.get()),
+                        parent:         building_dep.must_get(parent.get()),
                         inner_position: transform.translation.into(),
-                        is_ambient:     buildings_query
+                        is_ambient:     building_query
                             .get(parent.get())
                             .expect("dangling parent building reference")
                             .ambient
@@ -73,9 +75,9 @@ impl save::Def for Save {
         fn loader(
             world: &mut World,
             def: Save,
-            (buildings,): &(save::LoadDepend<super::Save>,),
+            (building_dep,): &(save::LoadDepend<super::Save>,),
         ) -> anyhow::Result<Entity> {
-            let parent = buildings.get(def.parent)?;
+            let parent = building_dep.get(def.parent)?;
             let facility_bundle = Bundle::builder()
                 .inner_position(Transform::from_translation(def.inner_position.into()))
                 .build();
@@ -101,7 +103,7 @@ impl save::Def for Save {
                 let mut list = world
                     .get_mut::<super::FacilityList>(parent)
                     .expect("parent building was created in the previous load step");
-                list.facilities.push(id);
+                list.facility_list.push(id);
 
                 id
             };

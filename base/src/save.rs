@@ -21,6 +21,8 @@
 
 #![allow(clippy::module_name_repetitions)]
 
+use core::fmt;
+use std::hash::Hash;
 use std::marker::PhantomData;
 
 use bevy::app::{self, App};
@@ -61,6 +63,10 @@ impl app::Plugin for Plugin {
 pub trait Def: Serialize + DeserializeOwned + Send + Sync + 'static {
     /// A persistent identifier that indicates how to interpret a list of definitions.
     const TYPE: &'static str;
+
+    /// The runtime type that maps to this definition,
+    /// e.g. an `Entity` referencing the entity saved by this entry.
+    type Runtime: fmt::Debug + Copy + PartialEq + Eq + Hash + Send + Sync;
 
     /// Returns a system that converts world entities and resources into save data.
     ///

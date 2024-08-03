@@ -1,10 +1,9 @@
-use std::any::{type_name, TypeId};
+use std::any::{type_name, Any, TypeId};
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
 use bevy::app::{self, App};
-use bevy::ecs::entity::Entity;
 use bevy::ecs::system::Resource;
 use bevy::ecs::world::{Command, World};
 
@@ -27,13 +26,13 @@ pub(super) fn add_def<D: Def>(app: &mut App) {
             .resolve_depends(depend_source)
             .map_err(|(_, dependency_ty)| Error::UninitDepend(type_name::<D>(), dependency_ty))?;
 
-        let mut registry = IdRegistry::default();
+        let mut registry = IdRegistry::<D>::default();
 
         for (i, def) in defs.into_iter().enumerate() {
             let entity = loader
                 .load(world, def, &depends)
                 .map_err(|err| Error::Validation(type_name::<D>(), i, err))?;
-            registry.save_id_to_entity.insert(
+            registry.save_id_to_rt.insert(
                 i.try_into().map_err(|_| Error::RegistryOverflow(type_name::<D>()))?,
                 entity,
             );
@@ -143,7 +142,7 @@ struct LoaderVtable {
 pub trait LoadOnce {
     /// The save entry type for this system.
     type Def: Def;
-    /// The depenency types required by this loader.
+    /// The dependency types required by this loader.
     type Depends: Depends;
 
     fn resolve_depends(
@@ -156,7 +155,7 @@ pub trait LoadOnce {
         world: &mut World,
         def: Self::Def,
         deps: &Self::Depends,
-    ) -> anyhow::Result<Entity>;
+    ) -> anyhow::Result<<Self::Def as Def>::Runtime>;
 }
 
 /// Wraps a function that updates a world with definition objects.
@@ -166,7 +165,7 @@ pub struct LoadFn<D, Deps, F>(F, PhantomData<fn(D, &Deps)>);
 
 impl<D: Def, Deps: Depends, F> LoadFn<D, Deps, F>
 where
-    F: Fn(&mut World, D, &Deps) -> anyhow::Result<Entity>,
+    F: Fn(&mut World, D, &Deps) -> anyhow::Result<D::Runtime>,
 {
     /// Construct a `LoadFn` from a function.
     ///
@@ -177,7 +176,7 @@ where
 
 impl<D: Def, Deps: Depends, F> LoadOnce for LoadFn<D, Deps, F>
 where
-    F: Fn(&mut World, D, &Deps) -> anyhow::Result<Entity>,
+    F: Fn(&mut World, D, &Deps) -> anyhow::Result<D::Runtime>,
 {
     type Def = D;
     type Depends = Deps;
@@ -191,7 +190,7 @@ where
         world: &mut World,
         def: Self::Def,
         deps: &Self::Depends,
-    ) -> anyhow::Result<Entity> {
+    ) -> anyhow::Result<D::Runtime> {
         (self.0)(world, def, deps)
     }
 }
@@ -200,7 +199,7 @@ where
 ///
 /// Must be consistent with the dependencies of the store system.
 pub struct Depend<D: Def> {
-    id_registry: Arc<IdRegistry>,
+    id_registry: Arc<IdRegistry<D>>,
     _ph:         PhantomData<D>,
 }
 
@@ -209,24 +208,30 @@ impl<D: Def> Depend<D> {
     ///
     /// # Errors
     /// Returns an error if the referenced ID did not exist.
-    pub fn get(&self, id: Id<D>) -> Result<Entity, Error> {
+    pub fn get(&self, id: Id<D>) -> Result<D::Runtime, Error> {
         self.id_registry
-            .save_id_to_entity
+            .save_id_to_rt
             .get(&id.0)
             .copied()
             .ok_or(Error::UnresolvedReference(type_name::<D>(), id.0))
     }
 }
 
-#[derive(Default)]
-struct IdRegistry {
-    save_id_to_entity: HashMap<u32, Entity>,
+struct IdRegistry<D: Def> {
+    save_id_to_rt: HashMap<u32, D::Runtime>,
 }
 
-pub struct DependSource(HashMap<TypeId, Arc<IdRegistry>>);
+impl<D: Def> Default for IdRegistry<D> {
+    fn default() -> Self { Self { save_id_to_rt: HashMap::new() } }
+}
+
+pub struct DependSource(HashMap<TypeId, Arc<dyn Any + Send + Sync>>);
 
 impl DependSource {
-    fn get<D: Def>(&self) -> Option<&Arc<IdRegistry>> { self.0.get(&TypeId::of::<D>()) }
+    fn get<D: Def>(&self) -> Option<Arc<IdRegistry<D>>> {
+        let arc = self.0.get(&TypeId::of::<D>())?;
+        Some(Arc::downcast::<IdRegistry<D>>(arc.clone()).expect("TypeId mismatch"))
+    }
 }
 
 /// The dependencies for a store system.
@@ -251,7 +256,7 @@ macro_rules! impl_depends {
             fn resolve(source: &DependSource) -> Result<Self, (TypeId, &'static str)> {
                 Ok((
                     $(
-                        source.get::<$T>().map(|id_registry| Depend { id_registry: id_registry.clone(), _ph: PhantomData}).ok_or((TypeId::of::<$T>(), type_name::<$T>()))?,
+                        source.get::<$T>().map(|id_registry| Depend { id_registry, _ph: PhantomData}).ok_or((TypeId::of::<$T>(), type_name::<$T>()))?,
                     )*
                 ))
             }

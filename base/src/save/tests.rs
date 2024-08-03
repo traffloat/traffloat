@@ -67,6 +67,8 @@ struct ParentName(String);
 impl save::Def for Parent {
     const TYPE: &'static str = "parent";
 
+    type Runtime = Entity;
+
     fn store_system() -> impl save::StoreSystem<Def = Self> {
         fn store_system(
             mut writer: save::Writer<Parent>,
@@ -82,6 +84,7 @@ impl save::Def for Parent {
     }
 
     fn loader() -> impl save::LoadOnce<Def = Self> {
+        #[allow(clippy::trivially_copy_pass_by_ref, clippy::unnecessary_wraps)]
         fn loader(world: &mut World, def: Parent, (): &()) -> anyhow::Result<Entity> {
             Ok(world.spawn(ParentName(def.name)).id())
         }
@@ -105,17 +108,16 @@ struct ChildLabel(String);
 impl save::Def for Child {
     const TYPE: &'static str = "child";
 
+    type Runtime = ();
+
     fn store_system() -> impl save::StoreSystem<Def = Self> {
         fn store_system(
             mut writer: save::Writer<Child>,
             (parent_ids,): (save::StoreDepend<Parent>,),
-            query: Query<(Entity, &ChildParent, &ChildLabel)>,
+            query: Query<(&ChildParent, &ChildLabel)>,
         ) {
-            writer.write_all(query.iter().map(|(entity, parent, label)| {
-                (
-                    entity,
-                    Child { parent: parent_ids.get(parent.0).unwrap(), label: label.0.clone() },
-                )
+            writer.write_all(query.iter().map(|(parent, label)| {
+                ((), Child { parent: parent_ids.get(parent.0).unwrap(), label: label.0.clone() })
             }));
         }
 
@@ -127,8 +129,9 @@ impl save::Def for Child {
             world: &mut World,
             def: Child,
             (parent_dep,): &(save::load::Depend<Parent>,),
-        ) -> anyhow::Result<Entity> {
-            Ok(world.spawn((ChildParent(parent_dep.get(def.parent)?), ChildLabel(def.label))).id())
+        ) -> anyhow::Result<()> {
+            world.spawn((ChildParent(parent_dep.get(def.parent)?), ChildLabel(def.label)));
+            Ok(())
         }
 
         save::LoadFn::new(loader)
