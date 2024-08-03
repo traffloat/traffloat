@@ -7,16 +7,23 @@
 //!
 //! A storage for a [facility](traffloat_graph::building::facility)
 //! should reference the facility entity as its parent.
-//! A storage for a [duct](traffloat_graph::corridor::duct)
+//! A container for a [duct](traffloat_graph::corridor::duct)
 //! should reference the duct entity as its parent.
 
 use std::iter;
 
 use bevy::ecs::bundle;
+use bevy::ecs::query::With;
+use bevy::ecs::world::World;
+use bevy::hierarchy::BuildWorldChildren;
 use bevy::prelude::{Commands, Component, Entity, IntoSystemConfigs, Query, Res, SystemSet};
 use bevy::{app, hierarchy};
 use derive_more::From;
+use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
+use traffloat_base::save;
+use traffloat_graph::building::facility;
+use traffloat_graph::corridor::duct;
 use typed_builder::TypedBuilder;
 
 use crate::config::{self, Config};
@@ -33,6 +40,8 @@ pub struct Plugin;
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(app::Update, rebalance_system.in_set(SystemSets::Rebalance));
+        save::add_def::<Save>(app);
+        save::add_def::<element::Save>(app);
     }
 }
 
@@ -60,7 +69,13 @@ pub struct Bundle {
     max_pressure:     MaxPressure,
     #[builder(default = Pipes { pipes: <_>::default() })]
     pipes:            Pipes,
+    #[builder(default, setter(skip))]
+    _marker:          Marker,
 }
+
+/// Marks an entity as a container.
+#[derive(Component, Default)]
+pub struct Marker;
 
 /// Overall pressure of a container.
 #[derive(Component)]
@@ -193,4 +208,96 @@ fn rebalance_system(
             }
         },
     );
+}
+
+/// Save schema.
+#[derive(Serialize, Deserialize)]
+pub struct Save {
+    /// Reference to parent facility or duct.
+    pub parent:       SaveParent,
+    /// Container capacity.
+    pub max_volume:   units::Volume,
+    /// Container pressure limit.
+    pub max_pressure: units::Pressure,
+}
+
+/// Parent of the container, used in saves.
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum SaveParent {
+    /// Container is a facility storage.
+    Facility(save::Id<facility::Save>),
+    /// Container is a duct buffer.
+    Duct(save::Id<duct::Save>),
+}
+
+impl save::Def for Save {
+    const TYPE: &'static str = "traffloat.save.fluid.Container";
+
+    type Runtime = Entity;
+
+    fn store_system() -> impl save::StoreSystem<Def = Self> {
+        fn store_system(
+            mut writer: save::Writer<Save>,
+            (facility_dep, duct_dep): (
+                save::StoreDepend<facility::Save>,
+                save::StoreDepend<duct::Save>,
+            ),
+            (query, parent_marker_query): (
+                Query<(Entity, &hierarchy::Parent, &MaxVolume, &MaxPressure), With<Marker>>,
+                Query<(Option<&facility::Marker>, Option<&duct::Marker>)>,
+            ),
+        ) {
+            writer.write_all(query.iter().map(|(entity, parent, max_volume, max_pressure)| {
+                let save_parent = match parent_marker_query
+                    .get(parent.get())
+                    .expect("dangling parent reference")
+                {
+                    (Some(_), Some(_)) => unreachable!("entity cannot be both facility and duct"),
+                    (Some(_), None) => SaveParent::Facility(facility_dep.must_get(parent.get())),
+                    (None, Some(_)) => SaveParent::Duct(duct_dep.must_get(parent.get())),
+                    (None, None) => panic!("container parent must be facility or duct"),
+                };
+
+                (
+                    entity,
+                    Save {
+                        parent:       save_parent,
+                        max_volume:   max_volume.volume,
+                        max_pressure: max_pressure.pressure,
+                    },
+                )
+            }));
+        }
+
+        save::StoreSystemFn::new(store_system)
+    }
+
+    fn loader() -> impl save::LoadOnce<Def = Self> {
+        #[allow(clippy::trivially_copy_pass_by_ref, clippy::unnecessary_wraps)]
+        fn loader(
+            world: &mut World,
+            def: Save,
+            (facility_dep, duct_dep): &(
+                save::LoadDepend<facility::Save>,
+                save::LoadDepend<duct::Save>,
+            ),
+        ) -> anyhow::Result<Entity> {
+            let parent = match def.parent {
+                SaveParent::Facility(parent) => facility_dep.get(parent)?,
+                SaveParent::Duct(parent) => duct_dep.get(parent)?,
+            };
+            let bundle = Bundle::builder()
+                .max_volume(def.max_volume)
+                .max_pressure(def.max_pressure)
+                .pipes(Pipes { pipes: <_>::default() })
+                .build();
+
+            let mut container = world.spawn(bundle);
+            container.set_parent(parent);
+            Ok(container.id())
+        }
+
+        save::LoadFn::new(loader)
+    }
 }

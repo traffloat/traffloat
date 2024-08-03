@@ -59,7 +59,7 @@ fn apply_resistance(mut query: Query<(&mut Directed, &resistance::Dynamic)>) {
     query.iter_mut().for_each(|(mut directed, resistance)| {
         directed.force.each_mut(|force| {
             force.quantity = force.quantity.max(0.);
-            force.quantity /= resistance.resistance;
+            force.quantity /= resistance.resistance.quantity;
         });
     });
 }

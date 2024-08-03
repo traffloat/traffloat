@@ -22,7 +22,7 @@
 //!         let (data, mut sum) = query
 //!             .get_mut(event.entity)
 //!             .expect("RecomputeStaticEvent must contain a valid pipe entity");
-//!         sum.resistance += data.0;
+//!         sum.resistance.quantity += data.0;
 //!     }
 //! }
 //!
@@ -79,7 +79,7 @@
 //!
 //! fn example_contributor_system(mut query: Query<(&MyData, &mut resistance::Dynamic)>) {
 //!     for (data, mut sum) in query.iter_mut() {
-//!         sum.resistance += data.0;
+//!         sum.resistance.quantity += data.0;
 //!     }
 //! }
 //!
@@ -101,6 +101,8 @@ use bevy::prelude::{
     SystemSet,
 };
 use derive_more::From;
+
+use crate::units;
 
 pub(super) struct Plugin;
 
@@ -166,7 +168,7 @@ fn static_to_dynamic_system(mut query: Query<(&Static, &mut Dynamic)>) {
 #[derive(Component, From)]
 pub struct FromShape {
     /// Resistance value from shape.
-    pub resistance: f32,
+    pub resistance: units::Resistance,
 }
 
 /// Sum of all static resistance over a pipe.
@@ -180,7 +182,7 @@ pub struct FromShape {
 #[derive(Component)]
 pub struct Static {
     /// Total static resistance.
-    pub resistance: f32,
+    pub resistance: units::Resistance,
 }
 
 /// Sum of all resistance types.
@@ -195,7 +197,7 @@ pub struct Static {
 #[derive(Component)]
 pub struct Dynamic {
     /// Total dynamic resistance.
-    pub resistance: f32,
+    pub resistance: units::Resistance,
 }
 
 /// Notifies that the static resistance for a pipe needs to be recomputed.

@@ -18,7 +18,7 @@ pub struct Bundle {
     _marker: Marker,
 }
 
-/// Marks an entity as a building.
+/// Marks an entity as a duct.
 #[derive(Component, Default)]
 pub struct Marker;
 

@@ -3,6 +3,7 @@ use std::iter;
 use approx::assert_relative_eq;
 use bevy::app::App;
 use bevy::ecs::world::Command;
+use traffloat_base::save;
 use traffloat_graph::corridor::Binary;
 use typed_builder::TypedBuilder;
 
@@ -37,7 +38,7 @@ struct ContainerSetup {
 
 fn do_test(setup: Setup) {
     let mut app = App::new();
-    app.add_plugins((container::Plugin, pipe::Plugin));
+    app.add_plugins((save::Plugin, container::Plugin, pipe::Plugin));
 
     let mut config = Config::default();
     let types: Vec<_> = setup
@@ -77,9 +78,12 @@ fn do_test(setup: Setup) {
     });
 
     let _pipe = {
-        let entity = app
-            .world_mut()
-            .spawn(pipe::Bundle::builder().shape_resistance(1.).containers(containers).build());
+        let entity = app.world_mut().spawn(
+            pipe::Bundle::builder()
+                .shape_resistance(units::Resistance { quantity: 1. })
+                .containers(containers)
+                .build(),
+        );
         entity.id()
     };
 

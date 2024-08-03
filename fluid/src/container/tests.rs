@@ -3,6 +3,7 @@ use std::iter;
 use approx::assert_relative_eq;
 use bevy::app::App;
 use bevy::hierarchy::BuildWorldChildren;
+use traffloat_base::save;
 
 use super::element;
 use crate::config::{self, Config};
@@ -25,6 +26,7 @@ struct ElementSetup {
 
 fn do_test(setup: ContainerSetup) {
     let mut app = App::new();
+    app.add_plugins(save::Plugin);
 
     let mut types = Vec::new();
     let config = setup.elements.iter().fold(Config::default(), |mut config, fluid| {

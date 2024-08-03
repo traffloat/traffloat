@@ -22,12 +22,16 @@
 
 use bevy::ecs::bundle;
 use bevy::ecs::component::ComponentId;
-use bevy::ecs::world::DeferredWorld;
-use bevy::hierarchy::DespawnRecursiveExt;
+use bevy::ecs::query::With;
+use bevy::ecs::world::{DeferredWorld, World};
+use bevy::hierarchy::{BuildWorldChildren, DespawnRecursiveExt};
 use bevy::prelude::{App, Commands, Component, Entity, IntoSystemConfigs, Query, Res};
 use bevy::{app, hierarchy};
 use derive_more::From;
-use traffloat_graph::corridor::Binary;
+use serde::{Deserialize, Serialize};
+use traffloat_base::save;
+use traffloat_graph::building::facility;
+use traffloat_graph::corridor::{duct, Binary};
 use typed_builder::TypedBuilder;
 
 use crate::config::{self, Config};
@@ -70,13 +74,19 @@ pub struct Bundle {
     containers:         Containers,
     #[builder(setter(into))]
     shape_resistance:   resistance::FromShape,
-    #[builder(default = resistance::Static { resistance: 0. })]
+    #[builder(default = resistance::Static { resistance: <_>::default() })]
     static_resistance:  resistance::Static,
-    #[builder(default = resistance::Dynamic { resistance: 0. })]
+    #[builder(default = resistance::Dynamic { resistance: <_>::default() })]
     dynamic_resistance: resistance::Dynamic,
     #[builder(default = force::Directed { force: <_>::default() })]
     force:              force::Directed,
+    #[builder(default, setter(skip))]
+    _marker:            Marker,
 }
+
+/// Marks an entity as a pipe.
+#[derive(Component, Default)]
+pub struct Marker;
 
 /// The containers connected by the pipe.
 #[derive(Component, From)]
@@ -231,5 +241,107 @@ fn remove_element_hook(mut world: DeferredWorld, container_element: Entity, _: C
         if endpoints.containers.iter().all(Option::is_none) {
             world.commands().entity(pipe_element).despawn_recursive();
         }
+    }
+}
+
+/// Save schema.
+#[derive(Serialize, Deserialize)]
+pub struct Save {
+    /// Containers connected by this pipe.
+    ///
+    /// The containers must be both facility storages in the same building
+    /// or one facility storage and one adjacent pipe buffer.
+    pub containers:       Binary<save::Id<container::Save>>,
+    /// Resistance contributed by the pipe shape.
+    pub shape_resistance: units::Resistance,
+}
+
+impl save::Def for Save {
+    const TYPE: &'static str = "traffloat.save.fluid.Container";
+
+    type Runtime = Entity;
+
+    fn store_system() -> impl save::StoreSystem<Def = Self> {
+        fn store_system(
+            mut writer: save::Writer<Save>,
+            (container_dep,): (save::StoreDepend<container::Save>,),
+            query: Query<(Entity, &Containers, &resistance::FromShape), With<Marker>>,
+        ) {
+            writer.write_all(query.iter().map(|(entity, containers, shape_resistance)| {
+                (
+                    entity,
+                    Save {
+                        containers:       containers
+                            .endpoints
+                            .map(|endpoint| container_dep.must_get(endpoint)),
+                        shape_resistance: shape_resistance.resistance,
+                    },
+                )
+            }));
+        }
+
+        save::StoreSystemFn::new(store_system)
+    }
+
+    fn loader() -> impl save::LoadOnce<Def = Self> {
+        #[allow(clippy::trivially_copy_pass_by_ref, clippy::unnecessary_wraps)]
+        fn loader(
+            world: &mut World,
+            def: Save,
+            (container_dep,): &(save::LoadDepend<container::Save>,),
+        ) -> anyhow::Result<Entity> {
+            enum Parent {
+                Duct(Entity),
+                Building(Entity),
+            }
+
+            let container_entities =
+                def.containers.try_map(|container| container_dep.get(container))?;
+            let bundle = Bundle::builder()
+                .containers(Containers { endpoints: container_entities })
+                .shape_resistance(def.shape_resistance)
+                .build();
+
+            let parent_candidates = container_entities.try_map(|container| {
+                let container_parent = world
+                    .get::<hierarchy::Parent>(container)
+                    .expect("container from stored data must have parent")
+                    .get();
+                if world.get::<duct::Marker>(container_parent).is_some() {
+                    Ok(Parent::Duct(container_parent))
+                } else if world.get::<facility::Marker>(container_parent).is_some() {
+                    let facility_parent = world
+                        .get::<hierarchy::Parent>(container_parent)
+                        .expect("facility must have a parent")
+                        .get();
+                    Ok(Parent::Building(facility_parent))
+                } else {
+                    anyhow::bail!("endpoint container parent must be a facility or a duct")
+                }
+            })?;
+            let parent = match parent_candidates {
+                Binary {
+                    alpha: Parent::Building(alpha_building),
+                    beta: Parent::Building(beta_building),
+                } => {
+                    anyhow::ensure!(
+                        alpha_building == beta_building,
+                        "pipe endpoint containers belong to facilities in different buildings"
+                    );
+                    alpha_building
+                }
+                Binary { alpha: Parent::Building(_), beta: Parent::Duct(duct) }
+                | Binary { alpha: Parent::Duct(duct), beta: Parent::Building(_) } => duct,
+                Binary { alpha: Parent::Duct(_), beta: Parent::Duct(_) } => {
+                    anyhow::bail!("pipe cannot have both endpoints as duct containers");
+                }
+            };
+
+            let mut container = world.spawn(bundle);
+            container.set_parent(parent);
+            Ok(container.id())
+        }
+
+        save::LoadFn::new(loader)
     }
 }

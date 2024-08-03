@@ -61,6 +61,9 @@ define_unit! {
 
     /// Volume per mass, a reciprocal of density.
     pub SpecificVolume;
+
+    /// Flow resistance for a pipe.
+    pub Resistance;
 }
 
 macro_rules! operators {
