@@ -3,6 +3,7 @@
 use std::ops;
 
 use derive_more::{Add, AddAssign, From, Neg, Sub, SubAssign, Sum};
+use serde::{Deserialize, Serialize};
 
 macro_rules! define_unit {
     (
@@ -15,6 +16,7 @@ macro_rules! define_unit {
             $(#[$meta])*
             #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
             #[derive(From, Add, AddAssign, Sub, SubAssign, Sum, Neg)]
+            #[derive(Serialize, Deserialize)]
             $vis struct $ident {
                 /// Unit quantity.
                 pub quantity: f32,

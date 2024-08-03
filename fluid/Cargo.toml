@@ -20,6 +20,8 @@ traffloat-view = {workspace = true}
 derive_more = "0.99.17"
 typed-builder = "0.19.1"
 smallvec = "1.13.2"
+serde = { version = "1.0.204", features = ["derive"] }
+anyhow = "1.0.86"
 
 [dev-dependencies]
 approx = "0.5.1"

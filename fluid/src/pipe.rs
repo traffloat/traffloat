@@ -173,7 +173,7 @@ fn distribute_transfer_weight_system(
                 .zip(container_elements.containers)
                 .each_mut(|(((mass_volume, delta_mass), container), container_element_ref)| {
                     match mass_volume {
-                        None if *delta_mass < config.creation_threshold() => {} // negligible mass
+                        None if *delta_mass < config.creation_threshold => {} // negligible mass
                         None => {
                             commands.add(
                                 commands::CreateContainerElement::builder()
@@ -185,7 +185,7 @@ fn distribute_transfer_weight_system(
                         }
                         Some((container_element, (mass_comp, _))) => {
                             mass_comp.mass += *delta_mass;
-                            if mass_comp.mass < config.deletion_threshold() {
+                            if mass_comp.mass < config.deletion_threshold {
                                 commands.entity(*container_element).despawn_recursive();
                                 *container_element_ref = None;
                             }

@@ -3819,9 +3819,11 @@ dependencies = [
 name = "traffloat-fluid"
 version = "0.0.3"
 dependencies = [
+ "anyhow",
  "approx",
  "bevy",
  "derive_more",
+ "serde",
  "smallvec",
  "traffloat-base",
  "traffloat-graph",

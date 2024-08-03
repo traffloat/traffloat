@@ -6,7 +6,8 @@ use bevy::ecs::world::Command;
 use traffloat_graph::corridor::Binary;
 use typed_builder::TypedBuilder;
 
-use crate::{commands, config, container, pipe, units};
+use crate::config::{self, Config};
+use crate::{commands, container, pipe, units};
 
 struct Setup {
     elements:   Vec<ElementSetup>,
@@ -38,12 +39,12 @@ fn do_test(setup: Setup) {
     let mut app = App::new();
     app.add_plugins((container::Plugin, pipe::Plugin));
 
-    let mut builder = config::Builder::default();
+    let mut config = Config::default();
     let types: Vec<_> = setup
         .elements
         .iter()
         .map(|element| {
-            builder.register_type(config::TypeDef {
+            config.register_type(config::TypeDef {
                 viscosity:              element.viscosity,
                 vacuum_specific_volume: element.vacuum_specific_volume,
                 critical_pressure:      element.critical_pressure,
@@ -51,7 +52,7 @@ fn do_test(setup: Setup) {
             })
         })
         .collect();
-    app.insert_resource(builder.build());
+    app.insert_resource(config);
 
     let containers = Binary::from_fn(|endpoint| {
         let container_setup = setup.containers.as_endpoint(endpoint);

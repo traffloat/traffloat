@@ -5,6 +5,7 @@
 
 use bevy::app;
 use config::Config;
+use traffloat_base::save;
 
 pub mod config;
 pub mod container;
@@ -20,6 +21,8 @@ pub struct Plugin;
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.init_resource::<Config>();
+        save::add_def::<config::SaveScalar>(app);
+        save::add_def::<config::SaveType>(app);
         app.add_plugins((container::Plugin, pipe::Plugin));
     }
 }

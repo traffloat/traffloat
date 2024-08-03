@@ -5,7 +5,8 @@ use bevy::app::App;
 use bevy::hierarchy::BuildWorldChildren;
 
 use super::element;
-use crate::{config, units};
+use crate::config::{self, Config};
+use crate::units;
 
 struct ContainerSetup {
     max_pressure:    f32,
@@ -26,17 +27,17 @@ fn do_test(setup: ContainerSetup) {
     let mut app = App::new();
 
     let mut types = Vec::new();
-    let defs = setup.elements.iter().fold(config::Builder::default(), |mut builder, fluid| {
-        let ty = builder.register_type(config::TypeDef {
+    let config = setup.elements.iter().fold(Config::default(), |mut config, fluid| {
+        let ty = config.register_type(config::TypeDef {
             viscosity:              units::Viscosity::default(), // unused
             vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
             critical_pressure:      fluid.critical_pressure.into(),
             saturation_gamma:       fluid.saturation_gamma,
         });
         types.push(ty);
-        builder
+        config
     });
-    app.insert_resource(defs.build());
+    app.insert_resource(config);
     app.add_plugins(super::Plugin);
 
     let mut container = app.world_mut().spawn(
