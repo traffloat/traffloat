@@ -100,13 +100,15 @@ use bevy::prelude::{
     App, Component, Entity, Event, EventReader, IntoSystemConfigs, IntoSystemSetConfigs, Query,
     SystemSet,
 };
+use bevy::state::condition::in_state;
+use bevy::state::state::States;
 use derive_more::From;
 
 use crate::units;
 
-pub(super) struct Plugin;
+pub(super) struct Plugin<St>(pub(super) St);
 
-impl app::Plugin for Plugin {
+impl<St: States + Copy> app::Plugin for Plugin<St> {
     fn build(&self, app: &mut App) {
         app.add_event::<RecomputeStaticEvent>();
         app.add_systems(
@@ -114,7 +116,8 @@ impl app::Plugin for Plugin {
             (
                 static_to_dynamic_system.after(SystemSets::Static).before(SystemSets::Dynamic),
                 init_static.before(SystemSets::Static).in_set(SystemSets::Compute),
-            ),
+            )
+                .run_if(in_state(self.0)),
         );
         app.configure_sets(
             app::Update,

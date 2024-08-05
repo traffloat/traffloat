@@ -13,7 +13,8 @@ use bevy::text::{JustifyText, Text, TextStyle};
 use bevy::ui::node_bundles::{NodeBundle, TextBundle};
 use bevy::ui::{self, Style};
 
-use crate::{util, AppState};
+use crate::util::button;
+use crate::AppState;
 
 mod select_load;
 
@@ -23,10 +24,10 @@ impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.add_systems(state::OnEnter(AppState::MainMenu), setup);
         app.add_systems(state::OnExit(AppState::MainMenu), cleanup);
-        app.add_plugins(util::button::Plugin::<ClickEvent>::default());
+        app.add_plugins(button::Plugin::<ClickEvent>::default());
         app.add_systems(
             app::Update,
-            handle_click.in_set(util::button::HandleClickSystemSet::<ClickEvent>::default()),
+            handle_click.in_set(button::HandleClickSystemSet::<ClickEvent>::default()),
         );
         app.add_plugins(select_load::Plugin);
     }
@@ -94,20 +95,18 @@ fn setup(mut commands: Commands) {
                         },
                         ..<_>::default()
                     });
-                    builder.spawn(util::button::Bundle::new(ClickEvent::Load)).with_children(
-                        |builder| {
-                            builder.spawn(TextBundle {
-                                text: Text::from_section("Load", TextStyle::default())
-                                    .with_justify(JustifyText::Center),
-                                style: Style {
-                                    width: ui::Val::Percent(100.),
-                                    justify_content: ui::JustifyContent::Center,
-                                    ..<_>::default()
-                                },
+                    builder.spawn(button::Bundle::new(ClickEvent::Load)).with_children(|builder| {
+                        builder.spawn(TextBundle {
+                            text: Text::from_section("Load", TextStyle::default())
+                                .with_justify(JustifyText::Center),
+                            style: Style {
+                                width: ui::Val::Percent(100.),
+                                justify_content: ui::JustifyContent::Center,
                                 ..<_>::default()
-                            });
-                        },
-                    );
+                            },
+                            ..<_>::default()
+                        });
+                    });
                 });
         });
 }

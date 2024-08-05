@@ -15,24 +15,28 @@
 
 use bevy::app;
 use bevy::prelude::{App, Component, IntoSystemConfigs, IntoSystemSetConfigs, Query, SystemSet};
+use bevy::state::condition::in_state;
+use bevy::state::state::States;
 use traffloat_graph::corridor::Binary;
 
 use super::{resistance, Containers};
 use crate::{container, units};
 
-pub(super) struct Plugin;
+pub(super) struct Plugin<St>(pub(super) St);
 
-impl app::Plugin for Plugin {
+impl<St: States + Copy> app::Plugin for Plugin<St> {
     fn build(&self, app: &mut App) {
         app.add_systems(
             app::Update,
             (
-                init_force.before(SystemSets::Additive).in_set(SystemSets::Compute),
+                init_force.before(SystemSets::Additive),
                 apply_resistance
                     .after(SystemSets::Additive)
                     .before(SystemSets::Relative)
                     .after(resistance::SystemSets::Compute),
-            ),
+            )
+                .in_set(SystemSets::Compute)
+                .run_if(in_state(self.0)),
         );
         app.configure_sets(
             app::Update,

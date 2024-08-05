@@ -26,6 +26,8 @@ use bevy::ecs::query::With;
 use bevy::ecs::world::{DeferredWorld, World};
 use bevy::hierarchy::{BuildWorldChildren, DespawnRecursiveExt};
 use bevy::prelude::{App, Commands, Component, Entity, IntoSystemConfigs, Query, Res};
+use bevy::state::condition::in_state;
+use bevy::state::state::States;
 use bevy::{app, hierarchy};
 use derive_more::From;
 use serde::{Deserialize, Serialize};
@@ -45,11 +47,11 @@ pub mod resistance;
 mod tests;
 
 /// Executes fluid mass transfer between containers.
-pub struct Plugin;
+pub(super) struct Plugin<St>(pub(super) St);
 
-impl app::Plugin for Plugin {
+impl<St: States + Copy> app::Plugin for Plugin<St> {
     fn build(&self, app: &mut App) {
-        app.add_plugins((resistance::Plugin, force::Plugin));
+        app.add_plugins((resistance::Plugin(self.0), force::Plugin(self.0)));
         app.add_systems(
             app::Update,
             (
@@ -58,7 +60,8 @@ impl app::Plugin for Plugin {
                     .after(update_transfer_weight_system)
                     .after(force::SystemSets::Compute)
                     .before(container::SystemSets::Rebalance),
-            ),
+            )
+                .run_if(in_state(self.0)),
         );
 
         app.world_mut()

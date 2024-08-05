@@ -3809,6 +3809,7 @@ dependencies = [
  "rfd",
  "smallvec",
  "traffloat-base",
+ "traffloat-fluid",
  "traffloat-graph",
  "traffloat-version",
  "traffloat-view",

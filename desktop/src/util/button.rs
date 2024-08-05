@@ -9,7 +9,7 @@ use bevy::ecs::bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::event::{Event, EventWriter};
 use bevy::ecs::query::Changed;
-use bevy::ecs::schedule::SystemSet;
+use bevy::ecs::schedule::{IntoSystemConfigs, SystemSet};
 use bevy::ecs::system::Query;
 use bevy::ui;
 use bevy::ui::node_bundles::ButtonBundle;
@@ -23,7 +23,10 @@ impl<E> Default for Plugin<E> {
 impl<E: Event + Clone> app::Plugin for Plugin<E> {
     fn build(&self, app: &mut App) {
         app.add_event::<E>();
-        app.add_systems(app::Update, handle_buttons::<E>);
+        app.add_systems(
+            app::Update,
+            handle_buttons::<E>.before(HandleClickSystemSet::<E>::default),
+        );
     }
 }
 
@@ -48,7 +51,7 @@ impl<E> Hash for HandleClickSystemSet<E> {
 }
 
 #[derive(Component)]
-struct LastInteraction(ui::Interaction);
+pub struct LastInteraction(ui::Interaction);
 
 fn handle_buttons<E: Event + Clone>(
     mut query: Query<
@@ -79,9 +82,9 @@ fn handle_buttons<E: Event + Clone>(
 
 #[derive(bundle::Bundle)]
 pub struct Bundle<E: Event> {
-    pub button:       ButtonBundle,
-    on_click:         OnClick<E>,
-    last_interaction: LastInteraction,
+    pub button:           ButtonBundle,
+    pub on_click:         OnClick<E>,
+    pub last_interaction: LastInteraction,
 }
 
 impl<E: Event> Bundle<E> {

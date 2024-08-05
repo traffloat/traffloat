@@ -17,6 +17,8 @@ use bevy::ecs::query::With;
 use bevy::ecs::world::World;
 use bevy::hierarchy::BuildWorldChildren;
 use bevy::prelude::{Commands, Component, Entity, IntoSystemConfigs, Query, Res, SystemSet};
+use bevy::state::condition::in_state;
+use bevy::state::state::States;
 use bevy::{app, hierarchy};
 use derive_more::From;
 use serde::{Deserialize, Serialize};
@@ -35,11 +37,14 @@ pub mod element;
 mod tests;
 
 /// Maintains the state within each container.
-pub struct Plugin;
+pub(crate) struct Plugin<St>(pub(super) St);
 
-impl app::Plugin for Plugin {
+impl<St: States + Copy> app::Plugin for Plugin<St> {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(app::Update, rebalance_system.in_set(SystemSets::Rebalance));
+        app.add_systems(
+            app::Update,
+            rebalance_system.in_set(SystemSets::Rebalance).run_if(in_state(self.0)),
+        );
         save::add_def::<Save>(app);
         save::add_def::<element::Save>(app);
     }
