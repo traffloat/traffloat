@@ -6,7 +6,7 @@
 //! To add a new persisted type, implement [`Def`] and add a new [`add_def`] definition.
 //!
 //! # Save format
-//! There are two formats, msgpack and YAML.
+//! There are two formats, msgpack and JSON.
 //!
 //! ## Msgpack
 //! Msgpack is the normal save format to persist a world.
@@ -14,10 +14,10 @@
 //! The data for each definition are stored as a separate Msgpack-encoded byte array
 //! that deserializes to `Vec<Def>` of a fixed type.
 //!
-//! ## YAML
-//! YAML is mostly used to create hand-written scenarios published through version control.
-//! However, it is recommended to generate this YAML file with other tools instead.
-//! YAML is used mainly due to cross-language compatibility.
+//! ## JSON
+//! JSON is mostly used to create hand-written scenarios published through version control.
+//! However, it is recommended to generate this JSON file with other tools instead.
+//! JSON is used mainly due to cross-language compatibility.
 
 #![allow(clippy::module_name_repetitions)]
 
@@ -29,8 +29,6 @@ use bevy::app::{self, App};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-/// Header line for YAML saves.
-pub const YAML_HEADER: &[u8] = b"# $schema=https://traffloat.github.io/save.yaml\n";
 /// Header bytes for Msgpack saves.
 pub const MSGPACK_HEADER: &[u8] = b"\xFFtraffloat.github.io/save.msgpack\n";
 
@@ -44,6 +42,7 @@ mod load;
 pub use load::{Depend as LoadDepend, LoadCommand, LoadFn, LoadOnce, LoadResult};
 
 mod store;
+use serde_json::value::RawValue;
 pub use store::{
     Depend as StoreDepend, Depends as StoreDepends, StoreCommand, StoreResult, StoreSystem,
     StoreSystemFn, Writer,
@@ -113,14 +112,14 @@ impl<'de, D: Def> Deserialize<'de> for Id<D> {
 }
 
 #[derive(Serialize, Deserialize)]
-struct YamlFile {
-    types: Vec<YamlTypedData>,
+struct JsonFile {
+    types: Vec<JsonTypedData>,
 }
 
 #[derive(Serialize, Deserialize)]
-struct YamlTypedData {
+struct JsonTypedData {
     r#type: String,
-    defs:   serde_yaml::Value,
+    defs:   Box<RawValue>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -141,6 +140,6 @@ struct MsgpackTypedData {
 pub enum Format {
     /// The Msgpack save format.
     Msgpack,
-    /// The YAML save format.
-    Yaml,
+    /// The JSON save format.
+    Json,
 }

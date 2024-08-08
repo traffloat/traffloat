@@ -6,8 +6,9 @@ use std::sync::Arc;
 use bevy::app::{self, App};
 use bevy::ecs::system::Resource;
 use bevy::ecs::world::{Command, World};
+use serde_json::value::RawValue;
 
-use super::{Def, Id, MsgpackFile, YamlFile};
+use super::{Def, Id, JsonFile, MsgpackFile};
 
 pub(super) struct Plugin;
 
@@ -43,13 +44,13 @@ pub(super) fn add_def<D: Def>(app: &mut App) {
         Ok(())
     }
 
-    fn load_yaml<D: Def>(
+    fn load_json<D: Def>(
         world: &mut World,
-        defs: serde_yaml::Value,
+        defs: &RawValue,
         depends: &mut DependSource,
     ) -> Result<(), Error> {
         let defs: Vec<D> =
-            serde_yaml::from_value(defs).map_err(|err| Error::YamlDecodeType(D::TYPE, err))?;
+            serde_json::from_str(defs.get()).map_err(|err| Error::JsonDecodeType(D::TYPE, err))?;
         do_load(world, defs, depends)?;
 
         Ok(())
@@ -69,7 +70,7 @@ pub(super) fn add_def<D: Def>(app: &mut App) {
 
     app.world_mut().resource_mut::<LoaderMap>().map.insert(
         D::TYPE,
-        LoaderVtable { load_msgpack: load_msgpack::<D>, load_yaml: load_yaml::<D> },
+        LoaderVtable { load_msgpack: load_msgpack::<D>, load_json: load_json::<D> },
     );
 }
 
@@ -101,7 +102,7 @@ fn process_file(buf: &[u8], world: &mut World) -> Result<(), Error> {
 
         Ok(())
     } else {
-        let file: YamlFile = serde_yaml::from_slice(buf).map_err(Error::YamlDecodeFile)?;
+        let file: JsonFile = serde_json::from_slice(buf).map_err(Error::JsonDecodeFile)?;
         for ty in file.types {
             let loader = world
                 .resource::<LoaderMap>()
@@ -110,7 +111,7 @@ fn process_file(buf: &[u8], world: &mut World) -> Result<(), Error> {
                 .copied()
                 .ok_or_else(|| Error::UnsupportedType(ty.r#type.clone()))?;
 
-            (loader.load_yaml)(world, ty.defs, &mut depends)?;
+            (loader.load_json)(world, &ty.defs, &mut depends)?;
         }
 
         Ok(())
@@ -132,7 +133,7 @@ struct LoaderMap {
 #[derive(Clone, Copy)]
 struct LoaderVtable {
     load_msgpack: fn(&mut World, Vec<u8>, &mut DependSource) -> Result<(), Error>,
-    load_yaml:    fn(&mut World, serde_yaml::Value, &mut DependSource) -> Result<(), Error>,
+    load_json:    fn(&mut World, &RawValue, &mut DependSource) -> Result<(), Error>,
 }
 
 /// Describes how to load a definition.
@@ -276,10 +277,10 @@ pub enum Error {
     MsgpackDecodeFile(rmp_serde::decode::Error),
     #[error("msgpack type {0} decode: {1}")]
     MsgpackDecodeType(&'static str, rmp_serde::decode::Error),
-    #[error("yaml file decode: {0}")]
-    YamlDecodeFile(serde_yaml::Error),
-    #[error("yaml value {0} decode: {1}")]
-    YamlDecodeType(&'static str, serde_yaml::Error),
+    #[error("json file decode: {0}")]
+    JsonDecodeFile(serde_json::Error),
+    #[error("json value {0} decode: {1}")]
+    JsonDecodeType(&'static str, serde_json::Error),
     #[error("unsupported def entry {0:?}")]
     UnsupportedType(String),
     #[error("encountered type {0} which must be defined after {1} in save file")]

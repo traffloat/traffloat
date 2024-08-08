@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::save;
 
 #[test]
-fn e2e_yaml() { e2e(save::Format::Yaml); }
+fn e2e_json() { e2e(save::Format::Json); }
 
 #[test]
 fn e2e_msgpack() { e2e(save::Format::Msgpack); }

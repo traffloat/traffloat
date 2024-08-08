@@ -14,6 +14,7 @@ version = "0.14"
 default-features = false
 features = [
     "dynamic_linking",
+    "bevy_state",
 ]
 
 [workspace.dependencies.traffloat-graph]

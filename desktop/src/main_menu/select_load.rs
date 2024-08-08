@@ -12,6 +12,7 @@ use bevy::tasks::{block_on, poll_once, IoTaskPool, Task};
 use traffloat_base::save;
 
 use crate::util::modal;
+use crate::AppState;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash, States)]
 pub enum ActiveState {
@@ -46,7 +47,10 @@ struct FileSelection {
 fn setup(mut task_res: ResMut<SelectFileTask>) {
     let pool = IoTaskPool::get_or_init(<_>::default);
     let task = pool.spawn(async {
-        let handle = rfd::AsyncFileDialog::new().pick_file().await?;
+        let handle = rfd::AsyncFileDialog::new()
+            .add_filter("Traffloat save files", &["tfsave"])
+            .pick_file()
+            .await?;
 
         let path = handle.path().to_path_buf();
         let contents = handle.read().await;
@@ -78,23 +82,21 @@ fn poll_task(
 
                     commands.push(save::LoadCommand {
                         data:        result.contents,
-                        on_complete: Box::new(|world, result| {
-                            match result {
-                                Ok(()) => {
-                                    // TODO start game
-                                }
-                                Err(err) => {
-                                    bevy::log::info!("load error: {err:?}");
-                                    world
-                                        .resource_mut::<NextState<ActiveState>>()
-                                        .set(ActiveState::Inactive);
-                                    modal::DisplayCommand::<ErrorButtons>::builder()
-                                        .background_color(Color::srgb(0.4, 0.1, 0.1))
-                                        .title("Load error")
-                                        .text(err.to_string())
-                                        .build()
-                                        .apply(world);
-                                }
+                        on_complete: Box::new(|world, result| match result {
+                            Ok(()) => {
+                                world.resource_mut::<NextState<AppState>>().set(AppState::GameView);
+                            }
+                            Err(err) => {
+                                bevy::log::info!("load error: {err:?}");
+                                world
+                                    .resource_mut::<NextState<ActiveState>>()
+                                    .set(ActiveState::Inactive);
+                                modal::DisplayCommand::<ErrorButtons>::builder()
+                                    .background_color(Color::srgb(0.4, 0.1, 0.1))
+                                    .title("Load error")
+                                    .text(err.to_string())
+                                    .build()
+                                    .apply(world);
                             }
                         }),
                     });

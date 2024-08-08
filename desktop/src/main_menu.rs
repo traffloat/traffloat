@@ -23,7 +23,7 @@ pub struct Plugin;
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.add_systems(state::OnEnter(AppState::MainMenu), setup);
-        app.add_systems(state::OnExit(AppState::MainMenu), cleanup);
+        app.add_systems(state::OnExit(AppState::MainMenu), teardown);
         app.add_plugins(button::Plugin::<ClickEvent>::default());
         app.add_systems(
             app::Update,
@@ -34,7 +34,7 @@ impl app::Plugin for Plugin {
 }
 
 #[derive(Component)]
-struct RootNode;
+struct Owned;
 
 #[derive(Debug, Clone, Event)]
 enum ClickEvent {
@@ -42,7 +42,7 @@ enum ClickEvent {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((Camera2dBundle::default(), Owned));
     commands
         .spawn((
             NodeBundle {
@@ -56,7 +56,7 @@ fn setup(mut commands: Commands) {
                 background_color: ui::BackgroundColor(Color::hsl(0., 0., 0.05)),
                 ..<_>::default()
             },
-            RootNode,
+            Owned,
         ))
         .with_children(|builder| {
             builder
@@ -124,8 +124,8 @@ fn handle_click(
     }
 }
 
-fn cleanup(mut commands: Commands, query: Query<Entity, With<RootNode>>) {
-    if let Ok(entity) = query.get_single() {
+fn teardown(mut commands: Commands, query: Query<Entity, With<Owned>>) {
+    query.into_iter().for_each(|entity| {
         commands.entity(entity).despawn_recursive();
-    }
+    });
 }

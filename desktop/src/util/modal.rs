@@ -94,7 +94,7 @@ impl<But: Buttons> app::Plugin for Plugin<But> {
     fn build(&self, app: &mut App) {
         app.init_state::<ActiveState<But>>();
         app.add_systems(state::OnEnter(ActiveState::<But>::from(Active::Active)), setup::<But>);
-        app.add_systems(state::OnExit(ActiveState::<But>::from(Active::Active)), cleanup::<But>);
+        app.add_systems(state::OnExit(ActiveState::<But>::from(Active::Active)), teardown::<But>);
         app.add_plugins(button::Plugin::<ClickEvent<But>>::default());
         app.add_systems(
             app::Update,
@@ -192,7 +192,7 @@ fn setup<But: Buttons>(mut commands: Commands, param: Res<Param<But>>) {
         });
 }
 
-fn cleanup<But: Buttons>(mut commands: Commands, query: Query<Entity, With<RootNode<But>>>) {
+fn teardown<But: Buttons>(mut commands: Commands, query: Query<Entity, With<RootNode<But>>>) {
     if let Ok(entity) = query.get_single() {
         commands.entity(entity).despawn_recursive();
     }

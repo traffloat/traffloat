@@ -11,7 +11,7 @@ use bevy::ecs::system::{IntoSystem, Res, ResMut, Resource, SystemParam};
 use bevy::ecs::world::{Command, World};
 use bevy::utils::HashMap;
 
-use super::{Def, Format, Id, MsgpackFile, MsgpackTypedData, YamlFile, YamlTypedData};
+use super::{Def, Format, Id, JsonFile, JsonTypedData, MsgpackFile, MsgpackTypedData};
 
 pub(super) struct Plugin;
 
@@ -61,7 +61,7 @@ pub type StoreResult = Result<Vec<u8>, Error>;
 impl Command for StoreCommand {
     fn apply(self, world: &mut World) {
         *world.resource_mut::<GlobalWriter>() = match self.format {
-            Format::Yaml => GlobalWriter::YamlWriter { data: Vec::new(), errs: Vec::new() },
+            Format::Json => GlobalWriter::JsonWriter { data: Vec::new(), errs: Vec::new() },
             Format::Msgpack => GlobalWriter::MsgpackWriter { data: Vec::new(), errs: Vec::new() },
         };
 
@@ -258,7 +258,7 @@ struct StoreSystemSet(TypeId);
 #[derive(Resource)]
 enum GlobalWriter {
     Uninit,
-    YamlWriter { data: Vec<YamlTypedData>, errs: Vec<serde_yaml::Error> },
+    JsonWriter { data: Vec<JsonTypedData>, errs: Vec<serde_json::Error> },
     MsgpackWriter { data: Vec<MsgpackTypedData>, errs: Vec<rmp_serde::encode::Error> },
 }
 
@@ -266,8 +266,8 @@ impl GlobalWriter {
     fn write_all<D: Def>(&mut self, objects: Vec<D>) {
         match self {
             Self::Uninit => panic!("write_all should not be called when world is not saving"),
-            Self::YamlWriter { data, errs } => match serde_yaml::to_value(&objects) {
-                Ok(defs) => data.push(YamlTypedData { r#type: D::TYPE.into(), defs }),
+            Self::JsonWriter { data, errs } => match serde_json::value::to_raw_value(&objects) {
+                Ok(defs) => data.push(JsonTypedData { r#type: D::TYPE.into(), defs }),
                 Err(err) => errs.push(err),
             },
             Self::MsgpackWriter { data, errs } => match rmp_serde::to_vec_named(&objects) {
@@ -280,14 +280,13 @@ impl GlobalWriter {
     fn output(self) -> Result<Vec<u8>, Error> {
         match self {
             Self::Uninit => panic!("output should not be called when world is not saving"),
-            Self::YamlWriter { data, errs } => {
+            Self::JsonWriter { data, errs } => {
                 if !errs.is_empty() {
-                    return Err(Error::YamlDefToValue(errs));
+                    return Err(Error::JsonDefToValue(errs));
                 }
 
-                let mut buf = Vec::from(super::YAML_HEADER);
-                serde_yaml::to_writer(&mut buf, &YamlFile { types: data })
-                    .map_err(Error::YamlEncodeValue)?;
+                let buf = serde_json::to_vec(&JsonFile { types: data })
+                    .map_err(Error::JsonEncodeValue)?;
                 Ok(buf)
             }
             Self::MsgpackWriter { data, errs } => {
@@ -311,10 +310,10 @@ impl GlobalWriter {
 /// Error types during storing.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("transforming objects into YAML values: {0:?}")]
-    YamlDefToValue(Vec<serde_yaml::Error>),
-    #[error("encoding objects into YAML string: {0}")]
-    YamlEncodeValue(serde_yaml::Error),
+    #[error("transforming objects into JSON values: {0:?}")]
+    JsonDefToValue(Vec<serde_json::Error>),
+    #[error("encoding objects into JSON string: {0}")]
+    JsonEncodeValue(serde_json::Error),
     #[error("encoding objects into msgpack: {0:?}")]
     MsgpackEncodeDef(Vec<rmp_serde::encode::Error>),
     #[error("producing msgpack file: {0}")]
