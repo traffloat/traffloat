@@ -1,13 +1,11 @@
 //! Binary for the desktop client app.
 
-use std::time::Duration;
-
 use bevy::app::{self, App, AppExit, PluginGroup};
 use bevy::ecs::schedule::{self, ScheduleBuildSettings};
 use bevy::state::app::AppExtStates;
 use bevy::state::state::States;
 use bevy::window::{Window, WindowPlugin};
-use bevy::winit::{self, WinitSettings};
+use bevy::winit::WinitSettings;
 use options::Options;
 
 mod main_menu;
@@ -23,9 +21,13 @@ enum AppState {
 }
 
 fn main() -> AppExit {
+    #[cfg(target_family = "wasm")]
+    let options = Options::default();
+    #[cfg(not(target_family = "wasm32"))]
     let options = Options::parse();
 
     App::new()
+        .insert_resource(options) // inserted the earliest to allow plugins to read during build
         .add_plugins((
             bevy::DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
@@ -39,11 +41,7 @@ fn main() -> AppExit {
             traffloat_graph::Plugin,
             traffloat_fluid::Plugin(AppState::GameView),
         ))
-        .insert_resource(options)
-        .insert_resource(WinitSettings {
-            focused_mode:   winit::UpdateMode::reactive(Duration::from_millis(100)),
-            unfocused_mode: winit::UpdateMode::reactive_low_power(Duration::from_secs(1)),
-        })
+        .init_resource::<WinitSettings>()
         .init_state::<AppState>()
         .add_plugins(main_menu::Plugin)
         .add_plugins(view::Plugin)

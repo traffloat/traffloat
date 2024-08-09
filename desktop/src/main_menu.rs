@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use bevy::app::{self, App};
 use bevy::color::Color;
 use bevy::core_pipeline::core_2d::Camera2dBundle;
@@ -12,6 +14,7 @@ use bevy::state::state::{self, NextState};
 use bevy::text::{JustifyText, Text, TextStyle};
 use bevy::ui::node_bundles::{NodeBundle, TextBundle};
 use bevy::ui::{self, Style};
+use bevy::winit::{self, WinitSettings};
 
 use crate::util::button;
 use crate::AppState;
@@ -41,7 +44,12 @@ enum ClickEvent {
     Load,
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, mut winit_settings: ResMut<WinitSettings>) {
+    *winit_settings = WinitSettings {
+        focused_mode:   winit::UpdateMode::reactive(Duration::from_millis(100)),
+        unfocused_mode: winit::UpdateMode::reactive_low_power(Duration::from_secs(1)),
+    };
+
     commands.spawn((Camera2dBundle::default(), Owned));
     commands
         .spawn((

@@ -1,7 +1,7 @@
+use std::fs;
 use std::path::PathBuf;
 
 use bevy::app::{self, App};
-use bevy::color::Color;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Commands, ResMut, Resource};
 use bevy::ecs::world::Command;
@@ -11,7 +11,8 @@ use bevy::state::state::{self, NextState, States};
 use bevy::tasks::{block_on, poll_once, IoTaskPool, Task};
 use traffloat_base::save;
 
-use crate::util::modal;
+use crate::options::Options;
+use crate::util::{modal, ui_style};
 use crate::AppState;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash, States)]
@@ -25,7 +26,14 @@ pub struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app.init_state::<ActiveState>();
+        if let Some(save_file) = app.world().resource::<Options>().save_file.clone() {
+            app.insert_state(ActiveState::Active);
+            app.insert_resource(PreSelectedFile(Some(save_file)));
+        } else {
+            app.insert_state(ActiveState::Inactive);
+            app.insert_resource(PreSelectedFile(None));
+        }
+
         app.add_plugins(modal::Plugin::<ErrorButtons>::default());
         app.add_systems(state::OnEnter(ActiveState::Active), setup);
         app.add_systems(
@@ -36,26 +44,35 @@ impl app::Plugin for Plugin {
     }
 }
 
+#[derive(Resource)]
+struct PreSelectedFile(Option<PathBuf>);
+
 #[derive(Default, Resource)]
 struct SelectFileTask(Option<Task<Option<FileSelection>>>);
 
 struct FileSelection {
     path:     PathBuf,
-    contents: Vec<u8>,
+    contents: std::io::Result<Vec<u8>>,
 }
 
-fn setup(mut task_res: ResMut<SelectFileTask>) {
+fn setup(mut task_res: ResMut<SelectFileTask>, mut pre_selected_file: ResMut<PreSelectedFile>) {
+    let pre_selected_file = pre_selected_file.0.take();
     let pool = IoTaskPool::get_or_init(<_>::default);
     let task = pool.spawn(async {
-        let handle = rfd::AsyncFileDialog::new()
-            .add_filter("Traffloat save files", &["tfsave"])
-            .pick_file()
-            .await?;
+        if let Some(path) = pre_selected_file {
+            let contents = fs::read(&path);
 
-        let path = handle.path().to_path_buf();
-        let contents = handle.read().await;
+            Some(FileSelection { path, contents })
+        } else {
+            let handle = rfd::AsyncFileDialog::new()
+                .add_filter("Traffloat save files", &["tfsave"])
+                .pick_file()
+                .await?;
 
-        Some(FileSelection { path, contents })
+            let path = handle.path().to_path_buf();
+            let contents = handle.read().await;
+            Some(FileSelection { path, contents: Ok(contents) })
+        }
     });
     task_res.0 = Some(task);
 }
@@ -65,43 +82,49 @@ fn poll_task(
     mut active_state: ResMut<NextState<ActiveState>>,
     mut commands: Commands,
 ) {
-    if let Some(task) = task_res.0.as_mut() {
-        if let Some(result) = block_on(poll_once(task)) {
-            task_res.0 = None;
+    let Some(task) = task_res.0.as_mut() else { return };
+    let Some(result) = block_on(poll_once(task)) else { return };
 
-            match result {
-                None => {
-                    active_state.set(ActiveState::Inactive);
-                }
-                Some(result) => {
-                    bevy::log::info!(
-                        "loaded {:?} with {} bytes",
-                        result.path,
-                        result.contents.len()
-                    );
+    task_res.0 = None;
 
-                    commands.push(save::LoadCommand {
-                        data:        result.contents,
-                        on_complete: Box::new(|world, result| match result {
-                            Ok(()) => {
-                                world.resource_mut::<NextState<AppState>>().set(AppState::GameView);
-                            }
-                            Err(err) => {
-                                bevy::log::info!("load error: {err:?}");
-                                world
-                                    .resource_mut::<NextState<ActiveState>>()
-                                    .set(ActiveState::Inactive);
-                                modal::DisplayCommand::<ErrorButtons>::builder()
-                                    .background_color(Color::srgb(0.4, 0.1, 0.1))
-                                    .title("Load error")
-                                    .text(err.to_string())
-                                    .build()
-                                    .apply(world);
-                            }
-                        }),
-                    });
-                }
-            }
+    let Some(result) = result else {
+        active_state.set(ActiveState::Inactive);
+        return;
+    };
+
+    match result.contents {
+        Ok(contents) => {
+            bevy::log::info!("loaded {:?} with {} bytes", result.path, contents.len());
+
+            commands.push(save::LoadCommand {
+                data:        contents,
+                on_complete: Box::new(|world, result| match result {
+                    Ok(()) => {
+                        world.resource_mut::<NextState<AppState>>().set(AppState::GameView);
+                    }
+                    Err(err) => {
+                        bevy::log::error!("load error: {err:?}");
+                        world.resource_mut::<NextState<ActiveState>>().set(ActiveState::Inactive);
+                        modal::DisplayCommand::<ErrorButtons>::builder()
+                            .background_color(ui_style::ERROR_COLOR)
+                            .title("Load error")
+                            .text(err.to_string())
+                            .build()
+                            .apply(world);
+                    }
+                }),
+            });
+        }
+        Err(err) => {
+            bevy::log::error!("read error: {err:?}");
+            active_state.set(ActiveState::Inactive);
+            commands.push(
+                modal::DisplayCommand::<ErrorButtons>::builder()
+                    .background_color(ui_style::ERROR_COLOR)
+                    .title("Load error")
+                    .text(format!("Error reading {}: {err}", result.path.display()))
+                    .build(),
+            );
         }
     }
 }

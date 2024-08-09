@@ -4,7 +4,6 @@
 
 use bevy::app::{self, App};
 
-pub mod building;
 pub mod metrics;
 pub mod viewable;
 pub mod viewer;
@@ -13,7 +12,5 @@ pub mod viewer;
 pub struct Plugin;
 
 impl app::Plugin for Plugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins((viewable::Plugin, building::Plugin, metrics::Plugin));
-    }
+    fn build(&self, app: &mut App) { app.add_plugins((viewable::Plugin, metrics::Plugin)); }
 }

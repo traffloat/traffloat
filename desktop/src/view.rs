@@ -3,10 +3,11 @@ use bevy::core_pipeline::core_3d::Camera3dBundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::With;
-use bevy::ecs::system::{Commands, Query};
+use bevy::ecs::system::{Commands, Query, ResMut};
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::state::state;
 use bevy::transform::components::Transform;
+use bevy::winit::WinitSettings;
 use traffloat_view::viewer;
 
 use crate::AppState;
@@ -23,7 +24,9 @@ impl app::Plugin for Plugin {
 #[derive(Component)]
 struct Owned;
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, mut winit_settings: ResMut<WinitSettings>) {
+    *winit_settings = WinitSettings::game();
+
     commands.spawn((Owned, Camera3dBundle::default()));
     commands.spawn((
         Owned,
