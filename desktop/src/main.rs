@@ -38,6 +38,7 @@ fn main() -> AppExit {
                 ..Default::default()
             }),
             traffloat_base::save::Plugin,
+            traffloat_view::Plugin,
             traffloat_graph::Plugin,
             traffloat_fluid::Plugin(AppState::GameView),
         ))

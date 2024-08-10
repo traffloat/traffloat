@@ -19,7 +19,7 @@ use crate::viewer;
 #[test]
 fn report() {
     let mut app = App::new();
-    app.add_plugins((super::Plugin, viewable::Plugin));
+    app.add_plugins(crate::Plugin);
     app.insert_resource({
         let mut time: Time = Time::default();
         time.advance_to(Duration::from_millis(500));
@@ -55,23 +55,26 @@ fn report() {
     );
     app.add_systems(app::Update, feeders);
 
+    let viewer_id = viewer::next_sid(app.world_mut());
     let viewer = app
         .world_mut()
         .spawn(
             viewer::Bundle::builder()
+                .id(viewer_id)
                 .range(viewer::Range { distance: 100. })
                 .position(Transform { translation: Vec3::ZERO, ..<_>::default() })
                 .build(),
         )
         .id();
 
-    let viewable = app
-        .world_mut()
-        .spawn((
-            viewable::Bundle::builder().position(Transform::from_xyz(50., 0., 0.)).build(),
-            viewable::Static,
-        ))
-        .id();
+    let viewable_id = viewable::next_sid(app.world_mut());
+    app.world_mut().spawn((
+        viewable::Bundle::builder()
+            .id(viewable_id)
+            .position(Transform::from_xyz(50., 0., 0.))
+            .build(),
+        viewable::Static,
+    ));
 
     SubscribeCommand { viewer, ty: ty1, subscription: Subscription { noise_sd: 0. } }
         .apply(app.world_mut());
@@ -88,8 +91,8 @@ fn report() {
         let show_events: Vec<_> = get_events(app.world(), &mut show_event_reader).collect();
         if time == 0 {
             assert_eq!(show_events.len(), 1);
-            assert_eq!(show_events[0].viewer, viewer);
-            assert_eq!(show_events[0].viewable, viewable);
+            assert_eq!(show_events[0].viewer, viewer_id);
+            assert_eq!(show_events[0].viewable, viewable_id);
         } else {
             assert_eq!(show_events.len(), 0);
         }

@@ -11,6 +11,7 @@ use bevy::hierarchy::BuildWorldChildren;
 use bevy::transform::components::Transform;
 use serde::{Deserialize, Serialize};
 use traffloat_base::{proto, save};
+use traffloat_view::viewable;
 use typed_builder::TypedBuilder;
 
 pub mod facility;
@@ -29,10 +30,12 @@ impl app::Plugin for Plugin {
 #[derive(bundle::Bundle, TypedBuilder)]
 #[allow(missing_docs)]
 pub struct Bundle {
-    position:      Transform,
-    facility_list: FacilityList,
+    viewable:        viewable::Bundle,
     #[builder(default, setter(skip))]
-    _marker:       Marker,
+    viewable_static: viewable::Static,
+    facility_list:   FacilityList,
+    #[builder(default, setter(skip))]
+    _marker:         Marker,
 }
 
 /// Marks an entity as a building.
@@ -81,9 +84,15 @@ impl save::Def for Save {
         fn loader(world: &mut World, def: Save, (): &()) -> anyhow::Result<Entity> {
             let ambient = world.spawn_empty().id();
 
+            let sid = viewable::next_sid(world);
             let mut building = world.spawn(
                 Bundle::builder()
-                    .position(Transform::from_translation(def.position.into()))
+                    .viewable(
+                        viewable::Bundle::builder()
+                            .id(sid)
+                            .position(Transform::from_translation(def.position.into()))
+                            .build(),
+                    )
                     .facility_list(FacilityList { facility_list: Vec::new(), ambient })
                     .build(),
             );

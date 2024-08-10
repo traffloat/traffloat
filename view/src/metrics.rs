@@ -18,7 +18,7 @@ use bevy::time::{Time, Timer, TimerMode};
 use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
 
-use crate::viewable;
+use crate::{viewable, viewer};
 
 #[cfg(test)]
 mod tests;
@@ -208,9 +208,9 @@ impl Command for UnsubscribeCommand {
 #[derive(Event)]
 pub struct UpdateMetricEvent {
     /// The viewer to be notified.
-    pub viewer:    Entity,
+    pub viewer:    viewer::Sid,
     /// The viewable that the metric is updated for.
-    pub viewable:  Entity,
+    pub viewable:  viewable::Sid,
     /// The type of metric updated.
     pub ty:        Type,
     /// The updated metric magnitude, with noise included.
@@ -317,10 +317,12 @@ fn make_value_broadcast_system(world: &mut World, ty: Type) -> SystemConfigs {
     SystemBuilder::<(Res<Time>, EventWriter<UpdateMetricEvent>)>::new(world)
         .builder::<Query<FilteredEntityMut>>(|builder| {
             builder.ref_id(sub_comp_id);
+            builder.data::<&viewer::Sid>();
         })
         .builder::<Query<FilteredEntityMut>>(|builder| {
             builder.ref_id(value_comp_id);
             builder.data::<&viewable::Viewers>();
+            builder.data::<&viewable::Sid>();
         })
         .build(
             move |time: Res<Time>,
@@ -334,26 +336,27 @@ fn make_value_broadcast_system(world: &mut World, ty: Type) -> SystemConfigs {
 
                 let viewers_query = &viewers_query;
 
-                let event_ctors = viewables_query.iter().flat_map(move |viewable_entity| {
+                let event_ctors = viewables_query.iter().flat_map(move |viewable_fem| {
                     let value_ptr =
-                        viewable_entity.get_by_id(value_comp_id).expect("requested in query");
+                        viewable_fem.get_by_id(value_comp_id).expect("requested in query");
                     // Safety: Value components must have type Value
                     let &Value { magnitude } = unsafe { value_ptr.deref::<Value>() };
-                    let viewable_id = viewable_entity.id();
 
                     let viewable_viewers =
-                        viewable_entity.get::<viewable::Viewers>().expect("requested in query");
-                    viewable_viewers.viewers.iter().filter_map(move |&viewer_entity| {
-                        let sub_ptr = viewers_query
-                            .get(viewer_entity)
-                            .ok()?
-                            .get_by_id(sub_comp_id)
-                            .expect("requested in query");
+                        viewable_fem.get::<viewable::Viewers>().expect("requested in query");
+                    viewable_viewers.iter().filter_map(move |viewer_entity| {
+                        let viewer_fem = viewers_query.get(viewer_entity).ok()?;
+                        let sub_ptr =
+                            viewer_fem.get_by_id(sub_comp_id).expect("requested in query");
+                        let viewer_sid =
+                            *viewer_fem.get::<viewer::Sid>().expect("requested in query");
+                        let viewable_sid =
+                            *viewable_fem.get::<viewable::Sid>().expect("requested in query");
                         // Safety: subscription component must have type Subscription
                         let &Subscription { noise_sd } = unsafe { sub_ptr.deref::<Subscription>() };
                         Some(move |z: f32| UpdateMetricEvent {
-                            viewer: viewer_entity,
-                            viewable: viewable_id,
+                            viewer: viewer_sid,
+                            viewable: viewable_sid,
                             ty,
                             magnitude: magnitude + z * noise_sd,
                         })

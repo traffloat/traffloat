@@ -41,6 +41,7 @@ missing_docs = "warn"
 [workspace.lints.clippy]
 needless_pass_by_value = "allow"
 type_complexity = "allow"
+missing_panics_doc = "allow"
 
 [workspace.lints.clippy.pedantic]
 level = "warn"

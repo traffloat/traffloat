@@ -41,6 +41,8 @@ contents = {
                 "needless_pass_by_value": "allow",
                 # too many false positives for system params that should not be treated as a whole.
                 "type_complexity": "allow",
+                # Panics are often assertions for a function's own logic and shouldn't be documented.
+                "missing_panics_doc": "allow",
             },
         },
         "package": {
