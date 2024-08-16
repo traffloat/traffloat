@@ -4,6 +4,7 @@ use bevy::app::{self, App};
 use bevy::ecs::event::{Event, Events, ManualEventReader};
 use bevy::ecs::system::{Res, Resource};
 use bevy::ecs::world::{Command, World};
+use bevy::hierarchy::BuildWorldChildren;
 use bevy::math::Vec3;
 use bevy::time::Time;
 use bevy::transform::components::Transform;
@@ -67,14 +68,24 @@ fn report() {
         )
         .id();
 
-    let viewable_id = viewable::next_sid(app.world_mut());
-    app.world_mut().spawn((
-        viewable::Bundle::builder()
-            .id(viewable_id)
-            .position(Transform::from_xyz(50., 0., 0.))
-            .build(),
-        viewable::Static,
-    ));
+    let parent_viewable_id = viewable::next_sid(app.world_mut());
+    let child_viewable_id = viewable::next_sid(app.world_mut());
+
+    app.world_mut()
+        .spawn(
+            viewable::StationaryBundle::builder()
+                .base(viewable::BaseBundle::builder().sid(parent_viewable_id).build())
+                .transform(Transform::from_xyz(50., 50., 50.).with_scale(Vec3::splat(0.01)))
+                .build(),
+        )
+        .with_children(|builder| {
+            builder.spawn(
+                viewable::StationaryChildBundle::builder()
+                    .base(viewable::BaseBundle::builder().sid(child_viewable_id).build())
+                    .inner_transform(Transform::from_xyz(200., 200., 200.))
+                    .build(),
+            );
+        });
 
     SubscribeCommand { viewer, ty: ty1, subscription: Subscription { noise_sd: 0. } }
         .apply(app.world_mut());
@@ -90,9 +101,11 @@ fn report() {
 
         let show_events: Vec<_> = get_events(app.world(), &mut show_event_reader).collect();
         if time == 0 {
-            assert_eq!(show_events.len(), 1);
+            assert_eq!(show_events.len(), 2);
             assert_eq!(show_events[0].viewer, viewer_id);
-            assert_eq!(show_events[0].viewable, viewable_id);
+            assert_eq!(show_events[0].viewable, parent_viewable_id);
+            assert_eq!(show_events[1].viewer, viewer_id);
+            assert_eq!(show_events[1].viewable, child_viewable_id);
         } else {
             assert_eq!(show_events.len(), 0);
         }

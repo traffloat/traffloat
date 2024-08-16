@@ -30,12 +30,10 @@ impl app::Plugin for Plugin {
 #[derive(bundle::Bundle, TypedBuilder)]
 #[allow(missing_docs)]
 pub struct Bundle {
-    viewable:        viewable::Bundle,
+    viewable:      viewable::StationaryBundle,
+    facility_list: FacilityList,
     #[builder(default, setter(skip))]
-    viewable_static: viewable::Static,
-    facility_list:   FacilityList,
-    #[builder(default, setter(skip))]
-    _marker:         Marker,
+    _marker:       Marker,
 }
 
 /// Marks an entity as a building.
@@ -88,9 +86,9 @@ impl save::Def for Save {
             let mut building = world.spawn(
                 Bundle::builder()
                     .viewable(
-                        viewable::Bundle::builder()
-                            .id(sid)
-                            .position(Transform::from_translation(def.position.into()))
+                        viewable::StationaryBundle::builder()
+                            .base(viewable::BaseBundle::builder().sid(sid).build())
+                            .transform(Transform::from_translation(def.position.into()))
                             .build(),
                     )
                     .facility_list(FacilityList { facility_list: Vec::new(), ambient })

@@ -11,15 +11,16 @@ use bevy::hierarchy::BuildWorldChildren;
 use bevy::transform::components::Transform;
 use serde::{Deserialize, Serialize};
 use traffloat_base::{proto, save};
+use traffloat_view::viewable;
 use typed_builder::TypedBuilder;
 
 /// Components for a facility.
 #[derive(bundle::Bundle, TypedBuilder)]
 #[allow(missing_docs)]
 pub struct Bundle {
-    inner_position: Transform,
+    viewable: viewable::StationaryChildBundle,
     #[builder(default, setter(skip))]
-    _marker:        Marker,
+    _marker:  Marker,
 }
 
 /// Marks an entity as a facility.
@@ -30,11 +31,11 @@ pub struct Marker;
 #[derive(Serialize, Deserialize)]
 pub struct Save {
     /// Reference to parent building.
-    pub parent:         save::Id<super::Save>,
+    pub parent:     save::Id<super::Save>,
     /// Position of the facility relative to the building center.
-    pub inner_position: proto::Position,
+    pub inner:      proto::Transform,
     /// Whether the facility is the ambient facility of its parent building.
-    pub is_ambient:     bool,
+    pub is_ambient: bool,
 }
 
 impl save::Def for Save {
@@ -55,9 +56,9 @@ impl save::Def for Save {
                 (
                     entity,
                     Save {
-                        parent:         building_dep.must_get(parent.get()),
-                        inner_position: transform.translation.into(),
-                        is_ambient:     building_query
+                        parent:     building_dep.must_get(parent.get()),
+                        inner:      (*transform).into(),
+                        is_ambient: building_query
                             .get(parent.get())
                             .expect("dangling parent building reference")
                             .ambient
@@ -77,9 +78,16 @@ impl save::Def for Save {
             def: Save,
             (building_dep,): &(save::LoadDepend<super::Save>,),
         ) -> anyhow::Result<Entity> {
+            let sid = viewable::next_sid(world);
+
             let parent = building_dep.get(def.parent)?;
             let facility_bundle = Bundle::builder()
-                .inner_position(Transform::from_translation(def.inner_position.into()))
+                .viewable(
+                    viewable::StationaryChildBundle::builder()
+                        .base(viewable::BaseBundle::builder().sid(sid).build())
+                        .inner_transform(def.inner.into())
+                        .build(),
+                )
                 .build();
 
             let id = if def.is_ambient {

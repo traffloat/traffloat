@@ -5,10 +5,8 @@
 //! Each container is the parent entity of a number of "container elements" child entities,
 //! corresponding to all present fluid types in the container.
 //!
-//! A storage for a [facility](traffloat_graph::building::facility)
-//! should reference the facility entity as its parent.
-//! A container for a [duct](traffloat_graph::corridor::duct)
-//! should reference the duct entity as its parent.
+//! A storage for a [facility] should reference the facility entity as its parent.
+//! A container for a [duct] should reference the duct entity as its parent.
 
 use std::iter;
 

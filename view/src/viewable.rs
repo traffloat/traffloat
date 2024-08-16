@@ -6,11 +6,12 @@ use bevy::app::{self, App};
 use bevy::ecs::bundle;
 use bevy::ecs::component::{Component, ComponentId};
 use bevy::ecs::entity::{Entity, EntityHashSet};
-use bevy::ecs::event::{Event, EventWriter, Events};
+use bevy::ecs::event::{Event, EventReader, EventWriter, Events};
 use bevy::ecs::query::With;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Query, Res, ResMut, Resource};
 use bevy::ecs::world::{DeferredWorld, World};
+use bevy::hierarchy;
 use bevy::math::bounding::Aabb3d;
 use bevy::math::Vec3A;
 use bevy::transform::components::Transform;
@@ -22,7 +23,7 @@ use typed_builder::TypedBuilder;
 
 use crate::viewer;
 
-/// Serialization-level identifier for this viewer.
+/// Serialization-level identifier for this viewable.
 ///
 /// This identifier is used for communication between server and client.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Component, From, Into)]
@@ -41,14 +42,18 @@ impl app::Plugin for Plugin {
         SidIndex::init(app.world_mut());
 
         app.add_event::<ShowEvent>();
+        app.add_event::<ShowStationaryEvent>();
         app.add_event::<HideEvent>();
+        app.add_event::<HideStationaryEvent>();
 
         app.insert_resource(SpatialIndex { kdtree: None });
         app.add_systems(
             app::Update,
             (
                 update_spatial_index_system,
-                maintain_viewers_system.after(update_spatial_index_system),
+                update_stationary_viewers_system.after(update_spatial_index_system),
+                (show_viewable_system, hide_viewable_system)
+                    .after(update_stationary_viewers_system),
             ),
         );
         app.world_mut()
@@ -59,12 +64,32 @@ impl app::Plugin for Plugin {
 }
 
 /// The client should start displaying a viewable.
-#[derive(Debug, Event)]
+#[derive(Debug, Clone, Event)]
 pub struct ShowEvent {
     /// The viewer to show to.
     pub viewer:   viewer::Sid,
     /// The viewable to be showed.
     pub viewable: Sid,
+}
+
+/// A specialized `ShowEvent` that only gets sent for stationary viewables,
+/// when updated by the stationary maintenance system.
+#[derive(Debug, Event)]
+pub struct ShowStationaryEvent {
+    /// The viewer to show to.
+    pub viewer:   Entity,
+    /// The stationary viewable to be showed.
+    pub viewable: Entity,
+}
+
+/// A specialized `HideEvent` that only gets sent for stationary viewables,
+/// when updated by the stationary maintenance system.
+#[derive(Debug, Event)]
+pub struct HideStationaryEvent {
+    /// The viewer to hide to.
+    pub viewer:   Entity,
+    /// The stationary viewable to be hideed.
+    pub viewable: Entity,
 }
 
 /// The client should stop displaying a viewable.
@@ -76,13 +101,41 @@ pub struct HideEvent {
     pub viewable: Sid,
 }
 
-/// Extension omponents to construct a viewable entity.
+/// Common components to construct a viewable entity.
+///
+/// Entities should be initialized through [`StationaryBundle`] or [`StationaryChildBundle`] instead.
 #[derive(bundle::Bundle, TypedBuilder)]
-pub struct Bundle {
-    id:       Sid,
+pub struct BaseBundle {
+    sid:     Sid,
     #[builder(default)]
-    viewers:  Viewers,
-    position: Transform,
+    viewers: Viewers,
+}
+
+/// Initializes a viewable
+#[derive(bundle::Bundle, TypedBuilder)]
+pub struct StationaryBundle {
+    /// Base components for a viewable.
+    base:      BaseBundle,
+    #[builder(default, setter(skip))]
+    _marker:   Stationary,
+    /// Absolute position vector from origin,
+    /// along with absolute scaling and rotation for rendering.
+    transform: Transform,
+}
+
+/// Initializes a viewable that is a [child](bevy::hierarchy::Children)
+/// of a [stationary](Stationary) viewable.
+///
+/// Systems may panic if [`StationaryChild`] is applied on
+/// an entity that is not a child of a stationary viewable.
+#[derive(bundle::Bundle, TypedBuilder)]
+pub struct StationaryChildBundle {
+    /// Base components for a viewable.
+    base:            BaseBundle,
+    #[builder(default, setter(skip))]
+    _marker:         StationaryChild,
+    /// Position of the viewable relative to its stationary parent.
+    inner_transform: Transform,
 }
 
 /// Viewers of the viewable.
@@ -184,7 +237,7 @@ fn init_viewers_for_viewable_hook(
 
 fn update_spatial_index_system(
     mut tree: ResMut<SpatialIndex>,
-    query: Query<(Entity, &Transform), (With<Sid>, With<Static>)>,
+    query: Query<(Entity, &Transform), (With<Sid>, With<Stationary>)>,
 ) {
     if tree.kdtree.is_some() {
         return;
@@ -223,15 +276,26 @@ struct SpatialIndex {
     kdtree: Option<KdTree3<([f32; 3], Entity)>>,
 }
 
-/// A marker component to indicate that the viewer list of the component
-/// is controlled by the view module.
+/// A marker component to indicate that
+/// the viewer list of the viewable entity is controlled by the view module
+/// and the viewable entity has a stationary position.
 ///
 /// Viewable entities without this component shall maintain [`Viewers`]
 /// from the module that manages the viewable entity.
 #[derive(Component, Default)]
-pub struct Static;
+pub struct Stationary;
 
-fn maintain_viewers_system(
+/// A marker component to indicate that the
+/// the viewer list of the viewable entity is controlled by the view module
+/// and the viewable entity is a direct [child](bevy::hierarchy::Children)
+/// of a [stationary](Stationary) viewable.
+///
+/// Viewable entities without this component shall maintain [`Viewers`]
+/// from the module that manages the viewable entity.
+#[derive(Component, Default)]
+pub struct StationaryChild;
+
+fn update_stationary_viewers_system(
     tree: Res<SpatialIndex>,
     mut viewer_query: Query<(
         Entity,
@@ -240,9 +304,11 @@ fn maintain_viewers_system(
         &viewer::Range,
         &mut viewer::ViewableList,
     )>,
-    mut viewable_query: Query<(&Sid, &mut Viewers), With<Static>>,
+    mut viewable_query: Query<(&Sid, &mut Viewers), With<Stationary>>,
     mut show_events: EventWriter<ShowEvent>,
+    mut show_stationary_events: EventWriter<ShowStationaryEvent>,
     mut hide_events: EventWriter<HideEvent>,
+    mut hide_stationary_events: EventWriter<HideStationaryEvent>,
 ) {
     let Some(kdtree) = &tree.kdtree else {
         return; // tree is currently inaccurate
@@ -261,15 +327,15 @@ fn maintain_viewers_system(
                 kdtree.within(&[visible_aabb.min.to_array(), visible_aabb.max.to_array()]);
 
             let mut next_viewable_set = HashSet::with_capacity(next_viewable_vec.len());
-            for (_, viewable) in next_viewable_vec {
-                next_viewable_set.insert(*viewable);
+            for &(_, viewable) in next_viewable_vec {
+                next_viewable_set.insert(viewable);
 
-                if prev_viewables.set.contains(viewable) {
+                if prev_viewables.set.contains(&viewable) {
                     continue;
                 }
 
                 let (&viewable_sid, mut viewers) = viewable_query
-                    .get_mut(*viewable)
+                    .get_mut(viewable)
                     .expect("kvtree contains nonexistent viewable entity");
                 let has_inserted = viewers.insert(viewer);
                 assert!(
@@ -278,7 +344,9 @@ fn maintain_viewers_system(
                      exist in viewable list of {viewer:?}"
                 );
 
-                show_events.send(ShowEvent { viewer: viewer_sid, viewable: viewable_sid });
+                let show_event = ShowEvent { viewer: viewer_sid, viewable: viewable_sid };
+                show_events.send(show_event.clone());
+                show_stationary_events.send(ShowStationaryEvent { viewer, viewable });
             }
 
             for viewable in &prev_viewables.set {
@@ -297,9 +365,60 @@ fn maintain_viewers_system(
                 );
 
                 hide_events.send(HideEvent { viewer: viewer_sid, viewable: viewable_sid });
+                hide_stationary_events.send(HideStationaryEvent { viewer, viewable: *viewable });
             }
 
             prev_viewables.set = next_viewable_set;
         },
+    );
+}
+
+fn show_viewable_system(
+    mut show_stationary_events: EventReader<ShowStationaryEvent>,
+    mut show_events: EventWriter<ShowEvent>,
+    stationary_query: Query<&hierarchy::Children, With<Stationary>>,
+    child_query: Query<&Sid, With<StationaryChild>>,
+    viewer_query: Query<&viewer::Sid>,
+) {
+    show_events.send_batch(
+        show_stationary_events
+            .read()
+            .filter_map(|&ShowStationaryEvent { viewer, viewable }| {
+                let children = stationary_query.get(viewable).ok()?;
+                let &viewer_sid = viewer_query
+                    .get(viewer)
+                    .expect("ShowStationaryEvent contains non-viewer viewer entity");
+                Some((viewer_sid, children))
+            })
+            .flat_map(|(viewer, children)| children.iter().map(move |&child| (viewer, child)))
+            .filter_map(|(viewer, child_entity)| {
+                child_query.get(child_entity).ok().map(|&child_sid| (viewer, child_sid))
+            })
+            .map(|(viewer, child_sid)| ShowEvent { viewer, viewable: child_sid }),
+    );
+}
+
+fn hide_viewable_system(
+    mut hide_stationary_events: EventReader<HideStationaryEvent>,
+    mut hide_events: EventWriter<HideEvent>,
+    stationary_query: Query<&hierarchy::Children, With<Stationary>>,
+    child_query: Query<&Sid, With<StationaryChild>>,
+    viewer_query: Query<&viewer::Sid>,
+) {
+    hide_events.send_batch(
+        hide_stationary_events
+            .read()
+            .filter_map(|&HideStationaryEvent { viewer, viewable }| {
+                let children = stationary_query.get(viewable).ok()?;
+                let &viewer_sid = viewer_query
+                    .get(viewer)
+                    .expect("HideStationaryEvent contains non-viewer viewer entity");
+                Some((viewer_sid, children))
+            })
+            .flat_map(|(viewer, children)| children.iter().map(move |&child| (viewer, child)))
+            .filter_map(|(viewer, child_entity)| {
+                child_query.get(child_entity).ok().map(|&child_sid| (viewer, child_sid))
+            })
+            .map(|(viewer, child_sid)| HideEvent { viewer, viewable: child_sid }),
     );
 }
