@@ -3,24 +3,12 @@
 use bevy::app::{self, App};
 use bevy::ecs::bundle;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::world::World;
 use bevy::prelude::Component;
 use bevy::transform::components::Transform;
 use bevy::utils::HashSet;
-use derive_more::{From, Into};
 use typed_builder::TypedBuilder;
 
-/// Serialization-level identifier for this viewer.
-///
-/// This identifier is used for communication between server and client.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Component, From, Into)]
-pub struct Sid(u32);
-
-/// Lookup server entities from `Sid`.
-pub type SidIndex = super::IdIndex<Sid>;
-
-/// Convenience method to allocate a new SID from the world.
-pub fn next_sid(world: &mut World) -> Sid { world.resource_mut::<SidIndex>().next_id_mut() }
+sid_alias!("viewer");
 
 pub(crate) struct Plugin;
 

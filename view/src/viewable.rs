@@ -10,30 +10,20 @@ use bevy::ecs::event::{Event, EventReader, EventWriter, Events};
 use bevy::ecs::query::With;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Query, Res, ResMut, Resource};
-use bevy::ecs::world::{DeferredWorld, World};
+use bevy::ecs::world::DeferredWorld;
 use bevy::hierarchy;
 use bevy::math::bounding::Aabb3d;
 use bevy::math::Vec3A;
 use bevy::transform::components::Transform;
 use bevy::utils::HashSet;
-use derive_more::{From, Into};
 use either::Either;
 use kd_tree::KdTree3;
+use traffloat_base::proto;
 use typed_builder::TypedBuilder;
 
-use crate::viewer;
+use crate::{appearance, viewer};
 
-/// Serialization-level identifier for this viewable.
-///
-/// This identifier is used for communication between server and client.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Component, From, Into)]
-pub struct Sid(u32);
-
-/// Lookup server entities from `Sid`.
-pub type SidIndex = super::IdIndex<Sid>;
-
-/// Convenience method to allocate a new SID from the world.
-pub fn next_sid(world: &mut World) -> Sid { world.resource_mut::<SidIndex>().next_id_mut() }
+sid_alias!("viewable");
 
 pub(crate) struct Plugin;
 
@@ -64,12 +54,16 @@ impl app::Plugin for Plugin {
 }
 
 /// The client should start displaying a viewable.
-#[derive(Debug, Clone, Event)]
+#[derive(Debug, Event)]
 pub struct ShowEvent {
     /// The viewer to show to.
-    pub viewer:   viewer::Sid,
+    pub viewer:     viewer::Sid,
     /// The viewable to be showed.
-    pub viewable: Sid,
+    pub viewable:   Sid,
+    /// The model of the viewable.
+    pub appearance: appearance::Layers,
+    /// The transform for the viewable model, relative to world origin.
+    pub transform:  proto::Transform,
 }
 
 /// A specialized `ShowEvent` that only gets sent for stationary viewables,
@@ -106,9 +100,10 @@ pub struct HideEvent {
 /// Entities should be initialized through [`StationaryBundle`] or [`StationaryChildBundle`] instead.
 #[derive(bundle::Bundle, TypedBuilder)]
 pub struct BaseBundle {
-    sid:     Sid,
+    sid:        Sid,
+    appearance: appearance::Layers,
     #[builder(default)]
-    viewers: Viewers,
+    viewers:    Viewers,
 }
 
 /// Initializes a viewable
@@ -243,7 +238,6 @@ fn update_spatial_index_system(
         return;
     }
 
-    dbg!(query.iter().count());
     let viewables = query.iter().map(|(entity, tf)| (tf.translation.to_array(), entity)).collect();
     tree.kdtree = Some(KdTree3::build_by_ordered_float(viewables));
 }
@@ -304,7 +298,10 @@ fn update_stationary_viewers_system(
         &viewer::Range,
         &mut viewer::ViewableList,
     )>,
-    mut viewable_query: Query<(&Sid, &mut Viewers), With<Stationary>>,
+    mut viewable_query: Query<
+        (&Sid, &appearance::Layers, &Transform, &mut Viewers),
+        With<Stationary>,
+    >,
     mut show_events: EventWriter<ShowEvent>,
     mut show_stationary_events: EventWriter<ShowStationaryEvent>,
     mut hide_events: EventWriter<HideEvent>,
@@ -334,9 +331,10 @@ fn update_stationary_viewers_system(
                     continue;
                 }
 
-                let (&viewable_sid, mut viewers) = viewable_query
-                    .get_mut(viewable)
-                    .expect("kvtree contains nonexistent viewable entity");
+                let (&viewable_sid, &viewable_appearance, &viewable_transform, mut viewers) =
+                    viewable_query
+                        .get_mut(viewable)
+                        .expect("kvtree contains nonexistent viewable entity");
                 let has_inserted = viewers.insert(viewer);
                 assert!(
                     has_inserted,
@@ -344,8 +342,13 @@ fn update_stationary_viewers_system(
                      exist in viewable list of {viewer:?}"
                 );
 
-                let show_event = ShowEvent { viewer: viewer_sid, viewable: viewable_sid };
-                show_events.send(show_event.clone());
+                let show_event = ShowEvent {
+                    viewer:     viewer_sid,
+                    viewable:   viewable_sid,
+                    appearance: viewable_appearance,
+                    transform:  viewable_transform.into(),
+                };
+                show_events.send(show_event);
                 show_stationary_events.send(ShowStationaryEvent { viewer, viewable });
             }
 
@@ -354,7 +357,7 @@ fn update_stationary_viewers_system(
                     continue;
                 }
 
-                let (&viewable_sid, mut viewers) = viewable_query
+                let (&viewable_sid, _, _, mut viewers) = viewable_query
                     .get_mut(*viewable)
                     .expect("kvtree contains nonexistent viewable entity");
                 let has_removed = viewers.remove(viewer);
@@ -376,25 +379,36 @@ fn update_stationary_viewers_system(
 fn show_viewable_system(
     mut show_stationary_events: EventReader<ShowStationaryEvent>,
     mut show_events: EventWriter<ShowEvent>,
-    stationary_query: Query<&hierarchy::Children, With<Stationary>>,
-    child_query: Query<&Sid, With<StationaryChild>>,
+    stationary_query: Query<(&hierarchy::Children, &Transform), With<Stationary>>,
+    child_query: Query<(&Sid, &appearance::Layers, &Transform), With<StationaryChild>>,
     viewer_query: Query<&viewer::Sid>,
 ) {
     show_events.send_batch(
         show_stationary_events
             .read()
             .filter_map(|&ShowStationaryEvent { viewer, viewable }| {
-                let children = stationary_query.get(viewable).ok()?;
+                let (children, &transform) = stationary_query.get(viewable).ok()?;
                 let &viewer_sid = viewer_query
                     .get(viewer)
                     .expect("ShowStationaryEvent contains non-viewer viewer entity");
-                Some((viewer_sid, children))
+                Some((viewer_sid, transform, children))
             })
-            .flat_map(|(viewer, children)| children.iter().map(move |&child| (viewer, child)))
-            .filter_map(|(viewer, child_entity)| {
-                child_query.get(child_entity).ok().map(|&child_sid| (viewer, child_sid))
+            .flat_map(|(viewer, parent_transform, children)| {
+                children.iter().map(move |&child| (viewer, parent_transform, child))
             })
-            .map(|(viewer, child_sid)| ShowEvent { viewer, viewable: child_sid }),
+            .filter_map(|(viewer, parent_transform, child_entity)| {
+                child_query.get(child_entity).ok().map(
+                    |(&child_sid, &child_model, &inner_transform)| {
+                        (viewer, child_sid, child_model, inner_transform * parent_transform)
+                    },
+                )
+            })
+            .map(|(viewer, child_sid, child_model, transform)| ShowEvent {
+                viewer,
+                viewable: child_sid,
+                appearance: child_model,
+                transform: transform.into(),
+            }),
     );
 }
 

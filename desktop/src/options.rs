@@ -6,6 +6,8 @@ use bevy::ecs::system::Resource;
 #[command(name = "traffloat", version = traffloat_version::VERSION, about)]
 pub struct Options {
     pub save_file: Option<PathBuf>,
+    #[clap(long, default_value = "assets/")]
+    pub asset_dir: PathBuf,
 }
 
 impl Options {

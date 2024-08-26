@@ -23,18 +23,26 @@ typed-builder = "0.19.1"
 smallvec = "1.13.2"
 rfd = "0.14.1"
 clap = { version = "4.5.13", features = ["derive"] }
+hex = "0.4.3"
+rand_xoshiro = "0.6.0"
+rand = "0.8.5"
+rand_distr = "0.4.3"
+bytemuck = "1.17.0"
 
 [dependencies.bevy]
 workspace = true
 features = [
 	"bevy_color",
 	"bevy_core_pipeline",
+	"bevy_gltf",
+	"bevy_pbr",
 	"bevy_state",
-	"bevy_winit",
 	"bevy_render",
 	"bevy_text",
 	"bevy_ui",
-	"multi_threaded",
+	"bevy_winit",
 	"default_font",
+	"multi_threaded",
+	"tonemapping_luts",
 	"x11",
 ]

@@ -5,7 +5,7 @@ use bevy::transform::components::Transform as BevyTransform;
 use serde::{Deserialize, Serialize};
 
 /// A generic 3D position.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Position {
     /// X-coordinate.
     pub x: f32,
@@ -24,7 +24,7 @@ impl From<Position> for Vec3 {
 }
 
 /// A homogeneous rotation transformation.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Rotation {
     /// Components of the rotation quarternion.
     pub xyzw: [f32; 4],
@@ -35,7 +35,7 @@ impl Default for Rotation {
 }
 
 /// An axis-aligned scaling transformation
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Scale {
     /// Scale factor on the X-axis.
     pub x: f32,
@@ -50,13 +50,15 @@ impl Default for Scale {
 }
 
 /// Serializable form of [bevy `Transform`](BevyTransform).
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Transform {
     /// Position transformation.
     pub position: Position,
     /// Rotation transformation.
+    #[serde(default)]
     pub rotation: Rotation,
     /// Scaling transformation.
+    #[serde(default)]
     pub scale:    Scale,
 }
 

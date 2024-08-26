@@ -11,7 +11,7 @@ use bevy::hierarchy::BuildWorldChildren;
 use bevy::transform::components::Transform;
 use serde::{Deserialize, Serialize};
 use traffloat_base::{proto, save};
-use traffloat_view::viewable;
+use traffloat_view::{appearance, viewable};
 use typed_builder::TypedBuilder;
 
 pub mod facility;
@@ -55,7 +55,9 @@ pub struct FacilityList {
 #[derive(Serialize, Deserialize)]
 pub struct Save {
     /// Position of a building.
-    pub position: proto::Position,
+    pub transform:  proto::Transform,
+    /// Appearance of the building.
+    pub appearance: appearance::Layers,
 }
 
 impl save::Def for Save {
@@ -67,10 +69,10 @@ impl save::Def for Save {
         fn store_system(
             mut writer: save::Writer<Save>,
             (): (),
-            query: Query<(Entity, &Transform), With<Marker>>,
+            query: Query<(Entity, &Transform, &appearance::Layers), With<Marker>>,
         ) {
-            writer.write_all(query.iter().map(|(entity, transform)| {
-                (entity, Save { position: transform.translation.into() })
+            writer.write_all(query.iter().map(|(entity, &transform, &appearance)| {
+                (entity, Save { transform: transform.into(), appearance })
             }));
         }
 
@@ -87,8 +89,13 @@ impl save::Def for Save {
                 Bundle::builder()
                     .viewable(
                         viewable::StationaryBundle::builder()
-                            .base(viewable::BaseBundle::builder().sid(sid).build())
-                            .transform(Transform::from_translation(def.position.into()))
+                            .base(
+                                viewable::BaseBundle::builder()
+                                    .sid(sid)
+                                    .appearance(def.appearance)
+                                    .build(),
+                            )
+                            .transform(def.transform.into())
                             .build(),
                     )
                     .facility_list(FacilityList { facility_list: Vec::new(), ambient })

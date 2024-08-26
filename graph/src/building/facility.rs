@@ -11,7 +11,7 @@ use bevy::hierarchy::BuildWorldChildren;
 use bevy::transform::components::Transform;
 use serde::{Deserialize, Serialize};
 use traffloat_base::{proto, save};
-use traffloat_view::viewable;
+use traffloat_view::{appearance, viewable};
 use typed_builder::TypedBuilder;
 
 /// Components for a facility.
@@ -34,6 +34,8 @@ pub struct Save {
     pub parent:     save::Id<super::Save>,
     /// Position of the facility relative to the building center.
     pub inner:      proto::Transform,
+    /// Appearance of the facility.
+    pub appearance: appearance::Layers,
     /// Whether the facility is the ambient facility of its parent building.
     pub is_ambient: bool,
 }
@@ -48,16 +50,17 @@ impl save::Def for Save {
             mut writer: save::Writer<Save>,
             (building_dep,): (save::StoreDepend<super::Save>,),
             (query, building_query): (
-                Query<(Entity, &hierarchy::Parent, &Transform), With<Marker>>,
+                Query<(Entity, &hierarchy::Parent, &Transform, &appearance::Layers), With<Marker>>,
                 Query<&super::FacilityList, With<super::Marker>>,
             ),
         ) {
-            writer.write_all(query.iter().map(|(entity, parent, transform)| {
+            writer.write_all(query.iter().map(|(entity, parent, &transform, &appearance)| {
                 (
                     entity,
                     Save {
-                        parent:     building_dep.must_get(parent.get()),
-                        inner:      (*transform).into(),
+                        parent: building_dep.must_get(parent.get()),
+                        inner: transform.into(),
+                        appearance,
                         is_ambient: building_query
                             .get(parent.get())
                             .expect("dangling parent building reference")
@@ -84,7 +87,12 @@ impl save::Def for Save {
             let facility_bundle = Bundle::builder()
                 .viewable(
                     viewable::StationaryChildBundle::builder()
-                        .base(viewable::BaseBundle::builder().sid(sid).build())
+                        .base(
+                            viewable::BaseBundle::builder()
+                                .sid(sid)
+                                .appearance(def.appearance)
+                                .build(),
+                        )
                         .inner_transform(def.inner.into())
                         .build(),
                 )

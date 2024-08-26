@@ -7,6 +7,8 @@ __pycache__
 *.min.vert
 *.min.frag
 *.tsv
+*.glb
 gen
+/assets
 
 /docgen/output

@@ -29,9 +29,6 @@ path = "version"
 [workspace.dependencies.traffloat-base]
 path = "base"
 
-[workspace.dependencies.traffloat-desktop]
-path = "desktop"
-
 [workspace.dependencies.traffloat-view]
 path = "view"
 
@@ -71,9 +68,6 @@ opt-level = 0
 opt-level = 0
 
 [profile.dev.package.traffloat-base]
-opt-level = 0
-
-[profile.dev.package.traffloat-desktop]
 opt-level = 0
 
 [profile.dev.package.traffloat-view]
