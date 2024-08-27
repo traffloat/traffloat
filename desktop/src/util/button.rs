@@ -13,6 +13,8 @@ use bevy::ecs::schedule::{IntoSystemConfigs, SystemSet};
 use bevy::ecs::system::Query;
 use bevy::ui;
 use bevy::ui::node_bundles::ButtonBundle;
+use traffloat_base::partition::AppExt;
+use traffloat_base::EventWriterSystemSet;
 
 pub struct Plugin<E>(PhantomData<fn() -> E>);
 
@@ -22,10 +24,12 @@ impl<E> Default for Plugin<E> {
 
 impl<E: Event + Clone> app::Plugin for Plugin<E> {
     fn build(&self, app: &mut App) {
-        app.add_event::<E>();
+        app.add_partitioned_event::<E>();
         app.add_systems(
             app::Update,
-            handle_buttons::<E>.before(HandleClickSystemSet::<E>::default),
+            handle_buttons::<E>
+                .before(HandleClickSystemSet::<E>::default)
+                .in_set(EventWriterSystemSet::<E>::default()),
         );
     }
 }

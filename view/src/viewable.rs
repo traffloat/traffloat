@@ -18,6 +18,7 @@ use bevy::transform::components::Transform;
 use bevy::utils::HashSet;
 use either::Either;
 use kd_tree::KdTree3;
+use traffloat_base::partition::{AppExt, EventReaderSystemSet, EventWriterSystemSet};
 use traffloat_base::proto;
 use typed_builder::TypedBuilder;
 
@@ -31,18 +32,30 @@ impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         SidIndex::init(app.world_mut());
 
-        app.add_event::<ShowEvent>();
-        app.add_event::<ShowStationaryEvent>();
-        app.add_event::<HideEvent>();
-        app.add_event::<HideStationaryEvent>();
+        app.add_partitioned_event::<ShowEvent>();
+        app.add_partitioned_event::<ShowStationaryEvent>();
+        app.add_partitioned_event::<HideEvent>();
+        app.add_partitioned_event::<HideStationaryEvent>();
 
         app.insert_resource(SpatialIndex { kdtree: None });
         app.add_systems(
             app::Update,
             (
                 update_spatial_index_system,
-                update_stationary_viewers_system.after(update_spatial_index_system),
-                (show_viewable_system, hide_viewable_system)
+                update_stationary_viewers_system
+                    .after(update_spatial_index_system)
+                    .in_set(EventWriterSystemSet::<ShowEvent>::default())
+                    .in_set(EventWriterSystemSet::<ShowStationaryEvent>::default())
+                    .in_set(EventWriterSystemSet::<HideEvent>::default())
+                    .in_set(EventWriterSystemSet::<HideStationaryEvent>::default()),
+                (
+                    show_viewable_system
+                        .in_set(EventWriterSystemSet::<ShowEvent>::default())
+                        .in_set(EventReaderSystemSet::<ShowStationaryEvent>::default()),
+                    hide_viewable_system
+                        .in_set(EventWriterSystemSet::<HideEvent>::default())
+                        .in_set(EventReaderSystemSet::<HideStationaryEvent>::default()),
+                )
                     .after(update_stationary_viewers_system),
             ),
         );

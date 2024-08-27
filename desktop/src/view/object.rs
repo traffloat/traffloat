@@ -16,6 +16,7 @@ use bevy::render;
 use bevy::state::condition::in_state;
 use bevy::transform::components::{GlobalTransform, Transform};
 use bevy::utils::HashMap;
+use traffloat_base::EventReaderSystemSet;
 use traffloat_view::appearance::{self, Appearance};
 use traffloat_view::viewable;
 
@@ -28,7 +29,10 @@ impl app::Plugin for Plugin {
         app.init_resource::<DelegateSidIndex>();
 
         app.add_systems(app::Update, select_layer_system.run_if(in_state(AppState::GameView)));
-        app.add_systems(app::Update, handle_show);
+        app.add_systems(
+            app::Update,
+            handle_show.in_set(EventReaderSystemSet::<viewable::ShowEvent>::default()),
+        );
     }
 }
 

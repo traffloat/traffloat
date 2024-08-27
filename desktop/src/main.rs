@@ -1,7 +1,5 @@
 //! Binary for the desktop client app.
 
-use std::fs;
-
 use bevy::app::{self, App, AppExit, PluginGroup};
 use bevy::asset::AssetPlugin;
 use bevy::ecs::schedule::{self, ScheduleBuildSettings};
@@ -24,23 +22,12 @@ enum AppState {
 }
 
 fn main() -> AppExit {
-    #[cfg(target_family = "wasm")]
-    let options = Options::default();
-    #[cfg(not(target_family = "wasm"))]
-    let options = {
-        let mut options = Options::parse();
-        let asset_dir = match fs::canonicalize(&options.asset_dir) {
-            Ok(asset_dir) => asset_dir,
-            Err(err) => {
-                eprintln!(
-                    "Asset directory {} is not canonicalizable: {err}",
-                    options.asset_dir.display()
-                );
-                return AppExit::error();
-            }
-        };
-        options.asset_dir = asset_dir;
-        options
+    let options = match Options::parse_by_platform() {
+        Ok(options) => options,
+        Err(err) => {
+            eprintln!("CLI error: {err}");
+            return AppExit::error();
+        }
     };
 
     App::new()

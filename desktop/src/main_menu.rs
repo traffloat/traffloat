@@ -15,6 +15,7 @@ use bevy::text::{JustifyText, Text, TextStyle};
 use bevy::ui::node_bundles::{NodeBundle, TextBundle};
 use bevy::ui::{self, Style};
 use bevy::winit::{self, WinitSettings};
+use traffloat_base::EventReaderSystemSet;
 
 use crate::util::button;
 use crate::AppState;
@@ -30,7 +31,9 @@ impl app::Plugin for Plugin {
         app.add_plugins(button::Plugin::<ClickEvent>::default());
         app.add_systems(
             app::Update,
-            handle_click.in_set(button::HandleClickSystemSet::<ClickEvent>::default()),
+            handle_click
+                .in_set(button::HandleClickSystemSet::<ClickEvent>::default())
+                .in_set(EventReaderSystemSet::<ClickEvent>::default()),
         );
         app.add_plugins(select_load::Plugin);
     }

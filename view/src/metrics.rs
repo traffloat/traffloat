@@ -17,6 +17,7 @@ use bevy::ptr::OwningPtr;
 use bevy::time::{Time, Timer, TimerMode};
 use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
+use traffloat_base::partition::AppExt;
 
 use crate::{viewable, viewer};
 
@@ -27,7 +28,7 @@ pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<UpdateMetricEvent>();
+        app.add_partitioned_event::<UpdateMetricEvent>();
         app.init_resource::<Config>();
     }
 }

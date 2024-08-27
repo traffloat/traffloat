@@ -103,6 +103,8 @@ use bevy::prelude::{
 use bevy::state::condition::in_state;
 use bevy::state::state::States;
 use derive_more::From;
+use traffloat_base::partition::AppExt;
+use traffloat_base::EventReaderSystemSet;
 
 use crate::units;
 
@@ -110,12 +112,15 @@ pub(super) struct Plugin<St>(pub(super) St);
 
 impl<St: States + Copy> app::Plugin for Plugin<St> {
     fn build(&self, app: &mut App) {
-        app.add_event::<RecomputeStaticEvent>();
+        app.add_partitioned_event::<RecomputeStaticEvent>();
         app.add_systems(
             app::Update,
             (
                 static_to_dynamic_system.after(SystemSets::Static).before(SystemSets::Dynamic),
-                init_static.before(SystemSets::Static).in_set(SystemSets::Compute),
+                init_static
+                    .before(SystemSets::Static)
+                    .in_set(SystemSets::Compute)
+                    .in_set(EventReaderSystemSet::<RecomputeStaticEvent>::default()),
             )
                 .run_if(in_state(self.0)),
         );
