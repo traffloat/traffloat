@@ -100,9 +100,9 @@ def material_glass():
             gltflib.Material(
                 name="Material0",
                 pbrMetallicRoughness={
-                    "baseColorFactor": [1., 1., 1., 0.5],
-                    "metallicFactor": 0.,
-                    "roughnessFactor": 0.07,
+                    "baseColorFactor": [0.1, 0.1, 0.1, 0.0],
+                    "metallicFactor": 0.1,
+                    "roughnessFactor": 0.01,
                 },
             ),
         ],

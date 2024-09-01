@@ -2,6 +2,7 @@ use bevy::app::{self, App};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::With;
+use bevy::ecs::schedule::SystemSet;
 use bevy::ecs::system::{Commands, Query, Res, ResMut};
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::state::state;
@@ -29,6 +30,9 @@ impl app::Plugin for Plugin {
 
 #[derive(Component)]
 struct Owned;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
+struct InputSystemSet;
 
 fn setup_singleplayer_server(mut commands: Commands, viewer_ids: Res<viewer::SidIndex>) {
     commands.spawn((

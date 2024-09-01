@@ -35,9 +35,9 @@ pub enum Appearance {
     /// Use PBR for display.
     Pbr {
         /// The object mesh.
-        mesh:     GlbRef,
+        mesh:     GlbMeshRef,
         /// The object material.
-        material: GlbRef,
+        material: GlbMaterialRef,
     },
     // /// Use billboard for display.
     // Billboard {
@@ -56,19 +56,29 @@ pub struct ImageRef {
     pub sha: [u8; 20],
 }
 
-/// Reference to a GLB node.
+/// Identifies a GLB file.
+pub type GlbSha = [u8; 20];
+
+/// Reference to a primitive in a GLB mesh node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize)]
-pub struct GlbRef {
+pub struct GlbMeshRef {
     /// Reference to GLB file by its SHA1 hash.
     #[serde(with = "hex_hash")]
-    pub sha:   [u8; 20],
+    pub sha:       GlbSha,
     /// Index of the object inside the GLB file.
-    pub index: u16,
+    pub mesh:      u16,
+    /// Index of the primitive inside the GLB mesh.
+    pub primitive: u16,
 }
 
-impl GlbRef {
-    /// A null model that loads an empty node.
-    pub const NULL: Self = Self { sha: [0; 20], index: 0 };
+/// Reference to a GLB primitive node.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize)]
+pub struct GlbMaterialRef {
+    /// Reference to GLB file by its SHA1 hash.
+    #[serde(with = "hex_hash")]
+    pub sha:   GlbSha,
+    /// Index of the object inside the GLB file.
+    pub index: u16,
 }
 
 mod hex_hash {
@@ -94,9 +104,6 @@ mod hex_hash {
     {
         if deserializer.is_human_readable() {
             let hex = <&'de str>::deserialize(deserializer)?;
-            if hex == "NULL" {
-                return Ok(super::GlbRef::NULL.sha);
-            }
 
             let mut bytes = [0u8; 20];
             hex::decode_to_slice(hex, &mut bytes)

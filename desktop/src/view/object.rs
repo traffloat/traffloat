@@ -1,7 +1,8 @@
+use std::mem::size_of;
 use std::ops::RangeBounds;
 
 use bevy::app::{self, App};
-use bevy::asset::{Asset, AssetServer, Handle};
+use bevy::asset::{AssetServer, Handle};
 use bevy::core_pipeline::core_3d::Camera3d;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
@@ -9,10 +10,12 @@ use bevy::ecs::event::EventReader;
 use bevy::ecs::query::With;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, Resource};
+use bevy::gltf::GltfAssetLabel;
 use bevy::hierarchy::BuildChildren;
-use bevy::pbr::PbrBundle;
+use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::SpatialBundle;
 use bevy::render;
+use bevy::render::mesh::Mesh;
 use bevy::state::condition::in_state;
 use bevy::transform::components::{GlobalTransform, Transform};
 use bevy::utils::HashMap;
@@ -31,7 +34,7 @@ impl app::Plugin for Plugin {
         app.add_systems(app::Update, select_layer_system.run_if(in_state(AppState::GameView)));
         app.add_systems(
             app::Update,
-            handle_show.in_set(EventReaderSystemSet::<viewable::ShowEvent>::default()),
+            handle_show_system.in_set(EventReaderSystemSet::<viewable::ShowEvent>::default()),
         );
     }
 }
@@ -52,15 +55,37 @@ struct LayerRefs {
     interior: Entity,
 }
 
-fn glb_handle<A: Asset>(
-    assets: &AssetServer,
-    glb_ref: appearance::GlbRef,
-    kind: &str,
-) -> Handle<A> {
-    let file_path = hex::encode(glb_ref.sha);
-    let asset_path = format!("{file_path}.glb#{kind}{}", glb_ref.index);
+fn create_mesh_handle(assets: &AssetServer, glb_ref: appearance::GlbMeshRef) -> Handle<Mesh> {
+    let mut path_buf = vec![0u8; size_of::<appearance::GlbSha>() * 2 + 4];
+    hex::encode_to_slice(glb_ref.sha, &mut path_buf[..glb_ref.sha.len() * 2]).unwrap();
+    path_buf[glb_ref.sha.len() * 2..].copy_from_slice(b".glb");
+    let path_str = String::from_utf8(path_buf).unwrap();
 
-    assets.load(asset_path)
+    assets.load(
+        GltfAssetLabel::Primitive {
+            mesh:      glb_ref.mesh as usize,
+            primitive: glb_ref.primitive as usize,
+        }
+        .from_asset(path_str),
+    )
+}
+
+fn create_material_handle(
+    assets: &AssetServer,
+    glb_ref: appearance::GlbMaterialRef,
+) -> Handle<StandardMaterial> {
+    let mut path_buf = vec![0u8; size_of::<appearance::GlbSha>() * 2 + 4];
+    hex::encode_to_slice(glb_ref.sha, &mut path_buf[..glb_ref.sha.len() * 2]).unwrap();
+    path_buf[glb_ref.sha.len() * 2..].copy_from_slice(b".glb");
+    let path_str = String::from_utf8(path_buf).unwrap();
+
+    assets.load(
+        GltfAssetLabel::Material {
+            index:             glb_ref.index as usize,
+            is_scale_inverted: false,
+        }
+        .from_asset(path_str),
+    )
 }
 
 fn spawn_appearance_layer(
@@ -72,18 +97,24 @@ fn spawn_appearance_layer(
     match appearance {
         Appearance::Null => commands.spawn_empty().id(),
         Appearance::Pbr { mesh, material } => commands
-            .spawn((PbrBundle {
-                mesh: glb_handle(assets, mesh, "Mesh"),
-                material: glb_handle(assets, material, "Material"),
-                transform,
-                visibility: render::view::Visibility::Hidden,
-                ..Default::default()
-            },))
+            .spawn((
+                PbrBundle {
+                    mesh: create_mesh_handle(assets, mesh),
+                    material: create_material_handle(assets, material),
+                    transform,
+                    visibility: render::view::Visibility::Visible,
+                    ..Default::default()
+                },
+                Layered,
+            ))
             .id(),
     }
 }
 
-fn handle_show(
+#[derive(Component)]
+struct Layered;
+
+fn handle_show_system(
     mut commands: Commands,
     mut reader: EventReader<viewable::ShowEvent>,
     mut sid_index: ResMut<DelegateSidIndex>,

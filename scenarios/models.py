@@ -15,7 +15,7 @@ class Mesh:
 
 
 def register_gltf_mesh(fn: Callable[[], tuple[numpy.ndarray, numpy.ndarray]]):
-    return register(lambda: gltf_mesh_fn(fn), name=f"{fn.__module__}:{fn.__name__}")
+    return register_mesh(lambda: gltf_mesh_fn(fn), name=f"{fn.__module__}:{fn.__name__}")
 
 
 def gltf_mesh_fn(fn: Callable[[], tuple[numpy.ndarray, numpy.ndarray]]):
@@ -96,7 +96,7 @@ def gltf_mesh_fn(fn: Callable[[], tuple[numpy.ndarray, numpy.ndarray]]):
     return GLTF(model=model, resources=[GLBResource(vert_bin + norm_bin + face_bin)])
 
 
-def register(make: Callable[[], GLTF], name: Optional[str] = None):
+def register(make: Callable[[], GLTF], name: Optional[str]):
     if name is None:
         name = f"{make.__module__}:{make.__name__}"
 
@@ -107,4 +107,10 @@ def register(make: Callable[[], GLTF], name: Optional[str] = None):
 
         all[name] = Mesh(buf.getvalue())
 
-    return {"sha": all[name].hash, "index": 0}
+    return all[name].hash
+
+def register_mesh(make: Callable[[], GLTF], name: Optional[str] = None):
+    return {"sha": register(make, name), "mesh": 0, "primitive": 0}
+
+def register_material(make: Callable[[], GLTF], name: Optional[str] = None):
+    return {"sha": register(make, name), "index": 0}

@@ -14,17 +14,17 @@ def write_scenario(writer):
                 "distal": {
                     "type": "Pbr",
                     "mesh": models.register_gltf_mesh(sphere.mesh),
-                    "material": models.register(sphere.material_glass),
+                    "material": models.register_material(sphere.material_glass),
                 },
                 "proximal": {
                     "type": "Pbr",
                     "mesh": models.register_gltf_mesh(sphere.mesh),
-                    "material": models.register(sphere.material_glass),
+                    "material": models.register_material(sphere.material_glass),
                 },
                 "interior": {
                     "type": "Pbr",
                     "mesh": models.register_gltf_mesh(sphere.mesh),
-                    "material": models.register(sphere.material_glass),
+                    "material": models.register_material(sphere.material_glass),
                 },
             },
         },
