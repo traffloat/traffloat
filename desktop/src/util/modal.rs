@@ -120,9 +120,9 @@ fn setup<But: Buttons>(mut commands: Commands, param: Res<Param<But>>) {
                     justify_items: ui::JustifyItems::Center,
                     align_content: ui::AlignContent::Center,
                     align_items: ui::AlignItems::Center,
-                    ..<_>::default()
+                    ..Default::default()
                 },
-                ..<_>::default()
+                ..Default::default()
             },
             RootNode(PhantomData::<But>),
         ))
@@ -139,29 +139,29 @@ fn setup<But: Buttons>(mut commands: Commands, param: Res<Param<But>>) {
                         width: ui::Val::Percent(50.),
                         height: ui::Val::Percent(30.),
                         padding: UiRect::axes(ui::Val::Px(30.), ui::Val::Px(0.)),
-                        ..<_>::default()
+                        ..Default::default()
                     },
-                    ..<_>::default()
+                    ..Default::default()
                 })
                 .with_children(|builder| {
                     builder.spawn(TextBundle {
                         text: Text::from_section(
                             &param.title,
-                            TextStyle { font_size: 32., ..<_>::default() },
+                            TextStyle { font_size: 32., ..Default::default() },
                         ),
                         style: Style {
                             margin: UiRect {
                                 bottom: ui::Val::Px(50.),
                                 ..UiRect::all(ui::Val::Px(0.))
                             },
-                            ..<_>::default()
+                            ..Default::default()
                         },
-                        ..<_>::default()
+                        ..Default::default()
                     });
                     builder.spawn(TextBundle {
                         text: Text::from_section(&param.text, TextStyle::default()),
-                        style: Style { align_self: ui::AlignSelf::Start, ..<_>::default() },
-                        ..<_>::default()
+                        style: Style { align_self: ui::AlignSelf::Start, ..Default::default() },
+                        ..Default::default()
                     });
 
                     for button in But::iter() {
@@ -170,9 +170,9 @@ fn setup<But: Buttons>(mut commands: Commands, param: Res<Param<But>>) {
                                 button: ButtonBundle {
                                     style: Style {
                                         padding: UiRect::all(ui::Val::Px(5.)),
-                                        ..<_>::default()
+                                        ..Default::default()
                                     },
-                                    ..<_>::default()
+                                    ..Default::default()
                                 },
                                 ..button::Bundle::new(ClickEvent(button))
                             })
@@ -183,9 +183,9 @@ fn setup<But: Buttons>(mut commands: Commands, param: Res<Param<But>>) {
                                     style: Style {
                                         width: ui::Val::Percent(100.),
                                         justify_content: ui::JustifyContent::Center,
-                                        ..<_>::default()
+                                        ..Default::default()
                                     },
-                                    ..<_>::default()
+                                    ..Default::default()
                                 });
                             });
                     }

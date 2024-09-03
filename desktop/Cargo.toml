@@ -28,6 +28,8 @@ rand_xoshiro = "0.6.0"
 rand = "0.8.5"
 rand_distr = "0.4.3"
 bytemuck = "1.17.0"
+bevy_eventlistener = "0.8.1"
+bevy_mod_outline = "0.8.3"
 
 [dependencies.bevy]
 workspace = true
@@ -45,4 +47,13 @@ features = [
 	"multi_threaded",
 	"tonemapping_luts",
 	"x11",
+]
+
+[dependencies.bevy_mod_picking]
+version = "0.20.1"
+default-features = false
+features = [
+	"backend_bevy_ui",
+	"backend_raycast",
+	"selection",
 ]

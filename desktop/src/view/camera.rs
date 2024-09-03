@@ -1,4 +1,4 @@
-use std::f32::consts::{FRAC_PI_2, FRAC_PI_6};
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
 use bevy::app::{self, App};
 use bevy::color::Color;
@@ -38,7 +38,7 @@ fn setup(mut commands: Commands) {
         super::Owned,
         Camera3dBundle {
             transform: Transform::from_xyz(0., 0., -5.).looking_at(Vec3::ZERO, Vec3::Y),
-            ..<_>::default()
+            ..Default::default()
         },
     ));
 
@@ -48,14 +48,14 @@ fn setup(mut commands: Commands) {
             directional_light: pbr::DirectionalLight {
                 color: Color::WHITE,
                 illuminance: lux::CLEAR_SUNRISE,
-                ..<_>::default()
+                ..Default::default()
             },
             transform: Transform {
                 translation: Vec3::new(0., 1., -1.),
                 rotation: Quat::from_rotation_x(-FRAC_PI_2),
-                ..<_>::default()
+                ..Default::default()
             },
-            ..<_>::default()
+            ..Default::default()
         },
     ));
 }
@@ -68,7 +68,7 @@ fn input_move_camera_system(
     let Ok(mut camera) = camera_query.get_single_mut() else { return };
 
     let move_speed = time.delta_seconds() * 5.;
-    let rotate_speed = time.delta_seconds() * FRAC_PI_6;
+    let rotate_speed = time.delta_seconds() * FRAC_PI_4;
 
     let is_rotate = keys.pressed(KeyCode::ShiftLeft);
 

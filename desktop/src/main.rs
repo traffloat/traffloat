@@ -7,6 +7,7 @@ use bevy::state::app::AppExtStates;
 use bevy::state::state::States;
 use bevy::window::{Window, WindowPlugin};
 use bevy::winit::WinitSettings;
+use bevy_mod_picking::DefaultPickingPlugins;
 use options::Options;
 
 mod main_menu;
@@ -37,7 +38,7 @@ fn main() -> AppExit {
                     primary_window: Some(Window {
                         name: Some("Traffloat".into()),
                         title: "Traffloat".into(),
-                        ..<_>::default()
+                        ..Default::default()
                     }),
                     ..Default::default()
                 })
@@ -48,8 +49,9 @@ fn main() -> AppExit {
                         eprintln!("Asset path is not UTF-8");
                         return AppExit::error();
                     },
-                    ..<_>::default()
+                    ..Default::default()
                 }),
+            DefaultPickingPlugins,
             traffloat_base::save::Plugin,
             traffloat_view::Plugin,
             traffloat_graph::Plugin,
@@ -63,7 +65,7 @@ fn main() -> AppExit {
         .edit_schedule(app::Update, |schedule| {
             schedule.set_build_settings(ScheduleBuildSettings {
                 ambiguity_detection: schedule::LogLevel::Warn,
-                ..<_>::default()
+                ..Default::default()
             });
         })
         .run()

@@ -74,7 +74,7 @@ pub struct ShowEvent {
     /// The viewable to be showed.
     pub viewable:   Sid,
     /// The model of the viewable.
-    pub appearance: appearance::Layers,
+    pub appearance: appearance::Appearance,
     /// The transform for the viewable model, relative to world origin.
     pub transform:  proto::Transform,
 }
@@ -114,7 +114,7 @@ pub struct HideEvent {
 #[derive(bundle::Bundle, TypedBuilder)]
 pub struct BaseBundle {
     sid:        Sid,
-    appearance: appearance::Layers,
+    appearance: appearance::Appearance,
     #[builder(default)]
     viewers:    Viewers,
 }
@@ -312,7 +312,7 @@ fn update_stationary_viewers_system(
         &mut viewer::ViewableList,
     )>,
     mut viewable_query: Query<
-        (&Sid, &appearance::Layers, &Transform, &mut Viewers),
+        (&Sid, &appearance::Appearance, &Transform, &mut Viewers),
         With<Stationary>,
     >,
     mut show_events: EventWriter<ShowEvent>,
@@ -344,7 +344,7 @@ fn update_stationary_viewers_system(
                     continue;
                 }
 
-                let (&viewable_sid, &viewable_appearance, &viewable_transform, mut viewers) =
+                let (&viewable_sid, viewable_appearance, &viewable_transform, mut viewers) =
                     viewable_query
                         .get_mut(viewable)
                         .expect("kvtree contains nonexistent viewable entity");
@@ -358,7 +358,7 @@ fn update_stationary_viewers_system(
                 let show_event = ShowEvent {
                     viewer:     viewer_sid,
                     viewable:   viewable_sid,
-                    appearance: viewable_appearance,
+                    appearance: viewable_appearance.clone(),
                     transform:  viewable_transform.into(),
                 };
                 show_events.send(show_event);
@@ -393,7 +393,7 @@ fn show_viewable_system(
     mut show_stationary_events: EventReader<ShowStationaryEvent>,
     mut show_events: EventWriter<ShowEvent>,
     stationary_query: Query<(&hierarchy::Children, &Transform), With<Stationary>>,
-    child_query: Query<(&Sid, &appearance::Layers, &Transform), With<StationaryChild>>,
+    child_query: Query<(&Sid, &appearance::Appearance, &Transform), With<StationaryChild>>,
     viewer_query: Query<&viewer::Sid>,
 ) {
     show_events.send_batch(
@@ -411,8 +411,13 @@ fn show_viewable_system(
             })
             .filter_map(|(viewer, parent_transform, child_entity)| {
                 child_query.get(child_entity).ok().map(
-                    |(&child_sid, &child_model, &inner_transform)| {
-                        (viewer, child_sid, child_model, inner_transform * parent_transform)
+                    |(&child_sid, child_appearance, &inner_transform)| {
+                        (
+                            viewer,
+                            child_sid,
+                            child_appearance.clone(),
+                            inner_transform * parent_transform,
+                        )
                     },
                 )
             })

@@ -3,33 +3,43 @@
 use bevy::ecs::component::Component;
 use serde::{Deserialize, Serialize};
 
+use crate::DisplayText;
+
 /// All appearance layers of the viewable,
 /// used during serialization.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Component)]
-pub struct Layers {
+#[derive(Debug, Clone, Serialize, Deserialize, Component)]
+pub struct Appearance {
+    /// Displays the building to users.
+    pub label: DisplayText,
+
     /// The exterior appearance of the viewable when its rendered area
     /// is only an insignificant portion of the viewport.
-    pub distal:   Appearance,
+    pub distal:   Layer,
     /// The exterior appearance of the viewable when its rendered area
     /// takes up a major portion of the viewport.
-    pub proximal: Appearance,
+    pub proximal: Layer,
     /// The appearance of the viewable when the viewport camera
     /// is within the bounds of the object.
-    pub interior: Appearance,
+    pub interior: Layer,
 }
 
-impl Layers {
+impl Appearance {
     /// Create an invisible appearance.
     #[must_use]
     pub fn null() -> Self {
-        Self { distal: Appearance::Null, proximal: Appearance::Null, interior: Appearance::Null }
+        Self {
+            label:    DisplayText::default(),
+            distal:   Layer::Null,
+            proximal: Layer::Null,
+            interior: Layer::Null,
+        }
     }
 }
 
 /// Describes a way to display an object.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(tag = "type")]
-pub enum Appearance {
+pub enum Layer {
     /// Do not display anything.
     Null,
     /// Use PBR for display.

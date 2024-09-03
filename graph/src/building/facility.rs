@@ -35,7 +35,7 @@ pub struct Save {
     /// Position of the facility relative to the building center.
     pub inner:      proto::Transform,
     /// Appearance of the facility.
-    pub appearance: appearance::Layers,
+    pub appearance: appearance::Appearance,
     /// Whether the facility is the ambient facility of its parent building.
     pub is_ambient: bool,
 }
@@ -50,17 +50,20 @@ impl save::Def for Save {
             mut writer: save::Writer<Save>,
             (building_dep,): (save::StoreDepend<super::Save>,),
             (query, building_query): (
-                Query<(Entity, &hierarchy::Parent, &Transform, &appearance::Layers), With<Marker>>,
+                Query<
+                    (Entity, &hierarchy::Parent, &Transform, &appearance::Appearance),
+                    With<Marker>,
+                >,
                 Query<&super::FacilityList, With<super::Marker>>,
             ),
         ) {
-            writer.write_all(query.iter().map(|(entity, parent, &transform, &appearance)| {
+            writer.write_all(query.iter().map(|(entity, parent, &transform, appearance)| {
                 (
                     entity,
                     Save {
-                        parent: building_dep.must_get(parent.get()),
-                        inner: transform.into(),
-                        appearance,
+                        parent:     building_dep.must_get(parent.get()),
+                        inner:      transform.into(),
+                        appearance: appearance.clone(),
                         is_ambient: building_query
                             .get(parent.get())
                             .expect("dangling parent building reference")

@@ -62,10 +62,10 @@ fn setup(mut commands: Commands, mut winit_settings: ResMut<WinitSettings>) {
                     height: ui::Val::Percent(100.),
                     justify_content: ui::JustifyContent::Center,
                     align_content: ui::AlignContent::Center,
-                    ..<_>::default()
+                    ..Default::default()
                 },
                 background_color: ui::BackgroundColor(Color::hsl(0., 0., 0.05)),
-                ..<_>::default()
+                ..Default::default()
             },
             Owned,
         ))
@@ -75,36 +75,36 @@ fn setup(mut commands: Commands, mut winit_settings: ResMut<WinitSettings>) {
                     style: Style {
                         justify_content: ui::JustifyContent::Center,
                         flex_direction: ui::FlexDirection::Column,
-                        ..<_>::default()
+                        ..Default::default()
                     },
-                    ..<_>::default()
+                    ..Default::default()
                 })
                 .with_children(|builder| {
                     builder.spawn(TextBundle {
                         text: Text::from_section(
                             "Traffloat",
-                            TextStyle { font_size: 48., ..<_>::default() },
+                            TextStyle { font_size: 48., ..Default::default() },
                         )
                         .with_justify(JustifyText::Center),
                         style: Style {
                             bottom: ui::Val::Px(24.),
                             justify_content: ui::JustifyContent::Center,
-                            ..<_>::default()
+                            ..Default::default()
                         },
-                        ..<_>::default()
+                        ..Default::default()
                     });
                     builder.spawn(TextBundle {
                         text: Text::from_section(
                             traffloat_version::VERSION,
-                            TextStyle { font_size: 12., ..<_>::default() },
+                            TextStyle { font_size: 12., ..Default::default() },
                         )
                         .with_justify(JustifyText::Center),
                         style: Style {
                             bottom: ui::Val::Px(24.),
                             justify_content: ui::JustifyContent::Center,
-                            ..<_>::default()
+                            ..Default::default()
                         },
-                        ..<_>::default()
+                        ..Default::default()
                     });
                     builder.spawn(button::Bundle::new(ClickEvent::Load)).with_children(|builder| {
                         builder.spawn(TextBundle {
@@ -113,9 +113,9 @@ fn setup(mut commands: Commands, mut winit_settings: ResMut<WinitSettings>) {
                             style: Style {
                                 width: ui::Val::Percent(100.),
                                 justify_content: ui::JustifyContent::Center,
-                                ..<_>::default()
+                                ..Default::default()
                             },
-                            ..<_>::default()
+                            ..Default::default()
                         });
                     });
                 });

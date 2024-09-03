@@ -90,7 +90,7 @@ fn setup_world(app: &mut App) -> WorldSetup {
             viewer::Bundle::builder()
                 .id(viewer_id)
                 .range(viewer::Range { distance: 100. })
-                .position(Transform { translation: Vec3::ZERO, ..<_>::default() })
+                .position(Transform { translation: Vec3::ZERO, ..Default::default() })
                 .build(),
         )
         .id();
@@ -104,7 +104,7 @@ fn setup_world(app: &mut App) -> WorldSetup {
                 .base(
                     viewable::BaseBundle::builder()
                         .sid(parent_viewable_id)
-                        .appearance(appearance::Layers::null())
+                        .appearance(appearance::Appearance::null())
                         .build(),
                 )
                 .transform(Transform::from_xyz(50., 50., 50.).with_scale(Vec3::splat(0.01)))
@@ -116,7 +116,7 @@ fn setup_world(app: &mut App) -> WorldSetup {
                     .base(
                         viewable::BaseBundle::builder()
                             .sid(child_viewable_id)
-                            .appearance(appearance::Layers::null())
+                            .appearance(appearance::Appearance::null())
                             .build(),
                     )
                     .inner_transform(Transform::from_xyz(200., 200., 200.))

@@ -7,30 +7,38 @@ use bevy::core_pipeline::core_3d::Camera3d;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::event::EventReader;
-use bevy::ecs::query::With;
+use bevy::ecs::query::{With, Without};
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, Resource};
 use bevy::gltf::GltfAssetLabel;
-use bevy::hierarchy::BuildChildren;
+use bevy::hierarchy::{BuildChildren, HierarchyQueryExt};
 use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::SpatialBundle;
-use bevy::render;
 use bevy::render::mesh::Mesh;
 use bevy::state::condition::in_state;
 use bevy::transform::components::{GlobalTransform, Transform};
 use bevy::utils::HashMap;
+use bevy::{hierarchy, render};
+use bevy_eventlistener::callbacks::Listener;
+use bevy_eventlistener::event_listener::On;
+use bevy_mod_picking::prelude::{self as pick, Pointer};
+use bevy_mod_picking::PickableBundle;
 use traffloat_base::EventReaderSystemSet;
-use traffloat_view::appearance::{self, Appearance};
+use traffloat_view::appearance::{self, Layer};
 use traffloat_view::viewable;
 
 use crate::AppState;
+
+mod info;
 
 pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<DelegateSidIndex>();
+        app.insert_resource(Focus { entity: None, focus_type: FocusType::Hover });
 
+        app.add_plugins(info::Plugin);
         app.add_systems(app::Update, select_layer_system.run_if(in_state(AppState::GameView)));
         app.add_systems(
             app::Update,
@@ -91,18 +99,18 @@ fn create_material_handle(
 fn spawn_appearance_layer(
     commands: &mut Commands,
     assets: &AssetServer,
-    appearance: Appearance,
+    appearance: Layer,
     transform: Transform,
 ) -> Entity {
     match appearance {
-        Appearance::Null => commands.spawn_empty().id(),
-        Appearance::Pbr { mesh, material } => commands
+        Layer::Null => commands.spawn_empty().id(),
+        Layer::Pbr { mesh, material } => commands
             .spawn((
                 PbrBundle {
                     mesh: create_mesh_handle(assets, mesh),
                     material: create_material_handle(assets, material),
                     transform,
-                    visibility: render::view::Visibility::Visible,
+                    visibility: render::view::Visibility::Hidden,
                     ..Default::default()
                 },
                 Layered,
@@ -144,13 +152,18 @@ fn handle_show_system(
 
             let mut parent = commands.spawn((
                 DelegateViewable(ev.viewable),
-                ev.appearance,
+                ev.appearance.clone(),
                 layer_refs,
                 SpatialBundle {
-                    visibility: render::view::Visibility::Hidden,
+                    visibility: render::view::Visibility::Visible,
                     transform: Transform::from(ev.transform),
-                    ..<_>::default()
+                    ..Default::default()
                 },
+                PickableBundle::default(),
+                On::<Pointer<pick::Over>>::run(on_object_over),
+                On::<Pointer<pick::Out>>::run(on_object_out),
+                On::<Pointer<pick::Select>>::run(on_object_select),
+                On::<Pointer<pick::Deselect>>::run(on_object_deselect),
             ));
             parent.push_children(&[distal, proximal, interior]);
 
@@ -163,29 +176,41 @@ fn handle_show_system(
 
 fn select_layer_system(
     parent_query: Query<
-        (&render::view::ViewVisibility, &LayerRefs, &GlobalTransform),
-        With<DelegateViewable>,
+        (
+            &render::view::Visibility,
+            &render::view::InheritedVisibility,
+            &LayerRefs,
+            &GlobalTransform,
+        ),
+        (With<DelegateViewable>, Without<Layered>),
     >,
-    mut layer_query: Query<&mut render::view::Visibility>,
+    mut layer_query: Query<&mut render::view::Visibility, With<Layered>>,
     camera_query: Query<&GlobalTransform, With<Camera3d>>,
 ) {
     let Ok(camera_pos) = camera_query.get_single() else { return };
 
-    parent_query.iter().filter(|(vis, _, _)| vis.get()).for_each(|(_, layers, parent_pos)| {
-        let distance_sq = parent_pos.translation().distance_squared(camera_pos.translation());
+    parent_query.iter().filter(|(_, vis, _, _)| vis.get()).for_each(
+        |(_, _, layers, parent_pos)| {
+            let distance_sq = parent_pos.translation().distance_squared(camera_pos.translation());
 
-        // rough estimate display area of the object assuming it is a 1x1x1 cube.
-        let transform_det_23 = parent_pos.affine().matrix3.determinant().powf(2. / 3.);
-        let far_dist_sq = transform_det_23 * 16.; // TODO make this magic number configurable
+            // rough estimate display area of the object assuming it is a 1x1x1 cube.
+            let transform_det_23 = parent_pos.affine().matrix3.determinant().powf(2. / 3.);
+            let far_dist_sq = transform_det_23 * 16.; // TODO make this magic number configurable
 
-        update_layer(&mut layer_query, layers.distal, far_dist_sq.., distance_sq);
-        update_layer(&mut layer_query, layers.proximal, transform_det_23..far_dist_sq, distance_sq);
-        update_layer(&mut layer_query, layers.interior, ..transform_det_23, distance_sq);
-    });
+            update_layer(&mut layer_query, layers.distal, far_dist_sq.., distance_sq);
+            update_layer(
+                &mut layer_query,
+                layers.proximal,
+                transform_det_23..far_dist_sq,
+                distance_sq,
+            );
+            update_layer(&mut layer_query, layers.interior, ..transform_det_23, distance_sq);
+        },
+    );
 }
 
 fn update_layer(
-    layer_query: &mut Query<&mut render::view::Visibility>,
+    layer_query: &mut Query<&mut render::view::Visibility, With<Layered>>,
     layer_entity: Entity,
     distance_sq_range: impl RangeBounds<f32>,
     distance_sq: f32,
@@ -199,4 +224,83 @@ fn update_layer(
     } else {
         render::view::Visibility::Hidden
     };
+}
+
+#[derive(Debug, Resource)]
+pub struct Focus {
+    pub entity:     Option<Entity>,
+    pub focus_type: FocusType,
+}
+
+#[derive(Debug)]
+pub enum FocusType {
+    /// The current focused object, if any, was focused through hovering,
+    /// and can be unfocused by moving the hover out.
+    Hover,
+    /// The current focused object was focused through explicit clicking,
+    /// and must be unfocused by explicitly clicking outside.
+    Locked,
+}
+
+fn on_object_over(
+    event: Listener<Pointer<pick::Over>>,
+    mut focus: ResMut<Focus>,
+    parent_query: Query<&hierarchy::Parent>,
+    delegate_query: Query<(), With<DelegateViewable>>,
+) {
+    if let FocusType::Hover = focus.focus_type {
+        let delegate = parent_query
+            .iter_ancestors(event.target)
+            .find(|&ancestor| delegate_query.get(ancestor).is_ok());
+        if let Some(delegate) = delegate {
+            focus.entity = Some(delegate);
+        }
+    }
+}
+
+fn on_object_out(
+    event: Listener<Pointer<pick::Out>>,
+    mut focus: ResMut<Focus>,
+    parent_query: Query<&hierarchy::Parent>,
+    delegate_query: Query<(), With<DelegateViewable>>,
+) {
+    if let FocusType::Hover = focus.focus_type {
+        for ancestor in parent_query.iter_ancestors(event.target) {
+            if delegate_query.get(ancestor).is_ok() && focus.entity == Some(ancestor) {
+                focus.entity = None;
+            }
+        }
+    }
+}
+
+fn on_object_select(
+    event: Listener<Pointer<pick::Select>>,
+    mut focus: ResMut<Focus>,
+    parent_query: Query<&hierarchy::Parent>,
+    delegate_query: Query<(), With<DelegateViewable>>,
+) {
+    println!("on_object_select {:?}", event.target);
+    let delegate = parent_query
+        .iter_ancestors(event.target)
+        .find(|&ancestor| delegate_query.get(ancestor).is_ok());
+    if let Some(delegate) = delegate {
+        focus.entity = Some(delegate);
+        focus.focus_type = FocusType::Locked;
+    }
+}
+
+fn on_object_deselect(
+    event: Listener<Pointer<pick::Deselect>>,
+    mut focus: ResMut<Focus>,
+    parent_query: Query<&hierarchy::Parent>,
+    delegate_query: Query<(), With<DelegateViewable>>,
+) {
+    if let FocusType::Locked = focus.focus_type {
+        for ancestor in parent_query.iter_ancestors(event.target) {
+            if delegate_query.get(ancestor).is_ok() && focus.entity == Some(ancestor) {
+                focus.entity = None;
+                focus.focus_type = FocusType::Hover;
+            }
+        }
+    }
 }

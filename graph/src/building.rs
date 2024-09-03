@@ -54,10 +54,10 @@ pub struct FacilityList {
 /// Save schema.
 #[derive(Serialize, Deserialize)]
 pub struct Save {
-    /// Position of a building.
+    /// Position of the building.
     pub transform:  proto::Transform,
     /// Appearance of the building.
-    pub appearance: appearance::Layers,
+    pub appearance: appearance::Appearance,
 }
 
 impl save::Def for Save {
@@ -69,10 +69,10 @@ impl save::Def for Save {
         fn store_system(
             mut writer: save::Writer<Save>,
             (): (),
-            query: Query<(Entity, &Transform, &appearance::Layers), With<Marker>>,
+            query: Query<(Entity, &Transform, &appearance::Appearance), With<Marker>>,
         ) {
-            writer.write_all(query.iter().map(|(entity, &transform, &appearance)| {
-                (entity, Save { transform: transform.into(), appearance })
+            writer.write_all(query.iter().map(|(entity, &transform, appearance)| {
+                (entity, Save { transform: transform.into(), appearance: appearance.clone() })
             }));
         }
 

@@ -11,7 +11,8 @@ mod sid;
 pub use sid::Index as SidIndex;
 
 pub mod appearance;
-
+mod text;
+pub use text::DisplayText;
 pub mod metrics;
 pub mod viewable;
 pub mod viewer;
