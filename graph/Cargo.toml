@@ -15,6 +15,7 @@ workspace = true
 [dependencies]
 anyhow = "1.0.86"
 bevy = {workspace = true}
+schemars = {workspace = true}
 serde = { version = "1.0.204", features = ["derive"] }
 traffloat-base = {workspace = true}
 traffloat-view = {workspace = true}

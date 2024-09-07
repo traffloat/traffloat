@@ -3,6 +3,7 @@
 use bevy::ecs::system::Res;
 use bevy::ecs::world::World;
 use bevy::prelude::{Component, Resource};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::save;
 
@@ -61,7 +62,7 @@ impl Config {
 }
 
 /// Defines the properties of a fluid.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, JsonSchema)]
 pub struct TypeDef {
     /// Viscosity coefficient.
     ///
@@ -80,7 +81,7 @@ pub struct TypeDef {
 }
 
 /// Save schema for scalar values.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct SaveScalar {
     /// Transferring fluid less than this amount would not trigger container element creation.
     pub creation_threshold: f32,
@@ -122,7 +123,7 @@ impl save::Def for SaveScalar {
 }
 
 /// Save schema for scalar values.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct SaveType {
     #[serde(flatten)]
     def: TypeDef,

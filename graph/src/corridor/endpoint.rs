@@ -3,6 +3,7 @@ use std::ops;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::{QueryData, QueryFilter, QueryItem, ROQueryItem};
 use bevy::ecs::system::Query;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// The endpoints for a corridor.
@@ -27,7 +28,7 @@ impl ops::Not for Endpoint {
 }
 
 /// A pair of values for each endpoint of a corridor.
-#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct Binary<T> {
     /// The value for the alpha endpoint.
     pub alpha: T,

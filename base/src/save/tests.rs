@@ -57,6 +57,7 @@ fn e2e(format: save::Format) {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 struct Parent {
     name: String,
 }
@@ -94,6 +95,7 @@ impl save::Def for Parent {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 struct Child {
     parent: save::Id<Parent>,
     label:  String,

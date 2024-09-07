@@ -30,6 +30,7 @@ use bevy::state::condition::in_state;
 use bevy::state::state::States;
 use bevy::{app, hierarchy};
 use derive_more::From;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::save;
 use traffloat_graph::building::facility;
@@ -248,7 +249,7 @@ fn remove_element_hook(mut world: DeferredWorld, container_element: Entity, _: C
 }
 
 /// Save schema.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Save {
     /// Containers connected by this pipe.
     ///

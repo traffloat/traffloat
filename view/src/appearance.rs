@@ -1,13 +1,18 @@
 //! Components of a [viewable] related to visual rendering.
 
+use std::borrow::Cow;
+
 use bevy::ecs::component::Component;
-use serde::{Deserialize, Serialize};
+use schemars::gen::SchemaGenerator;
+use schemars::schema::{InstanceType, Schema, SchemaObject, StringValidation};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize, Serializer};
 
 use crate::DisplayText;
 
 /// All appearance layers of the viewable,
 /// used during serialization.
-#[derive(Debug, Clone, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, Component)]
 pub struct Appearance {
     /// Displays the building to users.
     pub label: DisplayText,
@@ -37,7 +42,7 @@ impl Appearance {
 }
 
 /// Describes a way to display an object.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type")]
 pub enum Layer {
     /// Do not display anything.
@@ -59,21 +64,21 @@ pub enum Layer {
 }
 
 /// Reference to a image file.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize, JsonSchema)]
 pub struct ImageRef {
     /// Reference to GLB file by its SHA1 hash.
-    #[serde(with = "hex_hash")]
     pub sha: [u8; 20],
 }
 
 /// Identifies a GLB file.
-pub type GlbSha = [u8; 20];
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(transparent)]
+pub struct GlbSha(pub [u8; 20]);
 
 /// Reference to a primitive in a GLB mesh node.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize, JsonSchema)]
 pub struct GlbMeshRef {
     /// Reference to GLB file by its SHA1 hash.
-    #[serde(with = "hex_hash")]
     pub sha:       GlbSha,
     /// Index of the object inside the GLB file.
     pub mesh:      u16,
@@ -82,33 +87,32 @@ pub struct GlbMeshRef {
 }
 
 /// Reference to a GLB primitive node.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize, JsonSchema)]
 pub struct GlbMaterialRef {
     /// Reference to GLB file by its SHA1 hash.
-    #[serde(with = "hex_hash")]
     pub sha:   GlbSha,
     /// Index of the object inside the GLB file.
     pub index: u16,
 }
 
-mod hex_hash {
-    use serde::{Deserialize, Serializer};
-
-    pub(super) fn serialize<S>(sha: &[u8; 20], serializer: S) -> Result<S::Ok, S::Error>
+impl Serialize for GlbSha {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
         if serializer.is_human_readable() {
             let mut chars = [0u8; 40];
-            hex::encode_to_slice(sha, &mut chars).expect("20 * 2 = 40");
+            hex::encode_to_slice(self.0, &mut chars).expect("20 * 2 = 40");
             let str = std::str::from_utf8(&chars).expect("hex produced non-UTF8 bytes");
             serializer.serialize_str(str)
         } else {
-            serializer.serialize_bytes(sha)
+            serializer.serialize_bytes(&self.0)
         }
     }
+}
 
-    pub(super) fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 20], D::Error>
+impl<'de> Deserialize<'de> for GlbSha {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
@@ -119,9 +123,30 @@ mod hex_hash {
             hex::decode_to_slice(hex, &mut bytes)
                 .map_err(<D::Error as serde::de::Error>::custom)?;
 
-            Ok(bytes)
+            Ok(Self(bytes))
         } else {
-            <[u8; 20]>::deserialize(deserializer)
+            <[u8; 20]>::deserialize(deserializer).map(Self)
         }
+    }
+}
+
+impl JsonSchema for GlbSha {
+    fn schema_id() -> Cow<'static, str> { Cow::Borrowed(concat!(module_path!(), "::GlbSha")) }
+
+    fn schema_name() -> String { "GlbSha".into() }
+
+    fn is_referenceable() -> bool { false }
+
+    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+        Schema::Object(SchemaObject {
+            instance_type: Some(InstanceType::String.into()),
+            format: None,
+            string: Some(Box::new(StringValidation {
+                pattern:    Some("[0-9a-f]{40}".into()),
+                min_length: Some(40),
+                max_length: Some(40),
+            })),
+            ..Default::default()
+        })
     }
 }

@@ -9,6 +9,7 @@ use bevy::ecs::system::Query;
 use bevy::ecs::world::World;
 use bevy::hierarchy::BuildWorldChildren;
 use bevy::transform::components::Transform;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::{proto, save};
 use traffloat_view::{appearance, viewable};
@@ -52,7 +53,7 @@ pub struct FacilityList {
 }
 
 /// Save schema.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Save {
     /// Position of the building.
     pub transform:  proto::Transform,

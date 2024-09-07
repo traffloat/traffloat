@@ -26,6 +26,9 @@ contents = {
                 "default-features": False,
                 "features": ["dynamic_linking", "bevy_state"],
             },
+            "schemars": {
+                "version": "0.8.21",
+            },
         }
         | {
             manifest["package"]["name"]: {"path": path}

@@ -2,6 +2,7 @@
 members = [
     "graph",
     "fluid",
+    "tools/save-schema",
     "version",
     "base",
     "desktop",
@@ -17,11 +18,17 @@ features = [
     "bevy_state",
 ]
 
+[workspace.dependencies.schemars]
+version = "0.8.21"
+
 [workspace.dependencies.traffloat-graph]
 path = "graph"
 
 [workspace.dependencies.traffloat-fluid]
 path = "fluid"
+
+[workspace.dependencies.traffloat-save-schema]
+path = "tools/save-schema"
 
 [workspace.dependencies.traffloat-version]
 path = "version"
@@ -65,6 +72,9 @@ opt-level = 1
 opt-level = 0
 
 [profile.dev.package.traffloat-fluid]
+opt-level = 0
+
+[profile.dev.package.traffloat-save-schema]
 opt-level = 0
 
 [profile.dev.package.traffloat-version]

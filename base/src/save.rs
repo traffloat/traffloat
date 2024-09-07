@@ -21,7 +21,9 @@
 
 #![allow(clippy::module_name_repetitions)]
 
-use core::fmt;
+use std::any::type_name;
+use std::borrow::Cow;
+use std::fmt;
 use std::hash::Hash;
 use std::marker::PhantomData;
 
@@ -36,7 +38,13 @@ pub const MSGPACK_HEADER: &[u8] = b"\xFFtraffloat.github.io/save.msgpack\n";
 pub fn add_def<D: Def>(app: &mut App) {
     store::add_def::<D>(app);
     load::add_def::<D>(app);
+
+    #[cfg(feature = "schema")]
+    schema::add_def::<D>(app);
 }
+
+#[cfg(feature = "schema")]
+pub mod schema;
 
 mod load;
 pub use load::{Depend as LoadDepend, LoadCommand, LoadFn, LoadOnce, LoadResult};
@@ -55,11 +63,15 @@ mod tests;
 pub struct Plugin;
 
 impl app::Plugin for Plugin {
-    fn build(&self, app: &mut App) { app.add_plugins((store::Plugin, load::Plugin)); }
+    fn build(&self, app: &mut App) {
+        app.add_plugins((store::Plugin, load::Plugin));
+        #[cfg(feature = "schema")]
+        app.add_plugins(schema::Plugin);
+    }
 }
 
 /// A type of save entry.
-pub trait Def: Serialize + DeserializeOwned + Send + Sync + 'static {
+pub trait Def: Serialize + DeserializeOwned + cfg_schema::Bound + Send + Sync + 'static {
     /// A persistent identifier that indicates how to interpret a list of definitions.
     const TYPE: &'static str;
 
@@ -76,6 +88,20 @@ pub trait Def: Serialize + DeserializeOwned + Send + Sync + 'static {
     ///
     /// Typically implemented by contsructing a [`LoadFn`] with a system function.
     fn loader() -> impl LoadOnce<Def = Self>;
+}
+
+#[cfg(feature = "schema")]
+mod cfg_schema {
+    use schemars::JsonSchema;
+
+    pub trait Bound: JsonSchema {}
+    impl<T: JsonSchema> Bound for T {}
+}
+
+#[cfg(not(feature = "schema"))]
+mod cfg_schema {
+    pub trait Bound {}
+    impl<T> Bound for T {}
 }
 
 /// Identifies another save entry of type `D`.
@@ -111,13 +137,35 @@ impl<'de, D: Def> Deserialize<'de> for Id<D> {
     }
 }
 
+#[cfg(feature = "schema")]
+const _: () = {
+    use schemars::gen::SchemaGenerator;
+    use schemars::schema::Schema;
+
+    impl<D: Def> schemars::JsonSchema for Id<D> {
+        fn schema_name() -> String { format!("Id_of_{}", type_name::<D>()) }
+
+        fn schema_id() -> Cow<'static, str> {
+            Cow::Owned(format!("traffloat_base::save::Id<{}>", type_name::<D>()))
+        }
+
+        fn is_referenceable() -> bool { false }
+
+        fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+            <u32 as schemars::JsonSchema>::json_schema(gen)
+        }
+    }
+};
+
+/// Schema of a JSON save file.
 #[derive(Serialize, Deserialize)]
-struct JsonFile {
+pub struct JsonFile {
     types: Vec<JsonTypedData>,
 }
 
+/// A group of homogeneous entries in a JSON save file.
 #[derive(Serialize, Deserialize)]
-struct JsonTypedData {
+pub struct JsonTypedData {
     r#type: String,
     defs:   Box<RawValue>,
 }

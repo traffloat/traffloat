@@ -19,6 +19,7 @@ use bevy::state::condition::in_state;
 use bevy::state::state::States;
 use bevy::{app, hierarchy};
 use derive_more::From;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use traffloat_base::save;
@@ -214,7 +215,7 @@ fn rebalance_system(
 }
 
 /// Save schema.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Save {
     /// Reference to parent facility or duct.
     pub parent:       SaveParent,
@@ -225,7 +226,7 @@ pub struct Save {
 }
 
 /// Parent of the container, used in saves.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type")]
 pub enum SaveParent {
     /// Container is a facility storage.

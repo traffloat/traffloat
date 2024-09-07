@@ -2,10 +2,11 @@
 
 use bevy::math::Vec3;
 use bevy::transform::components::Transform as BevyTransform;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// A generic 3D position.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct Position {
     /// X-coordinate.
     pub x: f32,
@@ -24,7 +25,7 @@ impl From<Position> for Vec3 {
 }
 
 /// A homogeneous rotation transformation.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct Rotation {
     /// Components of the rotation quarternion.
     pub xyzw: [f32; 4],
@@ -35,7 +36,7 @@ impl Default for Rotation {
 }
 
 /// An axis-aligned scaling transformation
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct Scale {
     /// Scale factor on the X-axis.
     pub x: f32,
@@ -50,7 +51,7 @@ impl Default for Scale {
 }
 
 /// Serializable form of [bevy `Transform`](BevyTransform).
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct Transform {
     /// Position transformation.
     pub position: Position,

@@ -8,6 +8,7 @@ use bevy::ecs::query::With;
 use bevy::ecs::system::Query;
 use bevy::ecs::world::World;
 use bevy::hierarchy::BuildWorldChildren;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::save;
 use typed_builder::TypedBuilder;
@@ -58,7 +59,7 @@ pub struct DuctList {
 }
 
 /// Save schema.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Save {
     /// Endpoint buildings of the corridor.
     pub endpoints: Binary<save::Id<building::Save>>,

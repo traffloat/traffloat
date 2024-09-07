@@ -11,6 +11,7 @@ use bevy::ecs::system::Query;
 use bevy::ecs::world::World;
 use bevy::hierarchy::{self, BuildWorldChildren};
 use derive_more::From;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::save;
 use typed_builder::TypedBuilder;
@@ -48,7 +49,7 @@ pub struct Volume {
 }
 
 /// Save schema.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Save {
     /// Reference to parent container.
     pub parent: save::Id<super::Save>,

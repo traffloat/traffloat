@@ -7,6 +7,7 @@ use bevy::ecs::query::With;
 use bevy::ecs::system::Query;
 use bevy::ecs::world::World;
 use bevy::hierarchy::{self, BuildWorldChildren};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::save;
 use typed_builder::TypedBuilder;
@@ -23,7 +24,7 @@ pub struct Bundle {
 pub struct Marker;
 
 /// Save schema.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Save {
     /// Reference to parent building.
     pub parent:     save::Id<super::Save>,
