@@ -6,7 +6,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// A generic 3D position.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, JsonSchema)]
 pub struct Position {
     /// X-coordinate.
     pub x: f32,
@@ -54,6 +54,7 @@ impl Default for Scale {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct Transform {
     /// Position transformation.
+    #[serde(default)]
     pub position: Position,
     /// Rotation transformation.
     #[serde(default)]

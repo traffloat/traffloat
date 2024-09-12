@@ -1,46 +1,61 @@
-import models
+from dataclasses import dataclass
+import assets
 import numpy
 import gltflib
 from gltflib import GLTF, GLTFModel
 
 
-def mesh():
-    return mesh_with_depth(4)
+@dataclass
+class Mesh(assets.Mesh):
+    """
+    A unit sphere with 4 ** (depth+1) faces.
+    """
 
+    depth: int = 4
 
-def mesh_with_depth(depth):
-    # Start with a tetrahedron with spherical coordinates
-    verts = numpy.array(
-        [
-            [0.0, numpy.pi / 2.0],
-            [0.0, numpy.pi / 2.0 - numpy.acos(-1 / 3)],
-            [numpy.pi * 2.0 / 3.0, numpy.pi / 2.0 - numpy.acos(-1 / 3)],
-            [numpy.pi * 4.0 / 3.0, numpy.pi / 2.0 - numpy.acos(-1 / 3)],
-        ]
-    )
-    faces = numpy.array(
-        [
-            [0, 1, 2],
-            [0, 2, 3],
-            [0, 3, 1],
-            [1, 3, 2],
-        ]
-    )
+    def id(self):
+        return f"sphere(depth={self.depth})"
 
-    for _ in range(depth):
-        verts, faces = recurse(verts, faces)
+    def generate(self):
+        # Start with a tetrahedron with spherical coordinates
+        verts = numpy.array(
+            [
+                [0.0, numpy.pi / 2.0],
+                [0.0, numpy.pi / 2.0 - numpy.acos(-1 / 3)],
+                [numpy.pi * 2.0 / 3.0, numpy.pi / 2.0 - numpy.acos(-1 / 3)],
+                [numpy.pi * 4.0 / 3.0, numpy.pi / 2.0 - numpy.acos(-1 / 3)],
+            ]
+        )
+        faces = numpy.array(
+            [
+                [0, 1, 2],
+                [0, 2, 3],
+                [0, 3, 1],
+                [1, 3, 2],
+            ]
+        )
 
-    theta = verts[:, 0].reshape([-1, 1])
-    phi = verts[:, 1].reshape([-1, 1])
+        for _ in range(self.depth):
+            verts, faces = recurse(verts, faces)
 
-    verts = numpy.hstack(
-        [
-            numpy.cos(theta) * numpy.cos(phi),
-            numpy.sin(theta) * numpy.cos(phi),
-            numpy.sin(phi),
-        ]
-    )
-    return verts, verts, faces
+        theta = verts[:, 0].reshape([-1, 1])
+        phi = verts[:, 1].reshape([-1, 1])
+
+        uvs = numpy.zeros((theta.shape[0], 2))  # TODO
+
+        verts = numpy.hstack(
+            [
+                numpy.cos(theta) * numpy.cos(phi),
+                numpy.sin(theta) * numpy.cos(phi),
+                numpy.sin(phi),
+            ]
+        )
+        return self.generate_with(
+            vertices=verts,
+            normals=verts,
+            uvs=uvs,
+            faces=faces,
+        )
 
 
 def recurse(verts, faces):
@@ -93,22 +108,6 @@ def recurse(verts, faces):
     return new_verts, new_faces
 
 
-def material_glass():
-    return GLTF(model=GLTFModel(
-        asset=gltflib.Asset(version="2.0"),
-        materials=[
-            gltflib.Material(
-                name="Material0",
-                pbrMetallicRoughness={
-                    "baseColorFactor": [0.1, 0.1, 0.1, 0.0],
-                    "metallicFactor": 0.1,
-                    "roughnessFactor": 0.01,
-                },
-            ),
-        ],
-    ), resources=[])
-
-
 def sph_midpt(a, b):
     return car_to_sph((sph_to_car(a) + sph_to_car(b)) / 2)
 
@@ -130,7 +129,3 @@ def car_to_sph(v):
             numpy.atan2(v[2], numpy.sqrt(v[0] ** 2 + v[1] ** 2)),
         ]
     )
-
-
-def glass_material():
-    pass

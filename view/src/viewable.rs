@@ -49,7 +49,7 @@ impl app::Plugin for Plugin {
                     .in_set(EventWriterSystemSet::<HideEvent>::default())
                     .in_set(EventWriterSystemSet::<HideStationaryEvent>::default()),
                 (
-                    show_viewable_system
+                    show_stationary_children_system
                         .in_set(EventWriterSystemSet::<ShowEvent>::default())
                         .in_set(EventReaderSystemSet::<ShowStationaryEvent>::default()),
                     hide_viewable_system
@@ -389,7 +389,7 @@ fn update_stationary_viewers_system(
     );
 }
 
-fn show_viewable_system(
+fn show_stationary_children_system(
     mut show_stationary_events: EventReader<ShowStationaryEvent>,
     mut show_events: EventWriter<ShowEvent>,
     stationary_query: Query<(&hierarchy::Children, &Transform), With<Stationary>>,
@@ -416,7 +416,7 @@ fn show_viewable_system(
                             viewer,
                             child_sid,
                             child_appearance.clone(),
-                            inner_transform * parent_transform,
+                            parent_transform * inner_transform,
                         )
                     },
                 )

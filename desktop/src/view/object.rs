@@ -102,8 +102,18 @@ fn spawn_appearance_layer(
     appearance: Layer,
     transform: Transform,
 ) -> Entity {
+    println!("spawn layer {appearance:?}");
     match appearance {
-        Layer::Null => commands.spawn_empty().id(),
+        Layer::Null => commands
+            .spawn((
+                SpatialBundle {
+                    transform,
+                    visibility: render::view::Visibility::Hidden,
+                    ..Default::default()
+                },
+                Layered,
+            ))
+            .id(),
         Layer::Pbr { mesh, material } => commands
             .spawn((
                 PbrBundle {

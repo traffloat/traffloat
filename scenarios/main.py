@@ -2,7 +2,7 @@
 
 import all
 import save
-import models
+import assets
 import os
 import shutil
 from os import path
@@ -10,25 +10,27 @@ from os import path
 
 def main():
     proj_root = path.dirname(path.dirname(__file__))
-    assets = path.join(proj_root, "assets")
-    if path.exists(assets):
-        shutil.rmtree(assets)
+    assets_dir = path.join(proj_root, "assets")
+    if path.exists(assets_dir):
+        shutil.rmtree(assets_dir)
 
-    os.mkdir(assets)
-    os.mkdir(path.join(assets, "shaders"))
+    os.mkdir(assets_dir)
+    os.mkdir(path.join(assets_dir, "shaders"))
+
+    pool = assets.Pool()
 
     for name, fn in all.scenarios.items():
         print(f"create scenario file {name}.tfsave")
-        with save.WriterCtx(assets, name) as writer:
-            fn(writer)
+        with save.WriterCtx(assets_dir, name) as writer:
+            fn(writer, pool)
 
-    for name, mesh in models.all.items():
+    for name, mesh in pool.all.items():
         print(f"create asset file {name}: {mesh.hash}")
-        with open(path.join(assets, f"{mesh.hash}.glb"), "wb") as f:
+        with open(path.join(assets_dir, f"{mesh.hash}.glb"), "wb") as f:
             f.write(mesh.buf)
 
     for file in os.scandir(path.join(proj_root, "shaders")):
-        shutil.copyfile(file.path, path.join(assets, "shaders", file.name))
+        shutil.copyfile(file.path, path.join(assets_dir, "shaders", file.name))
 
 
 if __name__ == "__main__":
