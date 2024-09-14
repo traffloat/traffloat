@@ -14,13 +14,14 @@ use crate::AppState;
 
 // mod background;
 mod camera;
+mod diagnostics;
 mod object;
 
 pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((camera::Plugin, object::Plugin));
+        app.add_plugins((diagnostics::Plugin, camera::Plugin, object::Plugin));
 
         app.add_systems(state::OnEnter(AppState::GameView), setup_singleplayer_server);
         app.add_systems(state::OnEnter(AppState::GameView), setup_view);

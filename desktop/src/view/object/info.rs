@@ -12,7 +12,7 @@ use bevy::ui::{self, Style, UiRect};
 use traffloat_view::appearance::Appearance;
 
 use super::DelegateViewable;
-use crate::AppState;
+use crate::{view, AppState};
 
 pub(super) struct Plugin;
 
@@ -42,6 +42,7 @@ fn setup(mut commands: Commands) {
                 ..Default::default()
             },
             ContainerNode,
+            view::Owned,
         ))
         .with_children(|b| {
             b.spawn((
