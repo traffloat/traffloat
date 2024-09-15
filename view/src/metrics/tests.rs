@@ -58,8 +58,16 @@ fn setup_world(app: &mut App) -> WorldSetup {
     let value_generator = ValueGenerator(0.);
     app.insert_resource(value_generator);
 
-    let ty1 = create_type(app.world_mut(), TypeDef { update_frequency: Duration::from_secs(5) });
-    let ty2 = create_type(app.world_mut(), TypeDef { update_frequency: Duration::from_secs(2) });
+    let ty1 = create_type(
+        &mut app.world_mut().commands(),
+        TypeDef { update_frequency: Duration::from_secs(5) },
+    );
+    let ty2 = create_type(
+        &mut app.world_mut().commands(),
+        TypeDef { update_frequency: Duration::from_secs(2) },
+    );
+
+    app.world_mut().flush();
 
     let feeders = (
         make_value_feeder_system::<&Transform, (), Res<ValueGenerator>, _>(

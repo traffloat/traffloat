@@ -1,18 +1,17 @@
 //! A metric is a type of viewable attribute for an entity.
 
 use std::any::type_name;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use std::{alloc, iter, mem};
 
 use bevy::app::{self, App};
-use bevy::ecs::component::{ComponentDescriptor, ComponentId, StorageType};
+use bevy::ecs::component::{Component, ComponentDescriptor, ComponentId, StorageType};
 use bevy::ecs::event::{Event, EventWriter};
 use bevy::ecs::query::{QueryData, QueryFilter};
 use bevy::ecs::schedule::{IntoSystemConfigs, Schedules, SystemConfigs, SystemSet};
 use bevy::ecs::system::{EntityCommand, Res, StaticSystemParam, SystemParam};
 use bevy::ecs::world::{Command, FilteredEntityMut};
-use bevy::prelude::{Commands, Entity, Query, Resource, SystemBuilder, World};
+use bevy::prelude::{Commands, Entity, Query, SystemBuilder, World};
 use bevy::ptr::OwningPtr;
 use bevy::time::{Time, Timer, TimerMode};
 use rand::{thread_rng, Rng};
@@ -27,76 +26,73 @@ mod tests;
 pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
-    fn build(&self, app: &mut App) {
-        app.add_partitioned_event::<UpdateMetricEvent>();
-        app.init_resource::<Config>();
-    }
-}
-
-/// Registry for metric types.
-#[derive(Default, Resource)]
-pub struct Config {
-    next_type_id: AtomicUsize,
-    types:        Vec<Option<ConfigTypeEntry>>,
-}
-
-impl Config {
-    /// Returns the configuration for a metric type.
-    ///
-    /// # Panics
-    /// Panics if the type does not exist.
-    pub fn get_type(&self, ty: Type) -> &TypeDef {
-        let entry = self
-            .types
-            .get(ty.0)
-            .expect("a Type was constructed without a matching entry in the Config")
-            .as_ref()
-            .expect("Type has not been initialized yet");
-        &entry.def
-    }
-
-    /// Allocates a new type and returns a command that initializes the corresponding systems.
-    ///
-    /// The returned [`Type`] must not be used before the command has been applied,
-    /// except in commands that are applied after the [`CreateTypeCommand`].
-    ///
-    /// Equivalent to [`create_type`] but can be used from systems.
-    pub fn create(&self, def: TypeDef) -> (Type, CreateTypeCommand) {
-        let id = self.next_type_id.fetch_add(1, Ordering::Relaxed);
-        let ty = Type(id);
-        (ty, CreateTypeCommand { ty, def })
-    }
-}
-
-/// Creates a new type and initializes the corresponding systems.
-///
-/// This is equivalent to [`Config::create`], but can only be used during sync phase.
-pub fn create_type(world: &mut World, def: TypeDef) -> Type {
-    let mut config = world.resource_mut::<Config>();
-
-    let next_type_id = config.next_type_id.get_mut();
-    let ty = Type(*next_type_id);
-    *next_type_id += 1;
-
-    CreateTypeCommand { ty, def }.apply(world);
-
-    ty
+    fn build(&self, app: &mut App) { app.add_partitioned_event::<UpdateMetricEvent>(); }
 }
 
 /// The identifier used to distinguish between types of metrics.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Type(pub usize);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Component)]
+pub struct Type(pub Entity);
 
-struct ConfigTypeEntry {
-    sub_comp_id:   ComponentId,
-    value_comp_id: ComponentId,
-    def:           TypeDef,
+/// Creates a new type and initializes the corresponding systems.
+pub fn create_type(commands: &mut Commands, def: TypeDef) -> Type {
+    let entity = commands.spawn_empty();
+    let ty = Type(entity.id());
+
+    commands.push(CreateTypeCommand { ty, def });
+    ty
 }
 
-/// Configuration for  ametric type.
+/// Creates a new type of metric.
+pub struct CreateTypeCommand {
+    ty:  Type,
+    def: TypeDef,
+}
+
+impl Command for CreateTypeCommand {
+    fn apply(self, world: &mut World) {
+        let value_comp_id = register_dynamic_component::<Value>(world, self.ty, StorageType::Table);
+        let sub_comp_id =
+            register_dynamic_component::<Subscription>(world, self.ty, StorageType::SparseSet);
+
+        world.entity_mut(self.ty.0).insert((
+            SubscriberComponentId(sub_comp_id),
+            ValueComponentId(value_comp_id),
+            self.def,
+        ));
+
+        let value_broadcast_system = make_value_broadcast_system(world, self.ty);
+        world.resource_mut::<Schedules>().add_systems(app::Update, value_broadcast_system);
+    }
+}
+
+#[derive(Component)]
+struct SubscriberComponentId(ComponentId);
+
+#[derive(Component)]
+struct ValueComponentId(ComponentId);
+
+/// Configuration for a metric type.
+#[derive(Component)]
 pub struct TypeDef {
     /// The period between broadcasts of the metric value to viewers.
     pub update_frequency: Duration,
+}
+
+/// A [`SystemParam`] to access the registered metric types.
+#[derive(SystemParam)]
+pub struct Types<'w, 's>(Query<'w, 's, (Entity, &'static TypeDef)>);
+
+impl<'w, 's> Types<'w, 's> {
+    /// Get a fluid type definition by type ID.
+    #[must_use]
+    pub fn get(&self, ty: Type) -> &TypeDef {
+        self.0.get(ty.0).expect("reference to unknown metric type").1
+    }
+
+    /// Iterates over all known metric types.
+    pub fn iter(&self) -> impl Iterator<Item = (Type, &TypeDef)> {
+        self.0.iter().map(|(ty, def)| (Type(ty), def))
+    }
 }
 
 /// The dynamic component type attached to entities storing the value of this metric.
@@ -105,7 +101,7 @@ pub struct Value {
     pub magnitude: f32,
 }
 
-/// The dynamic marker component type attached to viewers to indicate that
+/// The dynamic component type attached to viewers to indicate that
 /// the viewer should receive metrics of this type.
 pub struct Subscription {
     /// The standard deviation of noise received by the user.
@@ -115,16 +111,11 @@ pub struct Subscription {
     pub noise_sd: f32,
 }
 
-/// Creates a new type of metric.
-pub struct CreateTypeCommand {
-    ty:  Type,
-    def: TypeDef,
-}
-
 fn register_dynamic_component<T>(world: &mut World, ty: Type, storage: StorageType) -> ComponentId {
-    // # Safety
-    // `x` must points to a valid value of type `T`.
+    /// # Safety
+    /// `x` must points to a valid value of type `T`.
     unsafe fn drop_ptr<T>(x: OwningPtr<'_>) { unsafe { x.drop_as::<T>() } }
+
     let descriptor = unsafe {
         ComponentDescriptor::new_with_layout(
             format!("{} #{}", type_name::<T>(), ty.0),
@@ -135,23 +126,6 @@ fn register_dynamic_component<T>(world: &mut World, ty: Type, storage: StorageTy
     };
 
     world.init_component_with_descriptor(descriptor)
-}
-
-impl Command for CreateTypeCommand {
-    fn apply(self, world: &mut World) {
-        let value_comp_id = register_dynamic_component::<Value>(world, self.ty, StorageType::Table);
-        let sub_comp_id =
-            register_dynamic_component::<Subscription>(world, self.ty, StorageType::SparseSet);
-
-        let types = &mut world.resource_mut::<Config>().types;
-        if types.len() <= self.ty.0 {
-            types.resize_with(self.ty.0 + 1, <_>::default);
-        }
-        types[self.ty.0] = Some(ConfigTypeEntry { sub_comp_id, value_comp_id, def: self.def });
-
-        let value_broadcast_system = make_value_broadcast_system(world, self.ty);
-        world.resource_mut::<Schedules>().add_systems(app::Update, value_broadcast_system);
-    }
 }
 
 /// Adds the viewer as a subscriber of the metric type.
@@ -166,19 +140,18 @@ pub struct SubscribeCommand {
 
 impl Command for SubscribeCommand {
     fn apply(self, world: &mut World) {
-        let types = &world.resource::<Config>().types;
-        let &ConfigTypeEntry { sub_comp_id, .. } = types
-            .get(self.ty.0)
-            .expect("unknown metric type")
-            .as_ref()
-            .expect("cannot subscribe to uninitialized metric");
-
+        let &SubscriberComponentId(subscriber_comp_id) = world
+            .entity(self.ty.0)
+            .get::<SubscriberComponentId>()
+            .expect("metrics::Type refers to a non-metric or uninitialized entity");
         let mut viewer = world.entity_mut(self.viewer);
 
         // Safety:
         // 1. Config is loaded and populated by component IDs from the same world.
         // 2. ptr is a valid reference from a fresh OwningPtr.
-        OwningPtr::make(self.subscription, |ptr| unsafe { viewer.insert_by_id(sub_comp_id, ptr) });
+        OwningPtr::make(self.subscription, |ptr| unsafe {
+            viewer.insert_by_id(subscriber_comp_id, ptr)
+        });
     }
 }
 
@@ -192,16 +165,13 @@ pub struct UnsubscribeCommand {
 
 impl Command for UnsubscribeCommand {
     fn apply(self, world: &mut World) {
-        let types = &world.resource::<Config>().types;
-        let &ConfigTypeEntry { sub_comp_id, .. } = types
-            .get(self.ty.0)
-            .expect("unknown metric type")
-            .as_ref()
-            .expect("cannot subscribe to uninitialized metric");
-
+        let &SubscriberComponentId(subscriber_comp_id) = world
+            .entity(self.ty.0)
+            .get::<SubscriberComponentId>()
+            .expect("metrics::Type refers to a non-metric or uninitialized entity");
         let mut viewer = world.entity_mut(self.viewer);
 
-        viewer.remove_by_id(sub_comp_id);
+        viewer.remove_by_id(subscriber_comp_id);
     }
 }
 
@@ -239,17 +209,18 @@ where
     FeederFn: Fn(&mut FilteredEntityMut<'_>, &OtherSystemParams::Item<'_, '_>) -> f32,
     FeederFn: Send + Sync + 'static,
 {
-    let &ConfigTypeEntry { sub_comp_id, value_comp_id, .. } = world
-        .resource::<Config>()
-        .types
-        .get(ty.0)
-        .expect("cannot build value feeder for uninitialized type")
-        .as_ref()
-        .expect("system should be registered immediately after initializing metric");
+    let &SubscriberComponentId(subscriber_comp_id) = world
+        .entity(ty.0)
+        .get::<SubscriberComponentId>()
+        .expect("metrics::Type refers to a non-metric or uninitialized entity");
+    let &ValueComponentId(value_comp_id) = world
+        .entity(ty.0)
+        .get::<ValueComponentId>()
+        .expect("metrics::Type refers to a non-metric or uninitialized entity");
 
     SystemBuilder::<(Commands,)>::new(world)
         .builder::<Query<()>>(|builder| {
-            builder.with_id(sub_comp_id);
+            builder.with_id(subscriber_comp_id);
         })
         .builder::<Query<FilteredEntityMut, Filter>>(|builder| {
             builder.optional(|builder| {
@@ -305,19 +276,24 @@ impl EntityCommand for InitValueCommand {
 }
 
 fn make_value_broadcast_system(world: &mut World, ty: Type) -> SystemConfigs {
-    let &ConfigTypeEntry { sub_comp_id, value_comp_id, ref def } = world
-        .resource::<Config>()
-        .types
-        .get(ty.0)
-        .expect("cannot build value feeder for uninitialized type")
-        .as_ref()
-        .expect("system should be registered after init");
+    let &SubscriberComponentId(subscriber_comp_id) = world
+        .entity(ty.0)
+        .get::<SubscriberComponentId>()
+        .expect("metrics::Type refers to a non-metric or uninitialized entity");
+    let &ValueComponentId(value_comp_id) = world
+        .entity(ty.0)
+        .get::<ValueComponentId>()
+        .expect("metrics::Type refers to a non-metric or uninitialized entity");
+    let def = world
+        .entity(ty.0)
+        .get::<TypeDef>()
+        .expect("metrics::Type refers to a non-metric or uninitialized entity");
 
     let mut timer = Timer::new(def.update_frequency, TimerMode::Repeating);
 
     SystemBuilder::<(Res<Time>, EventWriter<UpdateMetricEvent>)>::new(world)
         .builder::<Query<FilteredEntityMut>>(|builder| {
-            builder.ref_id(sub_comp_id);
+            builder.ref_id(subscriber_comp_id);
             builder.data::<&viewer::Sid>();
         })
         .builder::<Query<FilteredEntityMut>>(|builder| {
@@ -348,7 +324,7 @@ fn make_value_broadcast_system(world: &mut World, ty: Type) -> SystemConfigs {
                     viewable_viewers.iter().filter_map(move |viewer_entity| {
                         let viewer_fem = viewers_query.get(viewer_entity).ok()?;
                         let sub_ptr =
-                            viewer_fem.get_by_id(sub_comp_id).expect("requested in query");
+                            viewer_fem.get_by_id(subscriber_comp_id).expect("requested in query");
                         let viewer_sid =
                             *viewer_fem.get::<viewer::Sid>().expect("requested in query");
                         let viewable_sid =
