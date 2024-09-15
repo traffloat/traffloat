@@ -22,7 +22,7 @@ macro_rules! sid_alias {
             PartialOrd,
             Ord,
             Hash,
-            bevy::prelude::Component,
+            bevy::ecs::component::Component,
             derive_more::From,
             derive_more::Into,
         )]
@@ -32,7 +32,7 @@ macro_rules! sid_alias {
         pub type SidIndex = $crate::SidIndex<Sid>;
 
         /// Convenience method to allocate a new SID from the world.
-        pub fn next_sid(world: &mut bevy::prelude::World) -> Sid {
+        pub fn next_sid(world: &mut bevy::ecs::world::World) -> Sid {
             world.resource_mut::<SidIndex>().next_id_mut()
         }
     };

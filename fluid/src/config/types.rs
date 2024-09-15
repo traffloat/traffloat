@@ -1,7 +1,7 @@
+use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::system::{Commands, Query, SystemParam};
 use bevy::ecs::world::World;
-use bevy::prelude::Component;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::save;

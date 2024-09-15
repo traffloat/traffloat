@@ -10,11 +10,15 @@
 
 use std::iter;
 
+use bevy::app::App;
 use bevy::ecs::bundle;
+use bevy::ecs::component::Component;
+use bevy::ecs::entity::Entity;
 use bevy::ecs::query::With;
+use bevy::ecs::schedule::{IntoSystemConfigs, SystemSet};
+use bevy::ecs::system::{Commands, Query};
 use bevy::ecs::world::World;
 use bevy::hierarchy::BuildWorldChildren;
-use bevy::prelude::{Commands, Component, Entity, IntoSystemConfigs, Query, SystemSet};
 use bevy::state::condition::in_state;
 use bevy::state::state::States;
 use bevy::{app, hierarchy};
@@ -38,7 +42,7 @@ mod tests;
 pub(crate) struct Plugin<St>(pub(super) St);
 
 impl<St: States + Copy> app::Plugin for Plugin<St> {
-    fn build(&self, app: &mut bevy::prelude::App) {
+    fn build(&self, app: &mut App) {
         app.add_systems(
             app::Update,
             rebalance_system.in_set(SystemSets::Rebalance).run_if(in_state(self.0)),

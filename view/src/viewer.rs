@@ -2,8 +2,8 @@
 
 use bevy::app::{self, App};
 use bevy::ecs::bundle;
+use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::prelude::Component;
 use bevy::transform::components::Transform;
 use bevy::utils::HashSet;
 use typed_builder::TypedBuilder;

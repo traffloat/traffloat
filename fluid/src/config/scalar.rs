@@ -1,6 +1,5 @@
-use bevy::ecs::system::Res;
+use bevy::ecs::system::{Res, Resource};
 use bevy::ecs::world::World;
-use bevy::prelude::Resource;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::save;

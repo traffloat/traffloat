@@ -4,7 +4,8 @@
 //! a new fluid type into this container.
 
 use bevy::ecs::bundle;
-use bevy::prelude::{Component, Entity};
+use bevy::ecs::component::Component;
+use bevy::ecs::entity::Entity;
 use traffloat_graph::corridor::Binary;
 use typed_builder::TypedBuilder;
 

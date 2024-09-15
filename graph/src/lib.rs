@@ -1,6 +1,7 @@
 //! The base structural graph of Traffloat.
 #![doc = include_str!("../README.md")]
-use bevy::app;
+
+use bevy::app::{self, App};
 
 pub mod building;
 pub mod corridor;
@@ -9,7 +10,5 @@ pub mod corridor;
 pub struct Plugin;
 
 impl app::Plugin for Plugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_plugins((building::Plugin, corridor::Plugin));
-    }
+    fn build(&self, app: &mut App) { app.add_plugins((building::Plugin, corridor::Plugin)); }
 }

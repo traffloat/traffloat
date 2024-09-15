@@ -13,8 +13,10 @@
 //!
 //! All modifiers operate on the [`Directed`] component.
 
-use bevy::app;
-use bevy::prelude::{App, Component, IntoSystemConfigs, IntoSystemSetConfigs, Query, SystemSet};
+use bevy::app::{self, App};
+use bevy::ecs::component::Component;
+use bevy::ecs::schedule::{IntoSystemConfigs, IntoSystemSetConfigs, SystemSet};
+use bevy::ecs::system::Query;
 use bevy::state::condition::in_state;
 use bevy::state::state::States;
 use traffloat_graph::corridor::Binary;

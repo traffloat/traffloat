@@ -1,7 +1,7 @@
-use bevy::ecs::system::SystemState;
-use bevy::ecs::world::Command;
+use bevy::ecs::entity::Entity;
+use bevy::ecs::system::{Commands, Query, SystemState};
+use bevy::ecs::world::{Command, World};
 use bevy::hierarchy::{self, BuildChildren};
-use bevy::prelude::{Commands, Entity, Query, World};
 use traffloat_graph::corridor::Binary;
 use typed_builder::TypedBuilder;
 

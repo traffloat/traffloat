@@ -6,12 +6,14 @@ use std::{alloc, iter, mem};
 
 use bevy::app::{self, App};
 use bevy::ecs::component::{Component, ComponentDescriptor, ComponentId, StorageType};
+use bevy::ecs::entity::Entity;
 use bevy::ecs::event::{Event, EventWriter};
 use bevy::ecs::query::{QueryData, QueryFilter};
 use bevy::ecs::schedule::{IntoSystemConfigs, Schedules, SystemConfigs, SystemSet};
-use bevy::ecs::system::{EntityCommand, Res, StaticSystemParam, SystemParam};
-use bevy::ecs::world::{Command, FilteredEntityMut};
-use bevy::prelude::{Commands, Entity, Query, SystemBuilder, World};
+use bevy::ecs::system::{
+    Commands, EntityCommand, Query, Res, StaticSystemParam, SystemBuilder, SystemParam,
+};
+use bevy::ecs::world::{Command, FilteredEntityMut, World};
 use bevy::ptr::OwningPtr;
 use bevy::time::{Time, Timer, TimerMode};
 use rand::{thread_rng, Rng};

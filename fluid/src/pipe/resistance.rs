@@ -95,11 +95,12 @@
 //! }
 //! ```
 
-use bevy::app;
-use bevy::prelude::{
-    App, Component, Entity, Event, EventReader, IntoSystemConfigs, IntoSystemSetConfigs, Query,
-    SystemSet,
-};
+use bevy::app::{self, App};
+use bevy::ecs::component::Component;
+use bevy::ecs::entity::Entity;
+use bevy::ecs::event::{Event, EventReader};
+use bevy::ecs::schedule::{IntoSystemConfigs, IntoSystemSetConfigs, SystemSet};
+use bevy::ecs::system::Query;
 use bevy::state::condition::in_state;
 use bevy::state::state::States;
 use derive_more::From;

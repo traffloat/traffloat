@@ -20,12 +20,15 @@
 //! A storage for a the connection from a facility to a duct
 //! should reference the duct entity as its parent.
 
+use bevy::app::App;
 use bevy::ecs::bundle;
-use bevy::ecs::component::ComponentId;
+use bevy::ecs::component::{Component, ComponentId};
+use bevy::ecs::entity::Entity;
 use bevy::ecs::query::With;
+use bevy::ecs::schedule::IntoSystemConfigs;
+use bevy::ecs::system::{Commands, Query, Res};
 use bevy::ecs::world::{DeferredWorld, World};
 use bevy::hierarchy::{BuildWorldChildren, DespawnRecursiveExt};
-use bevy::prelude::{App, Commands, Component, Entity, IntoSystemConfigs, Query, Res};
 use bevy::state::condition::in_state;
 use bevy::state::state::States;
 use bevy::{app, hierarchy};
