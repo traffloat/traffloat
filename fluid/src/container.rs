@@ -14,7 +14,7 @@ use bevy::ecs::bundle;
 use bevy::ecs::query::With;
 use bevy::ecs::world::World;
 use bevy::hierarchy::BuildWorldChildren;
-use bevy::prelude::{Commands, Component, Entity, IntoSystemConfigs, Query, Res, SystemSet};
+use bevy::prelude::{Commands, Component, Entity, IntoSystemConfigs, Query, SystemSet};
 use bevy::state::condition::in_state;
 use bevy::state::state::States;
 use bevy::{app, hierarchy};
@@ -27,8 +27,7 @@ use traffloat_graph::building::facility;
 use traffloat_graph::corridor::duct;
 use typed_builder::TypedBuilder;
 
-use crate::config::{self, Config};
-use crate::units;
+use crate::{config, units};
 
 pub mod element;
 
@@ -131,7 +130,7 @@ pub struct ExplosionMarker;
 
 /// Rebalance the volume of fluids in a system.
 fn rebalance_system(
-    config: Res<Config>,
+    types: config::Types,
     mut containers_query: Query<(
         Entity,
         &hierarchy::Children,
@@ -163,7 +162,7 @@ fn rebalance_system(
             // this would serve as a buffer memory.
             for (state, &element) in iter::zip(&mut buf, elements) {
                 let Ok((&ty, mass, mut volume)) = elements_query.get_mut(element) else { continue };
-                let def = config.get_type(ty);
+                let def = types.get(ty);
 
                 *state = Some(ElementState {
                     critical_pressure: def.critical_pressure,

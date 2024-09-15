@@ -7,7 +7,7 @@ use bevy::state::app::{AppExtStates, StatesPlugin};
 use traffloat_base::{save, EmptyState};
 
 use super::element;
-use crate::config::{self, Config};
+use crate::config::{self, Scalar};
 use crate::units;
 
 struct ContainerSetup {
@@ -30,17 +30,23 @@ fn do_test(setup: ContainerSetup) {
     app.add_plugins((StatesPlugin, save::Plugin));
     app.init_state::<EmptyState>();
 
-    let mut types = Vec::new();
-    let config = setup.elements.iter().fold(Config::default(), |mut config, fluid| {
-        let ty = config.register_type(config::TypeDef {
-            viscosity:              units::Viscosity::default(), // unused
-            vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
-            critical_pressure:      fluid.critical_pressure.into(),
-            saturation_gamma:       fluid.saturation_gamma,
-        });
-        types.push(ty);
-        config
-    });
+    let types: Vec<_> = setup
+        .elements
+        .iter()
+        .map(|fluid| {
+            config::create_type(
+                &mut app.world_mut().commands(),
+                config::TypeDef {
+                    viscosity:              units::Viscosity::default(), // unused
+                    vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
+                    critical_pressure:      fluid.critical_pressure.into(),
+                    saturation_gamma:       fluid.saturation_gamma,
+                },
+            )
+        })
+        .collect();
+
+    let config = Scalar::default();
     app.insert_resource(config);
     app.add_plugins(super::Plugin(EmptyState));
 

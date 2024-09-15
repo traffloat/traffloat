@@ -8,7 +8,7 @@ use traffloat_base::{save, EmptyState};
 use traffloat_graph::corridor::Binary;
 use typed_builder::TypedBuilder;
 
-use crate::config::{self, Config};
+use crate::config::{self, Scalar};
 use crate::{commands, container, pipe, units};
 
 struct Setup {
@@ -47,17 +47,20 @@ fn do_test(setup: Setup) {
     ));
     app.init_state::<EmptyState>();
 
-    let mut config = Config::default();
+    let config = Scalar::default();
     let types: Vec<_> = setup
         .elements
         .iter()
         .map(|element| {
-            config.register_type(config::TypeDef {
-                viscosity:              element.viscosity,
-                vacuum_specific_volume: element.vacuum_specific_volume,
-                critical_pressure:      element.critical_pressure,
-                saturation_gamma:       element.saturation_gamma,
-            })
+            config::create_type(
+                &mut app.world_mut().commands(),
+                config::TypeDef {
+                    viscosity:              element.viscosity,
+                    vacuum_specific_volume: element.vacuum_specific_volume,
+                    critical_pressure:      element.critical_pressure,
+                    saturation_gamma:       element.saturation_gamma,
+                },
+            )
         })
         .collect();
     app.insert_resource(config);

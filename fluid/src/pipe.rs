@@ -37,7 +37,7 @@ use traffloat_graph::building::facility;
 use traffloat_graph::corridor::{duct, Binary};
 use typed_builder::TypedBuilder;
 
-use crate::config::{self, Config};
+use crate::config::{self, Scalar};
 use crate::{commands, container, units};
 
 pub mod element;
@@ -100,7 +100,7 @@ pub struct Containers {
 }
 
 fn update_transfer_weight_system(
-    config: Res<Config>,
+    types: config::Types,
     mut pipe_elements_query: Query<(
         &mut element::TransferWeight,
         &config::Type,
@@ -110,7 +110,7 @@ fn update_transfer_weight_system(
     containers_query: Query<&container::CurrentVolume>,
 ) {
     pipe_elements_query.iter_mut().for_each(|(mut weights_write, &ty, endpoints)| {
-        let def = config.get_type(ty);
+        let def = types.get(ty);
 
         weights_write.output = endpoints.containers.as_ref().map(|&entity| {
             let concentration = entity.map_or(0., |entity| {
@@ -129,7 +129,7 @@ fn update_transfer_weight_system(
 }
 
 fn distribute_transfer_weight_system(
-    config: Res<Config>,
+    config: Res<Scalar>,
     pipes_query: Query<(&hierarchy::Children, &force::Directed, &Containers)>,
     mut pipe_elements_query: Query<(
         &config::Type,
