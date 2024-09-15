@@ -31,18 +31,25 @@ fn do_test(setup: ContainerSetup) {
     app.init_state::<EmptyState>();
 
     let mut types = Vec::new();
-    let config = setup.elements.iter().fold(Config::default(), |mut config, fluid| {
-        let ty = config.register_type(config::TypeDef {
-            viscosity:              units::Viscosity::default(), // unused
-            vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
-            critical_pressure:      fluid.critical_pressure.into(),
-            saturation_gamma:       fluid.saturation_gamma,
-        });
+    let mut commands = app.world_mut().commands();
+
+    let mut config = Config::default();
+    for fluid in &setup.elements {
+        let ty = config.register_type(
+            config::TypeDef {
+                viscosity:              units::Viscosity::default(), // unused
+                vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
+                critical_pressure:      fluid.critical_pressure.into(),
+                saturation_gamma:       fluid.saturation_gamma,
+            },
+            &mut commands,
+        );
         types.push(ty);
-        config
-    });
+    }
     app.insert_resource(config);
     app.add_plugins(super::Plugin(EmptyState));
+
+    app.world_mut().flush_commands();
 
     let mut container = app.world_mut().spawn(
         super::Bundle::builder()

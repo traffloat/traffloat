@@ -31,6 +31,7 @@ use crate::config::{self, Config};
 use crate::units;
 
 pub mod element;
+mod metrics;
 
 #[cfg(test)]
 mod tests;
@@ -40,6 +41,8 @@ pub(crate) struct Plugin<St>(pub(super) St);
 
 impl<St: States + Copy> app::Plugin for Plugin<St> {
     fn build(&self, app: &mut bevy::prelude::App) {
+        app.add_plugins(metrics::Plugin(self.0));
+
         app.add_systems(
             app::Update,
             rebalance_system.in_set(SystemSets::Rebalance).run_if(in_state(self.0)),

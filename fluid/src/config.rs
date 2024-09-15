@@ -1,13 +1,21 @@
 //! Fluid definitions.
 
-use bevy::ecs::system::Res;
-use bevy::ecs::world::World;
+use bevy::app::{self, App};
+use bevy::ecs::schedule::ScheduleLabel;
+use bevy::ecs::system::{Commands, Res, ResMut, RunSystemOnce};
+use bevy::ecs::world::{Command, World};
 use bevy::prelude::{Component, Resource};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::save;
 
 use crate::units;
+
+pub(crate) struct Plugin;
+
+impl app::Plugin for Plugin {
+    fn build(&self, app: &mut App) { app.init_schedule(OnCreateType); }
+}
 
 /// Identifies a type of fluid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
@@ -36,10 +44,11 @@ impl Default for Config {
 impl Config {
     /// Registers a new fluid type. Only for constructing test cases.
     #[allow(clippy::missing_panics_doc)]
-    pub fn register_type(&mut self, def: TypeDef) -> Type {
-        let ret = Type(u16::try_from(self.defs.len()).expect("too many types"));
+    pub fn register_type(&mut self, def: TypeDef, commands: &mut Commands) -> Type {
+        let ty = Type(u16::try_from(self.defs.len()).expect("too many types"));
         self.defs.push(def);
-        ret
+        commands.push(CreateType { ty });
+        ty
     }
 
     /// Gets the definition of a fluid type
@@ -58,6 +67,34 @@ impl Config {
             .iter()
             .enumerate()
             .map(|(index, def)| (Type(u16::try_from(index).expect("too many fluid types")), def))
+    }
+}
+
+/// A schedule of systems run when a new type is created.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ScheduleLabel)]
+pub struct OnCreateType;
+
+/// The type created when [`OnCreateType`] is run.
+#[derive(Resource)]
+pub struct CreatedType(Option<Type>);
+
+impl CreatedType {
+    /// Get the type that just got created.
+    #[must_use]
+    pub fn get(&self) -> Type {
+        self.0.expect("Cannot access CreatedType when the OnCreateType schedule is running")
+    }
+}
+
+struct CreateType {
+    ty: Type,
+}
+
+impl Command for CreateType {
+    fn apply(self, world: &mut World) {
+        world.resource_mut::<CreatedType>().0 = Some(self.ty);
+        world.run_schedule(OnCreateType);
+        world.resource_mut::<CreatedType>().0 = None;
     }
 }
 
@@ -147,8 +184,11 @@ impl save::Def for SaveType {
     fn loader() -> impl save::LoadOnce<Def = Self> {
         #[allow(clippy::trivially_copy_pass_by_ref, clippy::unnecessary_wraps)]
         fn loader(world: &mut World, def: SaveType, (): &()) -> anyhow::Result<Type> {
-            let mut config = world.resource_mut::<Config>();
-            let ty = config.register_type(def.def);
+            let mut def_once = Some(def.def);
+            let ty =
+                world.run_system_once(move |mut config: ResMut<Config>, mut commands: Commands| {
+                    config.register_type(def_once.take().unwrap(), &mut commands)
+                });
             Ok(ty)
         }
 

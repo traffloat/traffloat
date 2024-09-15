@@ -1,4 +1,4 @@
-//! Components of a [viewable] related to visual rendering.
+//! Components of a [viewable](super::viewable) related to visual rendering.
 
 use std::borrow::Cow;
 

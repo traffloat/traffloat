@@ -24,6 +24,6 @@ impl<St: States + Copy> app::Plugin for Plugin<St> {
         app.init_resource::<Config>();
         save::add_def::<config::SaveScalar>(app);
         save::add_def::<config::SaveType>(app);
-        app.add_plugins((container::Plugin(self.0), pipe::Plugin(self.0)));
+        app.add_plugins((config::Plugin, container::Plugin(self.0), pipe::Plugin(self.0)));
     }
 }

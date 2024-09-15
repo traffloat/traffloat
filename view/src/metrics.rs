@@ -1,4 +1,10 @@
 //! A metric is a type of viewable attribute for an entity.
+//!
+//! Adding metrics involves the following steps:
+//!
+//! - Registering the metric: [`create_type`].
+//! - Producing metrics on viewables: [`make_value_feeder_system`].
+//! - Allow viewers to subscribe to the metric: [`SubscribeCommand`].
 
 use std::any::type_name;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -9,7 +15,7 @@ use bevy::app::{self, App};
 use bevy::ecs::component::{ComponentDescriptor, ComponentId, StorageType};
 use bevy::ecs::event::{Event, EventWriter};
 use bevy::ecs::query::{QueryData, QueryFilter};
-use bevy::ecs::schedule::{IntoSystemConfigs, Schedules, SystemConfigs, SystemSet};
+use bevy::ecs::schedule::{IntoSystemConfigs, ScheduleLabel, Schedules, SystemConfigs};
 use bevy::ecs::system::{EntityCommand, Res, StaticSystemParam, SystemParam};
 use bevy::ecs::world::{Command, FilteredEntityMut};
 use bevy::prelude::{Commands, Entity, Query, Resource, SystemBuilder, World};
@@ -28,7 +34,10 @@ pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
+        app.init_schedule(FeedMetricSchedule);
         app.add_partitioned_event::<UpdateMetricEvent>();
+        app.add_systems(app::Update, run_feed_metric_schedule_system);
+
         app.init_resource::<Config>();
     }
 }
@@ -218,9 +227,12 @@ pub struct UpdateMetricEvent {
     pub magnitude: f32,
 }
 
-/// A system set to expose the value feeder system for a specific type.
-#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
-pub struct ValueFeederSystemSet(pub Type);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ScheduleLabel)]
+struct FeedMetricSchedule;
+
+fn run_feed_metric_schedule_system(world: &mut World) {
+    world.run_schedule(FeedMetricSchedule);
+}
 
 /// Creates a system that updates the magnitude of a metric type
 /// for each entity matching `Query<OtherComps, Filter>`.
@@ -286,8 +298,7 @@ where
                     }
                 });
             },
-        )
-        .in_set(ValueFeederSystemSet(ty))
+        ).into_configs()
 }
 
 struct InitValueCommand {
@@ -370,5 +381,5 @@ fn make_value_broadcast_system(world: &mut World, ty: Type) -> SystemConfigs {
                 );
             },
         )
-        .after(ValueFeederSystemSet(ty))
+        .after(run_feed_metric_schedule_system)
 }
