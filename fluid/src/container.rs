@@ -5,12 +5,12 @@
 //! Each container is the parent entity of a number of "container elements" child entities,
 //! corresponding to all present fluid types in the container.
 //!
-//! A storage for a [facility] should reference the facility entity as its parent.
-//! A container for a [duct] should reference the duct entity as its parent.
+//! A storage for a [facility] should share the same entity as the facility entity.
+//! A container for a [duct] should share the same entity as the duct entity.
 
 use std::iter;
 
-use bevy::app::App;
+use bevy::app::{self, App};
 use bevy::ecs::bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
@@ -18,10 +18,9 @@ use bevy::ecs::query::With;
 use bevy::ecs::schedule::{IntoSystemConfigs, SystemSet};
 use bevy::ecs::system::{Commands, Query};
 use bevy::ecs::world::World;
-use bevy::hierarchy::BuildWorldChildren;
+use bevy::hierarchy;
 use bevy::state::condition::in_state;
 use bevy::state::state::States;
-use bevy::{app, hierarchy};
 use derive_more::From;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -35,6 +34,8 @@ use crate::{config, units};
 
 pub mod element;
 
+mod metrics;
+
 #[cfg(test)]
 mod tests;
 
@@ -43,6 +44,8 @@ pub(crate) struct Plugin<St>(pub(super) St);
 
 impl<St: States + Copy> app::Plugin for Plugin<St> {
     fn build(&self, app: &mut App) {
+        app.add_plugins(metrics::Plugin(self.0));
+
         app.add_systems(
             app::Update,
             rebalance_system.in_set(SystemSets::Rebalance).run_if(in_state(self.0)),
@@ -221,17 +224,17 @@ fn rebalance_system(
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct Save {
     /// Reference to parent facility or duct.
-    pub parent:       SaveParent,
+    pub owner:        SaveOwner,
     /// Container capacity.
     pub max_volume:   units::Volume,
     /// Container pressure limit.
     pub max_pressure: units::Pressure,
 }
 
-/// Parent of the container, used in saves.
+/// Owner of the container, used in saves.
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type")]
-pub enum SaveParent {
+pub enum SaveOwner {
     /// Container is a facility storage.
     Facility(save::Id<facility::Save>),
     /// Container is a duct buffer.
@@ -250,26 +253,28 @@ impl save::Def for Save {
                 save::StoreDepend<facility::Save>,
                 save::StoreDepend<duct::Save>,
             ),
-            (query, parent_marker_query): (
-                Query<(Entity, &hierarchy::Parent, &MaxVolume, &MaxPressure), With<Marker>>,
+            (query, owner_marker_query): (
+                Query<(Entity, &MaxVolume, &MaxPressure), With<Marker>>,
                 Query<(Option<&facility::Marker>, Option<&duct::Marker>)>,
             ),
         ) {
-            writer.write_all(query.iter().map(|(entity, parent, max_volume, max_pressure)| {
-                let save_parent = match parent_marker_query
-                    .get(parent.get())
+            writer.write_all(query.iter().map(|(entity, max_volume, max_pressure)| {
+                let save_parent = match owner_marker_query
+                    .get(entity)
                     .expect("dangling parent reference")
                 {
                     (Some(_), Some(_)) => unreachable!("entity cannot be both facility and duct"),
-                    (Some(_), None) => SaveParent::Facility(facility_dep.must_get(parent.get())),
-                    (None, Some(_)) => SaveParent::Duct(duct_dep.must_get(parent.get())),
-                    (None, None) => panic!("container parent must be facility or duct"),
+                    (Some(_), None) => SaveOwner::Facility(facility_dep.must_get(entity)),
+                    (None, Some(_)) => SaveOwner::Duct(duct_dep.must_get(entity)),
+                    (None, None) => {
+                        panic!("container must be the same entity as a facility or a duct")
+                    }
                 };
 
                 (
                     entity,
                     Save {
-                        parent:       save_parent,
+                        owner:        save_parent,
                         max_volume:   max_volume.volume,
                         max_pressure: max_pressure.pressure,
                     },
@@ -290,9 +295,9 @@ impl save::Def for Save {
                 save::LoadDepend<duct::Save>,
             ),
         ) -> anyhow::Result<Entity> {
-            let parent = match def.parent {
-                SaveParent::Facility(parent) => facility_dep.get(parent)?,
-                SaveParent::Duct(parent) => duct_dep.get(parent)?,
+            let owner = match def.owner {
+                SaveOwner::Facility(owner) => facility_dep.get(owner)?,
+                SaveOwner::Duct(owner) => duct_dep.get(owner)?,
             };
             let bundle = Bundle::builder()
                 .max_volume(def.max_volume)
@@ -300,8 +305,8 @@ impl save::Def for Save {
                 .pipes(Pipes { pipes: <_>::default() })
                 .build();
 
-            let mut container = world.spawn(bundle);
-            container.set_parent(parent);
+            let mut owner_entity = world.entity_mut(owner);
+            let container = owner_entity.insert(bundle);
             Ok(container.id())
         }
 

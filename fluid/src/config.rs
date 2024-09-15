@@ -4,4 +4,4 @@ mod scalar;
 mod types;
 
 pub use scalar::{Save as SaveScalar, Scalar};
-pub use types::{create_type, Save as SaveType, Type, TypeDef, Types};
+pub use types::{create_type, CreatedType, OnCreateType, Save as SaveType, Type, TypeDef, Types};

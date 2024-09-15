@@ -178,7 +178,7 @@ impl Command for UnsubscribeCommand {
 }
 
 /// Notifies a viewer that a metric has been updated.
-#[derive(Event)]
+#[derive(Debug, Event)]
 pub struct UpdateMetricEvent {
     /// The viewer to be notified.
     pub viewer:    viewer::Sid,
@@ -255,6 +255,103 @@ where
                             commands
                                 .entity(entity.id())
                                 .add(InitValueCommand { comp_id: value_comp_id, magnitude });
+                        }
+                    }
+                });
+            },
+        )
+        .in_set(ValueFeederSystemSet(ty))
+}
+
+/// Creates a system that updates the magnitude of a metric type from another entity.
+///
+/// Metrics are generated from "source entities",
+/// i.e. all entities matching `Query<DataComps, Filter>`.
+/// The feeder function is called on each such entity
+/// to return the corresponding "viewable entity" as well as the magnitude.
+///
+/// Metrics are updated for the "viewable entity",
+/// which must match the filter `ViewableFilter`.
+///
+/// If the same viewable entity is returned more than once,
+/// it is undefined what value ends up getting written.
+///
+/// The feeder function does not need to be surjective on matched viewable entities.
+///
+/// # Panics
+/// Panics if the type is not initialized yet.
+///
+/// The system returned by the function panics
+/// if the entity returned by the function does not match `ViewableFilter`.
+pub fn make_external_value_feeder_system<
+    SourceComps,
+    SourceFilter,
+    ViewableFilter,
+    OtherSystemParams,
+    FeederFn,
+>(
+    world: &mut World,
+    feeder: FeederFn,
+    ty: Type,
+) -> SystemConfigs
+where
+    SourceComps: QueryData + 'static,
+    SourceFilter: QueryFilter + 'static,
+    ViewableFilter: QueryFilter + 'static,
+    OtherSystemParams: SystemParam + 'static,
+    FeederFn: Fn(SourceComps::Item<'_>, &OtherSystemParams::Item<'_, '_>) -> Option<(Entity, f32)>,
+    FeederFn: Send + Sync + 'static,
+{
+    let &SubscriberComponentId(subscriber_comp_id) = world
+        .entity(ty.0)
+        .get::<SubscriberComponentId>()
+        .expect("metrics::Type refers to a non-metric or uninitialized entity");
+    let &ValueComponentId(value_comp_id) = world
+        .entity(ty.0)
+        .get::<ValueComponentId>()
+        .expect("metrics::Type refers to a non-metric or uninitialized entity");
+
+    SystemBuilder::<(Commands,)>::new(world)
+        .builder::<Query<()>>(|builder| {
+            builder.with_id(subscriber_comp_id);
+        })
+        .builder::<Query<FilteredEntityMut, ViewableFilter>>(|builder| {
+            builder.optional(|builder| {
+                builder.mut_id(value_comp_id);
+            });
+        })
+        .query_filtered::<SourceComps, SourceFilter>()
+        .param::<StaticSystemParam<OtherSystemParams>>()
+        .build(
+            move |mut commands: Commands,
+                  check_has_viewer_query: Query<()>,
+                  mut viewable_query: Query<FilteredEntityMut, ViewableFilter>,
+                  mut source_query: Query<SourceComps, SourceFilter>,
+                  other_params: StaticSystemParam<OtherSystemParams>| {
+                if check_has_viewer_query.is_empty() {
+                    return;
+                }
+
+                let other_params = other_params.into_inner();
+
+                source_query.iter_mut().for_each(|source_data| {
+                    if let Some((viewable_entity_id, magnitude)) =
+                        feeder(source_data, &other_params)
+                    {
+                        let mut viewable_entity = viewable_query
+                            .get_mut(viewable_entity_id)
+                            .expect("feeder returned invalid entity");
+                        match viewable_entity.get_mut_by_id(value_comp_id) {
+                            Some(value) => {
+                                // Safety: Value components must have type Value
+                                let mut value = unsafe { value.with_type::<Value>() };
+                                value.magnitude = magnitude;
+                            }
+                            None => {
+                                commands
+                                    .entity(viewable_entity_id)
+                                    .add(InitValueCommand { comp_id: value_comp_id, magnitude });
+                            }
                         }
                     }
                 });

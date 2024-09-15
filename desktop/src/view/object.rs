@@ -25,7 +25,7 @@ use bevy_mod_picking::prelude::{self as pick, Pointer};
 use bevy_mod_picking::PickableBundle;
 use traffloat_base::EventReaderSystemSet;
 use traffloat_view::appearance::{self, Layer};
-use traffloat_view::viewable;
+use traffloat_view::{metrics, viewable};
 
 use crate::AppState;
 
@@ -43,6 +43,11 @@ impl app::Plugin for Plugin {
         app.add_systems(
             app::Update,
             handle_show_system.in_set(EventReaderSystemSet::<viewable::ShowEvent>::default()),
+        );
+        app.add_systems(
+            app::Update,
+            handle_metric_update_system
+                .in_set(EventReaderSystemSet::<metrics::UpdateMetricEvent>::default()),
         );
     }
 }
@@ -181,6 +186,15 @@ fn handle_show_system(
         });
 
         commands.entity(viewable_id).insert(render::view::Visibility::Visible);
+    }
+}
+
+fn handle_metric_update_system(
+    mut reader: EventReader<metrics::UpdateMetricEvent>,
+    mut sid_index: Res<DelegateSidIndex>,
+) {
+    for ev in reader.read() {
+        dbg!(ev);
     }
 }
 

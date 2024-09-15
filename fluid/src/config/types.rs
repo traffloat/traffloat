@@ -1,6 +1,7 @@
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::system::{Commands, Query, SystemParam};
+use bevy::ecs::schedule::ScheduleLabel;
+use bevy::ecs::system::{Commands, Query, Resource, SystemParam};
 use bevy::ecs::world::World;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -35,6 +36,25 @@ impl<'w, 's> Types<'w, 's> {
 pub fn create_type(commands: &mut Commands, def: TypeDef) -> Type {
     let entity = commands.spawn(def);
     Type(entity.id())
+}
+
+/// Systems in the schedule are called in non-deterministic order
+/// immediately after a fluid type is created and initialized.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ScheduleLabel)]
+pub struct OnCreateType;
+
+/// The type getting created.
+///
+/// Only valid in the [`OnCreateType`] schedule.
+#[derive(Resource)]
+pub struct CreatedType(Option<Type>);
+
+impl CreatedType {
+    /// Gets the new type getting created that triggered the [`OnCreateType`] schedule.
+    #[must_use]
+    pub fn get(&self) -> Type {
+        self.0.expect("CreatedType can only be used from OnCreateType systems")
+    }
 }
 
 /// Defines the properties of a fluid.
