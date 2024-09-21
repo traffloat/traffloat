@@ -18,19 +18,19 @@ jobs:
         with:
           version: v0.8.0
 
-      - run: earthly --strict +compile
+      - run: earthly +compile
       - uses: actions/upload-artifact@v4
         with:
-          name: traffloat-desktop
+          name: traffloat-desktop-linux
           path: output/traffloat-desktop
 
-      - run: earthly --strict +save-schema
+      - run: earthly +save-schema
       - uses: actions/upload-artifact@v4
         with:
           name: save-schema.json
           path: output/save-schema.json
 
-      - run: earthly --strict +assets
+      - run: earthly +assets
       - uses: actions/upload-artifact@v4
         with:
           name: assets
