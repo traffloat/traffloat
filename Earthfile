@@ -12,15 +12,10 @@ assets:
     RUN python .
     SAVE ARTIFACT assets AS LOCAL assets
 
-compile:
+save-schema:
     FROM rust:1.81-slim-bullseye
     RUN apt-get update && apt-get install -y pkg-config make g++ libssl-dev
     DO rust+INIT --keep_fingerprints=true
-    COPY --keep-ts --dir Cargo.toml Cargo.lock base desktop fluid graph tools version view .
-    DO rust+CARGO --args='build --release --bin traffloat-desktop' --output='release/traffloat-desktop'
-
-save-schema:
-    FROM +compile
-    DO rust+CARGO --args='run --bin traffloat-save-schema'
-
-    SAVE ARTIFACT assets/save-schema.json AS LOCAL output/save-schema.json
+    COPY --keep-ts . .
+    DO rust+CARGO --args='run --bin traffloat-save-schema -- -o save-schema.json'
+    SAVE ARTIFACT save-schema.json AS LOCAL output/save-schema.json

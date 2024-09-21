@@ -9,8 +9,8 @@ on:
     branches: ["**"]
 
 jobs:
-  build:
-    name: earthly build
+  assets:
+    name: build assets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,11 +18,20 @@ jobs:
         with:
           version: v0.8.0
 
-      - run: earthly +compile
+      - run: earthly +assets
       - uses: actions/upload-artifact@v4
         with:
-          name: traffloat-desktop-linux
-          path: output/traffloat-desktop
+          name: assets
+          path: assets/
+
+  save-schema:
+    name: build save schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: earthly/actions-setup@v1
+        with:
+          version: v0.8.0
 
       - run: earthly +save-schema
       - uses: actions/upload-artifact@v4
@@ -30,8 +39,55 @@ jobs:
           name: save-schema.json
           path: output/save-schema.json
 
-      - run: earthly +assets
+  compile-desktop:
+    name: build desktop client
+    strategy:
+      matrix:
+        target:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: i686-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: i686-unknown-linux-musl
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            suffix: .exe
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            suffix: .exe
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            suffix: .exe
+    runs-on: ${{matrix.target.os}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{matrix.target.target}}
+      - if: matrix.target.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libssl-dev
+      - uses: houseabsolute/actions-rust-cross@v0
+        with:
+          target: ${{matrix.target.target}}
+          args: "--release --bin traffloat-desktop --no-default-features"
       - uses: actions/upload-artifact@v4
         with:
-          name: assets
-          path: assets/
+          path: target/${{matrix.target.target}}/release/lpl${{matrix.target.suffix}}
+          name: bin-${{matrix.target.target}}

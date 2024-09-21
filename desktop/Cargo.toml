@@ -57,3 +57,7 @@ features = [
 	"backend_raycast",
 	"selection",
 ]
+
+[features]
+default = ["dev"]
+dev = ["traffloat-base/dev"]

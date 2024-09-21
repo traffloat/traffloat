@@ -26,3 +26,4 @@ thiserror = "1.0.63"
 
 [features]
 schema = []
+dev = ["bevy/dynamic_linking"]

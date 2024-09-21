@@ -14,7 +14,6 @@ resolver = "2"
 version = "0.14"
 default-features = false
 features = [
-    "dynamic_linking",
     "bevy_state",
 ]
 
