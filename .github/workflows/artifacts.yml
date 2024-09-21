@@ -1,0 +1,37 @@
+name: CI
+on:
+  push:
+    branches:
+      - "**"
+      - "!dependabot/**"
+    tags: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build:
+    name: earthly build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: earthly/actions-setup@v1
+        with:
+          version: v0.8.0
+
+      - run: earthly --strict +compile
+      - uses: actions/upload-artifact@v4
+        with:
+          name: traffloat-desktop
+          path: output/traffloat-desktop
+
+      - run: earthly --strict +save-schema
+      - uses: actions/upload-artifact@v4
+        with:
+          name: save-schema.json
+          path: output/save-schema.json
+
+      - run: earthly --strict +assets
+      - uses: actions/upload-artifact@v4
+        with:
+          name: assets
+          path: assets/

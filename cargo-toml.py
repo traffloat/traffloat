@@ -69,6 +69,7 @@ contents = {
         "release": {
             "lto": True,
             "opt-level": 3,
+            "strip": "symbols",
         },
     },
 }

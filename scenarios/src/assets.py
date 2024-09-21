@@ -1,11 +1,12 @@
-import abc
-from io import BytesIO
 import hashlib
-from typing import Callable, Optional, Dict
-import gltflib
-from gltflib import GLTF, GLTFModel, GLBResource
-import numpy
+from abc import abstractmethod
 from dataclasses import dataclass, field
+from io import BytesIO
+from typing import Callable, Optional
+
+import gltflib
+import numpy
+from gltflib import GLBResource, GLTF, GLTFModel
 
 
 @dataclass
@@ -16,13 +17,13 @@ class Serialized:
 
 
 class Asset:
-    @abc.abstractmethod
+    @abstractmethod
     def id(self) -> str:
         """
         Uniquely identifies the asset for deduplication.
         """
 
-    @abc.abstractmethod
+    @abstractmethod
     def generate(self) -> GLTF:
         """
         Generates the asset as a GLTF object.
@@ -36,7 +37,7 @@ class Pool:
     A pool of reusable assets.
     """
 
-    all: Dict[str, Serialized] = field(default_factory=dict)
+    all: dict[str, Serialized] = field(default_factory=dict)
 
     def register(self, asset: Asset):
         id = asset.id()

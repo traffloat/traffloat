@@ -1,11 +1,13 @@
 from dataclasses import dataclass
-import assets
+
 import gltflib
-from gltflib import GLTFModel, GLTF
+from gltflib import GLTF, GLTFModel
+
+from .assets import Material
 
 
 @dataclass
-class Glass(assets.Material):
+class Glass(Material):
     def id(self):
         return "glass"
 
@@ -37,7 +39,7 @@ class Glass(assets.Material):
 
 
 @dataclass
-class RoughMonotone(assets.Material):
+class RoughMonotone(Material):
     r: int
     g: int
     b: int
