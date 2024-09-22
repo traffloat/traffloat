@@ -2,6 +2,7 @@ from dataclasses import dataclass, field, KW_ONLY
 from typing import Optional, Self, TYPE_CHECKING
 
 from . import Def, Id, Writer
+from .fluid.container import Container as FluidContainer
 from .types import CustomDisplayText, DisplayText, Layers, Position, Rotation, Scale
 
 if TYPE_CHECKING:
@@ -19,13 +20,17 @@ class Facility(Def):
     label: DisplayText = field(default_factory=CustomDisplayText)
     layers: Layers = field(default_factory=Layers)
 
+    fluid_containers: list[FluidContainer] = field(default_factory=list)
+
     id: Optional[Id[Self]] = None
 
     def save_id() -> str:
         return "traffloat.save.Facility"
 
-    def write(self, writer: Writer, parent: Id["Building"], is_ambient: bool):
-        writer.write(
+    def write(
+        self, writer: Writer, parent: Id["Building"], is_ambient: bool
+    ) -> Id[Self]:
+        self.id = writer.write(
             Facility,
             {
                 "parent": parent.id,
@@ -43,3 +48,8 @@ class Facility(Def):
                 },
             },
         )
+
+        for container in self.fluid_containers:
+            container.write(writer, "Facility", self.id)
+
+        return self.id

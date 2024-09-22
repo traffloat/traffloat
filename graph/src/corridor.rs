@@ -24,7 +24,10 @@ pub mod duct;
 pub struct Plugin;
 
 impl app::Plugin for Plugin {
-    fn build(&self, app: &mut App) { save::add_def::<Save>(app); }
+    fn build(&self, app: &mut App) {
+        save::add_def::<Save>(app);
+        save::add_def::<duct::Save>(app);
+    }
 }
 
 /// Components for a corridor.

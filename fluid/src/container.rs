@@ -236,9 +236,15 @@ pub struct Save {
 #[serde(tag = "type")]
 pub enum SaveOwner {
     /// Container is a facility storage.
-    Facility(save::Id<facility::Save>),
+    Facility {
+        /// Save ID of the owner facility.
+        id: save::Id<facility::Save>,
+    },
     /// Container is a duct buffer.
-    Duct(save::Id<duct::Save>),
+    Duct {
+        /// Save ID of the owner duct.
+        id: save::Id<duct::Save>,
+    },
 }
 
 impl save::Def for Save {
@@ -264,8 +270,8 @@ impl save::Def for Save {
                     .expect("dangling parent reference")
                 {
                     (Some(_), Some(_)) => unreachable!("entity cannot be both facility and duct"),
-                    (Some(_), None) => SaveOwner::Facility(facility_dep.must_get(entity)),
-                    (None, Some(_)) => SaveOwner::Duct(duct_dep.must_get(entity)),
+                    (Some(_), None) => SaveOwner::Facility { id: facility_dep.must_get(entity) },
+                    (None, Some(_)) => SaveOwner::Duct { id: duct_dep.must_get(entity) },
                     (None, None) => {
                         panic!("container must be the same entity as a facility or a duct")
                     }
@@ -296,8 +302,8 @@ impl save::Def for Save {
             ),
         ) -> anyhow::Result<Entity> {
             let owner = match def.owner {
-                SaveOwner::Facility(owner) => facility_dep.get(owner)?,
-                SaveOwner::Duct(owner) => duct_dep.get(owner)?,
+                SaveOwner::Facility { id: owner } => facility_dep.get(owner)?,
+                SaveOwner::Duct { id: owner } => duct_dep.get(owner)?,
             };
             let bundle = Bundle::builder()
                 .max_volume(def.max_volume)

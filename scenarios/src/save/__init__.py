@@ -24,7 +24,6 @@ class WriterCtx:
         file = path.join(self.dir, f"{self.name}.tfsave")
 
         with open(file, "w", encoding="utf-8") as f:
-            print()
             json.dump(
                 {
                     "types": list(
@@ -36,7 +35,7 @@ class WriterCtx:
                     ),
                 },
                 f,
-                separators=(",", ":"),
+                separators=(",\n", ":"),
             )
 
 

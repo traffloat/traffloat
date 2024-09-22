@@ -25,7 +25,7 @@ class Building(Def):
     def save_id() -> str:
         return "traffloat.save.Building"
 
-    def write(self, writer: Writer) -> Self:
+    def write(self, writer: Writer) -> Id[Self]:
         self.id = writer.write(
             Building,
             {
@@ -48,4 +48,4 @@ class Building(Def):
         for facility in self.other_facilities:
             facility.write(writer=writer, parent=self.id, is_ambient=False)
 
-        return self
+        return self.id

@@ -18,6 +18,7 @@ macro_rules! define_unit {
             #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
             #[derive(From, Add, AddAssign, Sub, SubAssign, Sum, Neg)]
             #[derive(Serialize, Deserialize, JsonSchema)]
+            #[serde(transparent)]
             $vis struct $ident {
                 /// Unit quantity.
                 pub quantity: f32,
