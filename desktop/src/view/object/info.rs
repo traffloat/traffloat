@@ -44,6 +44,7 @@ fn setup(mut commands: Commands) {
                 background_color: ui::BackgroundColor(Color::linear_rgb(0.05, 0.05, 0.15)),
                 border_color: ui::BorderColor(Color::linear_rgb(0.8, 0.6, 0.2)),
                 visibility: Visibility::Hidden,
+                focus_policy: ui::FocusPolicy::Block,
                 ..Default::default()
             },
             ContainerNode,

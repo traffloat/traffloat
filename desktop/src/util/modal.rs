@@ -122,6 +122,7 @@ fn setup<But: Buttons>(mut commands: Commands, param: Res<Param<But>>) {
                     align_items: ui::AlignItems::Center,
                     ..Default::default()
                 },
+                focus_policy: ui::FocusPolicy::Block,
                 ..Default::default()
             },
             RootNode(PhantomData::<But>),
