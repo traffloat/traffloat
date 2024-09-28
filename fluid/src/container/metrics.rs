@@ -2,11 +2,12 @@ use std::time::Duration;
 
 use bevy::app::{self, App};
 use bevy::ecs::query::With;
-use bevy::ecs::schedule::Schedules;
+use bevy::ecs::schedule::{IntoSystemConfigs, Schedules, SystemSet};
 use bevy::ecs::world::World;
 use bevy::hierarchy;
 use bevy::state::state::States;
-use traffloat_view::metrics;
+use bevy::utils::HashMap;
+use traffloat_view::{metrics, viewer};
 
 use super::element;
 use crate::config;
@@ -15,8 +16,14 @@ use crate::config;
 pub(crate) struct Plugin<St>(pub(super) St);
 
 impl<St: States + Copy> app::Plugin for Plugin<St> {
-    fn build(&self, app: &mut App) { app.add_systems(config::OnCreateType, on_create_type_system); }
+    fn build(&self, app: &mut App) {
+        app.add_systems(config::OnCreateType, on_create_type_system.in_set(RegisterMetricType));
+    }
 }
+
+/// System set in which the metric type is registered for a new fluid type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
+pub struct RegisterMetricType;
 
 fn on_create_type_system(world: &mut World) {
     let fluid_type = world.resource::<config::CreatedType>().get();
@@ -26,6 +33,8 @@ fn on_create_type_system(world: &mut World) {
         metrics::TypeDef { update_frequency: Duration::from_secs(5) },
     );
     world.flush();
+
+    world.entity_mut(fluid_type.0).insert(metric_type);
 
     let feeder = metrics::make_external_value_feeder_system::<
         (&config::Type, &hierarchy::Parent, &element::Mass),
@@ -43,7 +52,13 @@ fn on_create_type_system(world: &mut World) {
         metric_type,
     );
     let mut schedules = world.resource_mut::<Schedules>();
-    let sched =
-        schedules.get_mut(app::Update).expect("app::Update must be accessible from OnCreateType");
-    sched.add_systems(feeder);
+    schedules.add_systems(metrics::BroadcastSchedule, feeder);
+
+    for viewer in world.query::<&viewer::Sid>().iter(world).copied().collect::<Vec<_>>() {
+        world.send_event(metrics::AvailableTypeEvent {
+            ty: metric_type,
+            viewer,
+            classes: HashMap::new(),
+        });
+    }
 }

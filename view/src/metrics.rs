@@ -1,23 +1,26 @@
 //! A metric is a type of viewable attribute for an entity.
 
 use std::any::type_name;
+use std::borrow::Cow;
 use std::time::Duration;
 use std::{alloc, iter, mem};
 
 use bevy::app::{self, App};
 use bevy::ecs::component::{Component, ComponentDescriptor, ComponentId, StorageType};
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::{Event, EventWriter};
+use bevy::ecs::event::{Event, EventReader, EventWriter};
 use bevy::ecs::query::{QueryData, QueryFilter};
-use bevy::ecs::schedule::{IntoSystemConfigs, Schedules, SystemConfigs, SystemSet};
+use bevy::ecs::schedule::{IntoSystemConfigs, ScheduleLabel, Schedules, SystemConfigs, SystemSet};
 use bevy::ecs::system::{
     Commands, EntityCommand, Query, Res, StaticSystemParam, SystemBuilder, SystemParam,
 };
 use bevy::ecs::world::{Command, FilteredEntityMut, World};
 use bevy::ptr::OwningPtr;
 use bevy::time::{Time, Timer, TimerMode};
+use bevy::utils::HashMap;
 use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
+use serde_json::Value as JsonValue;
 use traffloat_base::partition::AppExt;
 
 use crate::{viewable, viewer};
@@ -28,7 +31,14 @@ mod tests;
 pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
-    fn build(&self, app: &mut App) { app.add_partitioned_event::<UpdateMetricEvent>(); }
+    fn build(&self, app: &mut App) {
+        app.add_partitioned_event::<UpdateMetricEvent>();
+        app.add_partitioned_event::<AvailableTypeEvent>();
+        app.add_partitioned_event::<RequestSubscribeEvent>();
+        app.init_schedule(BroadcastSchedule);
+        app.add_systems(app::Update, admit_subscription_system);
+        app.add_systems(app::PostUpdate, |world: &mut World| world.run_schedule(BroadcastSchedule));
+    }
 }
 
 /// The identifier used to distinguish between types of metrics.
@@ -63,8 +73,18 @@ impl Command for CreateTypeCommand {
         ));
 
         let value_broadcast_system = make_value_broadcast_system(world, self.ty);
-        world.resource_mut::<Schedules>().add_systems(app::Update, value_broadcast_system);
+        world.resource_mut::<Schedules>().add_systems(BroadcastSchedule, value_broadcast_system);
     }
+}
+
+/// Metadata identifying a metric type, used for clients to support custom logic.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MetadataKey(pub Cow<'static, str>);
+
+impl MetadataKey {
+    /// Constructs a literal key.
+    #[must_use]
+    pub const fn new(key: &'static str) -> Self { Self(Cow::Borrowed(key)) }
 }
 
 #[derive(Component)]
@@ -130,6 +150,31 @@ fn register_dynamic_component<T>(world: &mut World, ty: Type, storage: StorageTy
     world.init_component_with_descriptor(descriptor)
 }
 
+/// A viewer requests to start subscribing to a metric.
+#[derive(Debug, Event)]
+pub struct RequestSubscribeEvent {
+    /// Viewer requesting subscription.
+    pub viewer: viewer::Sid,
+    /// Metric type to subscribe to.
+    pub ty:     Type,
+}
+
+fn admit_subscription_system(
+    mut commands: Commands,
+    viewers: Res<viewer::SidIndex>,
+    mut events: EventReader<RequestSubscribeEvent>,
+) {
+    for ev in events.read() {
+        // TODO authz
+        let Some(viewer) = viewers.get(ev.viewer) else { continue };
+        commands.push(SubscribeCommand {
+            viewer,
+            ty: ev.ty,
+            subscription: Subscription { noise_sd: 0. },
+        });
+    }
+}
+
 /// Adds the viewer as a subscriber of the metric type.
 pub struct SubscribeCommand {
     /// The viewer entity.
@@ -176,6 +221,21 @@ impl Command for UnsubscribeCommand {
         viewer.remove_by_id(subscriber_comp_id);
     }
 }
+
+/// Notifies the viewer that a new metric type is available for subscription.
+#[derive(Debug, Event)]
+pub struct AvailableTypeEvent {
+    /// The viewer to be notified.
+    pub viewer:  viewer::Sid,
+    /// The type of metric that can be subscribed.
+    pub ty:      Type,
+    /// Metadata describing the type.
+    pub classes: HashMap<MetadataKey, JsonValue>,
+}
+
+/// Schedule in which value feeder and broadcast systems are run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, ScheduleLabel)]
+pub struct BroadcastSchedule;
 
 /// Notifies a viewer that a metric has been updated.
 #[derive(Debug, Event)]

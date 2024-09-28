@@ -27,7 +27,7 @@ struct ElementSetup {
 
 fn do_test(setup: ContainerSetup) {
     let mut app = App::new();
-    app.add_plugins((StatesPlugin, save::Plugin));
+    app.add_plugins((StatesPlugin, save::Plugin, config::Plugin));
     app.init_state::<EmptyState>();
 
     let types: Vec<_> = setup

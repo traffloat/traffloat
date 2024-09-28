@@ -5,8 +5,6 @@
 
 use bevy::app::{self, App};
 use bevy::state::state::States;
-use config::Scalar;
-use traffloat_base::save;
 
 pub mod config;
 pub mod container;
@@ -21,9 +19,6 @@ pub struct Plugin<St>(pub St);
 
 impl<St: States + Copy> app::Plugin for Plugin<St> {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Scalar>();
-        save::add_def::<config::SaveScalar>(app);
-        save::add_def::<config::SaveType>(app);
-        app.add_plugins((container::Plugin(self.0), pipe::Plugin(self.0)));
+        app.add_plugins((config::Plugin, container::Plugin(self.0), pipe::Plugin(self.0)));
     }
 }

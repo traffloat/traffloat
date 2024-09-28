@@ -51,6 +51,10 @@ fn setup(mut commands: Commands) {
         super::Owned,
         Camera3dBundle {
             transform: Transform::from_xyz(0., 0., -5.).looking_at(Vec3::ZERO, Vec3::Y),
+            camera_3d: Camera3d {
+                screen_space_specular_transmission_steps: 3,
+                ..Default::default()
+            },
             ..Default::default()
         },
     ));

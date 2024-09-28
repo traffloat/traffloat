@@ -6,7 +6,7 @@ use bevy::asset::{AssetServer, Handle};
 use bevy::core_pipeline::core_3d::Camera3d;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::EventReader;
+use bevy::ecs::event::{EventReader, EventWriter};
 use bevy::ecs::query::{With, Without};
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, Resource};
@@ -42,6 +42,7 @@ impl app::Plugin for Plugin {
             app::Update,
             handle_show_system.in_set(EventReaderSystemSet::<viewable::ShowEvent>::default()),
         );
+        app.add_systems(app::Update, subscribe_new_metrics_system);
         app.add_systems(
             app::Update,
             handle_metric_update_system
@@ -105,7 +106,6 @@ fn spawn_appearance_layer(
     appearance: Layer,
     transform: Transform,
 ) -> Entity {
-    println!("spawn layer {appearance:?}");
     match appearance {
         Layer::Null => commands
             .spawn((
@@ -182,6 +182,15 @@ fn handle_show_system(
         });
 
         commands.entity(viewable_id).insert(render::view::Visibility::Visible);
+    }
+}
+
+fn subscribe_new_metrics_system(
+    mut reader: EventReader<metrics::AvailableTypeEvent>,
+    mut sender: EventWriter<metrics::RequestSubscribeEvent>,
+) {
+    for ev in reader.read() {
+        sender.send(metrics::RequestSubscribeEvent { viewer: ev.viewer, ty: ev.ty });
     }
 }
 

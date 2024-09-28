@@ -18,11 +18,9 @@ class Glass(Material):
                 materials=[
                     gltflib.Material(
                         name="Material0",
-                        alphaMode=gltflib.AlphaMode.MASK.name,
-                        alphaCutoff=0.1,
                         doubleSided=True,
                         pbrMetallicRoughness={
-                            "baseColorFactor": [1.0, 1.0, 1.0, 0.2],
+                            "baseColorFactor": [1.0, 1.0, 1.0, 0.1],
                             "metallicFactor": 0.0,
                             "roughnessFactor": 0.05,
                         },

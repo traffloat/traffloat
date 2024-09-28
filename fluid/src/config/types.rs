@@ -34,8 +34,13 @@ impl<'w, 's> Types<'w, 's> {
 
 /// Registers a new fluid type and returns its type ID.
 pub fn create_type(commands: &mut Commands, def: TypeDef) -> Type {
-    let entity = commands.spawn(def);
-    Type(entity.id())
+    let ty = Type(commands.spawn(def).id());
+    commands.push(move |world: &mut World| {
+        world.resource_mut::<CreatedType>().0 = Some(ty);
+        world.run_schedule(OnCreateType);
+        world.resource_mut::<CreatedType>().0 = None;
+    });
+    ty
 }
 
 /// Systems in the schedule are called in non-deterministic order
@@ -46,7 +51,7 @@ pub struct OnCreateType;
 /// The type getting created.
 ///
 /// Only valid in the [`OnCreateType`] schedule.
-#[derive(Resource)]
+#[derive(Default, Resource)]
 pub struct CreatedType(Option<Type>);
 
 impl CreatedType {

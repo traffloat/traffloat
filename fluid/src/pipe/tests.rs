@@ -42,6 +42,7 @@ fn do_test(setup: Setup) {
     app.add_plugins((
         StatesPlugin,
         save::Plugin,
+        config::Plugin,
         container::Plugin(EmptyState),
         pipe::Plugin(EmptyState),
     ));
