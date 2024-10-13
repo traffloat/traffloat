@@ -6,3 +6,4 @@ mod state;
 pub use state::EmptyState;
 pub mod partition;
 pub use partition::{EventReaderSystemSet, EventWriterSystemSet};
+pub mod debug;

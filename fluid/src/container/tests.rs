@@ -4,6 +4,7 @@ use approx::assert_relative_eq;
 use bevy::app::App;
 use bevy::hierarchy::BuildWorldChildren;
 use bevy::state::app::{AppExtStates, StatesPlugin};
+use bevy::time::TimePlugin;
 use traffloat_base::{save, EmptyState};
 
 use super::element;
@@ -27,7 +28,13 @@ struct ElementSetup {
 
 fn do_test(setup: ContainerSetup) {
     let mut app = App::new();
-    app.add_plugins((StatesPlugin, save::Plugin, config::Plugin));
+    app.add_plugins((
+        TimePlugin,
+        StatesPlugin,
+        save::Plugin,
+        traffloat_view::Plugin,
+        config::Plugin,
+    ));
     app.init_state::<EmptyState>();
 
     let types: Vec<_> = setup

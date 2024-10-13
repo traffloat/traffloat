@@ -1,12 +1,15 @@
 use std::time::Duration;
 
 use bevy::app::{self, App};
-use bevy::ecs::query::With;
+use bevy::ecs::event::EventWriter;
+use bevy::ecs::query::{self, With};
 use bevy::ecs::schedule::{IntoSystemConfigs, Schedules, SystemSet};
+use bevy::ecs::system::Query;
 use bevy::ecs::world::World;
 use bevy::hierarchy;
 use bevy::state::state::States;
 use bevy::utils::HashMap;
+use traffloat_base::partition;
 use traffloat_view::{metrics, viewer};
 
 use super::element;
@@ -18,6 +21,11 @@ pub(crate) struct Plugin<St>(pub(super) St);
 impl<St: States + Copy> app::Plugin for Plugin<St> {
     fn build(&self, app: &mut App) {
         app.add_systems(config::OnCreateType, on_create_type_system.in_set(RegisterMetricType));
+        app.add_systems(
+            app::Update,
+            on_new_viewer_system
+                .in_set(partition::EventWriterSystemSet::<metrics::AvailableTypeEvent>::default()),
+        );
     }
 }
 
@@ -30,7 +38,7 @@ fn on_create_type_system(world: &mut World) {
 
     let metric_type = metrics::create_type(
         &mut world.commands(),
-        metrics::TypeDef { update_frequency: Duration::from_secs(5) },
+        metrics::TypeDef { update_frequency: Duration::from_secs(2) },
     );
     world.flush();
 
@@ -61,4 +69,18 @@ fn on_create_type_system(world: &mut World) {
             classes: HashMap::new(),
         });
     }
+}
+
+fn on_new_viewer_system(
+    fluid_type_query: Query<&metrics::Type, With<config::TypeDef>>,
+    viewer_query: Query<&viewer::Sid, query::Added<viewer::Sid>>,
+    mut writer: EventWriter<metrics::AvailableTypeEvent>,
+) {
+    writer.send_batch(viewer_query.iter().flat_map(|&viewer| {
+        fluid_type_query.iter().map(move |&ty| metrics::AvailableTypeEvent {
+            viewer,
+            ty,
+            classes: HashMap::new(),
+        })
+    }));
 }

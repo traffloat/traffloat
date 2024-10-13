@@ -18,6 +18,7 @@ use bevy::state::condition::in_state;
 use bevy::state::state;
 use bevy::time::Time;
 use bevy::transform::components::Transform;
+use traffloat_base::debug;
 
 use super::{diagnostics, InputSystemSet};
 use crate::AppState;
@@ -74,6 +75,7 @@ fn setup(mut commands: Commands) {
             },
             ..Default::default()
         },
+        debug::Bundle::new("SunLight"),
     ));
 }
 
@@ -167,13 +169,14 @@ const DIAG_PATH_ZOOM: DiagnosticPath = DiagnosticPath::const_new("traffloat/came
 
 fn register_camera_diagnostic_system(mut commands: Commands) {
     commands
-        .spawn(
+        .spawn((
             diagnostics::DisplayGroup::builder()
                 .vertical_priority(20)
                 .id("camera")
                 .label("Camera")
                 .build(),
-        )
+            debug::Bundle::new("CameraDiagnostic"),
+        ))
         .with_children(|b| {
             b.spawn(
                 diagnostics::Display::builder()

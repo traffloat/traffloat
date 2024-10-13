@@ -11,7 +11,7 @@ use bevy::hierarchy::BuildWorldChildren;
 use bevy::transform::components::Transform;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use traffloat_base::{proto, save};
+use traffloat_base::{debug, proto, save};
 use traffloat_view::{appearance, viewable};
 use typed_builder::TypedBuilder;
 
@@ -22,6 +22,8 @@ pub struct Bundle {
     viewable: viewable::StationaryChildBundle,
     #[builder(default, setter(skip))]
     _marker:  Marker,
+    #[builder(default = debug::Bundle::new("Facility"))]
+    _debug:   debug::Bundle,
 }
 
 /// Marks an entity as a facility.

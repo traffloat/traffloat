@@ -6,6 +6,7 @@
 use bevy::ecs::bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
+use traffloat_base::debug;
 use traffloat_graph::corridor::Binary;
 use typed_builder::TypedBuilder;
 
@@ -20,6 +21,8 @@ pub struct Bundle {
     ab_transfer_mass:   AbTransferMass,
     #[builder(default = TransferWeight { output: <_>::default() })]
     transfer_weight:    TransferWeight,
+    #[builder(default = debug::Bundle::new("FluidPipeElement"))]
+    _debug:             debug::Bundle,
 }
 
 /// A base coefficient for the volumetric flow rate in each direction,

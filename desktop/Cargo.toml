@@ -58,6 +58,12 @@ features = [
 	"selection",
 ]
 
+[dependencies.bevy-inspector-egui]
+version = "0.26.0"
+optional = true
+
 [features]
 default = ["dev"]
 dev = ["traffloat-base/dev"]
+inspector = ["bevy-inspector-egui", "entity-names"]
+entity-names = ["traffloat-base/entity-names", "traffloat-fluid/entity-names", "traffloat-graph/entity-names", "traffloat-view/entity-names"]

@@ -6,6 +6,7 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::transform::components::Transform;
 use bevy::utils::HashSet;
+use traffloat_base::debug;
 use typed_builder::TypedBuilder;
 
 sid_alias!("viewer");
@@ -24,6 +25,8 @@ pub struct Bundle {
     id:            Sid,
     #[builder(default, setter(skip))]
     last_viewable: ViewableList,
+    #[builder(default = debug::Bundle::new("Viewer"))]
+    _debug:        debug::Bundle,
 }
 
 /// List of viewables displayed to the viewer.

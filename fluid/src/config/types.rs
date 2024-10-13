@@ -5,7 +5,7 @@ use bevy::ecs::system::{Commands, Query, Resource, SystemParam};
 use bevy::ecs::world::World;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use traffloat_base::save;
+use traffloat_base::{debug, save};
 
 use crate::units;
 
@@ -34,7 +34,7 @@ impl<'w, 's> Types<'w, 's> {
 
 /// Registers a new fluid type and returns its type ID.
 pub fn create_type(commands: &mut Commands, def: TypeDef) -> Type {
-    let ty = Type(commands.spawn(def).id());
+    let ty = Type(commands.spawn((def, debug::Bundle::new("FluidType"))).id());
     commands.push(move |world: &mut World| {
         world.resource_mut::<CreatedType>().0 = Some(ty);
         world.run_schedule(OnCreateType);

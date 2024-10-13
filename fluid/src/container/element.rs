@@ -13,7 +13,7 @@ use bevy::hierarchy::{self, BuildWorldChildren};
 use derive_more::From;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use traffloat_base::save;
+use traffloat_base::{debug, save};
 use typed_builder::TypedBuilder;
 
 use crate::{config, units};
@@ -28,6 +28,8 @@ pub struct Bundle {
     volume:  Volume,
     #[builder(default, setter(skip))]
     _marker: Marker,
+    #[builder(default = debug::Bundle::new("FluidContainerElement"))]
+    _debug:  debug::Bundle,
 }
 
 /// Marks an entity as a container element.

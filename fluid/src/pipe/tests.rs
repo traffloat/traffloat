@@ -4,6 +4,7 @@ use approx::assert_relative_eq;
 use bevy::app::App;
 use bevy::ecs::world::Command;
 use bevy::state::app::{AppExtStates, StatesPlugin};
+use bevy::time::TimePlugin;
 use traffloat_base::{save, EmptyState};
 use traffloat_graph::corridor::Binary;
 use typed_builder::TypedBuilder;
@@ -40,8 +41,10 @@ struct ContainerSetup {
 fn do_test(setup: Setup) {
     let mut app = App::new();
     app.add_plugins((
+        TimePlugin,
         StatesPlugin,
         save::Plugin,
+        traffloat_view::Plugin,
         config::Plugin,
         container::Plugin(EmptyState),
         pipe::Plugin(EmptyState),

@@ -10,7 +10,7 @@ use bevy::ecs::world::World;
 use bevy::hierarchy::BuildWorldChildren;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use traffloat_base::save;
+use traffloat_base::{debug, save};
 use typed_builder::TypedBuilder;
 
 use crate::building;
@@ -37,6 +37,8 @@ pub struct Bundle {
     duct_list: DuctList,
     #[builder(default, setter(skip))]
     _marker:   Marker,
+    #[builder(default = debug::Bundle::new("Corridor"))]
+    _debug:    debug::Bundle,
 }
 
 /// Marks an entity as a as a corridor.

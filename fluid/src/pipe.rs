@@ -35,7 +35,7 @@ use bevy::{app, hierarchy};
 use derive_more::From;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use traffloat_base::save;
+use traffloat_base::{debug, save};
 use traffloat_graph::building::facility;
 use traffloat_graph::corridor::{duct, Binary};
 use typed_builder::TypedBuilder;
@@ -89,6 +89,8 @@ pub struct Bundle {
     force:              force::Directed,
     #[builder(default, setter(skip))]
     _marker:            Marker,
+    #[builder(default = debug::Bundle::new("FluidPipe"))]
+    _debug:             debug::Bundle,
 }
 
 /// Marks an entity as a pipe.

@@ -9,7 +9,7 @@ use bevy::ecs::world::World;
 use bevy::hierarchy::{self, BuildWorldChildren};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use traffloat_base::save;
+use traffloat_base::{debug, save};
 use typed_builder::TypedBuilder;
 
 /// Components for a facility.
@@ -17,6 +17,8 @@ use typed_builder::TypedBuilder;
 pub struct Bundle {
     #[builder(default, setter(skip))]
     _marker: Marker,
+    #[builder(default = debug::Bundle::new("Duct"))]
+    _debug:  debug::Bundle,
 }
 
 /// Marks an entity as a duct.

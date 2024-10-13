@@ -21,6 +21,7 @@ use bevy::utils::HashMap;
 use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
 use serde_json::Value as JsonValue;
+use traffloat_base::debug;
 use traffloat_base::partition::AppExt;
 
 use crate::{viewable, viewer};
@@ -70,6 +71,7 @@ impl Command for CreateTypeCommand {
             SubscriberComponentId(sub_comp_id),
             ValueComponentId(value_comp_id),
             self.def,
+            debug::Bundle::new("ViewType"),
         ));
 
         let value_broadcast_system = make_value_broadcast_system(world, self.ty);

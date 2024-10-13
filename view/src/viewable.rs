@@ -52,7 +52,7 @@ impl app::Plugin for Plugin {
                     show_stationary_children_system
                         .in_set(EventWriterSystemSet::<ShowEvent>::default())
                         .in_set(EventReaderSystemSet::<ShowStationaryEvent>::default()),
-                    hide_viewable_system
+                    hide_stationary_children_system
                         .in_set(EventWriterSystemSet::<HideEvent>::default())
                         .in_set(EventReaderSystemSet::<HideStationaryEvent>::default()),
                 )
@@ -73,6 +73,8 @@ pub struct ShowEvent {
     pub viewer:     viewer::Sid,
     /// The viewable to be showed.
     pub viewable:   Sid,
+    /// The parent viewable to display this object with.
+    pub parent:     Option<Sid>,
     /// The model of the viewable.
     pub appearance: appearance::Appearance,
     /// The transform for the viewable model, relative to world origin.
@@ -358,6 +360,7 @@ fn update_stationary_viewers_system(
                 let show_event = ShowEvent {
                     viewer:     viewer_sid,
                     viewable:   viewable_sid,
+                    parent:     None,
                     appearance: viewable_appearance.clone(),
                     transform:  viewable_transform.into(),
                 };
@@ -392,65 +395,64 @@ fn update_stationary_viewers_system(
 fn show_stationary_children_system(
     mut show_stationary_events: EventReader<ShowStationaryEvent>,
     mut show_events: EventWriter<ShowEvent>,
-    stationary_query: Query<(&hierarchy::Children, &Transform), With<Stationary>>,
-    child_query: Query<(&Sid, &appearance::Appearance, &Transform), With<StationaryChild>>,
+    stationary_query: Query<(&Sid, &hierarchy::Children, &Transform), With<Stationary>>,
+    mut child_query: Query<
+        (&Sid, &appearance::Appearance, &Transform, &mut Viewers),
+        With<StationaryChild>,
+    >,
     viewer_query: Query<&viewer::Sid>,
 ) {
-    show_events.send_batch(
-        show_stationary_events
-            .read()
-            .filter_map(|&ShowStationaryEvent { viewer, viewable }| {
-                let (children, &transform) = stationary_query.get(viewable).ok()?;
-                let &viewer_sid = viewer_query
-                    .get(viewer)
-                    .expect("ShowStationaryEvent contains non-viewer viewer entity");
-                Some((viewer_sid, transform, children))
-            })
-            .flat_map(|(viewer, parent_transform, children)| {
-                children.iter().map(move |&child| (viewer, parent_transform, child))
-            })
-            .filter_map(|(viewer, parent_transform, child_entity)| {
-                child_query.get(child_entity).ok().map(
-                    |(&child_sid, child_appearance, &inner_transform)| {
-                        (
-                            viewer,
-                            child_sid,
-                            child_appearance.clone(),
-                            parent_transform * inner_transform,
-                        )
-                    },
-                )
-            })
-            .map(|(viewer, child_sid, child_model, transform)| ShowEvent {
-                viewer,
-                viewable: child_sid,
-                appearance: child_model,
-                transform: transform.into(),
-            }),
-    );
+    let mut events = Vec::new();
+    for &ShowStationaryEvent { viewer: viewer_entity, viewable } in show_stationary_events.read() {
+        let Ok((&stationary_sid, children, &parent_transform)) = stationary_query.get(viewable)
+        else {
+            continue;
+        };
+        let &viewer_sid = viewer_query
+            .get(viewer_entity)
+            .expect("ShowStationaryEvent contains non-viewer viewer entity");
+
+        for &child_entity in children {
+            let Ok((&child_sid, child_appearance, &inner_transform, mut viewers)) =
+                child_query.get_mut(child_entity)
+            else {
+                continue;
+            };
+            let transform = parent_transform * inner_transform;
+            viewers.insert(viewer_entity);
+            events.push(ShowEvent {
+                viewer:     viewer_sid,
+                viewable:   child_sid,
+                parent:     Some(stationary_sid),
+                appearance: child_appearance.clone(),
+                transform:  transform.into(),
+            });
+        }
+    }
+
+    show_events.send_batch(events);
 }
 
-fn hide_viewable_system(
+fn hide_stationary_children_system(
     mut hide_stationary_events: EventReader<HideStationaryEvent>,
     mut hide_events: EventWriter<HideEvent>,
     stationary_query: Query<&hierarchy::Children, With<Stationary>>,
-    child_query: Query<&Sid, With<StationaryChild>>,
+    mut child_query: Query<(&Sid, &mut Viewers), With<StationaryChild>>,
     viewer_query: Query<&viewer::Sid>,
 ) {
-    hide_events.send_batch(
-        hide_stationary_events
-            .read()
-            .filter_map(|&HideStationaryEvent { viewer, viewable }| {
-                let children = stationary_query.get(viewable).ok()?;
-                let &viewer_sid = viewer_query
-                    .get(viewer)
-                    .expect("HideStationaryEvent contains non-viewer viewer entity");
-                Some((viewer_sid, children))
-            })
-            .flat_map(|(viewer, children)| children.iter().map(move |&child| (viewer, child)))
-            .filter_map(|(viewer, child_entity)| {
-                child_query.get(child_entity).ok().map(|&child_sid| (viewer, child_sid))
-            })
-            .map(|(viewer, child_sid)| HideEvent { viewer, viewable: child_sid }),
-    );
+    let mut events = Vec::new();
+    for &HideStationaryEvent { viewer: viewer_entity, viewable } in hide_stationary_events.read() {
+        let Ok(children) = stationary_query.get(viewable) else { continue };
+        let &viewer_sid = viewer_query
+            .get(viewer_entity)
+            .expect("HideStationaryEvent contains non-viewer viewer entity");
+
+        for &child_entity in children {
+            let Ok((&child_sid, mut viewers)) = child_query.get_mut(child_entity) else { continue };
+            viewers.remove(viewer_entity);
+            events.push(HideEvent { viewer: viewer_sid, viewable: child_sid });
+        }
+    }
+
+    hide_events.send_batch(events);
 }

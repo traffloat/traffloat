@@ -13,6 +13,7 @@ use bevy::state::state::{self};
 use bevy::text::{Text, TextSection, TextStyle};
 use bevy::ui::node_bundles::{NodeBundle, TextBundle};
 use bevy::ui::{self, Style, UiRect};
+use traffloat_base::debug;
 use typed_builder::TypedBuilder;
 
 use crate::AppState;
@@ -28,13 +29,14 @@ impl app::Plugin for Plugin {
 
         app.add_systems(app::Startup, |mut commands: Commands| {
             commands
-                .spawn(
+                .spawn((
                     DisplayGroup::builder()
                         .vertical_priority(10)
                         .id("render")
                         .label("Render")
                         .build(),
-                )
+                    debug::Bundle::new("FpsDiagnostic"),
+                ))
                 .with_children(|b| {
                     b.spawn(
                         Display::builder()
@@ -63,11 +65,13 @@ fn setup(mut commands: Commands) {
             },
             ContainerNode,
             super::Owned,
+            debug::Bundle::new("DiagnosticUi"),
         ))
         .with_children(|b| {
             b.spawn((
                 TextBundle { text: Text::from_sections([]), ..Default::default() },
                 LabelDisplay,
+                debug::Bundle::new("DiagnosticText"),
             ));
         });
 }
