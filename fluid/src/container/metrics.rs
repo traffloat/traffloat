@@ -24,7 +24,7 @@ impl<St: States + Copy> app::Plugin for Plugin<St> {
         app.add_systems(
             app::Update,
             on_new_viewer_system
-                .in_set(partition::EventWriterSystemSet::<metrics::AvailableTypeEvent>::default()),
+                .in_set(partition::EventWriterSystemSet::<metrics::NewTypeEvent>::default()),
         );
     }
 }
@@ -36,9 +36,16 @@ pub struct RegisterMetricType;
 fn on_create_type_system(world: &mut World) {
     let fluid_type = world.resource::<config::CreatedType>().get();
 
+    let display_label = {
+        let def = world
+            .get::<config::TypeDef>(fluid_type.0)
+            .expect("CreatedType should have a valid TypeDef");
+        def.display_label.clone()
+    };
+
     let metric_type = metrics::create_type(
         &mut world.commands(),
-        metrics::TypeDef { update_frequency: Duration::from_secs(2) },
+        metrics::TypeDef { update_frequency: Duration::from_secs(2), display_label },
     );
     world.flush();
 
@@ -62,24 +69,27 @@ fn on_create_type_system(world: &mut World) {
     let mut schedules = world.resource_mut::<Schedules>();
     schedules.add_systems(metrics::BroadcastSchedule, feeder);
 
+    let &metric_sid = world
+        .entity(metric_type.0)
+        .get::<metrics::Sid>()
+        .expect("metrics::create_type adds the Sid component");
+
     for viewer in world.query::<&viewer::Sid>().iter(world).copied().collect::<Vec<_>>() {
-        world.send_event(metrics::AvailableTypeEvent {
-            ty: metric_type,
-            viewer,
-            classes: HashMap::new(),
-        });
+        world.send_event(metrics::NewTypeEvent { ty: metric_sid, viewer, classes: HashMap::new() });
     }
 }
 
 fn on_new_viewer_system(
     fluid_type_query: Query<&metrics::Type, With<config::TypeDef>>,
     viewer_query: Query<&viewer::Sid, query::Added<viewer::Sid>>,
-    mut writer: EventWriter<metrics::AvailableTypeEvent>,
+    metric_type_query: Query<&metrics::Sid, With<metrics::TypeDef>>,
+    mut writer: EventWriter<metrics::NewTypeEvent>,
 ) {
     writer.send_batch(viewer_query.iter().flat_map(|&viewer| {
-        fluid_type_query.iter().map(move |&ty| metrics::AvailableTypeEvent {
+        let metric_type_query = &metric_type_query;
+        fluid_type_query.iter().map(move |&ty| metrics::NewTypeEvent {
             viewer,
-            ty,
+            ty: *metric_type_query.get(ty.0).expect("invalid metric type reference"),
             classes: HashMap::new(),
         })
     }));

@@ -6,6 +6,7 @@ use bevy::ecs::world::World;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::{debug, save};
+use traffloat_view::DisplayText;
 
 use crate::units;
 
@@ -65,6 +66,9 @@ impl CreatedType {
 /// Defines the properties of a fluid.
 #[derive(Clone, Serialize, Deserialize, JsonSchema, Component)]
 pub struct TypeDef {
+    /// Display name for the fluid type.
+    pub display_label: DisplayText,
+
     /// Viscosity coefficient.
     ///
     /// Viscosity is inversely proportional to flow rate in fluid flow

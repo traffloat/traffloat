@@ -1,17 +1,16 @@
 use bevy::app::{self, App};
 use bevy::asset::AssetServer;
-use bevy::ecs::component::Component;
-use bevy::ecs::entity::Entity;
 use bevy::ecs::event::EventReader;
 use bevy::ecs::schedule::IntoSystemConfigs;
-use bevy::ecs::system::{Commands, Res, ResMut, Resource};
+use bevy::ecs::system::{Commands, Res, ResMut};
 use bevy::hierarchy::BuildChildren;
 use bevy::prelude::SpatialBundle;
 use bevy::render;
 use bevy::transform::components::Transform;
-use bevy::utils::HashMap;
 use traffloat_base::{debug, EventReaderSystemSet};
 use traffloat_view::viewable;
+
+use super::delegate;
 
 mod infobox;
 mod layers;
@@ -32,14 +31,9 @@ impl app::Plugin for Plugin {
     }
 }
 
-/// Marks the entity as the delegate visualization for the SID.
-#[derive(Debug, Clone, Copy, Component, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct DelegateViewable(viewable::Sid);
+type DelegateViewable = delegate::Marker<viewable::Sid>;
 
-// We cannot reuse the main SidIndex because it will overlap the entities
-// if simulation is in the same world.
-#[derive(Default, Resource)]
-struct DelegateSidIndex(HashMap<viewable::Sid, Entity>);
+type DelegateSidIndex = delegate::SidIndex<viewable::Sid>;
 
 fn handle_show_system(
     mut commands: Commands,
@@ -47,41 +41,33 @@ fn handle_show_system(
     mut sid_index: ResMut<DelegateSidIndex>,
     assets: Res<AssetServer>,
 ) {
-    for ev in reader.read() {
-        let viewable_id = *sid_index
-            .0
-            .entry(ev.viewable)
-            .or_insert_with(|| spawn_object(&mut commands, ev, &assets));
+    for event in reader.read() {
+        let viewable_id = sid_index.add(
+            event.viewable,
+            &mut commands,
+            || {
+                (
+                    event.appearance.clone(),
+                    SpatialBundle {
+                        visibility: render::view::Visibility::Visible,
+                        transform: Transform::from(event.transform),
+                        ..Default::default()
+                    },
+                    infobox::object_bundle(),
+                    metrics::object_bundle(),
+                    debug::Bundle::new("DelegateViewable"),
+                )
+            },
+            |b| layers::spawn_all(b, &assets, event),
+        );
 
         commands.entity(viewable_id).insert(render::view::Visibility::Visible);
-        if let Some(parent_sid) = ev.parent {
-            if let Some(&parent_entity) = sid_index.0.get(&parent_sid) {
+        if let Some(parent_sid) = event.parent {
+            if let Some(parent_entity) = sid_index.get(parent_sid) {
                 commands.entity(parent_entity).add_child(viewable_id);
             } else {
                 bevy::log::warn!("received event with unknown parent id {parent_sid:?}");
             }
         }
     }
-}
-
-fn spawn_object(
-    commands: &mut Commands,
-    event: &viewable::ShowEvent,
-    assets: &AssetServer,
-) -> Entity {
-    let mut parent = commands.spawn((
-        DelegateViewable(event.viewable),
-        event.appearance.clone(),
-        SpatialBundle {
-            visibility: render::view::Visibility::Visible,
-            transform: Transform::from(event.transform),
-            ..Default::default()
-        },
-        infobox::object_bundle(),
-        metrics::object_bundle(),
-        debug::Bundle::new("SubscribedObject"),
-    ));
-    layers::spawn_all(&mut parent, assets, event);
-
-    parent.id()
 }

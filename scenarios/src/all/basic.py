@@ -34,10 +34,10 @@ class Fluids:
 
     def write(writer: Writer) -> Self:
         return Fluids(
-            nitrogen=fluid.Type.gas_like(28.02).write(writer),
-            oxygen=fluid.Type.gas_like(31.99).write(writer),
-            co2=fluid.Type.gas_like(44.01).write(writer),
-            water=fluid.Type.aqueous(18.02).write(writer),
+            nitrogen=fluid.Type.gas_like("Nitrogen", 28.02).write(writer),
+            oxygen=fluid.Type.gas_like("Oxygen", 31.99).write(writer),
+            co2=fluid.Type.gas_like("CO2", 44.01).write(writer),
+            water=fluid.Type.aqueous("Water", 18.02).write(writer),
         )
 
     def ambient_container(self, max_volume: float, max_pressure: float) -> FluidContainer:

@@ -6,6 +6,7 @@ use bevy::hierarchy::BuildWorldChildren;
 use bevy::state::app::{AppExtStates, StatesPlugin};
 use bevy::time::TimePlugin;
 use traffloat_base::{save, EmptyState};
+use traffloat_view::DisplayText;
 
 use super::element;
 use crate::config::{self, Scalar};
@@ -44,6 +45,7 @@ fn do_test(setup: ContainerSetup) {
             config::create_type(
                 &mut app.world_mut().commands(),
                 config::TypeDef {
+                    display_label:          DisplayText::default(),
                     viscosity:              units::Viscosity::default(), // unused
                     vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
                     critical_pressure:      fluid.critical_pressure.into(),

@@ -14,6 +14,7 @@ use crate::AppState;
 
 // mod background;
 mod camera;
+mod delegate;
 mod diagnostics;
 mod object;
 

@@ -4,19 +4,19 @@ use std::ops::RangeBounds;
 use bevy::app::{self, App};
 use bevy::asset::{AssetServer, Handle};
 use bevy::core_pipeline::core_3d::Camera3d;
+use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::{With, Without};
 use bevy::ecs::schedule::IntoSystemConfigs;
-use bevy::ecs::system::{EntityCommands, Query};
+use bevy::ecs::system::Query;
 use bevy::gltf::GltfAssetLabel;
-use bevy::hierarchy::BuildChildren;
 use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::SpatialBundle;
-use bevy::render;
 use bevy::render::mesh::Mesh;
 use bevy::state::condition::in_state;
 use bevy::transform::components::{GlobalTransform, Transform};
+use bevy::{hierarchy, render};
 use traffloat_base::debug;
 use traffloat_view::appearance::{self, Layer};
 use traffloat_view::viewable;
@@ -76,43 +76,37 @@ fn create_material_handle(
 }
 
 fn spawn_appearance_layer(
-    parent: &mut EntityCommands,
+    builder: &mut hierarchy::ChildBuilder,
     assets: &AssetServer,
     appearance: Layer,
     transform: Transform,
 ) -> Entity {
-    let mut output = None;
-    parent.with_children(|builder| {
-        let id = match appearance {
-            Layer::Null => builder
-                .spawn((
-                    SpatialBundle {
-                        transform,
-                        visibility: render::view::Visibility::Hidden,
-                        ..Default::default()
-                    },
-                    Layered,
-                    debug::Bundle::new("ObjectLayer"),
-                ))
-                .id(),
-            Layer::Pbr { mesh, material } => builder
-                .spawn((
-                    PbrBundle {
-                        mesh: create_mesh_handle(assets, mesh),
-                        material: create_material_handle(assets, material),
-                        transform,
-                        visibility: render::view::Visibility::Hidden,
-                        ..Default::default()
-                    },
-                    Layered,
-                    debug::Bundle::new("ObjectLayer"),
-                ))
-                .id(),
-        };
-        output = Some(id);
-    });
-
-    output.unwrap() // who wants to chain with_children anyway :/
+    match appearance {
+        Layer::Null => builder
+            .spawn((
+                SpatialBundle {
+                    transform,
+                    visibility: render::view::Visibility::Hidden,
+                    ..Default::default()
+                },
+                Layered,
+                debug::Bundle::new("ObjectLayer"),
+            ))
+            .id(),
+        Layer::Pbr { mesh, material } => builder
+            .spawn((
+                PbrBundle {
+                    mesh: create_mesh_handle(assets, mesh),
+                    material: create_material_handle(assets, material),
+                    transform,
+                    visibility: render::view::Visibility::Hidden,
+                    ..Default::default()
+                },
+                Layered,
+                debug::Bundle::new("ObjectLayer"),
+            ))
+            .id(),
+    }
 }
 
 pub(super) fn select_layer_system(
@@ -168,15 +162,15 @@ fn update_layer(
 }
 
 pub(super) fn spawn_all(
-    parent: &mut EntityCommands,
+    parent: &mut hierarchy::ChildBuilder,
     assets: &AssetServer,
     event: &viewable::ShowEvent,
-) {
+) -> impl Bundle {
     let distal =
         spawn_appearance_layer(parent, assets, event.appearance.distal, Transform::IDENTITY);
     let proximal =
         spawn_appearance_layer(parent, assets, event.appearance.proximal, Transform::IDENTITY);
     let interior =
         spawn_appearance_layer(parent, assets, event.appearance.interior, Transform::IDENTITY);
-    parent.insert(LayerRefs { distal, proximal, interior });
+    LayerRefs { distal, proximal, interior }
 }

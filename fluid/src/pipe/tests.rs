@@ -7,6 +7,7 @@ use bevy::state::app::{AppExtStates, StatesPlugin};
 use bevy::time::TimePlugin;
 use traffloat_base::{save, EmptyState};
 use traffloat_graph::corridor::Binary;
+use traffloat_view::DisplayText;
 use typed_builder::TypedBuilder;
 
 use crate::config::{self, Scalar};
@@ -59,6 +60,7 @@ fn do_test(setup: Setup) {
             config::create_type(
                 &mut app.world_mut().commands(),
                 config::TypeDef {
+                    display_label:          DisplayText::default(),
                     viscosity:              element.viscosity,
                     vacuum_specific_volume: element.vacuum_specific_volume,
                     critical_pressure:      element.critical_pressure,

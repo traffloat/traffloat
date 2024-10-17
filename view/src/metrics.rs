@@ -24,17 +24,20 @@ use serde_json::Value as JsonValue;
 use traffloat_base::debug;
 use traffloat_base::partition::AppExt;
 
-use crate::{viewable, viewer};
+use crate::{viewable, viewer, DisplayText};
 
 #[cfg(test)]
 mod tests;
+
+sid_alias!("metric");
 
 pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
+        SidIndex::init(app.world_mut());
         app.add_partitioned_event::<UpdateMetricEvent>();
-        app.add_partitioned_event::<AvailableTypeEvent>();
+        app.add_partitioned_event::<NewTypeEvent>();
         app.add_partitioned_event::<RequestSubscribeEvent>();
         app.init_schedule(BroadcastSchedule);
         app.add_systems(app::Update, admit_subscription_system);
@@ -67,10 +70,12 @@ impl Command for CreateTypeCommand {
         let sub_comp_id =
             register_dynamic_component::<Subscription>(world, self.ty, StorageType::SparseSet);
 
+        let sid = next_sid(world);
         world.entity_mut(self.ty.0).insert((
             SubscriberComponentId(sub_comp_id),
             ValueComponentId(value_comp_id),
             self.def,
+            sid,
             debug::Bundle::new("ViewType"),
         ));
 
@@ -100,6 +105,8 @@ struct ValueComponentId(ComponentId);
 pub struct TypeDef {
     /// The period between broadcasts of the metric value to viewers.
     pub update_frequency: Duration,
+    /// The display name of this metric type.
+    pub display_label:    DisplayText,
 }
 
 /// A [`SystemParam`] to access the registered metric types.
@@ -158,20 +165,22 @@ pub struct RequestSubscribeEvent {
     /// Viewer requesting subscription.
     pub viewer: viewer::Sid,
     /// Metric type to subscribe to.
-    pub ty:     Type,
+    pub ty:     Sid,
 }
 
 fn admit_subscription_system(
     mut commands: Commands,
     viewers: Res<viewer::SidIndex>,
     mut events: EventReader<RequestSubscribeEvent>,
+    metrics: Res<SidIndex>,
 ) {
     for ev in events.read() {
         // TODO authz
         let Some(viewer) = viewers.get(ev.viewer) else { continue };
+        let Some(metric) = metrics.get(ev.ty) else { continue };
         commands.push(SubscribeCommand {
             viewer,
-            ty: ev.ty,
+            ty: Type(metric),
             subscription: Subscription { noise_sd: 0. },
         });
     }
@@ -226,11 +235,11 @@ impl Command for UnsubscribeCommand {
 
 /// Notifies the viewer that a new metric type is available for subscription.
 #[derive(Debug, Event)]
-pub struct AvailableTypeEvent {
+pub struct NewTypeEvent {
     /// The viewer to be notified.
     pub viewer:  viewer::Sid,
     /// The type of metric that can be subscribed.
-    pub ty:      Type,
+    pub ty:      Sid,
     /// Metadata describing the type.
     pub classes: HashMap<MetadataKey, JsonValue>,
 }

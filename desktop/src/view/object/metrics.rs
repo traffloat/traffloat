@@ -36,7 +36,7 @@ struct Known(BTreeMap<view_metrics::Type, f32>);
 pub(super) fn object_bundle() -> impl Bundle { (Known(BTreeMap::new()),) }
 
 fn subscribe_new_metrics_system(
-    mut reader: EventReader<view_metrics::AvailableTypeEvent>,
+    mut reader: EventReader<view_metrics::NewTypeEvent>,
     mut sender: EventWriter<view_metrics::RequestSubscribeEvent>,
 ) {
     for ev in reader.read() {
@@ -50,7 +50,7 @@ fn handle_metric_update_system(
     mut viewable_query: Query<&mut Known, With<DelegateViewable>>,
 ) {
     for ev in reader.read() {
-        let Some(&viewable_entity) = sid_index.0.get(&ev.viewable) else { continue };
+        let Some(viewable_entity) = sid_index.get(ev.viewable) else { continue };
         let mut known =
             viewable_query.get_mut(viewable_entity).expect("sid_index refers to invalid viewable");
         known.0.insert(ev.ty, ev.magnitude);

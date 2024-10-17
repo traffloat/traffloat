@@ -15,7 +15,7 @@ use super::{
     UpdateMetricEvent,
 };
 use crate::viewable::{self, ShowEvent};
-use crate::{appearance, viewer};
+use crate::{appearance, viewer, DisplayText};
 
 #[test]
 fn report() {
@@ -60,11 +60,17 @@ fn setup_world(app: &mut App) -> WorldSetup {
 
     let ty1 = create_type(
         &mut app.world_mut().commands(),
-        TypeDef { update_frequency: Duration::from_secs(5) },
+        TypeDef {
+            update_frequency: Duration::from_secs(5),
+            display_label:    DisplayText::default(),
+        },
     );
     let ty2 = create_type(
         &mut app.world_mut().commands(),
-        TypeDef { update_frequency: Duration::from_secs(2) },
+        TypeDef {
+            update_frequency: Duration::from_secs(2),
+            display_label:    DisplayText::default(),
+        },
     );
 
     app.world_mut().flush();
