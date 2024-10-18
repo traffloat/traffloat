@@ -45,7 +45,10 @@ fn on_create_type_system(world: &mut World) {
 
     let metric_type = metrics::create_type(
         &mut world.commands(),
-        metrics::TypeDef { update_frequency: Duration::from_secs(2), display_label },
+        metrics::TypeDef {
+            update_frequency: Duration::from_secs(2),
+            display_label:    display_label.clone(),
+        },
     );
     world.flush();
 
@@ -75,22 +78,36 @@ fn on_create_type_system(world: &mut World) {
         .expect("metrics::create_type adds the Sid component");
 
     for viewer in world.query::<&viewer::Sid>().iter(world).copied().collect::<Vec<_>>() {
-        world.send_event(metrics::NewTypeEvent { ty: metric_sid, viewer, classes: HashMap::new() });
+        world.send_event(metrics::NewTypeEvent {
+            ty: metric_sid,
+            viewer,
+            data: metrics::ClientTypeData {
+                display_label: display_label.clone(),
+                metadata:      HashMap::new(),
+            },
+        });
     }
 }
 
 fn on_new_viewer_system(
     fluid_type_query: Query<&metrics::Type, With<config::TypeDef>>,
     viewer_query: Query<&viewer::Sid, query::Added<viewer::Sid>>,
-    metric_type_query: Query<&metrics::Sid, With<metrics::TypeDef>>,
+    metric_type_query: Query<(&metrics::TypeDef, &metrics::Sid), With<metrics::TypeDef>>,
     mut writer: EventWriter<metrics::NewTypeEvent>,
 ) {
     writer.send_batch(viewer_query.iter().flat_map(|&viewer| {
         let metric_type_query = &metric_type_query;
-        fluid_type_query.iter().map(move |&ty| metrics::NewTypeEvent {
-            viewer,
-            ty: *metric_type_query.get(ty.0).expect("invalid metric type reference"),
-            classes: HashMap::new(),
+        fluid_type_query.iter().map(move |&ty| {
+            let (ty_def, &ty_sid) =
+                metric_type_query.get(ty.0).expect("invalid metric type reference");
+            metrics::NewTypeEvent {
+                viewer,
+                ty: ty_sid,
+                data: metrics::ClientTypeData {
+                    display_label: ty_def.display_label.clone(),
+                    metadata:      HashMap::new(),
+                },
+            }
         })
     }));
 }

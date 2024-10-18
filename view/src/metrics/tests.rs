@@ -172,7 +172,10 @@ fn check_world(
             .map(|event| (event.ty, event.magnitude))
             .collect();
 
-        let actual = [setup.ty1, setup.ty2].map(|ty| metric_events.get(&ty).copied());
+        let actual = [setup.ty1, setup.ty2].map(|ty| {
+            let sid = world.get::<super::Sid>(ty.0).unwrap();
+            metric_events.get(sid).copied()
+        });
 
         let value_generator = world.resource::<ValueGenerator>();
 

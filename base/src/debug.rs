@@ -1,5 +1,7 @@
 //! Debugging utilities.
 
+use std::borrow::Cow;
+
 use bevy::ecs::bundle;
 
 /// Debug info for an entity.
@@ -10,12 +12,16 @@ pub struct Bundle {
 }
 
 impl Bundle {
-    /// Provide name info fo an entity.
+    /// Provide name info of an entity.
     #[must_use]
-    pub fn new(_name: &'static str) -> Bundle {
+    pub fn new(name: &'static str) -> Bundle { Self::new_with(|| name) }
+
+    /// Provide name info of an entity on demand.
+    #[must_use]
+    pub fn new_with<Name: Into<Cow<'static, str>>>(_name: impl FnOnce() -> Name) -> Bundle {
         Bundle {
             #[cfg(feature = "entity-names")]
-            name:                                  bevy::core::Name::new(_name),
+            name:                                  bevy::core::Name::new(_name()),
         }
     }
 }

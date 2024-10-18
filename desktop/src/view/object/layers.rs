@@ -21,7 +21,7 @@ use traffloat_base::debug;
 use traffloat_view::appearance::{self, Layer};
 use traffloat_view::viewable;
 
-use super::DelegateViewable;
+use crate::view::delegate;
 use crate::AppState;
 
 pub(super) struct Plugin;
@@ -117,7 +117,7 @@ pub(super) fn select_layer_system(
             &LayerRefs,
             &GlobalTransform,
         ),
-        (With<DelegateViewable>, Without<Layered>),
+        (With<delegate::Marker<viewable::Sid>>, Without<Layered>),
     >,
     mut layer_query: Query<&mut render::view::Visibility, With<Layered>>,
     camera_query: Query<&GlobalTransform, With<Camera3d>>,

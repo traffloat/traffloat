@@ -79,7 +79,8 @@ impl Command for CreateTypeCommand {
             debug::Bundle::new("ViewType"),
         ));
 
-        let value_broadcast_system = make_value_broadcast_system(world, self.ty);
+        let value_broadcast_system =
+            make_value_broadcast_system(world, self.ty, sub_comp_id, value_comp_id, sid);
         world.resource_mut::<Schedules>().add_systems(BroadcastSchedule, value_broadcast_system);
     }
 }
@@ -237,11 +238,21 @@ impl Command for UnsubscribeCommand {
 #[derive(Debug, Event)]
 pub struct NewTypeEvent {
     /// The viewer to be notified.
-    pub viewer:  viewer::Sid,
+    pub viewer: viewer::Sid,
     /// The type of metric that can be subscribed.
-    pub ty:      Sid,
+    pub ty:     Sid,
+    /// Generic metaadata.
+    pub data:   ClientTypeData,
+}
+
+/// Data of a type visible to clients.
+#[derive(Debug, Clone, Component)]
+pub struct ClientTypeData {
+    /// Display label of the metric type.
+    pub display_label: DisplayText,
+
     /// Metadata describing the type.
-    pub classes: HashMap<MetadataKey, JsonValue>,
+    pub metadata: HashMap<MetadataKey, JsonValue>,
 }
 
 /// Schedule in which value feeder and broadcast systems are run.
@@ -256,7 +267,7 @@ pub struct UpdateMetricEvent {
     /// The viewable that the metric is updated for.
     pub viewable:  viewable::Sid,
     /// The type of metric updated.
-    pub ty:        Type,
+    pub ty:        Sid,
     /// The updated metric magnitude, with noise included.
     pub magnitude: f32,
 }
@@ -445,15 +456,13 @@ impl EntityCommand for InitValueCommand {
     }
 }
 
-fn make_value_broadcast_system(world: &mut World, ty: Type) -> SystemConfigs {
-    let &SubscriberComponentId(subscriber_comp_id) = world
-        .entity(ty.0)
-        .get::<SubscriberComponentId>()
-        .expect("metrics::Type refers to a non-metric or uninitialized entity");
-    let &ValueComponentId(value_comp_id) = world
-        .entity(ty.0)
-        .get::<ValueComponentId>()
-        .expect("metrics::Type refers to a non-metric or uninitialized entity");
+fn make_value_broadcast_system(
+    world: &mut World,
+    ty: Type,
+    subscriber_comp_id: ComponentId,
+    value_comp_id: ComponentId,
+    metric_sid: Sid,
+) -> SystemConfigs {
     let def = world
         .entity(ty.0)
         .get::<TypeDef>()
@@ -502,9 +511,9 @@ fn make_value_broadcast_system(world: &mut World, ty: Type) -> SystemConfigs {
                         // Safety: subscription component must have type Subscription
                         let &Subscription { noise_sd } = unsafe { sub_ptr.deref::<Subscription>() };
                         Some(move |z: f32| UpdateMetricEvent {
-                            viewer: viewer_sid,
-                            viewable: viewable_sid,
-                            ty,
+                            viewer:    viewer_sid,
+                            viewable:  viewable_sid,
+                            ty:        metric_sid,
                             magnitude: magnitude + z * noise_sd,
                         })
                     })

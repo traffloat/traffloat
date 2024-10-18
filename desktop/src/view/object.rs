@@ -20,7 +20,7 @@ pub(crate) struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<DelegateSidIndex>();
+        app.init_resource::<delegate::SidIndex<viewable::Sid>>();
 
         app.add_plugins((infobox::Plugin, layers::Plugin, metrics::Plugin));
 
@@ -31,14 +31,10 @@ impl app::Plugin for Plugin {
     }
 }
 
-type DelegateViewable = delegate::Marker<viewable::Sid>;
-
-type DelegateSidIndex = delegate::SidIndex<viewable::Sid>;
-
 fn handle_show_system(
     mut commands: Commands,
     mut reader: EventReader<viewable::ShowEvent>,
-    mut sid_index: ResMut<DelegateSidIndex>,
+    mut sid_index: ResMut<delegate::SidIndex<viewable::Sid>>,
     assets: Res<AssetServer>,
 ) {
     for event in reader.read() {

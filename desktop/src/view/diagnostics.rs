@@ -38,13 +38,14 @@ impl app::Plugin for Plugin {
                     debug::Bundle::new("FpsDiagnostic"),
                 ))
                 .with_children(|b| {
-                    b.spawn(
+                    b.spawn((
                         Display::builder()
                             .horizontal_priority(0)
                             .label("FPS")
                             .target(FrameTimeDiagnosticsPlugin::FPS)
                             .build(),
-                    );
+                        debug::Bundle::new("DiagnosticDisplay"),
+                    ));
                 });
         });
     }

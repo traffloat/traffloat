@@ -20,8 +20,10 @@ use bevy_mod_picking::PickableBundle;
 use traffloat_base::debug;
 use traffloat_base::partition::AppExt;
 use traffloat_view::appearance::Appearance;
+use traffloat_view::viewable;
 
-use super::{metrics, DelegateViewable};
+use super::metrics;
+use crate::view::delegate;
 use crate::{view, AppState};
 
 type Depth = u16;
@@ -45,8 +47,8 @@ fn setup(mut commands: Commands) {
     commands.spawn((
         NodeBundle {
             style: Style {
-                width: ui::Val::Px(150.),
-                height: ui::Val::Px(250.),
+                width: ui::Val::Px(200.),
+                height: ui::Val::Px(300.),
                 justify_self: ui::JustifySelf::End,
                 align_self: ui::AlignSelf::End,
                 border: UiRect::all(ui::Val::Px(5.)),
@@ -87,7 +89,10 @@ fn update_hierarchy_system(
     focus: Res<Focus>,
     root_info_query: Query<Entity, With<RootInfo>>,
     container_query: Query<Entity, With<ContainerNode>>,
-    viewable_children_query: Query<Option<&hierarchy::Children>, With<DelegateViewable>>,
+    viewable_children_query: Query<
+        Option<&hierarchy::Children>,
+        With<delegate::Marker<viewable::Sid>>,
+    >,
 ) {
     // drain all events
     if focus_change_events.read().count() == 0 {
@@ -118,7 +123,10 @@ fn spawn_hierarchy(
     commands: &mut Commands,
     parent_entity: Entity,
     viewable_entity: Entity,
-    viewable_children_query: &Query<Option<&hierarchy::Children>, With<DelegateViewable>>,
+    viewable_children_query: &Query<
+        Option<&hierarchy::Children>,
+        With<delegate::Marker<viewable::Sid>>,
+    >,
     depth: Depth,
 ) -> Option<Entity> {
     if depth >= HIERARCHY_LAYERS {
@@ -132,7 +140,11 @@ fn spawn_hierarchy(
         .spawn((
             ViewableInfo(viewable_entity),
             NodeBundle {
-                style: Style { flex_direction: ui::FlexDirection::Column, ..Default::default() },
+                style: Style {
+                    flex_direction: ui::FlexDirection::Column,
+                    margin: UiRect::ZERO.with_top(ui::Val::Px(3.)),
+                    ..Default::default()
+                },
                 ..Default::default()
             },
             debug::Bundle::new("Infobox/Viewable"),
@@ -198,7 +210,7 @@ fn update_box_visibility_system(
 
 fn update_viewable_label_system(
     mut viewable_info_query: Query<(&ViewableInfo, &mut Text), With<LabelDisplay>>,
-    object_query: Query<&Appearance, With<DelegateViewable>>,
+    object_query: Query<&Appearance, With<delegate::Marker<viewable::Sid>>>,
 ) {
     for (&ViewableInfo(viewable_entity), mut display) in &mut viewable_info_query {
         if let Ok(appearance) = object_query.get(viewable_entity) {
@@ -245,7 +257,7 @@ fn on_object_over(
     event: Listener<Pointer<pick::Over>>,
     mut focus: ResMut<Focus>,
     parent_query: Query<&hierarchy::Parent>,
-    delegate_query: Query<(), With<DelegateViewable>>,
+    delegate_query: Query<(), With<delegate::Marker<viewable::Sid>>>,
     mut focus_change_writer: EventWriter<FocusChangeEvent>,
 ) {
     if let FocusType::Hover = focus.focus_type {
@@ -264,7 +276,7 @@ fn on_object_out(
     event: Listener<Pointer<pick::Out>>,
     mut focus: ResMut<Focus>,
     parent_query: Query<&hierarchy::Parent>,
-    delegate_query: Query<(), With<DelegateViewable>>,
+    delegate_query: Query<(), With<delegate::Marker<viewable::Sid>>>,
     mut focus_change_writer: EventWriter<FocusChangeEvent>,
 ) {
     if let FocusType::Hover = focus.focus_type {

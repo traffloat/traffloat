@@ -33,6 +33,15 @@ impl DisplayText {
             }
         }
     }
+
+    /// Formats the output as a string.
+    ///
+    /// Signature may change in the future when we support i18n.
+    pub fn to_string(&self) -> String {
+        let mut output = String::new();
+        self.render(&mut output);
+        output
+    }
 }
 
 impl Default for DisplayText {
