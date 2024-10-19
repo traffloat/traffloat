@@ -16,6 +16,10 @@ pub use text::DisplayText;
 pub mod metrics;
 pub mod viewable;
 pub mod viewer;
+pub use viewer::{
+    C2sMessage, C2sMessageEvent, C2sMessageReader, C2sMessageWriter, S2cMessage, S2cMessageEvent,
+    S2cMessageReader, S2cMessageWriter,
+};
 
 /// Initializes the view framework.
 pub struct Plugin;

@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use bevy::app::{self, App};
+use bevy::ecs::entity::Entity;
 use bevy::ecs::event::{Event, Events, ManualEventReader};
 use bevy::ecs::system::{Res, Resource};
 use bevy::ecs::world::{Command, World};
@@ -12,10 +13,10 @@ use bevy::utils::HashMap;
 
 use super::{
     create_type, make_value_feeder_system, SubscribeCommand, Subscription, Type, TypeDef,
-    UpdateMetricEvent,
+    UpdateMetricMessage,
 };
-use crate::viewable::{self, ShowEvent};
-use crate::{appearance, viewer, DisplayText};
+use crate::viewable::{self, ShowMessage};
+use crate::{appearance, viewer, DisplayText, S2cMessageEvent};
 
 #[test]
 fn report() {
@@ -23,8 +24,8 @@ fn report() {
     app.add_plugins(crate::Plugin);
     let setup = setup_world(&mut app);
 
-    let mut show_event_reader = event_reader::<ShowEvent>(app.world());
-    let mut metric_event_reader = event_reader::<UpdateMetricEvent>(app.world());
+    let mut show_event_reader = event_reader::<S2cMessageEvent<ShowMessage>>(app.world());
+    let mut metric_event_reader = event_reader::<S2cMessageEvent<UpdateMetricMessage>>(app.world());
 
     for time in 0_u16..12 {
         prepare_update(app.world_mut(), time);
@@ -42,7 +43,7 @@ fn report() {
 struct WorldSetup {
     ty1:                Type,
     ty2:                Type,
-    viewer_id:          viewer::Sid,
+    viewer:             Entity,
     parent_viewable_id: viewable::Sid,
     child_viewable_id:  viewable::Sid,
 }
@@ -97,12 +98,10 @@ fn setup_world(app: &mut App) -> WorldSetup {
     );
     app.add_systems(app::Update, feeders);
 
-    let viewer_id = viewer::next_sid(app.world_mut());
     let viewer = app
         .world_mut()
         .spawn(
             viewer::Bundle::builder()
-                .id(viewer_id)
                 .range(viewer::Range { distance: 100. })
                 .position(Transform { translation: Vec3::ZERO, ..Default::default() })
                 .build(),
@@ -143,7 +142,7 @@ fn setup_world(app: &mut App) -> WorldSetup {
     SubscribeCommand { viewer, ty: ty2, subscription: Subscription { noise_sd: 0. } }
         .apply(app.world_mut());
 
-    WorldSetup { ty1, ty2, viewer_id, parent_viewable_id, child_viewable_id }
+    WorldSetup { ty1, ty2, viewer, parent_viewable_id, child_viewable_id }
 }
 
 fn prepare_update(world: &mut World, time: u16) {
@@ -152,24 +151,24 @@ fn prepare_update(world: &mut World, time: u16) {
 fn check_world(
     world: &mut World,
     setup: &WorldSetup,
-    show_event_reader: &mut ManualEventReader<ShowEvent>,
-    metric_event_reader: &mut ManualEventReader<UpdateMetricEvent>,
+    show_event_reader: &mut ManualEventReader<S2cMessageEvent<ShowMessage>>,
+    metric_event_reader: &mut ManualEventReader<S2cMessageEvent<UpdateMetricMessage>>,
     time: u16,
 ) {
     let show_events: Vec<_> = get_events(world, show_event_reader).collect();
     if time == 0 {
         assert_eq!(show_events.len(), 2);
-        assert_eq!(show_events[0].viewer, setup.viewer_id);
-        assert_eq!(show_events[0].viewable, setup.parent_viewable_id);
-        assert_eq!(show_events[1].viewer, setup.viewer_id);
-        assert_eq!(show_events[1].viewable, setup.child_viewable_id);
+        assert_eq!(show_events[0].viewer, setup.viewer);
+        assert_eq!(show_events[0].message.viewable, setup.parent_viewable_id);
+        assert_eq!(show_events[1].viewer, setup.viewer);
+        assert_eq!(show_events[1].message.viewable, setup.child_viewable_id);
     } else {
         assert_eq!(show_events.len(), 0);
     }
 
     {
         let metric_events: HashMap<_, _> = get_events(world, metric_event_reader)
-            .map(|event| (event.ty, event.magnitude))
+            .map(|event| (event.message.ty, event.message.magnitude))
             .collect();
 
         let actual = [setup.ty1, setup.ty2].map(|ty| {

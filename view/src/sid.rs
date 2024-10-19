@@ -25,6 +25,8 @@ macro_rules! sid_alias {
             bevy::ecs::component::Component,
             derive_more::From,
             derive_more::Into,
+            serde::Serialize,
+            serde::Deserialize,
         )]
         pub struct Sid(u32);
 

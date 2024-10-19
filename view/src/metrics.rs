@@ -8,7 +8,6 @@ use std::{alloc, iter, mem};
 use bevy::app::{self, App};
 use bevy::ecs::component::{Component, ComponentDescriptor, ComponentId, StorageType};
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::{Event, EventReader, EventWriter};
 use bevy::ecs::query::{QueryData, QueryFilter};
 use bevy::ecs::schedule::{IntoSystemConfigs, ScheduleLabel, Schedules, SystemConfigs, SystemSet};
 use bevy::ecs::system::{
@@ -20,11 +19,15 @@ use bevy::time::{Time, Timer, TimerMode};
 use bevy::utils::HashMap;
 use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use traffloat_base::debug;
 use traffloat_base::partition::AppExt;
 
-use crate::{viewable, viewer, DisplayText};
+use crate::{
+    viewable, C2sMessage, C2sMessageEvent, C2sMessageReader, DisplayText, S2cMessage,
+    S2cMessageEvent, S2cMessageWriter,
+};
 
 #[cfg(test)]
 mod tests;
@@ -36,9 +39,9 @@ pub(crate) struct Plugin;
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         SidIndex::init(app.world_mut());
-        app.add_partitioned_event::<UpdateMetricEvent>();
-        app.add_partitioned_event::<NewTypeEvent>();
-        app.add_partitioned_event::<RequestSubscribeEvent>();
+        app.add_partitioned_event::<S2cMessageEvent<UpdateMetricMessage>>();
+        app.add_partitioned_event::<S2cMessageEvent<NewTypeMessage>>();
+        app.add_partitioned_event::<C2sMessageEvent<RequestSubscribeMessage>>();
         app.init_schedule(BroadcastSchedule);
         app.add_systems(app::Update, admit_subscription_system);
         app.add_systems(app::PostUpdate, |world: &mut World| world.run_schedule(BroadcastSchedule));
@@ -86,7 +89,7 @@ impl Command for CreateTypeCommand {
 }
 
 /// Metadata identifying a metric type, used for clients to support custom logic.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct MetadataKey(pub Cow<'static, str>);
 
 impl MetadataKey {
@@ -161,27 +164,25 @@ fn register_dynamic_component<T>(world: &mut World, ty: Type, storage: StorageTy
 }
 
 /// A viewer requests to start subscribing to a metric.
-#[derive(Debug, Event)]
-pub struct RequestSubscribeEvent {
-    /// Viewer requesting subscription.
-    pub viewer: viewer::Sid,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RequestSubscribeMessage {
     /// Metric type to subscribe to.
-    pub ty:     Sid,
+    pub ty: Sid,
 }
+
+impl C2sMessage for RequestSubscribeMessage {}
 
 fn admit_subscription_system(
     mut commands: Commands,
-    viewers: Res<viewer::SidIndex>,
-    mut events: EventReader<RequestSubscribeEvent>,
+    mut events: C2sMessageReader<RequestSubscribeMessage>,
     metrics: Res<SidIndex>,
 ) {
     for ev in events.read() {
         // TODO authz
-        let Some(viewer) = viewers.get(ev.viewer) else { continue };
-        let Some(metric) = metrics.get(ev.ty) else { continue };
+        let Some(metric) = metrics.get(ev.message.ty) else { continue };
         commands.push(SubscribeCommand {
-            viewer,
-            ty: Type(metric),
+            viewer:       ev.viewer,
+            ty:           Type(metric),
             subscription: Subscription { noise_sd: 0. },
         });
     }
@@ -235,18 +236,18 @@ impl Command for UnsubscribeCommand {
 }
 
 /// Notifies the viewer that a new metric type is available for subscription.
-#[derive(Debug, Event)]
-pub struct NewTypeEvent {
-    /// The viewer to be notified.
-    pub viewer: viewer::Sid,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NewTypeMessage {
     /// The type of metric that can be subscribed.
-    pub ty:     Sid,
+    pub ty:   Sid,
     /// Generic metaadata.
-    pub data:   ClientTypeData,
+    pub data: ClientTypeData,
 }
 
+impl S2cMessage for NewTypeMessage {}
+
 /// Data of a type visible to clients.
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct ClientTypeData {
     /// Display label of the metric type.
     pub display_label: DisplayText,
@@ -260,10 +261,8 @@ pub struct ClientTypeData {
 pub struct BroadcastSchedule;
 
 /// Notifies a viewer that a metric has been updated.
-#[derive(Debug, Event)]
-pub struct UpdateMetricEvent {
-    /// The viewer to be notified.
-    pub viewer:    viewer::Sid,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateMetricMessage {
     /// The viewable that the metric is updated for.
     pub viewable:  viewable::Sid,
     /// The type of metric updated.
@@ -271,6 +270,8 @@ pub struct UpdateMetricEvent {
     /// The updated metric magnitude, with noise included.
     pub magnitude: f32,
 }
+
+impl S2cMessage for UpdateMetricMessage {}
 
 /// A system set to expose the value feeder system for a specific type.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
@@ -470,10 +471,9 @@ fn make_value_broadcast_system(
 
     let mut timer = Timer::new(def.update_frequency, TimerMode::Repeating);
 
-    SystemBuilder::<(Res<Time>, EventWriter<UpdateMetricEvent>)>::new(world)
+    SystemBuilder::<(Res<Time>, S2cMessageWriter<UpdateMetricMessage>)>::new(world)
         .builder::<Query<FilteredEntityMut>>(|builder| {
             builder.ref_id(subscriber_comp_id);
-            builder.data::<&viewer::Sid>();
         })
         .builder::<Query<FilteredEntityMut>>(|builder| {
             builder.ref_id(value_comp_id);
@@ -482,7 +482,7 @@ fn make_value_broadcast_system(
         })
         .build(
             move |time: Res<Time>,
-                  mut events: EventWriter<UpdateMetricEvent>,
+                  mut events: S2cMessageWriter<UpdateMetricMessage>,
                   viewers_query: Query<FilteredEntityMut>,
                   viewables_query: Query<FilteredEntityMut>| {
                 timer.tick(time.delta());
@@ -504,17 +504,17 @@ fn make_value_broadcast_system(
                         let viewer_fem = viewers_query.get(viewer_entity).ok()?;
                         let sub_ptr =
                             viewer_fem.get_by_id(subscriber_comp_id).expect("requested in query");
-                        let viewer_sid =
-                            *viewer_fem.get::<viewer::Sid>().expect("requested in query");
                         let viewable_sid =
                             *viewable_fem.get::<viewable::Sid>().expect("requested in query");
                         // Safety: subscription component must have type Subscription
                         let &Subscription { noise_sd } = unsafe { sub_ptr.deref::<Subscription>() };
-                        Some(move |z: f32| UpdateMetricEvent {
-                            viewer:    viewer_sid,
-                            viewable:  viewable_sid,
-                            ty:        metric_sid,
-                            magnitude: magnitude + z * noise_sd,
+                        Some(move |z: f32| S2cMessageEvent {
+                            viewer:  viewer_entity,
+                            message: UpdateMetricMessage {
+                                viewable:  viewable_sid,
+                                ty:        metric_sid,
+                                magnitude: magnitude + z * noise_sd,
+                            },
                         })
                     })
                 });

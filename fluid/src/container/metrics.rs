@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bevy::app::{self, App};
-use bevy::ecs::event::EventWriter;
+use bevy::ecs::entity::Entity;
 use bevy::ecs::query::{self, With};
 use bevy::ecs::schedule::{IntoSystemConfigs, Schedules, SystemSet};
 use bevy::ecs::system::Query;
@@ -9,8 +9,8 @@ use bevy::ecs::world::World;
 use bevy::hierarchy;
 use bevy::state::state::States;
 use bevy::utils::HashMap;
-use traffloat_base::partition;
-use traffloat_view::{metrics, viewer};
+use traffloat_view::viewer::S2cMessageWriterSystemSet;
+use traffloat_view::{metrics, viewer, S2cMessageEvent, S2cMessageWriter};
 
 use super::element;
 use crate::config;
@@ -24,7 +24,7 @@ impl<St: States + Copy> app::Plugin for Plugin<St> {
         app.add_systems(
             app::Update,
             on_new_viewer_system
-                .in_set(partition::EventWriterSystemSet::<metrics::NewTypeEvent>::default()),
+                .in_set(S2cMessageWriterSystemSet::<metrics::NewTypeMessage>::default()),
         );
     }
 }
@@ -77,13 +77,20 @@ fn on_create_type_system(world: &mut World) {
         .get::<metrics::Sid>()
         .expect("metrics::create_type adds the Sid component");
 
-    for viewer in world.query::<&viewer::Sid>().iter(world).copied().collect::<Vec<_>>() {
-        world.send_event(metrics::NewTypeEvent {
-            ty: metric_sid,
+    let viewers = world
+        .query::<(Entity, &viewer::Marker)>()
+        .iter(world)
+        .map(|(viewer, _)| viewer)
+        .collect::<Vec<_>>();
+    for viewer in viewers {
+        world.send_event(S2cMessageEvent {
             viewer,
-            data: metrics::ClientTypeData {
-                display_label: display_label.clone(),
-                metadata:      HashMap::new(),
+            message: metrics::NewTypeMessage {
+                ty:   metric_sid,
+                data: metrics::ClientTypeData {
+                    display_label: display_label.clone(),
+                    metadata:      HashMap::new(),
+                },
             },
         });
     }
@@ -91,21 +98,23 @@ fn on_create_type_system(world: &mut World) {
 
 fn on_new_viewer_system(
     fluid_type_query: Query<&metrics::Type, With<config::TypeDef>>,
-    viewer_query: Query<&viewer::Sid, query::Added<viewer::Sid>>,
+    viewer_query: Query<Entity, query::Added<viewer::Marker>>,
     metric_type_query: Query<(&metrics::TypeDef, &metrics::Sid), With<metrics::TypeDef>>,
-    mut writer: EventWriter<metrics::NewTypeEvent>,
+    mut writer: S2cMessageWriter<metrics::NewTypeMessage>,
 ) {
-    writer.send_batch(viewer_query.iter().flat_map(|&viewer| {
+    writer.send_batch(viewer_query.iter().flat_map(|viewer| {
         let metric_type_query = &metric_type_query;
         fluid_type_query.iter().map(move |&ty| {
             let (ty_def, &ty_sid) =
                 metric_type_query.get(ty.0).expect("invalid metric type reference");
-            metrics::NewTypeEvent {
+            S2cMessageEvent {
                 viewer,
-                ty: ty_sid,
-                data: metrics::ClientTypeData {
-                    display_label: ty_def.display_label.clone(),
-                    metadata:      HashMap::new(),
+                message: metrics::NewTypeMessage {
+                    ty:   ty_sid,
+                    data: metrics::ClientTypeData {
+                        display_label: ty_def.display_label.clone(),
+                        metadata:      HashMap::new(),
+                    },
                 },
             }
         })

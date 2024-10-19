@@ -6,7 +6,7 @@ use bevy::app::{self, App};
 use bevy::ecs::bundle;
 use bevy::ecs::component::{Component, ComponentId};
 use bevy::ecs::entity::{Entity, EntityHashSet};
-use bevy::ecs::event::{Event, EventReader, EventWriter, Events};
+use bevy::ecs::event::{Event, EventReader, EventWriter};
 use bevy::ecs::query::With;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Query, Res, ResMut, Resource};
@@ -18,11 +18,13 @@ use bevy::transform::components::Transform;
 use bevy::utils::HashSet;
 use either::Either;
 use kd_tree::KdTree3;
+use serde::{Deserialize, Serialize};
 use traffloat_base::partition::{AppExt, EventReaderSystemSet, EventWriterSystemSet};
 use traffloat_base::proto;
 use typed_builder::TypedBuilder;
 
-use crate::{appearance, viewer};
+use crate::viewer::{S2cMessageEvent, S2cMessageWriterSystemSet};
+use crate::{appearance, viewer, S2cMessage};
 
 sid_alias!("viewable");
 
@@ -32,9 +34,9 @@ impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         SidIndex::init(app.world_mut());
 
-        app.add_partitioned_event::<ShowEvent>();
+        app.add_partitioned_event::<S2cMessageEvent<ShowMessage>>();
         app.add_partitioned_event::<ShowStationaryEvent>();
-        app.add_partitioned_event::<HideEvent>();
+        app.add_partitioned_event::<S2cMessageEvent<HideMessage>>();
         app.add_partitioned_event::<HideStationaryEvent>();
 
         app.insert_resource(SpatialIndex { kdtree: None });
@@ -44,16 +46,16 @@ impl app::Plugin for Plugin {
                 update_spatial_index_system,
                 update_stationary_viewers_system
                     .after(update_spatial_index_system)
-                    .in_set(EventWriterSystemSet::<ShowEvent>::default())
+                    .in_set(S2cMessageWriterSystemSet::<ShowMessage>::default())
                     .in_set(EventWriterSystemSet::<ShowStationaryEvent>::default())
-                    .in_set(EventWriterSystemSet::<HideEvent>::default())
+                    .in_set(S2cMessageWriterSystemSet::<HideMessage>::default())
                     .in_set(EventWriterSystemSet::<HideStationaryEvent>::default()),
                 (
                     show_stationary_children_system
-                        .in_set(EventWriterSystemSet::<ShowEvent>::default())
+                        .in_set(EventWriterSystemSet::<S2cMessageEvent<ShowMessage>>::default())
                         .in_set(EventReaderSystemSet::<ShowStationaryEvent>::default()),
                     hide_stationary_children_system
-                        .in_set(EventWriterSystemSet::<HideEvent>::default())
+                        .in_set(EventWriterSystemSet::<S2cMessageEvent<HideMessage>>::default())
                         .in_set(EventReaderSystemSet::<HideStationaryEvent>::default()),
                 )
                     .after(update_stationary_viewers_system),
@@ -67,10 +69,8 @@ impl app::Plugin for Plugin {
 }
 
 /// The client should start displaying a viewable.
-#[derive(Debug, Event)]
-pub struct ShowEvent {
-    /// The viewer to show to.
-    pub viewer:     viewer::Sid,
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ShowMessage {
     /// The viewable to be showed.
     pub viewable:   Sid,
     /// The parent viewable to display this object with.
@@ -80,6 +80,8 @@ pub struct ShowEvent {
     /// The transform for the viewable model, relative to parent or world origin.
     pub transform:  proto::Transform,
 }
+
+impl S2cMessage for ShowMessage {}
 
 /// A specialized `ShowEvent` that only gets sent for stationary viewables,
 /// when updated by the stationary maintenance system.
@@ -91,6 +93,15 @@ pub struct ShowStationaryEvent {
     pub viewable: Entity,
 }
 
+/// The client should stop displaying a viewable.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HideMessage {
+    /// The viewable to be hidden.
+    pub viewable: Sid,
+}
+
+impl S2cMessage for HideMessage {}
+
 /// A specialized `HideEvent` that only gets sent for stationary viewables,
 /// when updated by the stationary maintenance system.
 #[derive(Debug, Event)]
@@ -99,15 +110,6 @@ pub struct HideStationaryEvent {
     pub viewer:   Entity,
     /// The stationary viewable to be hideed.
     pub viewable: Entity,
-}
-
-/// The client should stop displaying a viewable.
-#[derive(Debug, Event)]
-pub struct HideEvent {
-    /// The viewer to hide from.
-    pub viewer:   viewer::Sid,
-    /// The viewable to be hidden.
-    pub viewable: Sid,
 }
 
 /// Common components to construct a viewable entity.
@@ -267,16 +269,10 @@ fn clean_viewers_hook(mut world: DeferredWorld, entity: Entity, _comp_id: Compon
         mem::take(&mut *viewers)
     };
 
-    let hide_events: Vec<_> = viewers
+    let hide_events = viewers
         .iter()
-        .map(|viewer| {
-            let &viewer_sid = world
-                .get::<viewer::Sid>(viewer)
-                .expect("viewer list must reference valid viewer with viewer::Sid");
-            HideEvent { viewer: viewer_sid, viewable: viewable_sid }
-        })
-        .collect();
-    world.resource_mut::<Events<HideEvent>>().send_batch(hide_events);
+        .map(|viewer| S2cMessageEvent { viewer, message: HideMessage { viewable: viewable_sid } });
+    world.send_event_batch(hide_events);
 }
 
 #[derive(Resource)]
@@ -306,20 +302,14 @@ pub struct StationaryChild;
 
 fn update_stationary_viewers_system(
     tree: Res<SpatialIndex>,
-    mut viewer_query: Query<(
-        Entity,
-        &viewer::Sid,
-        &Transform,
-        &viewer::Range,
-        &mut viewer::ViewableList,
-    )>,
+    mut viewer_query: Query<(Entity, &Transform, &viewer::Range, &mut viewer::ViewableList)>,
     mut viewable_query: Query<
         (&Sid, &appearance::Appearance, &Transform, &mut Viewers),
         With<Stationary>,
     >,
-    mut show_events: EventWriter<ShowEvent>,
+    mut show_events: EventWriter<S2cMessageEvent<ShowMessage>>,
     mut show_stationary_events: EventWriter<ShowStationaryEvent>,
-    mut hide_events: EventWriter<HideEvent>,
+    mut hide_events: EventWriter<S2cMessageEvent<HideMessage>>,
     mut hide_stationary_events: EventWriter<HideStationaryEvent>,
 ) {
     let Some(kdtree) = &tree.kdtree else {
@@ -329,7 +319,6 @@ fn update_stationary_viewers_system(
     viewer_query.iter_mut().for_each(
         |(
             viewer,
-            &viewer_sid,
             &Transform { translation: new_pos, .. },
             &viewer::Range { distance },
             mut prev_viewables,
@@ -357,12 +346,14 @@ fn update_stationary_viewers_system(
                      exist in viewable list of {viewer:?}"
                 );
 
-                let show_event = ShowEvent {
-                    viewer:     viewer_sid,
-                    viewable:   viewable_sid,
-                    parent:     None,
-                    appearance: viewable_appearance.clone(),
-                    transform:  viewable_transform.into(),
+                let show_event = S2cMessageEvent {
+                    viewer,
+                    message: ShowMessage {
+                        viewable:   viewable_sid,
+                        parent:     None,
+                        appearance: viewable_appearance.clone(),
+                        transform:  viewable_transform.into(),
+                    },
                 };
                 show_events.send(show_event);
                 show_stationary_events.send(ShowStationaryEvent { viewer, viewable });
@@ -383,7 +374,10 @@ fn update_stationary_viewers_system(
                      exists in viewable list of {viewer:?}"
                 );
 
-                hide_events.send(HideEvent { viewer: viewer_sid, viewable: viewable_sid });
+                hide_events.send(S2cMessageEvent {
+                    viewer,
+                    message: HideMessage { viewable: viewable_sid },
+                });
                 hide_stationary_events.send(HideStationaryEvent { viewer, viewable: *viewable });
             }
 
@@ -394,22 +388,18 @@ fn update_stationary_viewers_system(
 
 fn show_stationary_children_system(
     mut show_stationary_events: EventReader<ShowStationaryEvent>,
-    mut show_events: EventWriter<ShowEvent>,
+    mut show_events: EventWriter<S2cMessageEvent<ShowMessage>>,
     stationary_query: Query<(&Sid, &hierarchy::Children), With<Stationary>>,
     mut child_query: Query<
         (&Sid, &appearance::Appearance, &Transform, &mut Viewers),
         With<StationaryChild>,
     >,
-    viewer_query: Query<&viewer::Sid>,
 ) {
     let mut events = Vec::new();
     for &ShowStationaryEvent { viewer: viewer_entity, viewable } in show_stationary_events.read() {
         let Ok((&stationary_sid, children)) = stationary_query.get(viewable) else {
             continue;
         };
-        let &viewer_sid = viewer_query
-            .get(viewer_entity)
-            .expect("ShowStationaryEvent contains non-viewer viewer entity");
 
         for &child_entity in children {
             let Ok((&child_sid, child_appearance, &inner_transform, mut viewers)) =
@@ -418,12 +408,14 @@ fn show_stationary_children_system(
                 continue;
             };
             viewers.insert(viewer_entity);
-            events.push(ShowEvent {
-                viewer:     viewer_sid,
-                viewable:   child_sid,
-                parent:     Some(stationary_sid),
-                appearance: child_appearance.clone(),
-                transform:  inner_transform.into(),
+            events.push(S2cMessageEvent {
+                viewer:  viewer_entity,
+                message: ShowMessage {
+                    viewable:   child_sid,
+                    parent:     Some(stationary_sid),
+                    appearance: child_appearance.clone(),
+                    transform:  inner_transform.into(),
+                },
             });
         }
     }
@@ -433,22 +425,21 @@ fn show_stationary_children_system(
 
 fn hide_stationary_children_system(
     mut hide_stationary_events: EventReader<HideStationaryEvent>,
-    mut hide_events: EventWriter<HideEvent>,
+    mut hide_events: EventWriter<S2cMessageEvent<HideMessage>>,
     stationary_query: Query<&hierarchy::Children, With<Stationary>>,
     mut child_query: Query<(&Sid, &mut Viewers), With<StationaryChild>>,
-    viewer_query: Query<&viewer::Sid>,
 ) {
     let mut events = Vec::new();
     for &HideStationaryEvent { viewer: viewer_entity, viewable } in hide_stationary_events.read() {
         let Ok(children) = stationary_query.get(viewable) else { continue };
-        let &viewer_sid = viewer_query
-            .get(viewer_entity)
-            .expect("HideStationaryEvent contains non-viewer viewer entity");
 
         for &child_entity in children {
             let Ok((&child_sid, mut viewers)) = child_query.get_mut(child_entity) else { continue };
             viewers.remove(viewer_entity);
-            events.push(HideEvent { viewer: viewer_sid, viewable: child_sid });
+            events.push(S2cMessageEvent {
+                viewer:  viewer_entity,
+                message: HideMessage { viewable: child_sid },
+            });
         }
     }
 

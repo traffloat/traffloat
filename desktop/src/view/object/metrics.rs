@@ -4,15 +4,17 @@ use bevy::app::{self, App};
 use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::{EventReader, EventWriter};
 use bevy::ecs::query::With;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut};
 use bevy::hierarchy::ChildBuilder;
 use bevy::text::{Text, TextSection, TextStyle};
 use bevy::ui::node_bundles::TextBundle;
-use traffloat_base::{debug, EventReaderSystemSet};
-use traffloat_view::{metrics as view_metrics, viewable};
+use traffloat_base::debug;
+use traffloat_view::viewer::{C2sMessageWriterSystemSet, S2cMessageReaderSystemSet};
+use traffloat_view::{
+    metrics as view_metrics, viewable, C2sMessageEvent, C2sMessageWriter, S2cMessageReader,
+};
 
 use crate::view::delegate;
 
@@ -21,11 +23,18 @@ pub(super) struct Plugin;
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<delegate::SidIndex<view_metrics::Sid>>();
-        app.add_systems(app::Update, subscribe_new_metrics_system);
+        app.add_systems(
+            app::Update,
+            subscribe_new_metrics_system
+                .in_set(S2cMessageReaderSystemSet::<view_metrics::NewTypeMessage>::default())
+                .in_set(
+                    C2sMessageWriterSystemSet::<view_metrics::RequestSubscribeMessage>::default(),
+                ),
+        );
         app.add_systems(
             app::Update,
             handle_metric_update_system
-                .in_set(EventReaderSystemSet::<view_metrics::UpdateMetricEvent>::default()),
+                .in_set(S2cMessageReaderSystemSet::<view_metrics::UpdateMetricMessage>::default()),
         );
         app.add_systems(app::Update, update_text_system);
     }
@@ -37,32 +46,35 @@ struct Known(BTreeMap<view_metrics::Sid, f32>);
 pub(super) fn object_bundle() -> impl Bundle { (Known(BTreeMap::new()),) }
 
 fn subscribe_new_metrics_system(
-    mut reader: EventReader<view_metrics::NewTypeEvent>,
-    mut sender: EventWriter<view_metrics::RequestSubscribeEvent>,
+    mut reader: S2cMessageReader<view_metrics::NewTypeMessage>,
+    mut sender: C2sMessageWriter<view_metrics::RequestSubscribeMessage>,
     mut commands: Commands,
     mut metrics_sid_index: ResMut<delegate::SidIndex<view_metrics::Sid>>,
 ) {
     for event in reader.read() {
         metrics_sid_index.add(
-            event.ty,
+            event.message.ty,
             &mut commands,
-            || (event.data.clone(), debug::Bundle::new("DelegateMetric")),
+            || (event.message.data.clone(), debug::Bundle::new("DelegateMetric")),
             |_| (),
         );
-        sender.send(view_metrics::RequestSubscribeEvent { viewer: event.viewer, ty: event.ty });
+        sender.send(C2sMessageEvent {
+            viewer:  event.viewer,
+            message: view_metrics::RequestSubscribeMessage { ty: event.message.ty },
+        });
     }
 }
 
 fn handle_metric_update_system(
-    mut reader: EventReader<view_metrics::UpdateMetricEvent>,
+    mut reader: S2cMessageReader<view_metrics::UpdateMetricMessage>,
     viewable_sid_index: Res<delegate::SidIndex<viewable::Sid>>,
     mut viewable_query: Query<&mut Known, With<delegate::Marker<viewable::Sid>>>,
 ) {
     for ev in reader.read() {
-        let Some(viewable_entity) = viewable_sid_index.get(ev.viewable) else { continue };
+        let Some(viewable_entity) = viewable_sid_index.get(ev.message.viewable) else { continue };
         let mut known =
             viewable_query.get_mut(viewable_entity).expect("sid_index refers to invalid viewable");
-        known.0.insert(ev.ty, ev.magnitude);
+        known.0.insert(ev.message.ty, ev.message.magnitude);
     }
 }
 

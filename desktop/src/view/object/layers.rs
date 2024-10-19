@@ -165,7 +165,7 @@ fn update_layer(
 pub(super) fn spawn_all(
     parent: &mut hierarchy::ChildBuilder,
     assets: &AssetServer,
-    event: &viewable::ShowEvent,
+    event: &viewable::ShowMessage,
 ) -> impl Bundle {
     let distal = spawn_appearance_layer(
         parent,

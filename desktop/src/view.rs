@@ -3,7 +3,7 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::With;
 use bevy::ecs::schedule::SystemSet;
-use bevy::ecs::system::{Commands, Query, Res, ResMut};
+use bevy::ecs::system::{Commands, Query, ResMut};
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::state::state;
 use bevy::transform::components::Transform;
@@ -36,11 +36,10 @@ struct Owned;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
 struct InputSystemSet;
 
-fn setup_singleplayer_server(mut commands: Commands, viewer_ids: Res<viewer::SidIndex>) {
+fn setup_singleplayer_server(mut commands: Commands) {
     commands.spawn((
         Owned,
         viewer::Bundle::builder()
-            .id(viewer_ids.next_id())
             .position(Transform::default())
             .range(viewer::Range { distance: 100. })
             .build(),
