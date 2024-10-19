@@ -89,18 +89,17 @@ fn update_text_system(
 
         display.sections.clear();
         display.sections.extend(object_known.0.iter().map(|(&ty, &value)| {
-            let ty_label = match metric_sid_index.get(ty) {
-                Some(entity) => match metric_query.get(entity) {
-                    Ok(def) => def.display_label.to_string(),
+            let ty_label = if let Some(entity) = metric_sid_index.get(ty) {
+                match metric_query.get(entity) {
+                    Ok(def) => def.display_label.render_to_string(),
                     Err(err) => {
                         bevy::log::warn!("metric SID has invalid metric delegate entity: {err:?}");
-                        format!("{:?}", ty)
+                        format!("{ty:?}")
                     }
-                },
-                None => {
-                    bevy::log::warn!("object has invalid metric SID: {ty:?}");
-                    format!("{:?}", ty)
                 }
+            } else {
+                bevy::log::warn!("object has invalid metric SID: {ty:?}");
+                format!("{ty:?}")
             };
             TextSection::new(
                 format!("{ty_label}: {value}\n"),

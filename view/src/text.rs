@@ -1,3 +1,5 @@
+use core::fmt;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -37,10 +39,33 @@ impl DisplayText {
     /// Formats the output as a string.
     ///
     /// Signature may change in the future when we support i18n.
-    pub fn to_string(&self) -> String {
+    #[must_use]
+    pub fn render_to_string(&self) -> String {
         let mut output = String::new();
         self.render(&mut output);
         output
+    }
+
+    /// Concise debug formatting.
+    #[must_use]
+    pub fn short_debug(&self) -> impl fmt::Display + '_ {
+        struct Wrapper<'a>(&'a DisplayText);
+
+        impl<'a> fmt::Display for Wrapper<'a> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                match self.0 {
+                    DisplayText::Custom { value } => write!(f, "{value}"),
+                    DisplayText::Concat { children } => {
+                        for child in children {
+                            fmt::Display::fmt(&child.short_debug(), f)?;
+                        }
+                        Ok(())
+                    }
+                }
+            }
+        }
+
+        Wrapper(self)
     }
 }
 

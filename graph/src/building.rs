@@ -1,5 +1,7 @@
 //! A building in which facilities can be installed.
 
+use std::iter;
+
 use bevy::app::{self, App};
 use bevy::ecs::bundle;
 use bevy::ecs::component::Component;
@@ -46,12 +48,19 @@ pub struct Marker;
 /// List of facilities in a building.
 #[derive(Component)]
 pub struct FacilityList {
-    /// Non-ambient facilities in this building.
-    /// The order of entities in this list has no significance.
-    pub facility_list: Vec<Entity>, // entities with facility components
-
     /// The ambient space for this building.
     pub ambient: Entity,
+
+    /// Non-ambient facilities in this building.
+    /// The order of entities in this list has no significance.
+    pub non_ambient: Vec<Entity>, // entities with facility components
+}
+
+impl FacilityList {
+    /// Iterates through all facilities of the building, including the ambient facility.
+    pub fn iter(&self) -> impl Iterator<Item = Entity> + '_ {
+        iter::once(&self.ambient).chain(&self.non_ambient).copied()
+    }
 }
 
 /// Save schema.
@@ -101,7 +110,7 @@ impl save::Def for Save {
                             .transform(def.transform.into())
                             .build(),
                     )
-                    .facility_list(FacilityList { facility_list: Vec::new(), ambient })
+                    .facility_list(FacilityList { non_ambient: Vec::new(), ambient })
                     .build(),
             );
             building.add_child(ambient);

@@ -80,6 +80,7 @@ fn spawn_appearance_layer(
     assets: &AssetServer,
     appearance: Layer,
     transform: Transform,
+    debug_name: &'static str,
 ) -> Entity {
     match appearance {
         Layer::Null => builder
@@ -90,7 +91,7 @@ fn spawn_appearance_layer(
                     ..Default::default()
                 },
                 Layered,
-                debug::Bundle::new("ObjectLayer"),
+                debug::Bundle::new(debug_name),
             ))
             .id(),
         Layer::Pbr { mesh, material } => builder
@@ -103,7 +104,7 @@ fn spawn_appearance_layer(
                     ..Default::default()
                 },
                 Layered,
-                debug::Bundle::new("ObjectLayer"),
+                debug::Bundle::new(debug_name),
             ))
             .id(),
     }
@@ -166,11 +167,26 @@ pub(super) fn spawn_all(
     assets: &AssetServer,
     event: &viewable::ShowEvent,
 ) -> impl Bundle {
-    let distal =
-        spawn_appearance_layer(parent, assets, event.appearance.distal, Transform::IDENTITY);
-    let proximal =
-        spawn_appearance_layer(parent, assets, event.appearance.proximal, Transform::IDENTITY);
-    let interior =
-        spawn_appearance_layer(parent, assets, event.appearance.interior, Transform::IDENTITY);
+    let distal = spawn_appearance_layer(
+        parent,
+        assets,
+        event.appearance.distal,
+        Transform::IDENTITY,
+        "DistalObjectLayer",
+    );
+    let proximal = spawn_appearance_layer(
+        parent,
+        assets,
+        event.appearance.proximal,
+        Transform::IDENTITY,
+        "ProximalObjectLayer",
+    );
+    let interior = spawn_appearance_layer(
+        parent,
+        assets,
+        event.appearance.interior,
+        Transform::IDENTITY,
+        "InteriorObjectLayer",
+    );
     LayerRefs { distal, proximal, interior }
 }

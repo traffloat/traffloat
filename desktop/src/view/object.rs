@@ -51,7 +51,9 @@ fn handle_show_system(
                     },
                     infobox::object_bundle(),
                     metrics::object_bundle(),
-                    debug::Bundle::new("DelegateViewable"),
+                    debug::Bundle::new_with(|| {
+                        format!("DelegateViewable({})", event.appearance.label.short_debug())
+                    }),
                 )
             },
             |b| layers::spawn_all(b, &assets, event),

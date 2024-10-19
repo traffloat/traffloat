@@ -25,6 +25,10 @@ use crate::AppState;
 
 pub(crate) struct Plugin;
 
+const MOVE_DISTANCE_PER_SECOND: f32 = 5.5;
+const ROTATE_ANGLE_PER_SECOND: f32 = FRAC_PI_4;
+const ZOOM_RATIO_PER_SECOND: f32 = 1.9_f32;
+
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.add_systems(state::OnEnter(AppState::GameView), setup);
@@ -86,9 +90,9 @@ fn input_move_camera_system(
 ) {
     let Ok((mut tf, mut proj)) = camera_query.get_single_mut() else { return };
 
-    let move_speed = time.delta_seconds() * 5.;
-    let rotate_speed = time.delta_seconds() * FRAC_PI_4;
-    let zoom_speed = 1.7_f32.powf(time.delta_seconds());
+    let move_speed = time.delta_seconds() * MOVE_DISTANCE_PER_SECOND;
+    let rotate_speed = time.delta_seconds() * ROTATE_ANGLE_PER_SECOND;
+    let zoom_speed = ZOOM_RATIO_PER_SECOND.powf(time.delta_seconds());
 
     let is_rotate = keys.pressed(KeyCode::ShiftLeft);
 

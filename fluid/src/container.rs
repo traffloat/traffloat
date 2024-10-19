@@ -25,7 +25,7 @@ use derive_more::From;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use traffloat_base::{debug, save};
+use traffloat_base::save;
 use traffloat_graph::building::facility;
 use traffloat_graph::corridor::duct;
 use typed_builder::TypedBuilder;
@@ -81,8 +81,6 @@ pub struct Bundle {
     pipes:            Pipes,
     #[builder(default, setter(skip))]
     _marker:          Marker,
-    #[builder(default = debug::Bundle::new("FluidContainer"))]
-    _debug:           debug::Bundle,
 }
 
 /// Marks an entity as a container.

@@ -112,6 +112,7 @@ impl save::Def for Save {
                     list.ambient
                 };
                 let mut facility = world.entity_mut(id);
+                println!("ambient of {parent:?} is {id:?}");
                 facility.insert(facility_bundle);
 
                 id
@@ -125,7 +126,7 @@ impl save::Def for Save {
                 let mut list = world
                     .get_mut::<super::FacilityList>(parent)
                     .expect("parent building was created in the previous load step");
-                list.facility_list.push(id);
+                list.non_ambient.push(id);
 
                 id
             };

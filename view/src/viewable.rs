@@ -77,7 +77,7 @@ pub struct ShowEvent {
     pub parent:     Option<Sid>,
     /// The model of the viewable.
     pub appearance: appearance::Appearance,
-    /// The transform for the viewable model, relative to world origin.
+    /// The transform for the viewable model, relative to parent or world origin.
     pub transform:  proto::Transform,
 }
 
@@ -395,7 +395,7 @@ fn update_stationary_viewers_system(
 fn show_stationary_children_system(
     mut show_stationary_events: EventReader<ShowStationaryEvent>,
     mut show_events: EventWriter<ShowEvent>,
-    stationary_query: Query<(&Sid, &hierarchy::Children, &Transform), With<Stationary>>,
+    stationary_query: Query<(&Sid, &hierarchy::Children), With<Stationary>>,
     mut child_query: Query<
         (&Sid, &appearance::Appearance, &Transform, &mut Viewers),
         With<StationaryChild>,
@@ -404,8 +404,7 @@ fn show_stationary_children_system(
 ) {
     let mut events = Vec::new();
     for &ShowStationaryEvent { viewer: viewer_entity, viewable } in show_stationary_events.read() {
-        let Ok((&stationary_sid, children, &parent_transform)) = stationary_query.get(viewable)
-        else {
+        let Ok((&stationary_sid, children)) = stationary_query.get(viewable) else {
             continue;
         };
         let &viewer_sid = viewer_query
@@ -418,14 +417,13 @@ fn show_stationary_children_system(
             else {
                 continue;
             };
-            let transform = parent_transform * inner_transform;
             viewers.insert(viewer_entity);
             events.push(ShowEvent {
                 viewer:     viewer_sid,
                 viewable:   child_sid,
                 parent:     Some(stationary_sid),
                 appearance: child_appearance.clone(),
-                transform:  transform.into(),
+                transform:  inner_transform.into(),
             });
         }
     }
