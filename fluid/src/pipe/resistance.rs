@@ -105,7 +105,7 @@ use bevy::state::condition::in_state;
 use bevy::state::state::States;
 use derive_more::From;
 use traffloat_base::partition::AppExt;
-use traffloat_base::EventReaderSystemSet;
+use traffloat_base::{EventReaderSystemSet, ServerSideSystemSet};
 
 use crate::units;
 
@@ -117,13 +117,17 @@ impl<St: States + Copy> app::Plugin for Plugin<St> {
         app.add_systems(
             app::Update,
             (
-                static_to_dynamic_system.after(SystemSets::Static).before(SystemSets::Dynamic),
+                static_to_dynamic_system
+                    .after(SystemSets::Static)
+                    .before(SystemSets::Dynamic)
+                    .in_set(SystemSets::Compute),
                 init_static
                     .before(SystemSets::Static)
                     .in_set(SystemSets::Compute)
                     .in_set(EventReaderSystemSet::<RecomputeStaticEvent>::default()),
             )
-                .run_if(in_state(self.0)),
+                .run_if(in_state(self.0))
+                .in_set(ServerSideSystemSet),
         );
         app.configure_sets(
             app::Update,

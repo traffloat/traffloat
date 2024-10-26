@@ -2,7 +2,7 @@
 
 use bevy::app::{self, App};
 use bevy::ecs::event::Event;
-use bevy::ecs::schedule::IntoSystemSetConfigs;
+use bevy::ecs::schedule::{IntoSystemSetConfigs, SystemSet};
 
 /// Declares a generic system set that takes a type argument.
 #[macro_export]
@@ -66,3 +66,21 @@ impl AppExt for App {
         );
     }
 }
+
+/// System set for all systems known to be uniquely mutating the states of UI entities they own.
+///
+/// They are automatically ambiguous with other systems in the same set.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
+pub struct UiMutatorSystemSet;
+
+/// System set for all server-side systems.
+///
+/// They are automatically ambiguous with [`ClientSideSystemSet`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
+pub struct ServerSideSystemSet;
+
+/// System set for all server-side systems.
+///
+/// They are automatically ambiguous with [`ServerSideSystemSet`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash, SystemSet)]
+pub struct ClientSideSystemSet;

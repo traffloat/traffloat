@@ -17,7 +17,7 @@ use bevy::render::mesh::Mesh;
 use bevy::state::condition::in_state;
 use bevy::transform::components::{GlobalTransform, Transform};
 use bevy::{hierarchy, render};
-use traffloat_base::debug;
+use traffloat_base::{debug, ClientSideSystemSet, UiMutatorSystemSet};
 use traffloat_view::appearance::{self, Layer};
 use traffloat_view::viewable;
 
@@ -28,7 +28,13 @@ pub(super) struct Plugin;
 
 impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(app::Update, select_layer_system.run_if(in_state(AppState::GameView)));
+        app.add_systems(
+            app::Update,
+            select_layer_system
+                .run_if(in_state(AppState::GameView))
+                .in_set(ClientSideSystemSet)
+                .in_set(UiMutatorSystemSet),
+        );
     }
 }
 

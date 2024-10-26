@@ -25,7 +25,7 @@ use derive_more::From;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
-use traffloat_base::save;
+use traffloat_base::{save, ServerSideSystemSet};
 use traffloat_graph::building::facility;
 use traffloat_graph::corridor::duct;
 use typed_builder::TypedBuilder;
@@ -48,7 +48,10 @@ impl<St: States + Copy> app::Plugin for Plugin<St> {
 
         app.add_systems(
             app::Update,
-            rebalance_system.in_set(SystemSets::Rebalance).run_if(in_state(self.0)),
+            rebalance_system
+                .in_set(SystemSets::Rebalance)
+                .in_set(ServerSideSystemSet)
+                .run_if(in_state(self.0)),
         );
         save::add_def::<Save>(app);
         save::add_def::<element::Save>(app);

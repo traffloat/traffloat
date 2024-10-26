@@ -18,7 +18,7 @@ use bevy::state::condition::in_state;
 use bevy::state::state;
 use bevy::time::Time;
 use bevy::transform::components::Transform;
-use traffloat_base::debug;
+use traffloat_base::{debug, ClientSideSystemSet};
 
 use super::{diagnostics, InputSystemSet};
 use crate::AppState;
@@ -34,11 +34,17 @@ impl app::Plugin for Plugin {
         app.add_systems(state::OnEnter(AppState::GameView), setup);
         app.add_systems(
             app::Update,
-            input_move_camera_system.run_if(in_state(AppState::GameView)).in_set(InputSystemSet),
+            input_move_camera_system
+                .run_if(in_state(AppState::GameView))
+                .in_set(InputSystemSet)
+                .in_set(ClientSideSystemSet),
         );
 
         app.add_systems(app::Startup, register_camera_diagnostic_system);
-        app.add_systems(app::Update, update_camera_diagnostic_system);
+        app.add_systems(
+            app::Update,
+            update_camera_diagnostic_system.in_set(ClientSideSystemSet).after(InputSystemSet),
+        );
         app.register_diagnostic(Diagnostic::new(DIAG_PATH_POS_X));
         app.register_diagnostic(Diagnostic::new(DIAG_PATH_POS_Y));
         app.register_diagnostic(Diagnostic::new(DIAG_PATH_POS_Z));

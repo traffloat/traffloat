@@ -5,6 +5,7 @@ use bevy::color::Color;
 use bevy::diagnostic::{Diagnostic, DiagnosticPath, DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::query::With;
+use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Commands, Query, Res};
 use bevy::hierarchy::{self, BuildChildren};
 use bevy::render::diagnostic::RenderDiagnosticsPlugin;
@@ -13,7 +14,7 @@ use bevy::state::state::{self};
 use bevy::text::{Text, TextSection, TextStyle};
 use bevy::ui::node_bundles::{NodeBundle, TextBundle};
 use bevy::ui::{self, Style, UiRect};
-use traffloat_base::debug;
+use traffloat_base::{debug, ClientSideSystemSet, UiMutatorSystemSet};
 use typed_builder::TypedBuilder;
 
 use crate::AppState;
@@ -25,7 +26,10 @@ impl app::Plugin for Plugin {
         app.add_plugins((FrameTimeDiagnosticsPlugin, RenderDiagnosticsPlugin));
 
         app.add_systems(state::OnEnter(AppState::GameView), setup);
-        app.add_systems(app::Update, display_diagnostic_system);
+        app.add_systems(
+            app::Update,
+            display_diagnostic_system.in_set(UiMutatorSystemSet).in_set(ClientSideSystemSet),
+        );
 
         app.add_systems(app::Startup, |mut commands: Commands| {
             commands

@@ -9,6 +9,7 @@ use bevy::ecs::world::World;
 use bevy::hierarchy;
 use bevy::state::state::States;
 use bevy::utils::HashMap;
+use traffloat_base::ServerSideSystemSet;
 use traffloat_view::viewer::S2cMessageWriterSystemSet;
 use traffloat_view::{metrics, viewer, S2cMessageEvent, S2cMessageWriter};
 
@@ -24,7 +25,8 @@ impl<St: States + Copy> app::Plugin for Plugin<St> {
         app.add_systems(
             app::Update,
             on_new_viewer_system
-                .in_set(S2cMessageWriterSystemSet::<metrics::NewTypeMessage>::default()),
+                .in_set(S2cMessageWriterSystemSet::<metrics::NewTypeMessage>::default())
+                .in_set(ServerSideSystemSet),
         );
     }
 }

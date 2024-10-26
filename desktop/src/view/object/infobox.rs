@@ -17,8 +17,8 @@ use bevy_eventlistener::callbacks::Listener;
 use bevy_eventlistener::event_listener::On;
 use bevy_mod_picking::prelude::{self as pick, Pointer};
 use bevy_mod_picking::PickableBundle;
-use traffloat_base::debug;
 use traffloat_base::partition::AppExt;
+use traffloat_base::{debug, ClientSideSystemSet, UiMutatorSystemSet};
 use traffloat_view::appearance::Appearance;
 use traffloat_view::viewable;
 
@@ -37,9 +37,19 @@ impl app::Plugin for Plugin {
         app.insert_resource(Focus { entity: None, focus_type: FocusType::Hover });
         app.add_partitioned_event::<FocusChangeEvent>();
         app.add_systems(state::OnEnter(AppState::GameView), setup);
-        app.add_systems(app::Update, update_hierarchy_system);
-        app.add_systems(app::Update, update_box_visibility_system);
-        app.add_systems(app::Update, update_viewable_label_system.after(update_hierarchy_system));
+        app.add_systems(
+            app::Update,
+            (update_hierarchy_system, update_box_visibility_system)
+                .in_set(ClientSideSystemSet)
+                .in_set(UiMutatorSystemSet),
+        );
+        app.add_systems(
+            app::Update,
+            update_viewable_label_system
+                .after(update_hierarchy_system)
+                .in_set(UiMutatorSystemSet)
+                .in_set(ClientSideSystemSet),
+        );
     }
 }
 

@@ -9,7 +9,7 @@ use bevy::state::app::AppExtStates;
 use bevy::state::condition::in_state;
 use bevy::state::state::{self, NextState, States};
 use bevy::tasks::{block_on, poll_once, IoTaskPool, Task};
-use traffloat_base::save;
+use traffloat_base::{save, ClientSideSystemSet};
 
 use crate::options::Options;
 use crate::util::{modal, ui_style};
@@ -38,7 +38,10 @@ impl app::Plugin for Plugin {
         app.add_systems(state::OnEnter(ActiveState::Active), setup);
         app.add_systems(
             app::Update,
-            poll_task.ambiguous_with(super::handle_click).run_if(in_state(ActiveState::Active)),
+            poll_task
+                .ambiguous_with(super::handle_click)
+                .run_if(in_state(ActiveState::Active))
+                .in_set(ClientSideSystemSet),
         );
         app.init_resource::<SelectFileTask>();
     }

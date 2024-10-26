@@ -14,7 +14,7 @@ use bevy::ecs::system::Query;
 use bevy::ui;
 use bevy::ui::node_bundles::ButtonBundle;
 use traffloat_base::partition::AppExt;
-use traffloat_base::EventWriterSystemSet;
+use traffloat_base::{ClientSideSystemSet, EventWriterSystemSet, UiMutatorSystemSet};
 
 pub struct Plugin<E>(PhantomData<fn() -> E>);
 
@@ -29,7 +29,9 @@ impl<E: Event + Clone> app::Plugin for Plugin<E> {
             app::Update,
             handle_buttons::<E>
                 .before(HandleClickSystemSet::<E>::default)
-                .in_set(EventWriterSystemSet::<E>::default()),
+                .in_set(EventWriterSystemSet::<E>::default())
+                .in_set(UiMutatorSystemSet)
+                .in_set(ClientSideSystemSet),
         );
     }
 }

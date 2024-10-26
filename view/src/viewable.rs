@@ -20,7 +20,7 @@ use either::Either;
 use kd_tree::KdTree3;
 use serde::{Deserialize, Serialize};
 use traffloat_base::partition::{AppExt, EventReaderSystemSet, EventWriterSystemSet};
-use traffloat_base::proto;
+use traffloat_base::{proto, ServerSideSystemSet};
 use typed_builder::TypedBuilder;
 
 use crate::viewer::{S2cMessageEvent, S2cMessageWriterSystemSet};
@@ -56,10 +56,12 @@ impl app::Plugin for Plugin {
                         .in_set(EventReaderSystemSet::<ShowStationaryEvent>::default()),
                     hide_stationary_children_system
                         .in_set(EventWriterSystemSet::<S2cMessageEvent<HideMessage>>::default())
-                        .in_set(EventReaderSystemSet::<HideStationaryEvent>::default()),
+                        .in_set(EventReaderSystemSet::<HideStationaryEvent>::default())
+                        .after(show_stationary_children_system),
                 )
                     .after(update_stationary_viewers_system),
-            ),
+            )
+                .in_set(ServerSideSystemSet),
         );
         app.world_mut()
             .register_component_hooks::<Viewers>()

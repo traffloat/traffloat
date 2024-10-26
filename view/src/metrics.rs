@@ -21,9 +21,10 @@ use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use traffloat_base::debug;
 use traffloat_base::partition::AppExt;
+use traffloat_base::{debug, ServerSideSystemSet};
 
+use crate::viewer::C2sMessageReaderSystemSet;
 use crate::{
     viewable, C2sMessage, C2sMessageEvent, C2sMessageReader, DisplayText, S2cMessage,
     S2cMessageEvent, S2cMessageWriter,
@@ -43,7 +44,12 @@ impl app::Plugin for Plugin {
         app.add_partitioned_event::<S2cMessageEvent<NewTypeMessage>>();
         app.add_partitioned_event::<C2sMessageEvent<RequestSubscribeMessage>>();
         app.init_schedule(BroadcastSchedule);
-        app.add_systems(app::Update, admit_subscription_system);
+        app.add_systems(
+            app::Update,
+            admit_subscription_system
+                .in_set(C2sMessageReaderSystemSet::<RequestSubscribeMessage>::default())
+                .in_set(ServerSideSystemSet),
+        );
         app.add_systems(app::PostUpdate, |world: &mut World| world.run_schedule(BroadcastSchedule));
     }
 }

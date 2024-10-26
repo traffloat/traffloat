@@ -19,6 +19,7 @@ use bevy::ecs::schedule::{IntoSystemConfigs, IntoSystemSetConfigs, SystemSet};
 use bevy::ecs::system::Query;
 use bevy::state::condition::in_state;
 use bevy::state::state::States;
+use traffloat_base::ServerSideSystemSet;
 use traffloat_graph::corridor::Binary;
 
 use super::{resistance, Containers};
@@ -38,12 +39,15 @@ impl<St: States + Copy> app::Plugin for Plugin<St> {
                     .after(resistance::SystemSets::Compute),
             )
                 .in_set(SystemSets::Compute)
+                .in_set(ServerSideSystemSet)
                 .run_if(in_state(self.0)),
         );
         app.configure_sets(
             app::Update,
             (SystemSets::Additive, SystemSets::Relative).in_set(SystemSets::Compute),
         );
+        app.configure_sets(app::Update, SystemSets::Additive.ambiguous_with(SystemSets::Additive));
+        app.configure_sets(app::Update, SystemSets::Relative.ambiguous_with(SystemSets::Relative));
     }
 }
 

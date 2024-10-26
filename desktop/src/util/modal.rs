@@ -16,7 +16,7 @@ use bevy::state::state::{self, NextState};
 use bevy::text::{JustifyText, Text, TextStyle};
 use bevy::ui::node_bundles::{ButtonBundle, NodeBundle, TextBundle};
 use bevy::ui::{self, BackgroundColor, Style, UiRect};
-use traffloat_base::{generic_state, EventReaderSystemSet};
+use traffloat_base::{generic_state, ClientSideSystemSet, EventReaderSystemSet};
 use typed_builder::TypedBuilder;
 
 use crate::util::button;
@@ -100,7 +100,8 @@ impl<But: Buttons> app::Plugin for Plugin<But> {
             app::Update,
             handle_button_click::<But>
                 .in_set(button::HandleClickSystemSet::<ClickEvent<But>>::default())
-                .in_set(EventReaderSystemSet::<ClickEvent<But>>::default()),
+                .in_set(EventReaderSystemSet::<ClickEvent<But>>::default())
+                .in_set(ClientSideSystemSet),
         );
         app.init_resource::<Param<But>>();
     }

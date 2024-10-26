@@ -6,7 +6,7 @@ use bevy::hierarchy::BuildChildren;
 use bevy::prelude::SpatialBundle;
 use bevy::render;
 use bevy::transform::components::Transform;
-use traffloat_base::debug;
+use traffloat_base::{debug, ClientSideSystemSet};
 use traffloat_view::viewer::S2cMessageReaderSystemSet;
 use traffloat_view::{viewable, S2cMessageReader};
 
@@ -27,7 +27,9 @@ impl app::Plugin for Plugin {
         app.add_systems(
             app::Update,
             handle_show_system
-                .in_set(S2cMessageReaderSystemSet::<viewable::ShowMessage>::default()),
+                .in_set(S2cMessageReaderSystemSet::<viewable::ShowMessage>::default())
+                .in_set(ClientSideSystemSet)
+                .in_set(delegate::SidIndexMaintainerSystemSet::<viewable::Sid>::default()),
         );
     }
 }

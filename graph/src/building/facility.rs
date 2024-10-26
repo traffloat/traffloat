@@ -112,7 +112,6 @@ impl save::Def for Save {
                     list.ambient
                 };
                 let mut facility = world.entity_mut(id);
-                println!("ambient of {parent:?} is {id:?}");
                 facility.insert(facility_bundle);
 
                 id

@@ -1,8 +1,10 @@
 use std::hash::Hash;
+use std::marker::PhantomData;
 
 use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
+use bevy::ecs::schedule::SystemSet;
 use bevy::ecs::system::{Commands, Resource};
 use bevy::hierarchy::{self, BuildChildren};
 use bevy::utils::HashMap;
@@ -46,3 +48,11 @@ impl<Sid: Copy + Eq + Hash + Send + Sync + 'static> SidIndex<Sid> {
 /// Marks that an entity is the delegate of the specified SID.
 #[derive(Component)]
 pub struct Marker<Sid>(pub Sid);
+
+/// Systems that maintain the insertion/deletion of a [`SidIndex`].
+#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
+pub struct SidIndexMaintainerSystemSet<Sid>(pub PhantomData<Sid>);
+
+impl<Sid> Default for SidIndexMaintainerSystemSet<Sid> {
+    fn default() -> Self { Self(PhantomData) }
+}

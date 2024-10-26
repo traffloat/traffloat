@@ -35,7 +35,7 @@ use bevy::{app, hierarchy};
 use derive_more::From;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use traffloat_base::{debug, save};
+use traffloat_base::{debug, save, ServerSideSystemSet};
 use traffloat_graph::building::facility;
 use traffloat_graph::corridor::{duct, Binary};
 use typed_builder::TypedBuilder;
@@ -65,7 +65,8 @@ impl<St: States + Copy> app::Plugin for Plugin<St> {
                     .after(force::SystemSets::Compute)
                     .before(container::SystemSets::Rebalance),
             )
-                .run_if(in_state(self.0)),
+                .run_if(in_state(self.0))
+                .in_set(ServerSideSystemSet),
         );
 
         app.world_mut()
