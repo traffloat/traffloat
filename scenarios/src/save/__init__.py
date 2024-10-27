@@ -43,13 +43,13 @@ class WriterCtx:
 
 
 class LateShaEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, glossary.ShaHandle):
-            if obj.sha is None:
+    def default(self, o):
+        if isinstance(o, glossary.ShaHandle):
+            if o.sha is None:
                 raise Exception("ShaHandle is not initialized yet")
-            return obj.sha
+            return o.sha
 
-        return super().default(obj)
+        return super().default(o)
 
 
 class Def:

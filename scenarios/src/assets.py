@@ -2,7 +2,6 @@ import hashlib
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from io import BytesIO
-from typing import Callable, Optional
 
 import gltflib
 import numpy

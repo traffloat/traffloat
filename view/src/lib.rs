@@ -11,6 +11,7 @@ mod sid;
 pub use sid::Index as SidIndex;
 
 pub mod appearance;
+pub use appearance::Appearance;
 mod text;
 pub use text::{translation, DisplayText};
 pub mod metrics;

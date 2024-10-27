@@ -1,14 +1,12 @@
 from dataclasses import dataclass
 
-import gltflib
 import numpy
-from gltflib import GLTF, GLTFModel
 
-from .assets import Mesh
+from . import assets
 
 
 @dataclass
-class Mesh(Mesh):
+class Mesh(assets.Mesh):
     """
     A unit sphere with 4 ** (depth+1) faces.
     """

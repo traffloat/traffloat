@@ -1,7 +1,7 @@
-from dataclasses import dataclass, field
-from typing import Any, Self, Union, Optional
 import hashlib
 import json
+from dataclasses import dataclass, field
+from typing import Any, Optional, Self, Union
 
 
 @dataclass
@@ -41,7 +41,9 @@ class LocalEntry:
     items: list[Element] = field(default=list)
 
     def build(elements: Union[list[Union[Element, str]], str]):
-        elements = elements if isinstance(elements, list) else [elements]
+        if isinstance(elements, str):
+            elements = [elements]
+
         return LocalEntry(
             items=[
                 element if isinstance(element, Element) else Element.literal(element)
@@ -67,9 +69,24 @@ class Glossary:
     name: str
 
     items: list[Entry] = field(default_factory=list)
+    commons: dict[int, Id] = field(default_factory=dict)
 
     sha_handle: ShaHandle = field(default_factory=ShaHandle)
     output: Optional[list[File]] = None
+
+    def add_common(
+        self,
+        ident: object,
+        base: Union[list[Union[Element, str]], str],
+        **locales: dict[str, Union[list[Union[Element, str]], str]]
+    ) -> Id:
+        obj_id = id(ident)
+        if obj_id in self.commons:
+            return self.commons[obj_id]
+
+        ret = self.add(base, **locales)
+        self.commons[obj_id] = ret
+        return ret
 
     def add(
         self,

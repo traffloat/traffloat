@@ -19,8 +19,7 @@ use bevy_mod_picking::prelude::{self as pick, Pointer};
 use bevy_mod_picking::PickableBundle;
 use traffloat_base::partition::AppExt;
 use traffloat_base::{debug, ClientSideSystemSet, UiMutatorSystemSet};
-use traffloat_view::appearance::Appearance;
-use traffloat_view::viewable;
+use traffloat_view::{viewable, Appearance};
 
 use super::metrics;
 use crate::util::glossary;

@@ -3,7 +3,7 @@ from typing import Optional, Self, TYPE_CHECKING
 
 from . import Def, Id, Writer
 from .fluid.container import Container as FluidContainer
-from .types import BlankDisplayText, DisplayText, Layers, Position, Rotation, Scale
+from .types import Appearance, Position, Rotation, Scale
 
 if TYPE_CHECKING:
     from .building import Building
@@ -17,13 +17,13 @@ class Facility(Def):
     inner_rotation: Rotation = field(default_factory=Rotation.identity)
     inner_scale: Scale = field(default_factory=Scale)
 
-    label: DisplayText = field(default_factory=BlankDisplayText)
-    layers: Layers = field(default_factory=Layers)
+    appearance: Appearance = field(default_factory=Appearance)
 
     fluid_containers: list[FluidContainer] = field(default_factory=list)
 
     id: Optional[Id[Self]] = None
 
+    @staticmethod
     def save_id() -> str:
         return "traffloat.save.Facility"
 
@@ -40,12 +40,7 @@ class Facility(Def):
                     "rotation": self.inner_rotation.as_dict(),
                     "scale": self.inner_scale.as_dict(),
                 },
-                "appearance": {
-                    "label": self.label.as_dict(),
-                    "distal": self.layers.distal.as_dict(writer),
-                    "proximal": self.layers.proximal.as_dict(writer),
-                    "interior": self.layers.interior.as_dict(writer),
-                },
+                "appearance": self.appearance.as_dict(writer),
             },
         )
 

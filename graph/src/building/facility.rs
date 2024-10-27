@@ -12,7 +12,7 @@ use bevy::transform::components::Transform;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::{debug, proto, save};
-use traffloat_view::{appearance, viewable};
+use traffloat_view::{viewable, Appearance};
 use typed_builder::TypedBuilder;
 
 /// Components for a facility.
@@ -38,7 +38,7 @@ pub struct Save {
     /// Position of the facility relative to the building center.
     pub inner:      proto::Transform,
     /// Appearance of the facility.
-    pub appearance: appearance::Appearance,
+    pub appearance: Appearance,
     /// Whether the facility is the ambient facility of its parent building.
     pub is_ambient: bool,
 }
@@ -53,10 +53,7 @@ impl save::Def for Save {
             mut writer: save::Writer<Save>,
             (building_dep,): (save::StoreDepend<super::Save>,),
             (query, building_query): (
-                Query<
-                    (Entity, &hierarchy::Parent, &Transform, &appearance::Appearance),
-                    With<Marker>,
-                >,
+                Query<(Entity, &hierarchy::Parent, &Transform, &Appearance), With<Marker>>,
                 Query<&super::FacilityList, With<super::Marker>>,
             ),
         ) {
@@ -88,8 +85,8 @@ impl save::Def for Save {
             (building_dep,): &(save::LoadDepend<super::Save>,),
         ) -> anyhow::Result<Entity> {
             let sid = viewable::next_sid(world);
-
             let parent = building_dep.get(def.parent)?;
+
             let facility_bundle = Bundle::builder()
                 .viewable(
                     viewable::StationaryChildBundle::builder()

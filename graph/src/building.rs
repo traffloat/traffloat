@@ -14,7 +14,7 @@ use bevy::transform::components::Transform;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use traffloat_base::{debug, proto, save};
-use traffloat_view::{appearance, viewable};
+use traffloat_view::{viewable, Appearance};
 use typed_builder::TypedBuilder;
 
 pub mod facility;
@@ -69,7 +69,7 @@ pub struct Save {
     /// Position of the building.
     pub transform:  proto::Transform,
     /// Appearance of the building.
-    pub appearance: appearance::Appearance,
+    pub appearance: Appearance,
 }
 
 impl save::Def for Save {
@@ -81,7 +81,7 @@ impl save::Def for Save {
         fn store_system(
             mut writer: save::Writer<Save>,
             (): (),
-            query: Query<(Entity, &Transform, &appearance::Appearance), With<Marker>>,
+            query: Query<(Entity, &Transform, &Appearance), With<Marker>>,
         ) {
             writer.write_all(query.iter().map(|(entity, &transform, appearance)| {
                 (entity, Save { transform: transform.into(), appearance: appearance.clone() })
@@ -95,8 +95,8 @@ impl save::Def for Save {
         #[allow(clippy::trivially_copy_pass_by_ref, clippy::unnecessary_wraps)]
         fn loader(world: &mut World, def: Save, (): &()) -> anyhow::Result<Entity> {
             let ambient = world.spawn_empty().id();
-
             let sid = viewable::next_sid(world);
+
             let mut building = world.spawn(
                 Bundle::builder()
                     .viewable(

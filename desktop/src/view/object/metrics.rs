@@ -10,6 +10,7 @@ use bevy::ecs::system::{Commands, Query, Res, ResMut};
 use bevy::hierarchy::ChildBuilder;
 use bevy::text::{Text, TextSection, TextStyle};
 use bevy::ui::node_bundles::TextBundle;
+use bevy::ui::{self, Style, UiRect};
 use traffloat_base::{debug, ClientSideSystemSet, UiMutatorSystemSet};
 use traffloat_view::metrics::{NewTypeMessage, RequestSubscribeMessage, UpdateMetricMessage};
 use traffloat_view::viewer::{C2sMessageWriterSystemSet, S2cMessageReaderSystemSet};
@@ -95,7 +96,11 @@ fn handle_metric_update_system(
 
 pub(super) fn spawn_ui(b: &mut ChildBuilder, viewable_entity: Entity) {
     b.spawn((
-        TextBundle { text: Text::from_sections([]), ..Default::default() },
+        TextBundle {
+            text: Text::from_sections([]),
+            style: Style { margin: UiRect::ZERO.with_left(ui::Val::Px(3.0)), ..Default::default() },
+            ..Default::default()
+        },
         ValueDisplay(viewable_entity),
         debug::Bundle::new("Infobox/Viewable/Metrics"),
     ));

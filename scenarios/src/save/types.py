@@ -2,9 +2,10 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import Self, Union
 
+from .. import glossary
+
 from ..assets import Material, Mesh
 from . import Writer
-from .. import glossary
 
 
 @dataclass
@@ -24,6 +25,7 @@ class Rotation:
     z: float
     w: float
 
+    @staticmethod
     def identity() -> Self:
         return Rotation(0.0, 0.0, 0.0, 1.0)
 
@@ -37,6 +39,7 @@ class Scale:
     y: float = 1.0
     z: float = 1.0
 
+    @staticmethod
     def splat(v: float) -> Self:
         return Scale(v, v, v)
 
@@ -48,6 +51,17 @@ class DisplayText:
     @abstractmethod
     def as_dict(self):
         pass
+
+
+@dataclass
+class LiteralDisplayText(DisplayText):
+    text: str
+
+    def as_dict(self):
+        return {
+            "type": "Custom",
+            "value": self.text,
+        }
 
 
 @dataclass
@@ -75,6 +89,19 @@ class TemplateDisplayText(DisplayText):
             "type": "Template",
             "sha": self.id.sha_handle,
             "index": self.id.index,
+        }
+
+
+class ConcatDisplayText(DisplayText):
+    children: list[DisplayText]
+
+    def __init__(self, *children: list[DisplayText]):
+        self.children = children
+
+    def as_dict(self):
+        return {
+            "type": "Concat",
+            "children": [child.as_dict() for child in self.children],
         }
 
 
@@ -115,4 +142,18 @@ class Layers:
             "distal": self.distal.as_dict(writer),
             "proximal": self.proximal.as_dict(writer),
             "interior": self.interior.as_dict(writer),
+        }
+
+
+@dataclass
+class Appearance:
+    label: DisplayText = field(default_factory=BlankDisplayText)
+    layers: Layers = field(default_factory=Layers)
+
+    def as_dict(self, writer: Writer):
+        return {
+            "label": self.label.as_dict(),
+            "distal": self.layers.distal.as_dict(writer),
+            "proximal": self.layers.proximal.as_dict(writer),
+            "interior": self.layers.interior.as_dict(writer),
         }

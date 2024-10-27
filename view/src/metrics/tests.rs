@@ -16,7 +16,7 @@ use super::{
     UpdateMetricMessage,
 };
 use crate::viewable::{self, ShowMessage};
-use crate::{appearance, viewer, DisplayText, S2cMessageEvent};
+use crate::{viewer, Appearance, DisplayText, S2cMessageEvent};
 
 #[test]
 fn report() {
@@ -117,7 +117,7 @@ fn setup_world(app: &mut App) -> WorldSetup {
                 .base(
                     viewable::BaseBundle::builder()
                         .sid(parent_viewable_id)
-                        .appearance(appearance::Appearance::null())
+                        .appearance(Appearance::null())
                         .build(),
                 )
                 .transform(Transform::from_xyz(50., 50., 50.).with_scale(Vec3::splat(0.01)))
@@ -129,7 +129,7 @@ fn setup_world(app: &mut App) -> WorldSetup {
                     .base(
                         viewable::BaseBundle::builder()
                             .sid(child_viewable_id)
-                            .appearance(appearance::Appearance::null())
+                            .appearance(Appearance::null())
                             .build(),
                     )
                     .inner_transform(Transform::from_xyz(200., 200., 200.))

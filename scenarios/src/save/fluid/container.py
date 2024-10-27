@@ -14,6 +14,7 @@ class Container(Def):
 
     element_masses: dict[Id[Type], float]
 
+    @staticmethod
     def save_id() -> str:
         return "traffloat.save.fluid.Container"
 
@@ -44,5 +45,6 @@ class Container(Def):
 
 
 class ContainerElement(Def):
+    @staticmethod
     def save_id() -> str:
         return "traffloat.save.fluid.ContainerElement"

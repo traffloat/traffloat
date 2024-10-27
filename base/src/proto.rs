@@ -5,6 +5,15 @@ use bevy::transform::components::Transform as BevyTransform;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+/// A generic 2D position.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, JsonSchema)]
+pub struct PlanePosition {
+    /// X-coordinate.
+    pub x: f32,
+    /// Y-coordinate.
+    pub y: f32,
+}
+
 /// A generic 3D position.
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, JsonSchema)]
 pub struct Position {

@@ -15,6 +15,7 @@ class Type(Def):
     critical_pressure: float
     saturation_gamma: float
 
+    @staticmethod
     def aqueous(display_label: DisplayText, molar_mass: float) -> Self:
         return Type(
             display_label=display_label,
@@ -24,6 +25,7 @@ class Type(Def):
             saturation_gamma=100.0,
         )
 
+    @staticmethod
     def gas_like(display_label: str, molar_mass: float) -> Self:
         return Type(
             display_label=display_label,
@@ -33,6 +35,7 @@ class Type(Def):
             saturation_gamma=100.0,
         )
 
+    @staticmethod
     def save_id() -> str:
         return "traffloat.save.fluid.Type"
 

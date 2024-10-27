@@ -1,8 +1,9 @@
 use std::ops;
 
 use bevy::ecs::entity::Entity;
-use bevy::ecs::query::{QueryData, QueryFilter, QueryItem, ROQueryItem};
+use bevy::ecs::query::{QueryData, QueryEntityError, QueryFilter, QueryItem, ROQueryItem};
 use bevy::ecs::system::Query;
+use bevy::ecs::world::World;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -96,7 +97,8 @@ impl<T> Binary<T> {
         Ok(Binary { alpha: f(self.alpha)?, beta: f(self.beta)? })
     }
 
-    /// Combines two `Binary`s with a tuple.
+    /// Combines two `Binary`s with a tuple,
+    /// effectively transposing the pair.
     #[must_use]
     pub fn zip<U>(self, other: impl Into<Binary<U>>) -> Binary<(T, U)> {
         let other = other.into();
@@ -113,8 +115,21 @@ impl<T> Binary<T> {
     pub fn iter(&self) -> impl Iterator<Item = &T> { [&self.alpha, &self.beta].into_iter() }
 
     /// Iterates over both components, equivalent to `[&mut alpha, &mut beta]`.
+
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         [&mut self.alpha, &mut self.beta].into_iter()
+    }
+}
+
+impl<T, U> Binary<(T, U)> {
+    /// Unzips the binary of pairs into a pair of binaries,
+    /// effectively transposing the binary.
+    #[must_use]
+    pub fn unzip(self) -> (Binary<T>, Binary<U>) {
+        (
+            Binary { alpha: self.alpha.0, beta: self.beta.0 },
+            Binary { alpha: self.alpha.1, beta: self.beta.1 },
+        )
     }
 }
 
@@ -162,6 +177,18 @@ impl Binary<Entity> {
     ) -> Binary<ROQueryItem<'a, D>> {
         let [alpha, beta] = query.many([self.alpha, self.beta]);
         Binary { alpha, beta }
+    }
+
+    /// Performs a bevy query on both entities with a `&mut World`.
+    ///
+    /// # Errors
+    /// Panics if the query cannot be used on the entities in `self`.
+    pub fn query_world<'w, D: QueryData>(
+        &self,
+        world: &'w mut World,
+    ) -> Result<Binary<QueryItem<'w, D>>, QueryEntityError> {
+        let [alpha, beta] = world.query::<D>().get_many_mut(world, [self.alpha, self.beta])?;
+        Ok(Binary { alpha, beta })
     }
 }
 

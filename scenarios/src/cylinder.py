@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 
-import gltflib
 import numpy
-from gltflib import GLTF, GLTFModel
 
 from . import assets
 

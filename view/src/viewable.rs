@@ -24,7 +24,7 @@ use traffloat_base::{proto, ServerSideSystemSet};
 use typed_builder::TypedBuilder;
 
 use crate::viewer::{S2cMessageEvent, S2cMessageWriterSystemSet};
-use crate::{appearance, viewer, S2cMessage};
+use crate::{viewer, Appearance, S2cMessage};
 
 sid_alias!("viewable");
 
@@ -78,7 +78,7 @@ pub struct ShowMessage {
     /// The parent viewable to display this object with.
     pub parent:     Option<Sid>,
     /// The model of the viewable.
-    pub appearance: appearance::Appearance,
+    pub appearance: Appearance,
     /// The transform for the viewable model, relative to parent or world origin.
     pub transform:  proto::Transform,
 }
@@ -120,7 +120,7 @@ pub struct HideStationaryEvent {
 #[derive(bundle::Bundle, TypedBuilder)]
 pub struct BaseBundle {
     sid:        Sid,
-    appearance: appearance::Appearance,
+    appearance: Appearance,
     #[builder(default)]
     viewers:    Viewers,
 }
@@ -305,10 +305,7 @@ pub struct StationaryChild;
 fn update_stationary_viewers_system(
     tree: Res<SpatialIndex>,
     mut viewer_query: Query<(Entity, &Transform, &viewer::Range, &mut viewer::ViewableList)>,
-    mut viewable_query: Query<
-        (&Sid, &appearance::Appearance, &Transform, &mut Viewers),
-        With<Stationary>,
-    >,
+    mut viewable_query: Query<(&Sid, &Appearance, &Transform, &mut Viewers), With<Stationary>>,
     mut show_events: EventWriter<S2cMessageEvent<ShowMessage>>,
     mut show_stationary_events: EventWriter<ShowStationaryEvent>,
     mut hide_events: EventWriter<S2cMessageEvent<HideMessage>>,
@@ -392,10 +389,7 @@ fn show_stationary_children_system(
     mut show_stationary_events: EventReader<ShowStationaryEvent>,
     mut show_events: EventWriter<S2cMessageEvent<ShowMessage>>,
     stationary_query: Query<(&Sid, &hierarchy::Children), With<Stationary>>,
-    mut child_query: Query<
-        (&Sid, &appearance::Appearance, &Transform, &mut Viewers),
-        With<StationaryChild>,
-    >,
+    mut child_query: Query<(&Sid, &Appearance, &Transform, &mut Viewers), With<StationaryChild>>,
 ) {
     let mut events = Vec::new();
     for &ShowStationaryEvent { viewer: viewer_entity, viewable } in show_stationary_events.read() {
