@@ -85,7 +85,7 @@ pub struct ShowMessage {
 
 impl S2cMessage for ShowMessage {}
 
-/// A specialized `ShowEvent` that only gets sent for stationary viewables,
+/// Dispatched when `ShowMessage` is sent for stationary viewables,
 /// when updated by the stationary maintenance system.
 #[derive(Debug, Event)]
 pub struct ShowStationaryEvent {

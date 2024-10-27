@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from typing import Optional, Self
 
@@ -16,6 +17,7 @@ from ..save.types import (
     Layers,
     LiteralDisplayText,
     PbrLayer,
+    PbrObject,
     Position,
     Rotation,
     Scale,
@@ -104,11 +106,13 @@ def core(ctx: Context, position: Position, rotation: Rotation = Rotation.identit
         appearance=Appearance(
             label=ctx.define_word("Core"),
             layers=Layers(
-                distal=PbrLayer(mesh=sphere.Mesh(), material=common_materials.Glass()),
-                proximal=PbrLayer(
+                distal=PbrLayer.singleton(
+                    mesh=sphere.Mesh(), material=common_materials.Glass()
+                ),
+                proximal=PbrLayer.singleton(
                     mesh=sphere.Mesh(depth=5), material=common_materials.Glass()
                 ),
-                interior=PbrLayer(
+                interior=PbrLayer.singleton(
                     mesh=sphere.Mesh(), material=common_materials.Glass()
                 ),
             ),
@@ -122,17 +126,41 @@ def core(ctx: Context, position: Position, rotation: Rotation = Rotation.identit
 
 
 def garden(ctx: Context, position: Position, rotation: Rotation = Rotation.identity()):
+    bush_positions = []
+    bush_count_ext = 2
+    for x in range(-bush_count_ext, bush_count_ext + 1):
+        if x % 2 == 1:
+            for y in range(-bush_count_ext, bush_count_ext + 1):
+                bush_positions.append((x * math.sin(math.pi / 3), y))
+        else:
+            for y in range(-bush_count_ext, bush_count_ext):
+                bush_positions.append((x * math.sin(math.pi / 3), y + 0.5))
+
+    bush_array = PbrLayer(
+        [
+            PbrObject(
+                mesh=cylinder.Mesh(sides=6),
+                material=common_materials.RoughMonotone(r=0.39, g=0.85, b=0.34),
+                translation=Position(x=x * 0.5, y=y * 0.5),
+                scale=Scale(x=0.15, y=0.15),
+            )
+            for (y, x) in bush_positions
+        ]
+    )
+
     return Building(
         position=position,
         rotation=rotation,
         appearance=Appearance(
             label=ctx.define_word("Garden"),
             layers=Layers(
-                distal=PbrLayer(mesh=sphere.Mesh(), material=common_materials.Glass()),
-                proximal=PbrLayer(
+                distal=PbrLayer.singleton(
                     mesh=sphere.Mesh(), material=common_materials.Glass()
                 ),
-                interior=PbrLayer(
+                proximal=PbrLayer.singleton(
+                    mesh=sphere.Mesh(), material=common_materials.Glass()
+                ),
+                interior=PbrLayer.singleton(
                     mesh=sphere.Mesh(), material=common_materials.Glass()
                 ),
             ),
@@ -148,18 +176,8 @@ def garden(ctx: Context, position: Position, rotation: Rotation = Rotation.ident
                 appearance=Appearance(
                     label=ctx.define_word("Bushes"),
                     layers=Layers(
-                        distal=PbrLayer(
-                            mesh=cylinder.Mesh(sides=12),
-                            material=common_materials.RoughMonotone(
-                                r=0.39, g=0.85, b=0.34
-                            ),
-                        ),
-                        proximal=PbrLayer(
-                            mesh=cylinder.Mesh(),
-                            material=common_materials.RoughMonotone(
-                                r=0.39, g=0.85, b=0.34
-                            ),
-                        ),
+                        distal=bush_array,
+                        proximal=bush_array,
                     ),
                 ),
                 fluid_containers=[
@@ -192,13 +210,13 @@ def corridor(
         appearance=Appearance(
             label=name,
             layers=Layers(
-                distal=PbrLayer(
+                distal=PbrLayer.singleton(
                     mesh=cylinder.Mesh(sides=12), material=common_materials.Glass()
                 ),
-                proximal=PbrLayer(
+                proximal=PbrLayer.singleton(
                     mesh=cylinder.Mesh(), material=common_materials.Glass()
                 ),
-                interior=PbrLayer(
+                interior=PbrLayer.singleton(
                     mesh=cylinder.Mesh(), material=common_materials.Glass()
                 ),
             ),
@@ -229,11 +247,11 @@ def fluid_duct(
                 LiteralDisplayText(str(index)),
             ),
             layers=Layers(
-                distal=PbrLayer(
+                distal=PbrLayer.singleton(
                     mesh=cylinder.Mesh(sides=12),
                     material=common_materials.RoughMonotone(*rgb),
                 ),
-                proximal=PbrLayer(
+                proximal=PbrLayer.singleton(
                     mesh=cylinder.Mesh(),
                     material=common_materials.RoughMonotone(*rgb),
                 ),

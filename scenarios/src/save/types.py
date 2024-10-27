@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import Self, Union
+from typing import Optional, Self, Union
 
 from .. import glossary
 
@@ -119,15 +119,40 @@ class NullLayer:
 
 
 @dataclass
-class PbrLayer:
+class PbrObject:
     mesh: Mesh
     material: Material
+
+    translation: Optional[Position] = None
+    rotation: Optional[Rotation] = None
+    scale: Optional[Scale] = None
+
+    def as_dict(self, writer: Writer):
+        out = {
+            "mesh": self.mesh.use(writer.asset_pool),
+            "material": self.material.use(writer.asset_pool),
+        }
+        if self.translation is not None:
+            out.setdefault("transform", {})["position"] = self.translation.as_dict()
+        if self.rotation is not None:
+            out.setdefault("transform", {})["rotation"] = self.rotation.as_dict()
+        if self.scale is not None:
+            out.setdefault("transform", {})["scale"] = self.scale.as_dict()
+        return out
+
+
+@dataclass
+class PbrLayer:
+    objects: list[PbrObject]
+
+    @staticmethod
+    def singleton(mesh: Mesh, material: Material) -> Self:
+        return PbrLayer(objects=[PbrObject(mesh, material)])
 
     def as_dict(self, writer: Writer):
         return {
             "type": "Pbr",
-            "mesh": self.mesh.use(writer.asset_pool),
-            "material": self.material.use(writer.asset_pool),
+            "objects": [obj.as_dict(writer) for obj in self.objects],
         }
 
 

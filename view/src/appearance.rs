@@ -7,6 +7,7 @@ use schemars::gen::SchemaGenerator;
 use schemars::schema::{InstanceType, Schema, SchemaObject, StringValidation};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, Serializer};
+use traffloat_base::proto;
 
 use crate::DisplayText;
 
@@ -42,17 +43,15 @@ impl Appearance {
 }
 
 /// Describes a way to display an object.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type")]
 pub enum Layer {
     /// Do not display anything.
     Null,
     /// Use PBR for display.
     Pbr {
-        /// The object mesh.
-        mesh:     GlbMeshRef,
-        /// The object material.
-        material: GlbMaterialRef,
+        /// A list of meshes to render from this PBR.
+        objects: Vec<PbrObject>,
     },
     // /// Use billboard for display.
     // Billboard {
@@ -61,6 +60,18 @@ pub enum Layer {
     // /// The image is assumed to be a 1\*1 physical square centered at the object location.
     // sprite: ImageRef,
     // },
+}
+
+/// A PBR object with a material paired with a mesh.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct PbrObject {
+    /// The object mesh.
+    pub mesh:      GlbMeshRef,
+    /// The object material.
+    pub material:  GlbMaterialRef,
+    /// Transform on the object relative to the layer base.
+    #[serde(default)]
+    pub transform: proto::Transform,
 }
 
 /// Reference to a image file.

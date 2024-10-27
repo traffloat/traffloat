@@ -60,7 +60,7 @@ impl Default for Scale {
 }
 
 /// Serializable form of [bevy `Transform`](BevyTransform).
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, JsonSchema)]
 pub struct Transform {
     /// Position transformation.
     #[serde(default)]

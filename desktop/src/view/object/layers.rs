@@ -11,6 +11,7 @@ use bevy::ecs::query::{With, Without};
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::Query;
 use bevy::gltf::GltfAssetLabel;
+use bevy::hierarchy::BuildChildren;
 use bevy::pbr::{PbrBundle, StandardMaterial};
 use bevy::prelude::SpatialBundle;
 use bevy::render::mesh::Mesh;
@@ -84,7 +85,7 @@ fn create_material_handle(
 fn spawn_appearance_layer(
     builder: &mut hierarchy::ChildBuilder,
     assets: &AssetServer,
-    appearance: Layer,
+    appearance: &Layer,
     transform: Transform,
     debug_name: &'static str,
 ) -> Entity {
@@ -100,11 +101,9 @@ fn spawn_appearance_layer(
                 debug::Bundle::new(debug_name),
             ))
             .id(),
-        Layer::Pbr { mesh, material } => builder
+        Layer::Pbr { objects } => builder
             .spawn((
-                PbrBundle {
-                    mesh: create_mesh_handle(assets, mesh),
-                    material: create_material_handle(assets, material),
+                SpatialBundle {
                     transform,
                     visibility: render::view::Visibility::Hidden,
                     ..Default::default()
@@ -112,6 +111,19 @@ fn spawn_appearance_layer(
                 Layered,
                 debug::Bundle::new(debug_name),
             ))
+            .with_children(|builder| {
+                for &appearance::PbrObject { mesh, material, transform } in objects {
+                    builder.spawn((
+                        PbrBundle {
+                            mesh: create_mesh_handle(assets, mesh),
+                            material: create_material_handle(assets, material),
+                            transform: transform.into(),
+                            ..Default::default()
+                        },
+                        debug::Bundle::new("PbrMesh"),
+                    ));
+                }
+            })
             .id(),
     }
 }
@@ -176,21 +188,21 @@ pub(super) fn spawn_all(
     let distal = spawn_appearance_layer(
         parent,
         assets,
-        event.appearance.distal,
+        &event.appearance.distal,
         Transform::IDENTITY,
         "DistalObjectLayer",
     );
     let proximal = spawn_appearance_layer(
         parent,
         assets,
-        event.appearance.proximal,
+        &event.appearance.proximal,
         Transform::IDENTITY,
         "ProximalObjectLayer",
     );
     let interior = spawn_appearance_layer(
         parent,
         assets,
-        event.appearance.interior,
+        &event.appearance.interior,
         Transform::IDENTITY,
         "InteriorObjectLayer",
     );
