@@ -58,7 +58,7 @@ jobs:
     strategy:
       matrix:
         toolchain:
-          - nightly
+          - stable
         stability:
           - ""
           - "--release"
