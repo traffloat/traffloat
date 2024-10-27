@@ -49,7 +49,7 @@ pub(super) struct LayerRefs {
 }
 
 fn create_mesh_handle(assets: &AssetServer, glb_ref: appearance::GlbMeshRef) -> Handle<Mesh> {
-    let mut path_buf = vec![0u8; size_of::<appearance::GlbSha>() * 2 + 4];
+    let mut path_buf = vec![0u8; size_of::<appearance::ResourceSha>() * 2 + 4];
     hex::encode_to_slice(glb_ref.sha.0, &mut path_buf[..glb_ref.sha.0.len() * 2]).unwrap();
     path_buf[glb_ref.sha.0.len() * 2..].copy_from_slice(b".glb");
     let path_str = String::from_utf8(path_buf).unwrap();
@@ -67,7 +67,7 @@ fn create_material_handle(
     assets: &AssetServer,
     glb_ref: appearance::GlbMaterialRef,
 ) -> Handle<StandardMaterial> {
-    let mut path_buf = vec![0u8; size_of::<appearance::GlbSha>() * 2 + 4];
+    let mut path_buf = vec![0u8; size_of::<appearance::ResourceSha>() * 2 + 4];
     hex::encode_to_slice(glb_ref.sha.0, &mut path_buf[..glb_ref.sha.0.len() * 2]).unwrap();
     path_buf[glb_ref.sha.0.len() * 2..].copy_from_slice(b".glb");
     let path_str = String::from_utf8(path_buf).unwrap();

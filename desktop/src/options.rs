@@ -8,6 +8,8 @@ pub struct Options {
     pub save_file: Option<PathBuf>,
     #[clap(long, default_value = "assets/")]
     pub asset_dir: PathBuf,
+    #[clap(long, value_delimiter = ',', default_value = "en_US,en")]
+    pub locales:   Vec<String>,
 }
 
 impl Options {

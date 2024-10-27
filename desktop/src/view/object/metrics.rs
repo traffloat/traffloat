@@ -17,6 +17,7 @@ use traffloat_view::{
     metrics as view_metrics, viewable, C2sMessageEvent, C2sMessageWriter, S2cMessageReader,
 };
 
+use crate::util::glossary;
 use crate::view::delegate;
 
 pub(super) struct Plugin;
@@ -109,6 +110,7 @@ fn update_text_system(
     object_query: Query<&ReceivedValues, With<delegate::Marker<viewable::Sid>>>,
     metric_query: Query<&view_metrics::ClientTypeData, With<delegate::Marker<view_metrics::Sid>>>,
     metric_sid_index: Res<delegate::SidIndex<view_metrics::Sid>>,
+    mut glossary_provider: glossary::Provider,
 ) {
     for (mut display, &ValueDisplay(viewable_entity)) in &mut display_query {
         let Ok(object_known) = object_query.get(viewable_entity) else { return };
@@ -117,7 +119,7 @@ fn update_text_system(
         display.sections.extend(object_known.0.iter().map(|(&ty, &value)| {
             let ty_label = if let Some(entity) = metric_sid_index.get(ty) {
                 match metric_query.get(entity) {
-                    Ok(def) => def.display_label.render_to_string(),
+                    Ok(def) => def.display_label.render_to_string(&mut glossary_provider, &[]),
                     Err(err) => {
                         bevy::log::warn!("metric SID has invalid metric delegate entity: {err:?}");
                         format!("{ty:?}")

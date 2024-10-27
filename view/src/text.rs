@@ -3,11 +3,20 @@ use core::fmt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+pub mod translation;
+
 /// A string visible to user without rich formatting.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(tag = "type")]
 #[allow(clippy::module_name_repetitions)]
 pub enum DisplayText {
+    /// A translated template from a translation bundle.
+    Template {
+        /// Reference to translation bundle by its SHA1 hash.
+        sha:   translation::GlossarySha,
+        /// Index of template entry in the translation bundle.
+        index: u16,
+    },
     /// An arbitrary display string.
     Custom {
         /// The constant value.
@@ -25,12 +34,24 @@ impl DisplayText {
     /// Renders the display text to `output`.
     ///
     /// Signature may change in the future when we support i18n.
-    pub fn render(&self, output: &mut String) {
+    pub fn render(
+        &self,
+        pack_provider: &mut impl translation::Provider,
+        args: &[Argument],
+        output: &mut String,
+    ) {
         match self {
+            &Self::Template { sha, index } => match pack_provider.get(sha) {
+                Some(pack) => match pack.entries.get(usize::from(index)) {
+                    Some(entry) => entry.render(args, output),
+                    None => output.push_str("{BAD_REF}"),
+                },
+                None => output.push_str("{BAD_REF}"),
+            },
             Self::Custom { value } => output.push_str(value),
             Self::Concat { children } => {
                 for child in children {
-                    child.render(output);
+                    child.render(pack_provider, args, output);
                 }
             }
         }
@@ -40,9 +61,13 @@ impl DisplayText {
     ///
     /// Signature may change in the future when we support i18n.
     #[must_use]
-    pub fn render_to_string(&self) -> String {
+    pub fn render_to_string(
+        &self,
+        pack_provider: &mut impl translation::Provider,
+        args: &[Argument],
+    ) -> String {
         let mut output = String::new();
-        self.render(&mut output);
+        self.render(pack_provider, args, &mut output);
         output
     }
 
@@ -54,6 +79,9 @@ impl DisplayText {
         impl<'a> fmt::Display for Wrapper<'a> {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 match self.0 {
+                    DisplayText::Template { sha, index } => {
+                        write!(f, "{}#{index}", hex::encode(sha.0))
+                    }
                     DisplayText::Custom { value } => write!(f, "{value}"),
                     DisplayText::Concat { children } => {
                         for child in children {
@@ -71,4 +99,12 @@ impl DisplayText {
 
 impl Default for DisplayText {
     fn default() -> Self { Self::Concat { children: Vec::new() } }
+}
+
+/// Arguments passed to resolve a display text.
+pub enum Argument<'a> {
+    /// A string argument.
+    String(&'a str),
+    /// A numeric argument.
+    Number(f64),
 }

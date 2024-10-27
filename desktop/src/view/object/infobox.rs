@@ -23,6 +23,7 @@ use traffloat_view::appearance::Appearance;
 use traffloat_view::viewable;
 
 use super::metrics;
+use crate::util::glossary;
 use crate::view::delegate;
 use crate::{view, AppState};
 
@@ -221,12 +222,13 @@ fn update_box_visibility_system(
 fn update_viewable_label_system(
     mut viewable_info_query: Query<(&ViewableInfo, &mut Text), With<LabelDisplay>>,
     object_query: Query<&Appearance, With<delegate::Marker<viewable::Sid>>>,
+    mut glossary_provider: glossary::Provider,
 ) {
     for (&ViewableInfo(viewable_entity), mut display) in &mut viewable_info_query {
         if let Ok(appearance) = object_query.get(viewable_entity) {
             let section = display.sections.get_mut(0).expect("set during init");
             section.value.clear();
-            appearance.label.render(&mut section.value);
+            appearance.label.render(&mut glossary_provider, &[], &mut section.value);
         } else {
             bevy::log::warn!(
                 "missing appearance in viewable delegate {viewable_entity:?} referenced by \

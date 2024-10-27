@@ -2,7 +2,7 @@ import os
 import shutil
 from os import path
 
-from . import all, assets, save
+from . import all, assets, glossary, save
 
 
 def main():
@@ -13,14 +13,25 @@ def main():
 
     os.mkdir(assets_dir)
 
-    pool = assets.Pool()
+    asset_pool = assets.Pool()
+    glossary_pool = glossary.Pool()
 
     for name, fn in all.scenarios.items():
         print(f"create scenario file {name}.tfsave")
-        with save.WriterCtx(assets_dir, name, pool) as writer:
+        with save.WriterCtx(assets_dir, name, asset_pool, glossary_pool) as writer:
             fn(writer)
 
-    for name, mesh in pool.all.items():
+    for name, mesh in asset_pool.all.items():
         print(f"create asset file {name}: {mesh.hash}")
         with open(path.join(assets_dir, f"{mesh.hash}.glb"), "wb") as f:
             f.write(mesh.buf)
+
+    for g in glossary_pool.all:
+        print(f"create glossary file {g.name}: {g.sha_handle.sha}")
+        os.mkdir(path.join(assets_dir, g.sha_handle.sha))
+        for file in g.output:
+            with open(
+                path.join(assets_dir, g.sha_handle.sha, f"{file.locale}.tfglos"),
+                "wb",
+            ) as f:
+                f.write(file.data)

@@ -5,14 +5,16 @@ from dataclasses import dataclass
 from os import path
 from typing import Any, Generic, TypeVar
 
-from .. import assets
+from .. import assets, glossary
 
 
 class WriterCtx:
-    def __init__(self, dir: str, name: str, pool: assets.Pool):
+    def __init__(
+        self, dir: str, name: str, asset_pool: assets.Pool, glossary_pool: glossary.Pool
+    ):
         self.dir = dir
         self.name = name
-        self.writer = Writer(pool)
+        self.writer = Writer(asset_pool, glossary_pool)
 
     def __enter__(self):
         return self.writer
@@ -36,7 +38,18 @@ class WriterCtx:
                 },
                 f,
                 separators=(",\n", ":"),
+                cls=LateShaEncoder,
             )
+
+
+class LateShaEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, glossary.ShaHandle):
+            if obj.sha is None:
+                raise Exception("ShaHandle is not initialized yet")
+            return obj.sha
+
+        return super().default(obj)
 
 
 class Def:
@@ -57,11 +70,12 @@ class Id(Generic[D]):
 
 
 class Writer:
-    def __init__(self, pool: assets.Pool):
-        self.pool = pool
+    def __init__(self, asset_pool: assets.Pool, glossary_pool: glossary.Pool):
+        self.asset_pool = asset_pool
+        self.glossary_pool = glossary_pool
         self.types: type[Def] = {}
 
-    def write(self, ty: type[D], data: dict[str, Any]) -> D:
+    def write(self, ty: type[D], data: dict[str, Any]) -> Id[D]:
         items = self.types.setdefault(ty, [])
         id = len(items)
         items.append(data)

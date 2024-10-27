@@ -1,9 +1,10 @@
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import Self
+from typing import Self, Union
 
 from ..assets import Material, Mesh
 from . import Writer
+from .. import glossary
 
 
 @dataclass
@@ -50,11 +51,31 @@ class DisplayText:
 
 
 @dataclass
-class CustomDisplayText(DisplayText):
-    text: str = ""
+class BlankDisplayText(DisplayText):
+    def as_dict(self):
+        return {
+            "type": "Custom",
+            "value": "",
+        }
+
+
+@dataclass
+class TemplateDisplayText(DisplayText):
+    id: glossary.Id
+
+    def new(
+        g: glossary.Glossary,
+        base: Union[list[Union[glossary.Element, str]], str],
+        **locales: dict[str, Union[list[Union[glossary.Element, str]], str]]
+    ) -> Self:
+        return TemplateDisplayText(id=g.add(base, **locales))
 
     def as_dict(self):
-        return {"type": "Custom", "value": self.text}
+        return {
+            "type": "Template",
+            "sha": self.id.sha_handle,
+            "index": self.id.index,
+        }
 
 
 class Layer:
@@ -78,8 +99,8 @@ class PbrLayer:
     def as_dict(self, writer: Writer):
         return {
             "type": "Pbr",
-            "mesh": self.mesh.use(writer.pool),
-            "material": self.material.use(writer.pool),
+            "mesh": self.mesh.use(writer.asset_pool),
+            "material": self.material.use(writer.asset_pool),
         }
 
 

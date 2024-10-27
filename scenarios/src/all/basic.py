@@ -2,12 +2,13 @@ from dataclasses import dataclass
 from typing import Self
 
 from .. import assets, common_materials, cylinder, sphere
+from ..glossary import Glossary
 from ..save import fluid, Id, Writer
 from ..save.building import Building
 from ..save.facility import Facility
 from ..save.fluid.container import Container as FluidContainer
 from ..save.types import (
-    CustomDisplayText,
+    TemplateDisplayText,
     Layer,
     Layers,
     PbrLayer,
@@ -18,11 +19,15 @@ from ..save.types import (
 
 
 def write_scenario(writer: Writer):
-    fluids = Fluids.write(writer)
-    ctx = Context(fluids)
+    glossary = Glossary(name="basic")
+    fluids = Fluids.write(writer, glossary)
+    ctx = Context(fluids=fluids, glossary=glossary)
 
     core(ctx, position=Position(x=-2.0, y=0.0, z=5.0)).write(writer)
     garden(ctx, position=Position(x=2.0, y=0.0, z=5.0)).write(writer)
+
+    glossary.finalize(locales=["en"])
+    writer.glossary_pool.push_finalized(glossary)
 
 
 @dataclass
@@ -32,15 +37,25 @@ class Fluids:
     co2: Id[fluid.Type]
     water: Id[fluid.Type]
 
-    def write(writer: Writer) -> Self:
+    def write(writer: Writer, glossary: Glossary) -> Self:
         return Fluids(
-            nitrogen=fluid.Type.gas_like("Nitrogen", 28.02).write(writer),
-            oxygen=fluid.Type.gas_like("Oxygen", 31.99).write(writer),
-            co2=fluid.Type.gas_like("CO2", 44.01).write(writer),
-            water=fluid.Type.aqueous("Water", 18.02).write(writer),
+            nitrogen=fluid.Type.gas_like(
+                TemplateDisplayText.new(glossary, "Nitrogen"), 28.02
+            ).write(writer),
+            oxygen=fluid.Type.gas_like(
+                TemplateDisplayText.new(glossary, "Oxygen"), 31.99
+            ).write(writer),
+            co2=fluid.Type.gas_like(
+                TemplateDisplayText.new(glossary, "CO2"), 44.01
+            ).write(writer),
+            water=fluid.Type.aqueous(
+                TemplateDisplayText.new(glossary, "Water"), 18.02
+            ).write(writer),
         )
 
-    def ambient_container(self, max_volume: float, max_pressure: float) -> FluidContainer:
+    def ambient_container(
+        self, max_volume: float, max_pressure: float
+    ) -> FluidContainer:
         """
         Standard atmospheric composition.
         """
@@ -58,6 +73,7 @@ class Fluids:
 @dataclass
 class Context:
     fluids: Fluids
+    glossary: Glossary
 
 
 def core(ctx: Context, position: Position, rotation: Rotation = Rotation.identity()):
@@ -65,7 +81,7 @@ def core(ctx: Context, position: Position, rotation: Rotation = Rotation.identit
         position=position,
         rotation=rotation,
         scale=Scale.splat(2.0),
-        label=CustomDisplayText("Core"),
+        label=TemplateDisplayText.new(ctx.glossary, "Core"),
         layers=Layers(
             distal=PbrLayer(mesh=sphere.Mesh(), material=common_materials.Glass()),
             proximal=PbrLayer(
@@ -73,9 +89,11 @@ def core(ctx: Context, position: Position, rotation: Rotation = Rotation.identit
             ),
             interior=PbrLayer(mesh=sphere.Mesh(), material=common_materials.Glass()),
         ),
-        ambient_facility=Facility(fluid_containers=[
-            ctx.fluids.ambient_container(max_volume=10000.0, max_pressure=100.0),
-        ]),
+        ambient_facility=Facility(
+            fluid_containers=[
+                ctx.fluids.ambient_container(max_volume=10000.0, max_pressure=100.0),
+            ]
+        ),
     )
 
 
@@ -83,19 +101,21 @@ def garden(ctx: Context, position: Position, rotation: Rotation = Rotation.ident
     return Building(
         position=position,
         rotation=rotation,
-        label=CustomDisplayText("Garden"),
+        label=TemplateDisplayText.new(ctx.glossary, "Garden"),
         layers=Layers(
             distal=PbrLayer(mesh=sphere.Mesh(), material=common_materials.Glass()),
             proximal=PbrLayer(mesh=sphere.Mesh(), material=common_materials.Glass()),
             interior=PbrLayer(mesh=sphere.Mesh(), material=common_materials.Glass()),
         ),
-        ambient_facility=Facility(fluid_containers=[
-            ctx.fluids.ambient_container(max_volume=10000.0, max_pressure=100.0),
-        ]),
+        ambient_facility=Facility(
+            fluid_containers=[
+                ctx.fluids.ambient_container(max_volume=10000.0, max_pressure=100.0),
+            ]
+        ),
         other_facilities=[
             Facility(
                 inner_scale=Scale(x=0.3, y=0.3, z=0.7),
-                label=CustomDisplayText("Bushes"),
+                label=TemplateDisplayText.new(ctx.glossary, "Bushes"),
                 layers=Layers(
                     distal=PbrLayer(
                         mesh=cylinder.Mesh(),

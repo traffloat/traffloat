@@ -66,6 +66,7 @@ fn main() -> AppExit {
         ))
         .add_plugins(main_menu::Plugin)
         .add_plugins(view::Plugin)
+        .add_plugins(util::glossary::Plugin)
         .edit_schedule(app::Update, |schedule| {
             schedule.set_build_settings(ScheduleBuildSettings {
                 ambiguity_detection: schedule::LogLevel::Warn,

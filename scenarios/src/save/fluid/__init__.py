@@ -1,8 +1,8 @@
 from dataclasses import dataclass, KW_ONLY
-from typing import Self
+from typing import Any, Self
 
 from .. import Def, Id, Writer
-from ..types import CustomDisplayText, DisplayText
+from ..types import DisplayText
 
 
 @dataclass
@@ -15,9 +15,9 @@ class Type(Def):
     critical_pressure: float
     saturation_gamma: float
 
-    def aqueous(display_label: str, molar_mass: float) -> Self:
+    def aqueous(display_label: DisplayText, molar_mass: float) -> Self:
         return Type(
-            display_label=CustomDisplayText(display_label),
+            display_label=display_label,
             viscosity=2.0,
             vacuum_specific_volume=18.0 / molar_mass,
             critical_pressure=1.2,
@@ -26,7 +26,7 @@ class Type(Def):
 
     def gas_like(display_label: str, molar_mass: float) -> Self:
         return Type(
-            display_label=CustomDisplayText(display_label),
+            display_label=display_label,
             viscosity=0.1,
             vacuum_specific_volume=22400.0 / molar_mass,
             critical_pressure=1000.0,
@@ -36,7 +36,7 @@ class Type(Def):
     def save_id() -> str:
         return "traffloat.save.fluid.Type"
 
-    def write(self, writer: Writer) -> Self:
+    def write(self, writer: Writer) -> Id[Any]:  # `Id[Self]` does not work
         self.id = writer.write(
             Type,
             {

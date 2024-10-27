@@ -66,20 +66,20 @@ pub enum Layer {
 /// Reference to a image file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize, JsonSchema)]
 pub struct ImageRef {
-    /// Reference to GLB file by its SHA1 hash.
+    /// Reference to image file by its SHA1 hash.
     pub sha: [u8; 20],
 }
 
-/// Identifies a GLB file.
+/// Identifies a resource file by SHA1 hash.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct GlbSha(pub [u8; 20]);
+pub struct ResourceSha(pub [u8; 20]); // TODO consider switching to UUID
 
 /// Reference to a primitive in a GLB mesh node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize, JsonSchema)]
 pub struct GlbMeshRef {
     /// Reference to GLB file by its SHA1 hash.
-    pub sha:       GlbSha,
+    pub sha:       ResourceSha,
     /// Index of the object inside the GLB file.
     pub mesh:      u16,
     /// Index of the primitive inside the GLB mesh.
@@ -90,12 +90,12 @@ pub struct GlbMeshRef {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component, Serialize, Deserialize, JsonSchema)]
 pub struct GlbMaterialRef {
     /// Reference to GLB file by its SHA1 hash.
-    pub sha:   GlbSha,
+    pub sha:   ResourceSha,
     /// Index of the object inside the GLB file.
     pub index: u16,
 }
 
-impl Serialize for GlbSha {
+impl Serialize for ResourceSha {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -111,7 +111,7 @@ impl Serialize for GlbSha {
     }
 }
 
-impl<'de> Deserialize<'de> for GlbSha {
+impl<'de> Deserialize<'de> for ResourceSha {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -130,7 +130,7 @@ impl<'de> Deserialize<'de> for GlbSha {
     }
 }
 
-impl JsonSchema for GlbSha {
+impl JsonSchema for ResourceSha {
     fn schema_id() -> Cow<'static, str> { Cow::Borrowed(concat!(module_path!(), "::GlbSha")) }
 
     fn schema_name() -> String { "GlbSha".into() }

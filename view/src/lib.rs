@@ -12,7 +12,7 @@ pub use sid::Index as SidIndex;
 
 pub mod appearance;
 mod text;
-pub use text::DisplayText;
+pub use text::{translation, DisplayText};
 pub mod metrics;
 pub mod viewable;
 pub mod viewer;
