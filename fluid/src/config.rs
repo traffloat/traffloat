@@ -15,6 +15,7 @@ impl app::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Scalar>();
         app.init_resource::<CreatedType>();
+        app.init_schedule(OnCreateType);
         save::add_def::<SaveScalar>(app);
         save::add_def::<SaveType>(app);
     }

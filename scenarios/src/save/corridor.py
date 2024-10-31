@@ -39,7 +39,7 @@ class Corridor(Def):
             },
         )
 
-        # self.ambient_duct.write(writer=writer, parent=self.id, is_ambient=True)
+        self.ambient_duct.write(writer=writer, parent=self.id, is_ambient=True)
 
         for duct in self.other_ducts:
             duct.write(writer=writer, parent=self.id, is_ambient=False)

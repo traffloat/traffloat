@@ -27,7 +27,7 @@ from ..save.types import (
 
 def write_scenario(writer: Writer):
     glossary = Glossary(name="basic")
-    fluids = Fluids.write(writer, glossary)
+    fluids = Fluids(glossary).write(writer)
     ctx = Context(fluids=fluids, glossary=glossary)
 
     core_id = core(ctx, position=Position(x=-2.0, y=0.0, z=5.0)).write(writer)
@@ -51,23 +51,27 @@ def write_scenario(writer: Writer):
     writer.glossary_pool.push_finalized(glossary)
 
 
-@dataclass
 class Fluids:
-    nitrogen: Id[fluid.Type]
-    oxygen: Id[fluid.Type]
-    co2: Id[fluid.Type]
-    water: Id[fluid.Type]
+    nitrogen: fluid.Type
+    oxygen: fluid.Type
+    co2: fluid.Type
+    water: fluid.Type
 
-    def write(writer: Writer, glossary: Glossary) -> Self:
+    def __init__(self, glossary: Glossary):
         def define_word(base, **locales):
             return TemplateDisplayText(id=glossary.add(base, **locales))
 
-        return Fluids(
-            nitrogen=fluid.Type.gas_like(define_word("Nitrogen"), 28.02).write(writer),
-            oxygen=fluid.Type.gas_like(define_word("Oxygen"), 31.99).write(writer),
-            co2=fluid.Type.gas_like(define_word("CO2"), 44.01).write(writer),
-            water=fluid.Type.aqueous(define_word("Water"), 18.02).write(writer),
-        )
+        self.nitrogen = fluid.Type.gas_like(define_word("Nitrogen"), 28.02)
+        self.oxygen = fluid.Type.gas_like(define_word("Oxygen"), 31.99)
+        self.co2 = fluid.Type.gas_like(define_word("CO2"), 44.01)
+        self.water = fluid.Type.aqueous(define_word("Water"), 18.02)
+
+    def write(self, writer: Writer) -> Self:
+        self.nitrogen.write(writer)
+        self.oxygen.write(writer)
+        self.co2.write(writer)
+        self.water.write(writer)
+        return self
 
     def ambient_container(
         self, max_volume: float, max_pressure: float
@@ -79,9 +83,9 @@ class Fluids:
             max_volume=max_volume,
             max_pressure=max_pressure,
             element_masses={
-                self.nitrogen.id: 22400.0 / 14.0 * max_volume * 0.78,
-                self.oxygen.id: 22400.0 / 16.0 * max_volume * 0.21,
-                self.co2.id: 22400.0 / 16.0 * max_volume * 0.21,
+                self.nitrogen.id: self.nitrogen.mass_for_rtp_volume(max_volume * 0.78),
+                self.oxygen.id: self.nitrogen.mass_for_rtp_volume(max_volume * 0.21),
+                self.co2.id: self.nitrogen.mass_for_rtp_volume(max_volume * 0.01),
             },
         )
 
@@ -260,5 +264,8 @@ def fluid_duct(
         inner_x=inner[0],
         inner_y=inner[1],
         radius=radius,
-        # TODO fluid container
+        fluid_container=ctx.fluids.ambient_container(
+            max_volume=100.0,
+            max_pressure=500.0,
+        ),
     )

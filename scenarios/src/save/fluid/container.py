@@ -36,7 +36,7 @@ class Container(Def):
                 ContainerElement,
                 {
                     "parent": self.id.id,
-                    "ty": ty,
+                    "ty": ty.id,
                     "mass": mass,
                 },
             )

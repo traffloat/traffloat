@@ -4,7 +4,7 @@ use std::ops::Deref;
 use bevy::app::{self, App};
 use bevy::asset::io::AssetReaderError;
 use bevy::asset::{
-    self, Asset, AssetApp, AssetLoadError, AssetLoader, AssetServer, Assets, AsyncReadExt, Handle,
+    self, Asset, AssetApp, AssetLoadError, AssetLoader, AssetServer, Assets, AsyncReadExt,
 };
 use bevy::ecs::system::{Res, ResMut, Resource, SystemParam};
 use bevy::ecs::world::{FromWorld, World};
@@ -121,7 +121,7 @@ impl<'w> translation::Provider for Provider<'w> {
 }
 
 struct FallbackState {
-    handle: Option<Handle<AssetWrapper>>,
+    handle: Option<asset::Handle<AssetWrapper>>,
     step:   usize,
 }
 

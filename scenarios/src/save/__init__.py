@@ -68,6 +68,9 @@ D = TypeVar("D", bound=Def)
 class Id(Generic[D]):
     id: int
 
+    def __hash__(self) -> int:
+        return hash(self.id)
+
 
 class Writer:
     def __init__(self, asset_pool: assets.Pool, glossary_pool: glossary.Pool):

@@ -2,14 +2,15 @@ use std::mem::size_of;
 use std::ops::RangeBounds;
 
 use bevy::app::{self, App};
-use bevy::asset::{AssetServer, Handle};
+use bevy::asset::{self, AssetServer, Assets};
+use bevy::color::{Color, Mix};
 use bevy::core_pipeline::core_3d::Camera3d;
 use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::query::{With, Without};
+use bevy::ecs::query::{Changed, QueryData, With, Without};
 use bevy::ecs::schedule::IntoSystemConfigs;
-use bevy::ecs::system::Query;
+use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut};
 use bevy::gltf::GltfAssetLabel;
 use bevy::hierarchy::BuildChildren;
 use bevy::pbr::{PbrBundle, StandardMaterial};
@@ -36,6 +37,16 @@ impl app::Plugin for Plugin {
                 .in_set(ClientSideSystemSet)
                 .in_set(UiMutatorSystemSet),
         );
+        app.add_systems(
+            app::FixedPreUpdate,
+            clone_material_system.run_if(in_state(AppState::GameView)).in_set(ClientSideSystemSet),
+        );
+        app.add_systems(
+            app::PostUpdate,
+            propagate_mix_material_system
+                .run_if(in_state(AppState::GameView))
+                .in_set(ClientSideSystemSet),
+        );
     }
 }
 
@@ -49,7 +60,10 @@ pub(super) struct LayerRefs {
     interior: Entity,
 }
 
-fn create_mesh_handle(assets: &AssetServer, glb_ref: appearance::GlbMeshRef) -> Handle<Mesh> {
+fn create_mesh_handle(
+    assets: &AssetServer,
+    glb_ref: appearance::GlbMeshRef,
+) -> asset::Handle<Mesh> {
     let mut path_buf = vec![0u8; size_of::<appearance::ResourceSha>() * 2 + 4];
     hex::encode_to_slice(glb_ref.sha.0, &mut path_buf[..glb_ref.sha.0.len() * 2]).unwrap();
     path_buf[glb_ref.sha.0.len() * 2..].copy_from_slice(b".glb");
@@ -67,7 +81,7 @@ fn create_mesh_handle(assets: &AssetServer, glb_ref: appearance::GlbMeshRef) -> 
 fn create_material_handle(
     assets: &AssetServer,
     glb_ref: appearance::GlbMaterialRef,
-) -> Handle<StandardMaterial> {
+) -> asset::Handle<StandardMaterial> {
     let mut path_buf = vec![0u8; size_of::<appearance::ResourceSha>() * 2 + 4];
     hex::encode_to_slice(glb_ref.sha.0, &mut path_buf[..glb_ref.sha.0.len() * 2]).unwrap();
     path_buf[glb_ref.sha.0.len() * 2..].copy_from_slice(b".glb");
@@ -89,43 +103,40 @@ fn spawn_appearance_layer(
     transform: Transform,
     debug_name: &'static str,
 ) -> Entity {
-    match appearance {
-        Layer::Null => builder
-            .spawn((
-                SpatialBundle {
-                    transform,
-                    visibility: render::view::Visibility::Hidden,
-                    ..Default::default()
-                },
-                Layered,
-                debug::Bundle::new(debug_name),
-            ))
-            .id(),
-        Layer::Pbr { objects } => builder
-            .spawn((
-                SpatialBundle {
-                    transform,
-                    visibility: render::view::Visibility::Hidden,
-                    ..Default::default()
-                },
-                Layered,
-                debug::Bundle::new(debug_name),
-            ))
-            .with_children(|builder| {
-                for &appearance::PbrObject { mesh, material, transform } in objects {
-                    builder.spawn((
-                        PbrBundle {
-                            mesh: create_mesh_handle(assets, mesh),
-                            material: create_material_handle(assets, material),
-                            transform: transform.into(),
-                            ..Default::default()
-                        },
-                        debug::Bundle::new("PbrMesh"),
-                    ));
-                }
-            })
-            .id(),
+    let mut layer_entity = builder.spawn((
+        SpatialBundle {
+            transform,
+            visibility: render::view::Visibility::Hidden,
+            ..Default::default()
+        },
+        Layered,
+        MixMaterialColor { color: Color::WHITE, factor: 1. },
+        PropagatedMixMaterialColor(Color::WHITE),
+        debug::Bundle::new(debug_name),
+    ));
+
+    if let Layer::Pbr { objects } = appearance {
+        layer_entity.with_children(|builder| {
+            for &appearance::PbrObject { mesh, material, transform } in objects {
+                let material_handle = create_material_handle(assets, material);
+                builder.spawn((
+                    PbrBundle {
+                        mesh: create_mesh_handle(assets, mesh),
+                        material: material_handle.clone(),
+                        transform: transform.into(),
+                        ..Default::default()
+                    },
+                    CloneMaterialState,
+                    BaseMaterialRef { _handle: material_handle },
+                    MixMaterialColor { color: Color::WHITE, factor: 1. },
+                    PropagatedMixMaterialColor(Color::WHITE),
+                    debug::Bundle::new("PbrMesh"),
+                ));
+            }
+        });
     }
+
+    layer_entity.id()
 }
 
 pub(super) fn select_layer_system(
@@ -207,4 +218,120 @@ pub(super) fn spawn_all(
         "InteriorObjectLayer",
     );
     LayerRefs { distal, proximal, interior }
+}
+
+/// Marker component indicating that the material handle is not cloned yet.
+#[derive(Component)]
+struct CloneMaterialState;
+
+/// Sets the hierarchical material to use.
+#[derive(Component)]
+pub struct MixMaterialColor {
+    /// The color modifier.
+    pub color:  Color,
+    /// The factor to mix into the parent color.
+    pub factor: f32,
+}
+
+#[derive(Component)]
+struct PropagatedMixMaterialColor(Color);
+
+/// References the base material definition.
+#[derive(Component)]
+struct BaseMaterialRef {
+    _handle: asset::Handle<StandardMaterial>,
+}
+
+fn clone_material_system(
+    asset_server: Res<AssetServer>,
+    mut assets: ResMut<Assets<StandardMaterial>>,
+    mut query: Query<(Entity, &mut asset::Handle<StandardMaterial>), With<CloneMaterialState>>,
+    mut commands: Commands,
+) {
+    for (entity, mut handle) in &mut query {
+        match asset_server.load_state(&*handle) {
+            asset::LoadState::NotLoaded | asset::LoadState::Loading => continue,
+            asset::LoadState::Failed(_) => {
+                // abort loading
+                commands.entity(entity).remove::<CloneMaterialState>();
+            }
+            asset::LoadState::Loaded => {
+                let material = assets.get(&*handle).expect("asset server reports handle loaded");
+                let new_material = material.clone();
+                let new_handle = assets.add(new_material);
+                *handle = new_handle;
+
+                commands.entity(entity).remove::<CloneMaterialState>();
+            }
+        }
+    }
+}
+
+#[derive(QueryData)]
+#[query_data(mutable)]
+struct PropagationQueryData {
+    color_filter:          &'static MixMaterialColor,
+    propagated:            &'static mut PropagatedMixMaterialColor,
+    material:              Option<&'static asset::Handle<StandardMaterial>>,
+    material_clone_marker: Option<&'static CloneMaterialState>,
+}
+
+fn propagate_mix_material_system(
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    changed_object_query: Query<(Entity, Option<&hierarchy::Parent>), Changed<MixMaterialColor>>,
+    mut propagation_query: ParamSet<(
+        Query<&PropagatedMixMaterialColor>,
+        Query<PropagationQueryData>,
+    )>,
+    children_query: Query<&hierarchy::Children, With<PropagatedMixMaterialColor>>,
+) {
+    fn propagate(
+        materials: &mut Assets<StandardMaterial>,
+        propagation_query: &mut Query<PropagationQueryData>,
+        children_query: &Query<&hierarchy::Children, With<PropagatedMixMaterialColor>>,
+        entity: Entity,
+        parent_color: Color,
+    ) {
+        let Ok(mut data) = propagation_query.get_mut(entity) else {
+            return; // not a child object for rendering
+        };
+
+        let mixed = parent_color.mix(&data.color_filter.color, data.color_filter.factor);
+        data.propagated.0 = mixed;
+
+        if let (None, Some(material_handle)) = (data.material_clone_marker, data.material) {
+            match materials.get_mut(material_handle) {
+                None => bevy::log::warn!("cloned material handle does not have material in store"),
+                Some(material) => {
+                    material.base_color = mixed;
+                }
+            };
+        }
+
+        if let Ok(children) = children_query.get(entity) {
+            for &child in children {
+                propagate(materials, propagation_query, children_query, child, mixed);
+            }
+        }
+    }
+
+    changed_object_query.iter().for_each(|(entity, parent)| {
+        let parent_color = if let Some(parent) = parent {
+            if let Ok(propagated) = propagation_query.p0().get(parent.get()) {
+                propagated.0
+            } else {
+                Color::WHITE
+            }
+        } else {
+            Color::WHITE
+        };
+
+        propagate(
+            &mut materials,
+            &mut propagation_query.p1(),
+            &children_query,
+            entity,
+            parent_color,
+        );
+    });
 }

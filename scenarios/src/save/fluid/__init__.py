@@ -35,6 +35,10 @@ class Type(Def):
             saturation_gamma=100.0,
         )
 
+    def mass_for_rtp_volume(self, volume: float) -> float:
+        """Compute the mass of the volume of fluid when pressure is 1.0"""
+        return volume / self.vacuum_specific_volume
+
     @staticmethod
     def save_id() -> str:
         return "traffloat.save.fluid.Type"

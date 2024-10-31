@@ -4,14 +4,14 @@ use bevy::app::{self, App};
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::{self, With};
 use bevy::ecs::schedule::{IntoSystemConfigs, Schedules, SystemSet};
-use bevy::ecs::system::Query;
+use bevy::ecs::system::{Query, Res, Resource};
 use bevy::ecs::world::World;
 use bevy::hierarchy;
 use bevy::state::state::States;
 use bevy::utils::HashMap;
 use traffloat_base::ServerSideSystemSet;
 use traffloat_view::viewer::S2cMessageWriterSystemSet;
-use traffloat_view::{metrics, viewer, S2cMessageEvent, S2cMessageWriter};
+use traffloat_view::{metrics, viewer, DisplayText, S2cMessageEvent, S2cMessageWriter};
 
 use super::element;
 use crate::config;
@@ -21,6 +21,8 @@ pub(crate) struct Plugin<St>(pub(super) St);
 
 impl<St: States + Copy> app::Plugin for Plugin<St> {
     fn build(&self, app: &mut App) {
+        register_static_metrics_system(app);
+
         app.add_systems(config::OnCreateType, on_create_type_system.in_set(RegisterMetricType));
         app.add_systems(
             app::Update,
@@ -29,6 +31,44 @@ impl<St: States + Copy> app::Plugin for Plugin<St> {
                 .in_set(ServerSideSystemSet),
         );
     }
+}
+
+#[derive(Resource)]
+struct StaticMetricTypes {
+    pressure: metrics::Type,
+    volume:   metrics::Type,
+}
+
+fn register_static_metrics_system(app: &mut App) {
+    let pressure_metric = metrics::create_type(
+        &mut app.world_mut().commands(),
+        metrics::TypeDef {
+            update_frequency: Duration::from_secs(2),
+            display_label:    DisplayText::Custom { value: String::from("Pressure") }, // TODO make this customizable from save file
+        },
+    );
+    let volume_metric = metrics::create_type(
+        &mut app.world_mut().commands(),
+        metrics::TypeDef {
+            update_frequency: Duration::from_secs(2),
+            display_label:    DisplayText::Custom { value: String::from("Volume") }, // TODO make this customizable from save file
+        },
+    );
+    app.world_mut().flush();
+
+    let pressure_feeder = metrics::make_value_feeder_system::<&super::CurrentPressure, (), (), _>(
+        app.world_mut(),
+        |entity, ()| entity.get::<super::CurrentPressure>().map_or(0., |p| p.pressure.quantity),
+        pressure_metric,
+    );
+    let volume_feeder = metrics::make_value_feeder_system::<&super::CurrentVolume, (), (), _>(
+        app.world_mut(),
+        |entity, ()| entity.get::<super::CurrentVolume>().map_or(0., |v| v.volume.quantity),
+        volume_metric,
+    );
+
+    app.add_systems(metrics::BroadcastSchedule, (pressure_feeder, volume_feeder));
+    app.insert_resource(StaticMetricTypes { pressure: pressure_metric, volume: volume_metric });
 }
 
 /// System set in which the metric type is registered for a new fluid type.
@@ -102,23 +142,28 @@ fn on_new_viewer_system(
     fluid_type_query: Query<&metrics::Type, With<config::TypeDef>>,
     viewer_query: Query<Entity, query::Added<viewer::Marker>>,
     metric_type_query: Query<(&metrics::TypeDef, &metrics::Sid), With<metrics::TypeDef>>,
+    static_metrics: Res<StaticMetricTypes>,
     mut writer: S2cMessageWriter<metrics::NewTypeMessage>,
 ) {
     writer.send_batch(viewer_query.iter().flat_map(|viewer| {
         let metric_type_query = &metric_type_query;
-        fluid_type_query.iter().map(move |&ty| {
-            let (ty_def, &ty_sid) =
-                metric_type_query.get(ty.0).expect("invalid metric type reference");
-            S2cMessageEvent {
-                viewer,
-                message: metrics::NewTypeMessage {
-                    ty:   ty_sid,
-                    data: metrics::ClientTypeData {
-                        display_label: ty_def.display_label.clone(),
-                        metadata:      HashMap::new(),
+        fluid_type_query
+            .iter()
+            .copied()
+            .chain([static_metrics.pressure, static_metrics.volume])
+            .map(move |ty| {
+                let (ty_def, &ty_sid) =
+                    metric_type_query.get(ty.0).expect("invalid metric type reference");
+                S2cMessageEvent {
+                    viewer,
+                    message: metrics::NewTypeMessage {
+                        ty:   ty_sid,
+                        data: metrics::ClientTypeData {
+                            display_label: ty_def.display_label.clone(),
+                            metadata:      HashMap::new(),
+                        },
                     },
-                },
-            }
-        })
+                }
+            })
     }));
 }
