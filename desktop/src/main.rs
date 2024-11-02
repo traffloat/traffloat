@@ -60,6 +60,7 @@ fn main() -> AppExit {
         .insert_resource(options) // inserted the earliest to allow plugins to read during build
         .init_resource::<WinitSettings>()
         .init_state::<AppState>()
+        .add_plugins(bevy_egui::EguiPlugin)
         .add_plugins((
             #[cfg(feature = "inspector")]
             bevy_inspector_egui::quick::WorldInspectorPlugin::new(),

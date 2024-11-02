@@ -10,6 +10,7 @@ use bevy::ecs::system::{Res, ResMut, Resource, SystemParam};
 use bevy::ecs::world::{FromWorld, World};
 use bevy::reflect::TypePath;
 use bevy::utils::HashMap;
+use parking_lot::Mutex;
 use serde::Deserialize;
 use traffloat_view::translation;
 
@@ -32,7 +33,7 @@ impl app::Plugin for Plugin {
 #[derive(Resource)]
 struct Cache {
     locales: Vec<String>,
-    handles: HashMap<translation::GlossarySha, FallbackState>,
+    handles: Mutex<HashMap<translation::GlossarySha, FallbackState>>,
 }
 
 impl FromWorld for Cache {
@@ -40,7 +41,7 @@ impl FromWorld for Cache {
         let locales = world.resource::<Options>().locales.clone();
         assert!(!locales.is_empty(), "locale list must not be empty");
 
-        Self { locales, handles: HashMap::new() }
+        Self { locales, handles: Mutex::new(HashMap::new()) }
     }
 }
 
@@ -56,7 +57,7 @@ fn asset_path(sha: translation::GlossarySha, locale: &str) -> String {
 
 impl Cache {
     fn maintain(&mut self, server: &AssetServer) {
-        for (&sha, state) in &mut self.handles {
+        for (&sha, state) in self.handles.get_mut() {
             let Some(ref handle) = state.handle else { continue };
 
             if let asset::LoadState::Failed(err) =
@@ -81,12 +82,14 @@ impl Cache {
     }
 
     fn get<'assets>(
-        &mut self,
+        &self,
         sha: translation::GlossarySha,
         server: &AssetServer,
         assets: &'assets Assets<AssetWrapper>,
     ) -> Option<&'assets translation::Glossary> {
-        if let Some(state) = self.handles.get(&sha) {
+        let mut handles = self.handles.lock();
+
+        if let Some(state) = handles.get(&sha) {
             let Some(ref handle) = state.handle else {
                 return None; // all locales are unavailable
             };
@@ -98,7 +101,7 @@ impl Cache {
             // if there is a race condition in another thread,
             // AssetServer will handle the duplicate load.
             let handle = server.load(asset_path(sha, locale));
-            self.handles.insert(sha, FallbackState { handle: Some(handle), step: 0 });
+            handles.insert(sha, FallbackState { handle: Some(handle), step: 0 });
             None
         }
     }
@@ -106,14 +109,14 @@ impl Cache {
 
 #[derive(SystemParam)]
 pub struct Provider<'w> {
-    loader: ResMut<'w, Cache>,
+    loader: Res<'w, Cache>,
     server: Res<'w, AssetServer>,
     assets: Res<'w, Assets<AssetWrapper>>,
 }
 
 impl<'w> translation::Provider for Provider<'w> {
     fn get(
-        &mut self,
+        &self,
         sha: translation::GlossarySha,
     ) -> Option<impl Deref<Target = translation::Glossary> + '_> {
         self.loader.get(sha, &self.server, &self.assets)

@@ -6,18 +6,16 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::With;
 use bevy::ecs::schedule::{IntoSystemConfigs, SystemSet};
-use bevy::ecs::system::{Commands, Query, Res, ResMut};
-use bevy::hierarchy::ChildBuilder;
-use bevy::text::{Text, TextSection, TextStyle};
-use bevy::ui::node_bundles::TextBundle;
-use bevy::ui::{self, Style, UiRect};
-use traffloat_base::{debug, ClientSideSystemSet, UiMutatorSystemSet};
+use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
+use bevy_egui::egui;
+use traffloat_base::{debug, ClientSideSystemSet};
 use traffloat_view::metrics::{NewTypeMessage, RequestSubscribeMessage, UpdateMetricMessage};
 use traffloat_view::viewer::{C2sMessageWriterSystemSet, S2cMessageReaderSystemSet};
 use traffloat_view::{
     metrics as view_metrics, viewable, C2sMessageEvent, C2sMessageWriter, S2cMessageReader,
 };
 
+use super::infobox;
 use crate::util::glossary;
 use crate::view::delegate;
 
@@ -40,15 +38,8 @@ impl app::Plugin for Plugin {
                 .in_set(S2cMessageReaderSystemSet::<UpdateMetricMessage>::default())
                 .before(ReceivedValuesReaderSystemSet)
                 .in_set(ClientSideSystemSet)
-                .after(delegate::SidIndexMaintainerSystemSet::<viewable::Sid>::default()),
-        );
-        app.add_systems(
-            app::Update,
-            update_text_system
-                .in_set(ReceivedValuesReaderSystemSet)
-                .in_set(UiMutatorSystemSet)
-                .in_set(ClientSideSystemSet)
-                .after(delegate::SidIndexMaintainerSystemSet::<view_metrics::Sid>::default()),
+                .after(delegate::SidIndexMaintainerSystemSet::<viewable::Sid>::default())
+                .before(infobox::RenderSystemSet),
         );
     }
 }
@@ -94,50 +85,40 @@ fn handle_metric_update_system(
     }
 }
 
-pub(super) fn spawn_ui(b: &mut ChildBuilder, viewable_entity: Entity) {
-    b.spawn((
-        TextBundle {
-            text: Text::from_sections([]),
-            style: Style { margin: UiRect::ZERO.with_left(ui::Val::Px(3.0)), ..Default::default() },
-            ..Default::default()
-        },
-        ValueDisplay(viewable_entity),
-        debug::Bundle::new("Infobox/Viewable/Metrics"),
-    ));
+#[derive(SystemParam)]
+pub(super) struct RenderUiParams<'w, 's> {
+    object_query: Query<'w, 's, &'static ReceivedValues, With<delegate::Marker<viewable::Sid>>>,
+    metric_query: Query<
+        'w,
+        's,
+        &'static view_metrics::ClientTypeData,
+        With<delegate::Marker<view_metrics::Sid>>,
+    >,
+    metric_sid_index:  Res<'w, delegate::SidIndex<view_metrics::Sid>>,
+    glossary_provider: glossary::Provider<'w>,
 }
 
-/// Marks the entity as a UI text element for displaying the specified delegate viewable entity.
-#[derive(Component)]
-struct ValueDisplay(Entity);
-
-fn update_text_system(
-    mut display_query: Query<(&mut Text, &ValueDisplay)>,
-    object_query: Query<&ReceivedValues, With<delegate::Marker<viewable::Sid>>>,
-    metric_query: Query<&view_metrics::ClientTypeData, With<delegate::Marker<view_metrics::Sid>>>,
-    metric_sid_index: Res<delegate::SidIndex<view_metrics::Sid>>,
-    mut glossary_provider: glossary::Provider,
+pub(super) fn render_ui(
+    ui: &mut egui::Ui,
+    viewable_entity: Entity,
+    RenderUiParams { object_query, metric_query, metric_sid_index, glossary_provider }: &RenderUiParams,
 ) {
-    for (mut display, &ValueDisplay(viewable_entity)) in &mut display_query {
-        let Ok(object_known) = object_query.get(viewable_entity) else { return };
+    let Ok(object_values) = object_query.get(viewable_entity) else { return };
 
-        display.sections.clear();
-        display.sections.extend(object_known.0.iter().map(|(&ty, &value)| {
-            let ty_label = if let Some(entity) = metric_sid_index.get(ty) {
-                match metric_query.get(entity) {
-                    Ok(def) => def.display_label.render_to_string(&mut glossary_provider, &[]),
-                    Err(err) => {
-                        bevy::log::warn!("metric SID has invalid metric delegate entity: {err:?}");
-                        format!("{ty:?}")
-                    }
+    for (&ty, &value) in &object_values.0 {
+        let ty_label = if let Some(type_entity) = metric_sid_index.get(ty) {
+            match metric_query.get(type_entity) {
+                Ok(def) => def.display_label.render_to_string(glossary_provider, &[]),
+                Err(err) => {
+                    bevy::log::warn!("metric SID has invalid metric delegate entity: {err:?}");
+                    format!("{ty:?}")
                 }
-            } else {
-                bevy::log::warn!("object has invalid metric SID: {ty:?}");
-                format!("{ty:?}")
-            };
-            TextSection::new(
-                format!("{ty_label}: {value}\n"),
-                TextStyle { font_size: 16., ..Default::default() },
-            )
-        }));
+            }
+        } else {
+            bevy::log::warn!("object has invalid metric SID: {ty:?}");
+            format!("{ty:?}")
+        };
+
+        ui.label(format!("{ty_label}: {value}"));
     }
 }

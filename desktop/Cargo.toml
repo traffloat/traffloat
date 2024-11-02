@@ -18,21 +18,23 @@ traffloat-fluid = {workspace = true}
 traffloat-graph = {workspace = true}
 traffloat-version = {workspace = true}
 traffloat-view = {workspace = true}
-derive_more = "0.99.17"
-typed-builder = "0.19.1"
-smallvec = "1.13.2"
-rfd = "0.14.1"
-clap = { version = "4.5.13", features = ["derive"] }
-hex = "0.4.3"
-rand_xoshiro = "0.6.0"
-rand = "0.8.5"
-rand_distr = "0.4.3"
-bytemuck = "1.17.0"
+bevy_egui = "0.29.0"
 bevy_eventlistener = "0.8.1"
 bevy_mod_outline = "0.8.3"
+bytemuck = "1.17.0"
+clap = { version = "4.5.13", features = ["derive"] }
+derive_more = "0.99.17"
+hex = "0.4.3"
+parking_lot = "0.12.3"
+rand = "0.8.5"
+rand_distr = "0.4.3"
+rand_xoshiro = "0.6.0"
+rfd = "0.14.1"
 serde = { version = "1.0.213", features = ["derive"] }
-thiserror = "1.0.65"
 serde_json = "1.0.132"
+smallvec = "1.13.2"
+thiserror = "1.0.65"
+typed-builder = "0.19.1"
 
 [dependencies.bevy]
 workspace = true

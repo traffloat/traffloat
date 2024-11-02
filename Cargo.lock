@@ -4414,6 +4414,7 @@ version = "0.0.3"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
+ "bevy_egui",
  "bevy_eventlistener",
  "bevy_mod_outline",
  "bevy_mod_picking",
@@ -4421,6 +4422,7 @@ dependencies = [
  "clap",
  "derive_more 0.99.18",
  "hex",
+ "parking_lot",
  "rand",
  "rand_distr",
  "rand_xoshiro",

@@ -36,7 +36,7 @@ impl DisplayText {
     /// Signature may change in the future when we support i18n.
     pub fn render(
         &self,
-        pack_provider: &mut impl translation::Provider,
+        pack_provider: &impl translation::Provider,
         args: &[Argument],
         output: &mut String,
     ) {
@@ -63,7 +63,7 @@ impl DisplayText {
     #[must_use]
     pub fn render_to_string(
         &self,
-        pack_provider: &mut impl translation::Provider,
+        pack_provider: &impl translation::Provider,
         args: &[Argument],
     ) -> String {
         let mut output = String::new();

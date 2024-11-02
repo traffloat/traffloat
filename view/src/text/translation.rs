@@ -197,5 +197,5 @@ pub enum NumberRangeOperator {
 /// Provider for translation glossaries.
 pub trait Provider {
     /// Gets a glossary by sha if synchronously available.
-    fn get(&mut self, sha: GlossarySha) -> Option<impl Deref<Target = Glossary> + '_>;
+    fn get(&self, sha: GlossarySha) -> Option<impl Deref<Target = Glossary> + '_>;
 }
