@@ -60,7 +60,9 @@ fn do_test(setup: Setup) {
             config::create_type(
                 &mut app.world_mut().commands(),
                 config::TypeDef {
-                    display_label:          DisplayText::default(),
+                    display_name: DisplayText::default(),
+                    quantified:   DisplayText::default(),
+
                     viscosity:              element.viscosity,
                     vacuum_specific_volume: element.vacuum_specific_volume,
                     critical_pressure:      element.critical_pressure,

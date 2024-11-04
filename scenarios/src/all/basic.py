@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional, Self
 
 from .. import common_materials, cylinder, sphere
-from ..glossary import Glossary
+from ..glossary import Element, Glossary
 from ..save import fluid, Id, Writer
 from ..save.building import Building
 from ..save.corridor import Corridor
@@ -61,10 +61,26 @@ class Fluids:
         def define_word(base, **locales):
             return TemplateDisplayText(id=glossary.add(base, **locales))
 
-        self.nitrogen = fluid.Type.gas_like(define_word("Nitrogen"), 28.02)
-        self.oxygen = fluid.Type.gas_like(define_word("Oxygen"), 31.99)
-        self.co2 = fluid.Type.gas_like(define_word("CO2"), 44.01)
-        self.water = fluid.Type.aqueous(define_word("Water"), 18.02)
+        self.nitrogen = fluid.Type.gas_like(
+            define_word("Nitrogen"),
+            define_word([Element.concise_number_parameter(0), "L nitrogen"]),
+            28.02,
+        )
+        self.oxygen = fluid.Type.gas_like(
+            define_word("Oxygen"),
+            define_word([Element.concise_number_parameter(0), "L oxygen"]),
+            31.99,
+        )
+        self.co2 = fluid.Type.gas_like(
+            define_word("CO2"),
+            define_word([Element.concise_number_parameter(0), "L CO2"]),
+            44.01,
+        )
+        self.water = fluid.Type.aqueous(
+            define_word("Water"),
+            define_word([Element.concise_number_parameter(0), "L water"]),
+            18.02,
+        )
 
     def write(self, writer: Writer) -> Self:
         self.nitrogen.write(writer)

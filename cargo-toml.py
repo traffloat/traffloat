@@ -55,7 +55,7 @@ contents = {
             "repository": "https://github.com/traffloat/traffloat",
             "homepage": "https://github.com/traffloat/traffloat",
             "license": "AGPL-3.0",
-            "rust-version": "1.79",
+            "rust-version": "1.82",
         },
     },
     "profile": {

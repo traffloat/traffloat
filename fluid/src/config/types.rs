@@ -67,7 +67,9 @@ impl CreatedType {
 #[derive(Clone, Serialize, Deserialize, JsonSchema, Component)]
 pub struct TypeDef {
     /// Display name for the fluid type.
-    pub display_label: DisplayText,
+    pub display_name: DisplayText,
+    /// Quantified display phrase for the fluid.
+    pub quantified:   DisplayText,
 
     /// Viscosity coefficient.
     ///

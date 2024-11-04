@@ -44,14 +44,19 @@ fn register_static_metrics_system(app: &mut App) {
         &mut app.world_mut().commands(),
         metrics::TypeDef {
             update_frequency: Duration::from_secs(2),
-            display_label:    DisplayText::Custom { value: String::from("Pressure") }, // TODO make this customizable from save file
+
+            // TODO make this customizable from save file
+            display_name: DisplayText::Custom { value: String::from("Pressure") },
+            quantified:   DisplayText::Custom { value: String::from("TODO") },
         },
     );
     let volume_metric = metrics::create_type(
         &mut app.world_mut().commands(),
         metrics::TypeDef {
             update_frequency: Duration::from_secs(2),
-            display_label:    DisplayText::Custom { value: String::from("Volume") }, // TODO make this customizable from save file
+            // TODO make this customizable from save file
+            display_name:     DisplayText::Custom { value: String::from("Volume") },
+            quantified:       DisplayText::Custom { value: String::from("TODO") },
         },
     );
     app.world_mut().flush();
@@ -78,18 +83,19 @@ pub struct RegisterMetricType;
 fn on_create_type_system(world: &mut World) {
     let fluid_type = world.resource::<config::CreatedType>().get();
 
-    let display_label = {
+    let (display_name, quantified) = {
         let def = world
             .get::<config::TypeDef>(fluid_type.0)
             .expect("CreatedType should have a valid TypeDef");
-        def.display_label.clone()
+        (def.display_name.clone(), def.quantified.clone())
     };
 
     let metric_type = metrics::create_type(
         &mut world.commands(),
         metrics::TypeDef {
             update_frequency: Duration::from_secs(2),
-            display_label:    display_label.clone(),
+            display_name:     display_name.clone(),
+            quantified:       quantified.clone(),
         },
     );
     world.flush();
@@ -130,8 +136,9 @@ fn on_create_type_system(world: &mut World) {
             message: metrics::NewTypeMessage {
                 ty:   metric_sid,
                 data: metrics::ClientTypeData {
-                    display_label: display_label.clone(),
-                    metadata:      HashMap::new(),
+                    display_name: display_name.clone(),
+                    quantified:   quantified.clone(),
+                    metadata:     HashMap::new(),
                 },
             },
         });
@@ -159,8 +166,9 @@ fn on_new_viewer_system(
                     message: metrics::NewTypeMessage {
                         ty:   ty_sid,
                         data: metrics::ClientTypeData {
-                            display_label: ty_def.display_label.clone(),
-                            metadata:      HashMap::new(),
+                            display_name: ty_def.display_name.clone(),
+                            quantified:   ty_def.quantified.clone(),
+                            metadata:     HashMap::new(),
                         },
                     },
                 }

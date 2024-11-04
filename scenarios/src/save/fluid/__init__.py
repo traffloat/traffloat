@@ -9,16 +9,20 @@ from ..types import DisplayText
 class Type(Def):
     _: KW_ONLY
 
-    display_label: DisplayText
+    display_name: DisplayText
+    quantified: DisplayText
     viscosity: float
     vacuum_specific_volume: float
     critical_pressure: float
     saturation_gamma: float
 
     @staticmethod
-    def aqueous(display_label: DisplayText, molar_mass: float) -> Self:
+    def aqueous(
+        display_name: DisplayText, quantified: DisplayText, molar_mass: float
+    ) -> Self:
         return Type(
-            display_label=display_label,
+            display_name=display_name,
+            quantified=quantified,
             viscosity=2.0,
             vacuum_specific_volume=18.0 / molar_mass,
             critical_pressure=1.2,
@@ -26,9 +30,10 @@ class Type(Def):
         )
 
     @staticmethod
-    def gas_like(display_label: str, molar_mass: float) -> Self:
+    def gas_like(display_name: str, quantified: str, molar_mass: float) -> Self:
         return Type(
-            display_label=display_label,
+            display_name=display_name,
+            quantified=quantified,
             viscosity=0.1,
             vacuum_specific_volume=22400.0 / molar_mass,
             critical_pressure=1000.0,
@@ -47,7 +52,8 @@ class Type(Def):
         self.id = writer.write(
             Type,
             {
-                "display_label": self.display_label.as_dict(),
+                "display_name": self.display_name.as_dict(),
+                "quantified": self.quantified.as_dict(),
                 "viscosity": self.viscosity,
                 "vacuum_specific_volume": self.vacuum_specific_volume,
                 "critical_pressure": self.critical_pressure,

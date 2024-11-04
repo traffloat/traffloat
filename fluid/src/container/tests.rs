@@ -45,7 +45,9 @@ fn do_test(setup: ContainerSetup) {
             config::create_type(
                 &mut app.world_mut().commands(),
                 config::TypeDef {
-                    display_label:          DisplayText::default(),
+                    display_name: DisplayText::default(),
+                    quantified:   DisplayText::default(),
+
                     viscosity:              units::Viscosity::default(), // unused
                     vacuum_specific_volume: fluid.vacuum_specific_volume.into(),
                     critical_pressure:      fluid.critical_pressure.into(),

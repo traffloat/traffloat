@@ -115,8 +115,11 @@ struct ValueComponentId(ComponentId);
 pub struct TypeDef {
     /// The period between broadcasts of the metric value to viewers.
     pub update_frequency: Duration,
+
     /// The display name of this metric type.
-    pub display_label:    DisplayText,
+    pub display_name: DisplayText,
+    /// The quantifieddisplay phrase of this metric type.
+    pub quantified:   DisplayText,
 }
 
 /// A [`SystemParam`] to access the registered metric types.
@@ -255,8 +258,10 @@ impl S2cMessage for NewTypeMessage {}
 /// Data of a type visible to clients.
 #[derive(Debug, Clone, Component, Serialize, Deserialize)]
 pub struct ClientTypeData {
-    /// Display label of the metric type.
-    pub display_label: DisplayText,
+    /// Displays the name of the metric type.
+    pub display_name: DisplayText,
+    /// Displays the metric type in quantified form.
+    pub quantified:   DisplayText,
 
     /// Metadata describing the type.
     pub metadata: HashMap<MetadataKey, JsonValue>,

@@ -1,4 +1,4 @@
-use core::fmt;
+use std::fmt;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

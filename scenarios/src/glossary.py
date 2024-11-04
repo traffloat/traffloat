@@ -35,6 +35,22 @@ class Element:
             }
         )
 
+    def concise_number_parameter(index: int) -> Self:
+        return Element(
+            json={
+                "type": "Parameter",
+                "index": index,
+                "transform": {
+                    "Round": {
+                        "precision": {
+                            "type": "SigFig",
+                            "figures": 3,
+                        },
+                    },
+                },
+            }
+        )
+
 
 @dataclass
 class LocalEntry:

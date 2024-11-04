@@ -12,7 +12,8 @@ use traffloat_base::{debug, ClientSideSystemSet};
 use traffloat_view::metrics::{NewTypeMessage, RequestSubscribeMessage, UpdateMetricMessage};
 use traffloat_view::viewer::{C2sMessageWriterSystemSet, S2cMessageReaderSystemSet};
 use traffloat_view::{
-    metrics as view_metrics, viewable, C2sMessageEvent, C2sMessageWriter, S2cMessageReader,
+    metrics as view_metrics, translation, viewable, C2sMessageEvent, C2sMessageWriter,
+    S2cMessageReader,
 };
 
 use super::infobox;
@@ -108,7 +109,10 @@ pub(super) fn render_ui(
     for (&ty, &value) in &object_values.0 {
         let ty_label = if let Some(type_entity) = metric_sid_index.get(ty) {
             match metric_query.get(type_entity) {
-                Ok(def) => def.display_label.render_to_string(glossary_provider, &[]),
+                Ok(def) => def.quantified.render_to_string(
+                    glossary_provider,
+                    &[translation::Argument::Number(value.into())],
+                ),
                 Err(err) => {
                     bevy::log::warn!("metric SID has invalid metric delegate entity: {err:?}");
                     format!("{ty:?}")
@@ -119,6 +123,6 @@ pub(super) fn render_ui(
             format!("{ty:?}")
         };
 
-        ui.label(format!("{ty_label}: {value}"));
+        ui.label(ty_label);
     }
 }

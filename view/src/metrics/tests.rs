@@ -63,14 +63,16 @@ fn setup_world(app: &mut App) -> WorldSetup {
         &mut app.world_mut().commands(),
         TypeDef {
             update_frequency: Duration::from_secs(5),
-            display_label:    DisplayText::default(),
+            display_name:     DisplayText::default(),
+            quantified:       DisplayText::default(),
         },
     );
     let ty2 = create_type(
         &mut app.world_mut().commands(),
         TypeDef {
             update_frequency: Duration::from_secs(2),
-            display_label:    DisplayText::default(),
+            display_name:     DisplayText::default(),
+            quantified:       DisplayText::default(),
         },
     );
 
