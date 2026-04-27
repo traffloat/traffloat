@@ -20,6 +20,6 @@ traffloat-version = {workspace = true}
 traffloat-view = {workspace = true}
 bevy = {workspace = true}
 schemars = {workspace = true}
-anyhow = "1.0.86"
+anyhow = "1.0.102"
 serde_json = "1.0.127"
 clap = { version = "4.5.17", features = ["derive"] }
