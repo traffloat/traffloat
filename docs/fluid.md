@@ -130,7 +130,7 @@ Computationally, all molar/heat transfer rates are computed in parallel by conne
 Results are grouped by storage, then transfer requests are applied in parallel by storage.
 
 If a connection drains all distributed molar quantity of a fluid type from one side of a storage,
-this observaion would be tracked in the storage.
+this observation would be tracked in the storage.
 If it occurs consecutively for 3 frames, and there are no other connections on the same storage
 with a net flow of this fluid type into this storage,
 the fluid type would be fully transferred to the other side and removed from this storage.

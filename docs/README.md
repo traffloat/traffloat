@@ -5,6 +5,7 @@ Traffloat is the result of inter-related integration of multiple core systems:
 - The [graph](graph.md) system defines the structural layout of fixtures in the world.
 - The [fluid](fluid.md) system simulates diffusion-based liquid and gas flow between different parts of the world.
 - The [power](power.md) system simulates transmission of power between buildings.
+- The [cargo](cargo.md) system provides stationary items that can be carried as granular bundles.
 - The [resident](resident.md) system simulates colony population behavior,
   such as survival, psychology, jobs and decision-making.
 - The [vehicle](vehicle.md) system simulates vehicles moving between buildings.
