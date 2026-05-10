@@ -28,3 +28,5 @@ with elements that are intrinsically dimensionality-dependent to be tracked acti
   This affects movement of residents and vehicles within buildings, especially during transfer.
 - Directional fields interact with objects based on their dot product.
   This can be trivially solved by changing 2D dot product to 3D dot product.
+- Inertial movement of vehicles involve 3D intersection testing,
+  which involves different rules from 2D since it is much less likely to intersect in 3D space.

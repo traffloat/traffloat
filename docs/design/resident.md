@@ -99,11 +99,13 @@ The following defines some default setups:
 ## Behavior
 
 Resident behavior is controlled by a hierarchy of AIs.
-Some AIs are selectable by the player,
-while others automatically override player control under specific circumstances.
-Earlier layers override or affect later layers.
+Each layer is a behavior tree makes high-level decisions for the next layer to execute.
 
-### 0. Survivability
+### 1. Task selection
+
+Selects the high-level task for the resident to work on.
+
+#### 1.1. Survivability
 
 The base survivability AI overrides a resident to seek improvement of critical attributes:
 
@@ -112,7 +114,7 @@ The base survivability AI overrides a resident to seek improvement of critical a
 - When oxygen concentration is critically low,
   the resident tries to move to a different location with higher oxygen concentration.
 
-### 1. Fatigue
+#### 1.2. Fatigue
 
 "Fatigue" is a core attribute representing the unwillingness of a resident to comply with player commands.
 Consistent work increases fatigue, which can be restored gradually over time or by interacting with specific facilities.
@@ -121,7 +123,7 @@ When fatigue is high, the resident would stop accepting player instructions.
 The fatigue AI would try to reduce resident fatigue
 by accessing facilities and fluids that reduce fatigue.
 
-### 2. Crime
+#### 1.3. Crime
 
 "Morality" is a core attribute that determines whether a resident would commit crimes.
 Extreme physical attributes damage morality, which can only be restored through specific education.
@@ -144,7 +146,26 @@ theft may bias towards areas with lower surveillance.
 Mods can add hooks to increase resident attributes such as infamy when crimes are committed,
 combined with other affinities such as surveillance.
 
-### 3. Restraint
+Crime is resolved through security enforcement, as explained in the restraint section.
+
+#### 1.4. Occupation
+
+The game computes a pool of "jobs" available for residents to work on
+based on the facilities and vehicles that require interaction.
+Each job has a priority and attribute affinities.
+A resident chooses the job with the highest combination of priority and attribute affinity score to work on.
+
+#### 1.5. Housing
+
+The housing AI ensures residents return home regularly as configured by player expectations,
+resulting in a work-life cycle involving daily commute.
+
+The housing AI also actively identifies high-intimacy (see below) residents
+and tries to house them together, optionally favoring fertile couples to increase the chance of natural birth.
+
+### 2. Task execution
+
+#### 2.1. Restraint
 
 Residents with "restraint" cargo in their inventory may restrain another resident
 if certain attribute conditions are satisfied (i.e. one can physically overpower the other).
@@ -158,14 +179,7 @@ and limiting the vehicles entering the detention area to only those that require
 The restrainer is controlled by the Patrol AI below,
 identifying the restrained resident based on affinities such as infamy and surveillance.
 
-### 4. Occupation
-
-The game computes a pool of "jobs" available for residents to work on
-based on the facilities and vehicles that require interaction.
-Each job has a priority and attribute affinities.
-A resident chooses the job with the highest combination of priority and attribute affinity score to work on.
-
-### 5. Patrol
+#### 2.2. Patrol
 
 Some jobs involve patrolling between multiple locations on a vehicle.
 The patrol AI is an umbrella of algorithms that execute these jobs.
@@ -179,15 +193,7 @@ Examples include:
   and transporting them to specific storage/treatment facilities.
 - Transportation: driving vehicles such as buses to transport residents/cargo along fixed routes.
 
-### 6. Housing
-
-The housing AI ensures residents return home regularly as configured by player expectations,
-resulting in a work-life cycle involving daily commute.
-
-The housing AI also actively identifies high-intimacy (see below) residents
-and tries to house them together, optionally favoring fertile couples to increase the chance of natural birth.
-
-### 7. Pathfinding
+### 3. Pathfinding
 
 The previous layers of AI determine the target location for a resident to move to.
 The pathfinding AI computes the optimal path to the target location and moves the resident along the path,
@@ -212,6 +218,7 @@ Facilities with class `resident::Housing` provide interaction slots for housing.
 Each slot headcount has a growing "privacy" attribute,
 which is reset every time a different resident occupies the slot.
 A resident restores happiness when staying in a slot with higher privacy.
+(Privacy is a per-slot attribute, not a per-resident attribute)
 
 Residents with high pairwise intimacy would receive bonus happiness
 when their housing slots are in the same building.

@@ -101,7 +101,7 @@ Advection is the movement of fluid mass due to the net directional flow.
 Diffusion is the mixing of fluid mass due to concentration difference regardless of net flow direction.
 Heat convection similarly, exchanging heat energy due to mutual diffusion.
 
-1. Base diffusion rate: area / length \* delta time
+1. Base diffusion rate: area / length \* delta time \* temperature average
 2. Molar typed diffusion rate: base diffusion rate / typed diffusive viscosity \* concentration gradient
   - where concentration of a fluid type in a mixture is the molar quantity divided by the volume of its storage
 3. Typed heat convection rate: base diffusion rate / typed diffusive viscosity \* specific heat capacity
