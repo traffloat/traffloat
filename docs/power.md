@@ -34,7 +34,7 @@ An exception is when the building has a generator
 but the generator did not select any target cables,
 in which case the generator can still power the building itself as well as its facilities, effectively a local cable.
 
-Corridors are powered by the any networks connected to either of its endpoint buildings.
+Corridors are powered by any networks connected to either of its endpoint buildings.
 but do not transmit power from them unless there is a cable in the corridor connected to them.
 This means that a corridor can be powered by a building even without any connected cables.
 
@@ -88,4 +88,3 @@ The impact of lack of power depends on the type of consumer:
 - If a corridor is unpowered, it is automatically [closed](graph.md#corridor-closure).
 - If all endpoint buildings of a corridor are unpowered, the corridor is also unpowered.
 - If a [reactor](reactor.md) facility is unpowered, it stops producing.
-<!-- TODO impact on resident housing? -->

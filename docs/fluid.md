@@ -5,12 +5,13 @@ Fluids operate by diffusion between fluid storages.
 ## Types
 
 Fluids are managed as distinct, immiscible types.
+Additional types may be defined by mods.
 
 Fluids are stored as a `u64` molar quantities within each storage.
 The sum of molar quantity for each type remains constant during transfer.
 Only [reactors](reactor.md) may create or destroy molar quantity.
 
-Each fluid type has the following attributes:
+Each fluid type has the following properties:
 
 - Specific heat capacity, used for conversion between heat energy and temperature
 - Density, used for conversion between mass and molar quantity
@@ -31,8 +32,9 @@ There are several sources of fluid storages:
 - Corridor ambient space, subject to the area of vacant cross-section in the corridor
 - Facilities with class `fluid::Storage`
 - Conduits of type `Fluid`, a.k.a. "pipes"
+- [Vehicle](vehicle.md) compartments
 
-[Reactors](reactor.md) may be connected to other storages,
+[Reactors](reactor.md) may be connected to other storages in the same building,
 but they do not have their own storages.
 
 ## Connectivity
@@ -53,7 +55,11 @@ The connectivity between fluid storages depend on the source.
 - A storage facility may be optionally connected to the ambient space of its building.
   - Base flow rate:
     - Area: the 2/3 power of the volume of the storage facility.
-    - Resistance: the 1/3 power of the volume of the storage facility.
+    - Resistance: the 1/3 power of the volume of the storage facility, or as defined by the facility.
+- A vehicle compartment may be connected to the ambient space of the building or corridor it is in.
+  - Base flow rate:
+    - Area: as defined by the vehicle type
+    - Resistance: as defined by the vehicle type
 
 Fans may be installed at each connection point to alter the flow rate directionally.
 
@@ -69,7 +75,7 @@ Further attributes are derived from the above:
 
 - Mass: as a product of molar quantity and density
 - Temperature: as a ratio of heat energy to heat capacity
-  - We excludes internal energy and only considers the *transferable* heat.
+  - We exclude internal energy and only considers the *transferable* heat.
 - Pressure: directly proportional to temperature and molar quantity, inversely proportional to volume
 
 At each completed simulation frame,
@@ -93,6 +99,7 @@ Advection is the movement of fluid mass due to the net directional flow.
 ### Diffusion/convection
 
 Diffusion is the mixing of fluid mass due to concentration difference regardless of net flow direction.
+Heat convection similarly, exchanging heat energy due to mutual diffusion.
 
 1. Base diffusion rate: area / length \* delta time
 2. Molar typed diffusion rate: base diffusion rate / typed diffusive viscosity \* concentration gradient

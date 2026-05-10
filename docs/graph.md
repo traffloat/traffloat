@@ -15,7 +15,7 @@ In addition to facilities and conduits,
 buildings and corridors also have ambient space, which is the interior space not occupied by any fixtures.
 The ambient space serves as a [fluid](fluid.md) storage
 as well as a space for [residents](resident.md) to move through.
-[Vehicles](vehile.md) also move across building ambient space either by inertia
+[Vehicles](vehicle.md) also move across building ambient space either by inertia
 or with the same (lower) speed as resident motion.
 
 While the dimensionality between buildings is undetermined,
@@ -124,15 +124,15 @@ Demolishment or upgrading of a conduit is treated as equivalent to construction.
 
 ### Corridor closure
 
-Corridors are closed off when they are under contsruction or have conduits under construction.
+Corridors are closed off when they are under construction or have conduits under construction.
 When a corridor is closed off,
 
 - its ambient space must be vacated of all residents
 - all [fluid](fluid.md) connections across the ambient space must be closed
 - [fluid](fluid.md) connections to pipes are still functional, but fans stop operating.
 - all [power](power.md) connections are still functional.
-- the corridor stops consuming maintenance [power](power.md.
+- the corridor stops consuming maintenance [power](power.md).
 - all [rails](vehicle.md) in the corridor become unmoveable, except for non-power-based vehicles.
   An exception is active construction vehicles,
   which are only unusable if the corridor was forcibly closed due to power deficit.
-  All vehicles currently on its rails will stop moving and potentially
+  All vehicles currently on its rails will stop moving and emergency brake.

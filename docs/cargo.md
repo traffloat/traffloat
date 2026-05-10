@@ -18,7 +18,7 @@ which have various capacity properties limiting the total volume of cargo that c
   - Building ambient space
   - Corridor ambient space
   - Fluid storage facilities
-  - [Vehicles](vehicle.md):
+  - [Vehicle](vehicle.md) fluid storage
 - Cargo may be carried by [residents](resident.md).
   The volume and mass capacity is determined by the strength of the resident.
 
@@ -39,4 +39,4 @@ Cargo can only be transferred between the following pairs of interactions:
   This takes a fixed period of time, during which the resident cannot perform any other action.
 - Vehicle and ambient space/facility: a vehicle can transfer cargo to/from a storage
   when they are located in the same building and the vehicle is stationary.
-  The rate of transfer is determined by the vehicle's propreties.
+  The rate of transfer is determined by the vehicle's properties.
