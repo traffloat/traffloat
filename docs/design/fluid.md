@@ -7,7 +7,7 @@ Fluids operate by diffusion between fluid storages.
 Fluids are managed as distinct, immiscible types.
 Additional types may be defined by mods.
 
-Fluids are stored as a `u64` molar quantities within each storage.
+Fluids are stored as a `f32` molar quantities within each storage.
 The sum of molar quantity for each type remains constant during transfer.
 Only [reactors](reactor.md) may create or destroy molar quantity.
 
@@ -67,9 +67,9 @@ Fans may be installed at each connection point to alter the flow rate directiona
 
 A fluid mixture in each storage has the following source-of-truth attributes:
 
-- Molar quantity: stored as a `u64` quantity
+- Molar quantity: stored as a `f32` quantity
 - Volume: determined by its storage
-- Heat energy: stored as a `u64` quantity
+- Heat energy: stored as a `f32` quantity
 
 Further attributes are derived from the above:
 
@@ -85,6 +85,10 @@ having thermal equilibrium and density equilibrium within the storage.
 The transfer of fluids between each pair of connected storages
 is the independent weighted sum of diffusion and advection.
 The net movement of each fluid type is the sum of diffusion and advection.
+
+Heat energy is transferred by three channels: advection, convection and conduction.
+Convection behaves like diffusion and is directly proportional to the rate of convection,
+while conduction is independent of fluid movement and depends on conductivity rather than heat capacity.
 
 ### Advection
 
@@ -116,33 +120,19 @@ Heat conduction is similar to diffusion, but is not affected by viscosity.
 
 ## Computational caveats
 
-Fluid molar quantity is stored as integers.
-The list of fluid types in each storage is tracked as a sorted list of `(FluidType, u64)` tuples.
+The list of fluid types in each storage is tracked as a sorted list of `(FluidType, Data)` tuples.
 Only nonzero molar quantities are retained over frames.
 
-Maximum net movement is clamped by half of the available molar quantity,
-divided by the number of connections to each storage,
-and rounded down to the nearest integer.
+When multiple connections drain more than the available quantity of a fluid type from a storage,
+total amount of fluid may be unbalanced, resulting in more total fluid.
+This is a tradeoff for computational simplicity.
+The impact is expected to be negligible given sufficiently small timesteps.
+(If this proves to be bad, we can push deficit to a separate queue and fix it after parallelization step)
 
 Note that backflow is still possible even if advection exceeds diffusion.
 Furthermore, if a force equilibrium is reached between the fan and the pressure difference,
 diffusion would still occur without advection,
 which still results in diffusion equalizing the composition of the two storages.
 
-Heat energy is transferred by three channels: advection, convection and conduction.
-Convection behaves like diffusion and is directly proportional to the rate of convection,
-while conduction is independent of fluid movement and depends on conductivity rather than heat capacity.
-
 Computationally, all molar/heat transfer rates are computed in parallel by connection.
 Results are grouped by storage, then transfer requests are applied in parallel by storage.
-
-If a connection drains all distributed molar quantity of a fluid type from one side of a storage,
-this observation would be tracked in the storage.
-If it occurs consecutively for 3 frames, and there are no other connections on the same storage
-with a net flow of this fluid type into this storage,
-the fluid type would be fully transferred to the other side and removed from this storage.
-If this occurs with multiple connections on the same storage, an arbitrary connection is selected.
-
-This behavior would be negligible to the player since
-rounding error is much less than advective flow rate,
-and advective flow rate is much less than any quantity that causes observable changes to game mechanics.

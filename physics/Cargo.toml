@@ -1,0 +1,16 @@
+[package]
+name = "traffloat-physics"
+description = "traffloat core physics"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+bevy = {workspace = true}
+derive_more = { version = "2.1.1", default-features = false, features = ["add", "add_assign"] }

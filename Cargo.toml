@@ -1,0 +1,51 @@
+[workspace]
+members = [
+    "physics",
+]
+resolver = "3"
+
+[workspace.package]
+version = "0.0.4"
+authors = ["SOFe <sofe2038@gmail.com>"]
+repository = "https://github.com/traffloat/traffloat"
+license = "AGPL-3.0"
+rust-version = "1.95"
+edition = "2024"
+
+[workspace.dependencies]
+bevy = { version = "0.18", default-features = false, features = [
+    "bevy_log",
+    "reflect_auto_register",
+]}
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
+# too many false positives from system params.
+needless_pass_by_value = "allow"
+type_complexity = "allow"
+too_many_arguments = "allow"
+
+# 5:21 PM conrad.lock().expect("luscious")[tty0] : Worst clippy lint
+missing_panics_doc = "allow"
+# I suppose the same for error docs...
+# If it is ambiguous the error type should be explicit instead of the doc prose...
+missing_errors_doc = "allow"
+
+# this is usually intentional
+collapsible_else_if = "allow"
+
+# unnecessary generalization
+implicit_hasher = "allow"
+
+allow_attributes = "deny"
+allow_attributes_without_reason = "warn"
+
+# Allowed during dev, checked during precommit
+dbg_macro = "allow"
+
+[workspace.lints.rust]
+# Allowed during dev, checked during precommit
+unused_imports = "allow"
+dead_code = "allow"
+unused_variables = "allow"
