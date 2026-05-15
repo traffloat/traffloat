@@ -22,6 +22,14 @@ impl<T> AlphaBeta<T> {
     pub fn alpha_if(self, alpha: bool) -> T { if alpha { self.alpha } else { self.beta } }
 
     pub fn beta_if(self, beta: bool) -> T { if beta { self.beta } else { self.alpha } }
+
+    pub fn zip<U>(self, other: AlphaBeta<U>) -> AlphaBeta<(T, U)> {
+        AlphaBeta { alpha: (self.alpha, other.alpha), beta: (self.beta, other.beta) }
+    }
+
+    pub fn bimap<U, V>(self, other: AlphaBeta<U>, mut f: impl FnMut(T, U) -> V) -> AlphaBeta<V> {
+        AlphaBeta { alpha: f(self.alpha, other.alpha), beta: f(self.beta, other.beta) }
+    }
 }
 
 impl<T> AlphaBeta<Option<T>> {
@@ -38,11 +46,7 @@ impl<T: ops::Add> AlphaBeta<T> {
 }
 
 impl<T: ops::Sub> AlphaBeta<T> {
-    /// alpha + result = beta
-    pub fn atob(self) -> T::Output { self.beta - self.alpha }
-
-    /// beta + result = alpha
-    pub fn btoa(self) -> T::Output { self.alpha - self.beta }
+    pub fn net_diff(self) -> T::Output { self.alpha - self.beta }
 }
 
 impl<T: IntoIterator> AlphaBeta<T> {

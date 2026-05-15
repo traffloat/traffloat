@@ -1,5 +1,4 @@
-use std::time::Duration;
-use std::{cmp, mem, ops};
+use std::{cmp, iter, mem, ops};
 
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
@@ -7,12 +6,17 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{Local, Query, Res, SystemParam};
-use bevy::time::{self, Time};
 
-use crate::util::{AlphaBeta, MergeSortedItem, QueryExt, TimeStep, merge_sorted};
+use crate::util::{AlphaBeta, MergeSortedItem, QueryExt, merge_sorted};
+
+#[cfg(test)]
+mod tests;
 
 /// A constant equivalent to the ideal gas constant, used for pressure calculation.
-pub const PRESSURE_COEFFICIENT: f32 = 1.0;
+pub const PRESSURE_COEFFICIENT: f32 = 0.01;
+
+/// A constant to adjust the base diffusion rate.
+pub const DIFFUSION_COEFFICIENT: f32 = 1e-3;
 
 pub struct Plug;
 
@@ -21,17 +25,17 @@ impl Plugin for Plug {
         app.init_resource::<Conf>();
         app.init_resource::<Types>();
 
-        app.add_systems(app::Update, transfer_system);
+        app.add_systems(app::FixedUpdate, transfer_system);
     }
 }
 
 #[derive(Resource)]
 pub struct Conf {
-    pub transfer_timestep: Duration,
+    pub transfer_timestep: u32,
 }
 
 impl Default for Conf {
-    fn default() -> Self { Self { transfer_timestep: Duration::from_millis(100) } }
+    fn default() -> Self { Self { transfer_timestep: 16 } }
 }
 
 /// Amount of fluid substance,
@@ -106,7 +110,7 @@ pub struct TypeDef {
     pub thermal_conductivity: f32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Clone)]
 pub struct Storage {
     /// Volume provided by the storage.
     ///
@@ -141,9 +145,39 @@ impl Storage {
             heat: Energy(0.0),
             types: Vec::new(),
             pressure: 0.0,
-            temperature: 1.0,
+            temperature: 0.0,
             mass: 0.0,
         }
+    }
+
+    #[must_use]
+    pub fn with_heat(mut self, heat: Energy) -> Self {
+        self.heat = heat;
+        self
+    }
+
+    pub fn set_heat(&mut self, heat: Energy) { self.heat = heat; }
+
+    #[must_use]
+    pub fn with_fluid(mut self, ty: TypeId, moles: f32) -> Self {
+        self.set_fluid(ty, Moles(moles));
+        self
+    }
+
+    pub fn set_fluid(&mut self, ty: TypeId, moles: Moles) {
+        let index = self.types.partition_point(|t| t.ty < ty);
+        if let Some(t) = self.types.get_mut(index)
+            && t.ty == ty
+        {
+            t.moles = moles;
+        } else {
+            self.types.insert(index, TypedStorage { ty, moles, proportion: 0.0, molar_conc: 0.0 });
+        }
+
+        // for performance reasons,
+        // we are not going to update proportion and molar conc until the next tick.
+        // This is expected to have negligible impact
+        // since it only affects flow rate multiplier computation for one tick.
     }
 }
 
@@ -155,31 +189,59 @@ pub struct TypedStorage {
 
     // derived quantities
     /// Proportion of volume in this storage occupied by this type, between 0 and 1.
-    pub proportion:          f32,
+    pub proportion: f32,
     /// Moles per unit volume of this type in this storage.
-    pub molar_concentration: f32,
+    pub molar_conc: f32,
 }
 
 /// The connection between two storages, through which fluid can transfer.
-#[derive(Component)]
+#[derive(Component, Debug, Clone)]
 pub struct Edge {
-    /// Resistance to transfer, inversely proportional to flow rate.
-    /// Physically resembles the length of a pipe.
-    pub resistance: f32,
+    /// Reciprocal of resistance to transfer.
+    ///
+    /// The reciprocal is proportional to flow rate.
+    /// Physically resembles the reciprocal of the length of a pipe.
+    pub resistance_recip: f32,
     /// Cross-sectional area of the connection.
+    ///
     /// Directly proportional to flow rate and heat conduction rate.
-    pub area:       f32,
+    pub area:             f32,
 
     /// Additional force per unit area from alpha to beta, e.g. from a pump or valve.
     pub force_atob: f32,
 
     // Temporary states.
     /// Heat transferred from alpha to beta in the last transfer step.
-    pub last_heat:       Energy,
+    last_heat:           Energy,
     /// Must always be sorted by type.
     last_typed_transfer: Vec<TypedTransfer>,
 }
 
+impl Edge {
+    pub fn new(resistance_recip: f32, area: f32) -> Self {
+        Self {
+            resistance_recip,
+            area,
+            force_atob: 0.0,
+            last_heat: Energy(0.0),
+            last_typed_transfer: Vec::new(),
+        }
+    }
+
+    #[must_use]
+    pub fn with_force_atob(mut self, force: f32) -> Self {
+        self.force_atob = force;
+        self
+    }
+
+    #[must_use]
+    pub fn with_force_btoa(mut self, force: f32) -> Self {
+        self.force_atob = -force;
+        self
+    }
+}
+
+#[derive(Debug, Clone)]
 struct TypedTransfer {
     ty:            TypeId,
     atob_transfer: Moles,
@@ -205,8 +267,8 @@ pub struct BetaOfEdgeList(Vec<Entity>);
 #[query_data(mutable)]
 struct TransferStorageData {
     storage:     &'static mut Storage,
-    edges_alpha: &'static AlphaOfEdgeList,
-    edges_beta:  &'static BetaOfEdgeList,
+    edges_alpha: Option<&'static AlphaOfEdgeList>,
+    edges_beta:  Option<&'static BetaOfEdgeList>,
 }
 
 #[derive(QueryData)]
@@ -226,14 +288,16 @@ impl TransferEdgeDataItem<'_, '_> {
 
 fn transfer_system(
     conf: Res<Conf>,
-    mut timestep: TimeStep<time::Real>,
+    mut next_step: Local<u32>,
     mut storage_query: Query<TransferStorageData>,
     mut edge_query: Query<TransferEdgeData>,
     types: Res<Types>,
 ) {
-    let Some(dt) = timestep.should_run(conf.transfer_timestep) else {
+    *next_step += 1;
+    *next_step %= conf.transfer_timestep;
+    if *next_step != 0 {
         return;
-    };
+    }
 
     edge_query.par_iter_mut().for_each(|mut data| {
         let (edge, ab) = data.split();
@@ -241,7 +305,7 @@ fn transfer_system(
             return;
         };
 
-        compute_edge(&mut *edge, storages.map(|s| s.storage), &types, dt);
+        compute_edge(&mut *edge, storages.map(|s| s.storage), &types, 1.0);
     });
 
     storage_query.par_iter_mut().for_each_init(Default::default, |buf, mut storage| {
@@ -261,14 +325,12 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
     edge.last_typed_transfer.reserve(storages.alpha.types.len().max(storages.beta.types.len()));
 
     // TODO insert field effects
-    let force = storages.map(|s| s.pressure).btoa() * edge.area + edge.force_atob;
-    let base_advection = force / edge.resistance * dt;
+    let force = storages.map(|s| s.pressure).net_diff() * edge.area + edge.force_atob;
+    let base_advection = force * edge.resistance_recip * dt;
 
-    let contact_coef = edge.area / edge.resistance * dt;
-    let base_diffusion = contact_coef * storages.map(|s| s.temperature).sum() * 0.5;
+    let contact_coef = edge.area * edge.resistance_recip * dt;
+    let base_diffusion = contact_coef * storages.map(|s| s.temperature).sum() * 0.5 * DIFFUSION_COEFFICIENT;
 
-    let temp_gradient = storages.map(|s| s.temperature).atob();
-    let base_conduction = contact_coef * temp_gradient;
 
     let mut conductivity = 0.0;
     let mut advective_convective_heat = Energy(0.0);
@@ -285,23 +347,24 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
         let src_temp = storages.map(|s| s.temperature).alpha_if(base_advection > 0.0);
         let advective_heat = Energy(src_temp * typed_advection * type_def.molar_heat_capacity);
 
-        let conc_gradient = typed_pair.map(|t| t.molar_concentration).into_default_ab().atob();
+        let conc_pair = typed_pair.map(|t| t.molar_conc).into_default_ab();
         let typed_diffusibility = base_diffusion * type_def.diffusive_fluidity;
-        let typed_diffusion = typed_diffusibility * conc_gradient;
+        let typed_diffusion = conc_pair.map(|conc| conc * typed_diffusibility);
 
-        let conc_sum = typed_pair.map(|t| t.molar_concentration).into_default_ab().sum();
+        let conc_sum = typed_pair.map(|t| t.molar_conc).into_default_ab().sum();
         let convective_heat =
-            Energy(typed_diffusibility * type_def.molar_heat_capacity * temp_gradient) * conc_sum;
+            Energy(type_def.molar_heat_capacity * typed_diffusion.bimap(storages, |diffusion, s| diffusion * s.temperature).net_diff());
 
         conductivity += type_def.thermal_conductivity * conc_sum;
         advective_convective_heat += advective_heat + convective_heat;
 
         edge.last_typed_transfer.push(TypedTransfer {
             ty:            typed_pair.any(|t| t.ty),
-            atob_transfer: Moles(typed_advection + typed_diffusion),
+            atob_transfer: Moles(typed_advection + typed_diffusion.net_diff()),
         });
     }
 
+    let base_conduction = contact_coef * storages.map(|s| s.temperature).net_diff();
     edge.last_heat = Energy(base_conduction * conductivity) + advective_convective_heat;
 }
 
@@ -313,8 +376,8 @@ struct ApplyStorageBufEntry {
 fn apply_storage(
     (buf, swap): &mut (Vec<ApplyStorageBufEntry>, Vec<TypedStorage>),
     storage: &mut Storage,
-    edges_alpha: &AlphaOfEdgeList,
-    edges_beta: &BetaOfEdgeList,
+    edges_alpha: Option<&AlphaOfEdgeList>,
+    edges_beta: Option<&BetaOfEdgeList>,
     edge_query: &Query<TransferEdgeData>,
     types: &Types,
 ) {
@@ -322,9 +385,10 @@ fn apply_storage(
 
     let mut new_heat = storage.heat;
 
-    for (edge_entity, sign) in
-        edges_alpha.0.iter().map(|&e| (e, -1.0)).chain(edges_beta.0.iter().map(|&e| (e, 1.0)))
-    {
+    for (edge_entity, sign) in iter::chain(
+        edges_alpha.iter().flat_map(|list| &list.0).map(|&e| (e, -1.0)),
+        edges_beta.into_iter().flat_map(|list| &list.0).map(|&e| (e, 1.0)),
+    ) {
         let Some(edge) = edge_query.log_get(edge_entity) else { continue };
         let edge = edge.edge;
 
@@ -359,7 +423,7 @@ fn apply_storage(
             }
         }
     }
-    storage.heat.0 = new_heat.0.max(1.0);
+    storage.heat.0 = new_heat.0.max(0.0);
 
     mem::swap(swap, &mut storage.types);
     storage.types.clear();
@@ -376,7 +440,7 @@ fn apply_storage(
                     MergeSortedItem::Both(t, e) => t.moles + e.moles_change,
                 };
 
-                TypedStorage { ty, moles, molar_concentration: 0.0, proportion: 0.0 }
+                TypedStorage { ty, moles, molar_conc: 0.0, proportion: 0.0 }
             })
             .filter(|typed| typed.moles.0 > 0.0),
     );
@@ -393,10 +457,10 @@ fn apply_storage(
 
     for ty in &mut storage.types {
         ty.proportion = ty.moles.0 / total_moles;
-        ty.molar_concentration = ty.moles.0 / storage.volume;
+        ty.molar_conc = ty.moles.0 / storage.volume;
     }
 
-    storage.temperature = if total_heat_cap > 0.0 { storage.heat.0 / total_heat_cap } else { 1.0 };
+    storage.temperature = if total_heat_cap > 0.0 { storage.heat.0 / total_heat_cap } else { 0.0 };
     storage.mass = total_mass;
     storage.pressure = total_moles * storage.temperature / storage.volume * PRESSURE_COEFFICIENT;
 }
