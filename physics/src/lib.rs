@@ -6,8 +6,8 @@ pub type Vector = Vec2;
 #[macro_use]
 pub mod util;
 
-mod fluid;
-mod graph;
+pub mod fluid;
+pub mod graph;
 
 pub struct Plug;
 

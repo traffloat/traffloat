@@ -30,13 +30,13 @@ fn test_empty() {
         20,
     );
 
-    assert_near(alpha.pressure, 0.0);
-    assert_near(beta.pressure, 0.0);
+    expect_float(alpha.pressure, 0.0);
+    expect_float(beta.pressure, 0.0);
 
-    assert_near(alpha.mass, 0.0);
-    assert_near(beta.mass, 0.0);
+    expect_float(alpha.mass, 0.0);
+    expect_float(beta.mass, 0.0);
 
-    assert_near(edge.last_heat.0, 0.0);
+    expect_float(edge.last_heat.0, 0.0);
 }
 
 #[test]
@@ -44,45 +44,71 @@ fn test_equilibrium_big_small() {
     let (alpha, beta, edge) = do_test(
         |_| {},
         fluid::Storage::vacuum(100.0)
-            .with_heat(fluid::Energy(100.0))
+            .with_heat(fluid::Energy(30000.0))
             .with_fluid(fluid::TypeId(0), 100.0),
         fluid::Storage::vacuum(10.0)
-            .with_heat(fluid::Energy(10.0))
+            .with_heat(fluid::Energy(3000.0))
             .with_fluid(fluid::TypeId(0), 10.0),
         fluid::Edge::new(1.0, 10.0),
         20,
     );
 
-    assert_near(alpha.pressure, 0.01);
-    assert_near(beta.pressure, 0.01);
+    expect_float(alpha.pressure, 2.34375);
+    expect_float(beta.pressure, 2.34375);
 
-    assert_near(alpha.mass, 100.0);
-    assert_near(beta.mass, 10.0);
+    expect_float(alpha.mass, 100.0);
+    expect_float(beta.mass, 10.0);
 
-    assert_near(edge.last_heat.0, 0.0);
+    expect_float(edge.last_heat.0, 0.0);
 }
 
 #[test]
-fn test_big_small_diffusion() {
+fn test_diffusion_big_small() {
     let (alpha, beta, edge) = do_test(
         |_| {},
         fluid::Storage::vacuum(100.0)
-            .with_heat(fluid::Energy(100.0))
+            .with_heat(fluid::Energy(30000.0))
             .with_fluid(fluid::TypeId(0), 100.0),
         fluid::Storage::vacuum(10.0)
-            .with_heat(fluid::Energy(10.0))
+            .with_heat(fluid::Energy(3000.0))
             .with_fluid(fluid::TypeId(1), 10.0),
         fluid::Edge::new(1.0, 10.0),
-        100,
+        320,
     );
 
-    assert_near(alpha.pressure, 0.01);
-    assert_near(beta.pressure, 0.01);
+    expect_float(alpha.pressure, 2.34375);
+    expect_float(beta.pressure, 2.34375);
 
-    assert_near(alpha.mass, 100.0);
-    assert_near(beta.mass, 10.0);
+    expect_float(alpha.temperature, 300.0);
+    expect_float(beta.temperature, 300.0);
 
-    assert_near(edge.last_heat.0, 0.0);
+    expect_float(alpha.mass, 100.0);
+    expect_float(beta.mass, 10.0);
+
+    expect_float_near(edge.last_heat.0, 0.0, 1e-3);
+
+    for ty in 0..2 {
+        expect_float_near(alpha.types[0].proportion - beta.types[0].proportion, 0.0, 1e-3);
+    }
+
+    for transfer in &edge.last_typed_transfer {
+        expect_float_near(transfer.atob_transfer.0, 0.0, 1e-3);
+    }
+}
+
+#[test]
+fn test_convection_same_size() {
+    let (alpha, beta, edge) = do_test(
+        |_| {},
+        fluid::Storage::vacuum(100.0)
+            .with_heat(fluid::Energy(40000.0))
+            .with_fluid(fluid::TypeId(0), 100.0),
+        fluid::Storage::vacuum(100.0)
+            .with_heat(fluid::Energy(20000.0))
+            .with_fluid(fluid::TypeId(0), 100.0),
+        fluid::Edge::new(1.0, 10.0),
+        320,
+    );
 }
 
 fn do_test(
@@ -142,7 +168,7 @@ fn debug_print_storage(
     println!("{title}: pressure({pressure}) mass({mass}) {heat:?} temperature({temperature})");
 
     for &fluid::TypedStorage { ty, moles, molar_conc, proportion } in types {
-        println!("  Type {ty:?}: {moles:?}, molar_conc({molar_conc} proportion({proportion}))");
+        println!("  Type {ty:?}: {moles:?}, molar_conc({molar_conc}) proportion({proportion})");
     }
 }
 
@@ -163,7 +189,8 @@ fn print_flow(v: f32) -> impl fmt::Display {
     }
 }
 
-fn assert_near(actual: f32, expect: f32) {
+#[track_caller]
+fn expect_float(actual: f32, expect: f32) {
     if expect.is_nan() {
         assert!(actual.is_nan(), "expect {actual:?} to be nan");
     } else if expect.is_infinite() {
@@ -179,4 +206,17 @@ fn assert_near(actual: f32, expect: f32) {
             "got {actual:?}, expected {expect:?}",
         );
     }
+}
+
+#[track_caller]
+fn expect_float_near(actual: f32, expect: f32, threshold: f32) {
+    assert!(expect.is_finite());
+    if (actual - expect).abs() > threshold {
+        panic!("got {actual:?}, expected {expect:?} within {threshold}");
+    }
+}
+
+#[track_caller]
+fn assert_small(actual: f32, max_abs: f32) {
+    assert!(actual.abs() < max_abs, "expect abs({actual:?}) to be smaller than {max_abs}");
 }

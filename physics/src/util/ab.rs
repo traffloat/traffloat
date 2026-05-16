@@ -49,6 +49,19 @@ impl<T: ops::Sub> AlphaBeta<T> {
     pub fn net_diff(self) -> T::Output { self.alpha - self.beta }
 }
 
+impl AlphaBeta<f32> {
+    pub fn harmonic_mean(self) -> f32 {
+        let sum = self.sum();
+        if sum == 0.0 {
+            // avoid division by zero
+            0.0
+        } else {
+            let product = self.alpha * self.beta;
+            product / sum
+        }
+    }
+}
+
 impl<T: IntoIterator> AlphaBeta<T> {
     /// Merges two iterators with sorted and strictly increasing `key`s
     /// into a single iterator that yields items in sorted order by `key`.

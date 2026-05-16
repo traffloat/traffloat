@@ -75,7 +75,7 @@ impl<T1, T2> MergeSortedItem<T1, T2> {
 }
 
 impl<T: Default> MergeSortedItem<T, T> {
-    pub fn into_default_ab(self) -> AlphaBeta<T> {
+    pub fn default_ab(self) -> AlphaBeta<T> {
         match self {
             MergeSortedItem::Left(alpha) => AlphaBeta { alpha, beta: T::default() },
             MergeSortedItem::Right(beta) => AlphaBeta { alpha: T::default(), beta },

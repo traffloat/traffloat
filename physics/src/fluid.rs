@@ -13,10 +13,10 @@ use crate::util::{AlphaBeta, MergeSortedItem, QueryExt, merge_sorted};
 mod tests;
 
 /// A constant equivalent to the ideal gas constant, used for pressure calculation.
-pub const PRESSURE_COEFFICIENT: f32 = 0.01;
+pub const PRESSURE_COEFFICIENT: f32 = 1.0 / 128.0;
 
 /// A constant to adjust the base diffusion rate.
-pub const DIFFUSION_COEFFICIENT: f32 = 1e-3;
+pub const DIFFUSION_COEFFICIENT: f32 = 1.0 / 8192.0;
 
 pub struct Plug;
 
@@ -103,8 +103,12 @@ pub struct TypeDef {
     /// Mass per mole.
     pub molar_density:        f32,
     /// Multiplier to advection rate.
+    ///
+    /// Must not exceed 1.0.
     pub advective_fluidity:   f32,
     /// Multiplier to diffusion rate.
+    ///
+    /// Must not exceed 1.0.
     pub diffusive_fluidity:   f32,
     /// Multiplier to heat transfer through conduction.
     pub thermal_conductivity: f32,
@@ -136,6 +140,8 @@ pub struct Storage {
     pub temperature: f32,
     /// Mass of fluid in this storage, used for force calculation in other modules.
     pub mass:        f32,
+    /// Total moles of fluid in this storage.
+    pub moles:       f32,
 }
 
 impl Storage {
@@ -147,6 +153,7 @@ impl Storage {
             pressure: 0.0,
             temperature: 0.0,
             mass: 0.0,
+            moles: 0.0,
         }
     }
 
@@ -178,6 +185,13 @@ impl Storage {
         // we are not going to update proportion and molar conc until the next tick.
         // This is expected to have negligible impact
         // since it only affects flow rate multiplier computation for one tick.
+    }
+
+    pub fn total_heat_capacity(&self) -> f32 {
+        if self.heat.0 == 0.0 || self.temperature == 0.0 {
+            return 0.0;
+        }
+        self.heat.0 / self.temperature
     }
 }
 
@@ -325,12 +339,25 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
     edge.last_typed_transfer.reserve(storages.alpha.types.len().max(storages.beta.types.len()));
 
     // TODO insert field effects
-    let force = storages.map(|s| s.pressure).net_diff() * edge.area + edge.force_atob;
-    let base_advection = force * edge.resistance_recip * dt;
+
+    // advection is maximum number of moles transferred before considering fluidity
+    let advective_base_rate = edge.resistance_recip * dt;
+    let force_advection = edge.force_atob * advective_base_rate;
+    let base_advection = if storages.map(|s| s.temperature).sum() > 0.0 {
+        let pressure_gradient = storages.map(|s| s.pressure).net_diff();
+        let unclamped_pressure_advection = pressure_gradient * edge.area * advective_base_rate;
+        let advection_limit = pressure_gradient
+            / PRESSURE_COEFFICIENT
+            / storages.map(|s| s.temperature / s.volume).sum();
+        unclamped_pressure_advection.clamp(-advection_limit.abs(), advection_limit.abs())
+    } else {
+        // if temperature is absolute zero, there is no pressure difference at all
+        0.0
+    } + force_advection;
 
     let contact_coef = edge.area * edge.resistance_recip * dt;
-    let base_diffusion = contact_coef * storages.map(|s| s.temperature).sum() * 0.5 * DIFFUSION_COEFFICIENT;
-
+    let base_diffusion =
+        contact_coef * storages.map(|s| s.temperature).sum() * 0.5 * DIFFUSION_COEFFICIENT;
 
     let mut conductivity = 0.0;
     let mut advective_convective_heat = Energy(0.0);
@@ -340,32 +367,51 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
         let type_def = types.get(type_id);
 
         // if advection is positive, alpha is the source
-        let src_proportion =
-            typed_pair.map(|t| t.proportion).into_default_ab().alpha_if(base_advection > 0.0);
+        let proportions = typed_pair.map(|t| t.proportion).default_ab();
+        let advection_source_moles =
+            typed_pair.map(|t| t.moles).default_ab().alpha_if(base_advection > 0.0);
+        let src_proportion = proportions.alpha_if(base_advection > 0.0);
         let typed_advection = base_advection * src_proportion * type_def.advective_fluidity;
 
         let src_temp = storages.map(|s| s.temperature).alpha_if(base_advection > 0.0);
         let advective_heat = Energy(src_temp * typed_advection * type_def.molar_heat_capacity);
 
-        let conc_pair = typed_pair.map(|t| t.molar_conc).into_default_ab();
+        let conc_pair = typed_pair.map(|t| t.molar_conc).default_ab();
         let typed_diffusibility = base_diffusion * type_def.diffusive_fluidity;
-        let typed_diffusion = conc_pair.map(|conc| conc * typed_diffusibility);
+        let typed_diffusion = conc_pair.map(|conc| Moles(conc * typed_diffusibility));
+        let unclamped_diffusion = typed_diffusion.net_diff();
+        let max_diffusion = conc_pair.net_diff() * storages.map(|s| s.volume).harmonic_mean();
+        let net_diffusion = unclamped_diffusion.0.clamp(-max_diffusion.abs(), max_diffusion.abs());
 
-        let conc_sum = typed_pair.map(|t| t.molar_conc).into_default_ab().sum();
-        let convective_heat =
-            Energy(type_def.molar_heat_capacity * typed_diffusion.bimap(storages, |diffusion, s| diffusion * s.temperature).net_diff());
+        let convective_heat = Energy(
+            type_def.molar_heat_capacity
+                * typed_diffusion
+                    .bimap(storages, |diffusion, s| diffusion.0 * s.temperature)
+                    .net_diff(),
+        );
 
-        conductivity += type_def.thermal_conductivity * conc_sum;
+        let prop_sum = proportions.sum();
+        // this is supposed to be halved, but it is directly multiplied with type conductivity with
+        // arbitrary unit anyway, so that's an unnecessary operation.
+        conductivity += type_def.thermal_conductivity * prop_sum;
         advective_convective_heat += advective_heat + convective_heat;
 
         edge.last_typed_transfer.push(TypedTransfer {
             ty:            typed_pair.any(|t| t.ty),
-            atob_transfer: Moles(typed_advection + typed_diffusion.net_diff()),
+            atob_transfer: Moles(
+                (typed_advection + net_diffusion)
+                    .clamp(-advection_source_moles.0, advection_source_moles.0),
+            ),
         });
     }
 
     let base_conduction = contact_coef * storages.map(|s| s.temperature).net_diff();
-    edge.last_heat = Energy(base_conduction * conductivity) + advective_convective_heat;
+    let conductive_heat = base_conduction * conductivity;
+    let max_conduction = storages.map(|s| s.temperature).net_diff()
+        * storages.map(|s| s.total_heat_capacity()).harmonic_mean();
+    let clamped_conductive_heat =
+        conductive_heat.clamp(-max_conduction.abs(), max_conduction.abs());
+    edge.last_heat = Energy(clamped_conductive_heat) + advective_convective_heat;
 }
 
 struct ApplyStorageBufEntry {
@@ -424,6 +470,7 @@ fn apply_storage(
         }
     }
     storage.heat.0 = new_heat.0.max(0.0);
+    // TODO add a cold path to deduct heat from peer connections
 
     mem::swap(swap, &mut storage.types);
     storage.types.clear();
@@ -443,6 +490,7 @@ fn apply_storage(
                 TypedStorage { ty, moles, molar_conc: 0.0, proportion: 0.0 }
             })
             .filter(|typed| typed.moles.0 > 0.0),
+        // TODO add a cold path to deduct moles from peer connections when typed.moles < 0
     );
 
     let (total_moles, total_mass, total_heat_cap) =
@@ -462,5 +510,6 @@ fn apply_storage(
 
     storage.temperature = if total_heat_cap > 0.0 { storage.heat.0 / total_heat_cap } else { 0.0 };
     storage.mass = total_mass;
+    storage.moles = total_moles;
     storage.pressure = total_moles * storage.temperature / storage.volume * PRESSURE_COEFFICIENT;
 }
