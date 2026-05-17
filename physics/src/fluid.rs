@@ -5,6 +5,7 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::resource::Resource;
+use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{Local, Query, Res, SystemParam};
 
 use crate::util::{AlphaBeta, MergeSortedItem, QueryExt, merge_sorted};
@@ -25,9 +26,12 @@ impl Plugin for Plug {
         app.init_resource::<Conf>();
         app.init_resource::<Types>();
 
-        app.add_systems(app::FixedUpdate, transfer_system);
+        app.add_systems(app::FixedUpdate, transfer_system.in_set(TransferSystemSet));
     }
 }
+
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TransferSystemSet;
 
 #[derive(Resource)]
 pub struct Conf {
@@ -92,6 +96,7 @@ pub struct Types {
 }
 
 impl Types {
+    #[must_use]
     pub fn get(&self, ty: TypeId) -> &TypeDef {
         self.types.get(ty.0 as usize).expect("invalid fluid type reference created")
     }
@@ -141,10 +146,11 @@ pub struct Storage {
     /// Mass of fluid in this storage, used for force calculation in other modules.
     pub mass:        f32,
     /// Total moles of fluid in this storage.
-    pub moles:       f32,
+    pub moles:       Moles,
 }
 
 impl Storage {
+    #[must_use]
     pub fn vacuum(volume: f32) -> Self {
         Self {
             volume,
@@ -153,7 +159,7 @@ impl Storage {
             pressure: 0.0,
             temperature: 0.0,
             mass: 0.0,
-            moles: 0.0,
+            moles: Moles(0.0),
         }
     }
 
@@ -187,11 +193,36 @@ impl Storage {
         // since it only affects flow rate multiplier computation for one tick.
     }
 
+    #[must_use]
     pub fn total_heat_capacity(&self) -> f32 {
         if self.heat.0 == 0.0 || self.temperature == 0.0 {
             return 0.0;
         }
         self.heat.0 / self.temperature
+    }
+
+    #[must_use]
+    pub fn get_type(&self, ty: TypeId) -> Option<&TypedStorage> {
+        self.types.binary_search_by_key(&ty, |t| t.ty).ok().map(|index| &self.types[index])
+    }
+
+    pub fn with_type_mut<R>(&mut self, ty: TypeId, f: impl FnOnce(&mut TypedStorage) -> R) -> R {
+        let index = self.types.partition_point(|t| t.ty < ty);
+        if let Some(typed) = self.types.get_mut(index)
+            && typed.ty == ty
+        {
+            let ret = f(typed);
+            if typed.moles.0 == 0.0 {
+                self.types.remove(index);
+            }
+            ret
+        } else {
+            let mut new_entry =
+                TypedStorage { ty, moles: Moles(0.0), proportion: 0.0, molar_conc: 0.0 };
+            let result = f(&mut new_entry);
+            self.types.insert(index, new_entry);
+            result
+        }
     }
 }
 
@@ -232,6 +263,7 @@ pub struct Edge {
 }
 
 impl Edge {
+    #[must_use]
     pub fn new(resistance_recip: f32, area: f32) -> Self {
         Self {
             resistance_recip,
@@ -408,7 +440,7 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
     let base_conduction = contact_coef * storages.map(|s| s.temperature).net_diff();
     let conductive_heat = base_conduction * conductivity;
     let max_conduction = storages.map(|s| s.temperature).net_diff()
-        * storages.map(|s| s.total_heat_capacity()).harmonic_mean();
+        * storages.map(Storage::total_heat_capacity).harmonic_mean();
     let clamped_conductive_heat =
         conductive_heat.clamp(-max_conduction.abs(), max_conduction.abs());
     edge.last_heat = Energy(clamped_conductive_heat) + advective_convective_heat;
@@ -510,6 +542,6 @@ fn apply_storage(
 
     storage.temperature = if total_heat_cap > 0.0 { storage.heat.0 / total_heat_cap } else { 0.0 };
     storage.mass = total_mass;
-    storage.moles = total_moles;
+    storage.moles = Moles(total_moles);
     storage.pressure = total_moles * storage.temperature / storage.volume * PRESSURE_COEFFICIENT;
 }

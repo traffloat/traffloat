@@ -12,4 +12,5 @@ LLM was not used for the following:
 - Writing design documents
 - Generating more than a few lines of trivial code
 - Direct generation of non-trivial code
-- Writing unit test cases
+- Direct, unverified derivation of formulas
+- Deciding unit test cases

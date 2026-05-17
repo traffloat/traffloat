@@ -13,8 +13,11 @@ workspace = true
 
 [dependencies]
 bevy = {workspace = true}
-criterion = { version = "0.8.2", features = ["html_reports", "csv_output"] }
 derive_more = { version = "2.1.1", default-features = false, features = ["add", "add_assign"] }
+enum_dispatch = "0.3.13"
+
+[dev-dependencies]
+criterion = { version = "0.8.2", features = ["html_reports", "csv_output"] }
 
 [[bench]]
 name = "fluid"

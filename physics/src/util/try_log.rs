@@ -200,6 +200,32 @@ impl EntityWorldMutExt for EntityWorldMut<'_> {
     }
 }
 
+pub trait SliceGet<T> {
+    fn log_get(&self, index: usize) -> Option<&T>;
+    fn log_get_mut(&mut self, index: usize) -> Option<&mut T>;
+}
+
+impl<T> SliceGet<T> for [T] {
+    fn log_get(&self, index: usize) -> Option<&T> {
+        if let Some(value) = self.get(index) {
+            Some(value)
+        } else {
+            bevy::log::error!("Reference to index {index} in slice of length {}", self.len());
+            None
+        }
+    }
+
+    fn log_get_mut(&mut self, index: usize) -> Option<&mut T> {
+        let len = self.len(); // polonius
+        if let Some(value) = self.get_mut(index) {
+            Some(value)
+        } else {
+            bevy::log::error!("Reference to index {index} in slice of length {}", len);
+            None
+        }
+    }
+}
+
 /// An expression that can be used for `$expr` in [`try_log!`](crate::try_log!).
 pub trait TryLog<T> {
     /// Returns the successful result as `Some`, or log the error with `must`.

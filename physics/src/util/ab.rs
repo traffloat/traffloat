@@ -50,6 +50,7 @@ impl<T: ops::Sub> AlphaBeta<T> {
 }
 
 impl AlphaBeta<f32> {
+    #[must_use]
     pub fn harmonic_mean(self) -> f32 {
         let sum = self.sum();
         if sum == 0.0 {

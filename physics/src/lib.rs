@@ -8,6 +8,7 @@ pub mod util;
 
 pub mod fluid;
 pub mod graph;
+pub mod reactor;
 
 pub struct Plug;
 

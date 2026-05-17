@@ -117,9 +117,9 @@ fn test_temperature_induced_advection() {
         fluid::Edge::new(1.0, 3.0),
     )
     .validate(20, |alpha, beta, edge| {
-        expect_small(alpha.pressure- beta.pressure, 0.1);
+        expect_small(alpha.pressure - beta.pressure, 0.1);
 
-        /// By U = 1.5 PV, since pressure and volume are similar, internal energy is also similar
+        // By U = 1.5 PV, since pressure and volume are similar, internal energy is also similar
         // 500 is a small number compared to the initial 20000
         expect_between(alpha.heat.0 - beta.heat.0, 1.0, 500.0);
 
@@ -129,13 +129,22 @@ fn test_temperature_induced_advection() {
 
         // Despite temperature difference, pressure gradient still pushes heat to beta
         assert!(edge.last_heat.0 > 0.0, "alpha advecting hot fluid to beta");
-        assert!(edge.last_typed_transfer[0].atob_transfer.0 > 0.0, "alpha advecting hot fluid to beta");
+        assert!(
+            edge.last_typed_transfer[0].atob_transfer.0 > 0.0,
+            "alpha advecting hot fluid to beta"
+        );
     })
     .validate(100, |alpha, beta, edge| {
         expect_small(alpha.pressure - beta.pressure, 0.01);
 
-        assert!(edge.last_heat.0.abs() < 0.0, "beta warming up, gaining temperature but losing heat energy");
-        asset!(edge.last_typed_transfer[0].atob_transfer.0 < -0.0, "advecting back from beta to alpha");
+        assert!(
+            edge.last_heat.0 < 0.0,
+            "beta warming up, gaining temperature but losing heat energy"
+        );
+        assert!(
+            edge.last_typed_transfer[0].atob_transfer.0 < -0.0,
+            "advecting back from beta to alpha"
+        );
     });
 }
 
