@@ -6,7 +6,8 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
-use bevy::ecs::system::{Local, Query, Res, SystemParam};
+use bevy::ecs::system::{Command, EntityCommand, Local, Query, Res, SystemParam};
+use bevy::ecs::world::{EntityWorldMut, World};
 
 use crate::util::{AlphaBeta, MergeSortedItem, QueryExt, merge_sorted};
 
@@ -108,6 +109,28 @@ impl Types {
     }
 }
 
+pub struct AddTypeCommand {
+    pub type_def: TypeDef,
+}
+
+impl Command for AddTypeCommand {
+    fn apply(self, world: &mut World) {
+        let mut types = world.resource_mut::<Types>();
+        types.push(self.type_def);
+        let num_types = types.types.len();
+
+        for mut storage in world.query::<&mut Storage>().iter_mut(world) {
+            let new_typed = (0..num_types).map(|i| storage.types.get(i).cloned().unwrap_or_default()).collect();
+            storage.types = new_typed;
+        }
+
+        for mut edge in world.query::<&mut Edge>().iter_mut(world) {
+            let new_typed = (0..num_types).map(|i| edge.last_typed_transfer.get(i).cloned().unwrap_or_default()).collect();
+            edge.last_typed_transfer = new_typed;
+        }
+    }
+}
+
 pub struct TypeDef {
     pub name:                 String,
     /// Heat energy per mole.
@@ -146,10 +169,9 @@ pub struct Storage {
     pub heat:  Energy,
     /// Must always be sorted by type.
     // TODO benchmark possible alternative representations:
-    // 1. fixed size vec with all types, even if zero
-    // 2. use smallvec
-    // 3. use dynamic components for each type
-    pub types: Vec<TypedStorage>,
+    // 1. use smallvec
+    // 2. use dynamic components for each type
+    pub types: Box<[TypedStorage]>,
 
     // derived quantities
     /// Force per unit area exerted by the mixture.
@@ -169,12 +191,12 @@ pub struct Storage {
 
 impl Storage {
     #[must_use]
-    pub fn vacuum(volume: f32, length: f32) -> Self {
+    pub fn vacuum(num_types: usize, volume: f32, length: f32) -> Self {
         Self {
             volume,
             length,
             heat: Energy(0.0),
-            types: Vec::new(),
+            types: (0..num_types).map(|_| TypedStorage::default()).collect(),
             pressure: 0.0,
             temperature: 0.0,
             mass: 0.0,
@@ -200,19 +222,12 @@ impl Storage {
     }
 
     pub fn set_fluid(&mut self, ty: TypeId, moles: Moles) {
-        let index = self.types.partition_point(|t| t.ty < ty);
-        if let Some(t) = self.types.get_mut(index)
-            && t.ty == ty
-        {
-            t.moles = moles;
-        } else {
-            self.types.insert(index, TypedStorage { ty, moles, proportion: 0.0, molar_conc: 0.0 });
-        }
-
         // for performance reasons,
         // we are not going to update proportion and molar conc until the next tick.
         // This is expected to have negligible impact
         // since it only affects flow rate multiplier computation for one tick.
+
+        self.get_type_mut(ty).moles = moles;
     }
 
     #[must_use]
@@ -224,33 +239,30 @@ impl Storage {
     }
 
     #[must_use]
-    pub fn get_type(&self, ty: TypeId) -> Option<&TypedStorage> {
-        self.types.binary_search_by_key(&ty, |t| t.ty).ok().map(|index| &self.types[index])
+    pub fn get_type(&self, ty: TypeId) -> &TypedStorage {
+        self.types
+            .get(ty.0 as usize)
+            .expect("all fluid storages must be resized after adding fluid storages")
     }
 
-    pub fn with_type_mut<R>(&mut self, ty: TypeId, f: impl FnOnce(&mut TypedStorage) -> R) -> R {
-        let index = self.types.partition_point(|t| t.ty < ty);
-        if let Some(typed) = self.types.get_mut(index)
-            && typed.ty == ty
-        {
-            let ret = f(typed);
-            if typed.moles.0 == 0.0 {
-                self.types.remove(index);
-            }
-            ret
-        } else {
-            let mut new_entry =
-                TypedStorage { ty, moles: Moles(0.0), proportion: 0.0, molar_conc: 0.0 };
-            let result = f(&mut new_entry);
-            self.types.insert(index, new_entry);
-            result
-        }
+    #[must_use]
+    pub fn get_type_mut(&mut self, ty: TypeId) -> &mut TypedStorage {
+        self.types
+            .get_mut(ty.0 as usize)
+            .expect("all fluid storages must be resized after adding fluid storages")
+    }
+
+    pub fn types(&self) -> impl Iterator<Item = (TypeId, &TypedStorage)> {
+        self.types.iter().enumerate().map(|(i, t)| (TypeId(i as u32), t))
+    }
+
+    pub fn types_mut(&mut self) -> impl Iterator<Item = (TypeId, &mut TypedStorage)> {
+        self.types.iter_mut().enumerate().map(|(i, t)| (TypeId(i as u32), t))
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct TypedStorage {
-    pub ty:    TypeId,
     /// Amount of this type in this storage, in moles.
     pub moles: Moles,
 
@@ -259,6 +271,18 @@ pub struct TypedStorage {
     pub proportion: f32,
     /// Moles per unit volume of this type in this storage.
     pub molar_conc: f32,
+}
+
+pub struct AddStorageCommand {
+    pub ambient_volume: f32,
+    pub radius:         f32,
+}
+
+impl EntityCommand for AddStorageCommand {
+    fn apply(self, mut entity: EntityWorldMut) {
+        let num_types = entity.world().resource::<Types>().types.len();
+        entity.insert(Storage::vacuum(num_types, self.ambient_volume, self.radius));
+    }
 }
 
 /// The connection between two storages, through which fluid can transfer.
@@ -281,18 +305,18 @@ pub struct Edge {
     /// Heat transferred from alpha to beta in the last transfer step.
     last_heat:           Energy,
     /// Must always be sorted by type.
-    last_typed_transfer: Vec<TypedTransfer>,
+    last_typed_transfer: Box<[TypedTransfer]>,
 }
 
 impl Edge {
     #[must_use]
-    pub fn new(resistance_recip: f32, area: f32) -> Self {
+    pub fn new(num_types: usize, resistance_recip: f32, area: f32) -> Self {
         Self {
             resistance_recip,
             area,
             force_atob: 0.0,
             last_heat: Energy(0.0),
-            last_typed_transfer: Vec::new(),
+            last_typed_transfer: (0..num_types).map(|_| TypedTransfer::default()).collect(),
         }
     }
 
@@ -309,10 +333,28 @@ impl Edge {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct TypedTransfer {
-    ty:            TypeId,
     atob_transfer: Moles,
+}
+
+pub struct AddEdgeCommand {
+    pub resistance_recip: f32,
+    pub area:             f32,
+
+    pub alpha: Entity,
+    pub beta:  Entity,
+}
+
+impl EntityCommand for AddEdgeCommand {
+    fn apply(self, mut entity: EntityWorldMut) {
+        let num_types = entity.world().resource::<Types>().types.len();
+        entity.insert((
+            Edge::new(num_types, self.resistance_recip, self.area),
+            EdgeAlpha(self.alpha),
+            EdgeBeta(self.beta),
+        ));
+    }
 }
 
 #[derive(Component)]
@@ -376,22 +418,22 @@ fn transfer_system(
         compute_edge(&mut *edge, storages.map(|s| s.storage), &types, 1.0);
     });
 
-    storage_query.par_iter_mut().for_each_init(Default::default, |buf, mut storage| {
-        apply_storage(
-            buf,
-            &mut storage.storage,
-            storage.edges_alpha,
-            storage.edges_beta,
-            &edge_query,
-            &types,
-        );
-    });
+    storage_query.par_iter_mut().for_each_init(
+        || (0..types.types.len()).map(|_| ApplyStorageBufEntry::default()).collect::<Box<[_]>>(),
+        |buf, mut storage| {
+            apply_storage(
+                buf,
+                &mut storage.storage,
+                storage.edges_alpha,
+                storage.edges_beta,
+                &edge_query,
+                &types,
+            );
+        },
+    );
 }
 
 fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, dt: f32) {
-    edge.last_typed_transfer.clear();
-    edge.last_typed_transfer.reserve(storages.alpha.types.len().max(storages.beta.types.len()));
-
     // TODO insert field effects
 
     // advection is maximum number of moles transferred before considering fluidity
@@ -416,21 +458,22 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
     let mut conductivity = 0.0;
     let mut advective_convective_heat = Energy(0.0);
 
-    for typed_pair in storages.map(|s| &s.types).merge_sorted(|t| t.ty) {
-        let type_id = typed_pair.any(|typed| typed.ty);
+    for (type_id, (typed_pair, typed_edge)) in
+        storages.map(|s| &s.types).zip_iter().zip(&mut edge.last_typed_transfer).enumerate()
+    {
+        let type_id = TypeId(type_id as u32);
         let type_def = types.get(type_id);
 
         // if advection is positive, alpha is the source
-        let proportions = typed_pair.map(|t| t.proportion).default_ab();
-        let advection_source_moles =
-            typed_pair.map(|t| t.moles).default_ab().alpha_if(base_advection > 0.0);
+        let proportions = typed_pair.map(|t| t.proportion);
+        let advection_source_moles = typed_pair.map(|t| t.moles).alpha_if(base_advection > 0.0);
         let src_proportion = proportions.alpha_if(base_advection > 0.0);
         let typed_advection = base_advection * src_proportion * type_def.advective_fluidity;
 
         let src_temp = storages.map(|s| s.temperature).alpha_if(base_advection > 0.0);
         let advective_heat = Energy(src_temp * typed_advection * type_def.molar_heat_capacity);
 
-        let conc_pair = typed_pair.map(|t| t.molar_conc).default_ab();
+        let conc_pair = typed_pair.map(|t| t.molar_conc);
         let typed_diffusibility = base_diffusion * type_def.diffusive_fluidity;
         let typed_diffusion = conc_pair.map(|conc| Moles(conc * typed_diffusibility));
         let unclamped_diffusion = typed_diffusion.net_diff();
@@ -450,13 +493,10 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
         conductivity += type_def.thermal_conductivity * prop_sum;
         advective_convective_heat += advective_heat + convective_heat;
 
-        edge.last_typed_transfer.push(TypedTransfer {
-            ty:            typed_pair.any(|t| t.ty),
-            atob_transfer: Moles(
-                (typed_advection + net_diffusion)
-                    .clamp(-advection_source_moles.0, advection_source_moles.0),
-            ),
-        });
+        typed_edge.atob_transfer = Moles(
+            (typed_advection + net_diffusion)
+                .clamp(-advection_source_moles.0, advection_source_moles.0),
+        );
     }
 
     let base_conduction = contact_coef * storages.map(|s| s.temperature).net_diff();
@@ -468,20 +508,21 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
     edge.last_heat = Energy(clamped_conductive_heat) + advective_convective_heat;
 }
 
+#[derive(Debug, Clone, Default)]
 struct ApplyStorageBufEntry {
-    ty:           TypeId,
     moles_change: Moles,
 }
 
 fn apply_storage(
-    (buf, swap): &mut (Vec<ApplyStorageBufEntry>, Vec<TypedStorage>),
+    // buf for accumulating typed change over edges
+    buf: &mut Box<[ApplyStorageBufEntry]>,
     storage: &mut Storage,
     edges_alpha: Option<&AlphaOfEdgeList>,
     edges_beta: Option<&BetaOfEdgeList>,
     edge_query: &Query<TransferEdgeData>,
     types: &Types,
 ) {
-    buf.clear();
+    buf.iter_mut().for_each(|entry| *entry = ApplyStorageBufEntry::default());
 
     let mut new_heat = storage.heat;
 
@@ -492,64 +533,25 @@ fn apply_storage(
         let Some(edge) = edge_query.log_get(edge_entity) else { continue };
         let edge = edge.edge;
 
-        if let Some(additional) = edge.last_typed_transfer.len().checked_sub(buf.len()) {
-            buf.reserve(additional);
-        }
-
         new_heat += edge.last_heat * sign;
 
-        let mut buf_index = 0;
-        for typed_transfer in &edge.last_typed_transfer {
+        for (typed_transfer, buf_entry) in edge.last_typed_transfer.iter().zip(&mut **buf) {
             let moles_change = typed_transfer.atob_transfer * sign;
-
-            'skip_index: loop {
-                let buf_entry = buf.get_mut(buf_index);
-                buf_index += 1;
-
-                if let Some(buf_entry) = buf_entry {
-                    match buf_entry.ty.cmp(&typed_transfer.ty) {
-                        cmp::Ordering::Less => continue 'skip_index,
-                        cmp::Ordering::Equal => buf_entry.moles_change.0 += moles_change.0,
-                        cmp::Ordering::Greater => buf.insert(
-                            buf_index - 1,
-                            ApplyStorageBufEntry { ty: typed_transfer.ty, moles_change },
-                        ),
-                    }
-                } else {
-                    buf.push(ApplyStorageBufEntry { ty: typed_transfer.ty, moles_change });
-                }
-
-                break;
-            }
+            buf_entry.moles_change.0 += moles_change.0;
         }
     }
     storage.heat.0 = new_heat.0.max(0.0);
     // TODO add a cold path to deduct heat from peer connections
 
-    mem::swap(swap, &mut storage.types);
-    storage.types.clear();
-    storage.types.extend(
-        merge_sorted(&*swap, &*buf, |ty| ty.ty, |buf_entry| buf_entry.ty)
-            .map(|item| {
-                let ty = match item {
-                    MergeSortedItem::Left(t) | crate::util::MergeSortedItem::Both(t, _) => t.ty,
-                    MergeSortedItem::Right(buf_entry) => buf_entry.ty,
-                };
-                let moles = match item {
-                    MergeSortedItem::Left(t) => t.moles,
-                    MergeSortedItem::Right(e) => e.moles_change,
-                    MergeSortedItem::Both(t, e) => t.moles + e.moles_change,
-                };
-
-                TypedStorage { ty, moles, molar_conc: 0.0, proportion: 0.0 }
-            })
-            .filter(|typed| typed.moles.0 > 0.0),
+    for (typed_storage, buf_entry) in storage.types.iter_mut().zip(&**buf) {
+        typed_storage.moles += buf_entry.moles_change;
+        typed_storage.moles.0 = typed_storage.moles.0.max(0.0);
         // TODO add a cold path to deduct moles from peer connections when typed.moles < 0
-    );
+    }
 
     let (total_moles, total_mass, total_heat_cap) =
-        storage.types.iter().fold((0.0, 0.0, 0.0), |(moles, mass, heat_cap), typed| {
-            let type_def = types.get(typed.ty);
+        storage.types().fold((0.0, 0.0, 0.0), |(moles, mass, heat_cap), (type_id, typed)| {
+            let type_def = types.get(type_id);
             (
                 moles + typed.moles.0,
                 mass + typed.moles.0 * type_def.molar_density,
@@ -559,13 +561,15 @@ fn apply_storage(
 
     let mut extinction = [0.0, 0.0, 0.0];
     // let mut emission = [0.0, 0.0, 0.0];
-    for ty in &mut storage.types {
-        ty.proportion = ty.moles.0 / total_moles;
-        ty.molar_conc = ty.moles.0 / storage.volume;
+    let storage_volume = storage.volume;
+    for (type_id, ty) in storage.types_mut() {
+        ty.proportion =
+            if ty.moles.0 == 0.0 || total_moles == 0.0 { 0.0 } else { ty.moles.0 / total_moles };
+        ty.molar_conc = ty.moles.0 / storage_volume;
 
         #[expect(clippy::needless_range_loop, reason = "may be used for emission in the future")]
         for chan in 0..3 {
-            let type_def = types.get(ty.ty);
+            let type_def = types.get(type_id);
             extinction[chan] += ty.proportion * type_def.optical_extinction[chan];
             // emission[chan] += ty.proportion * type_def.optical_emission[chan];
         }

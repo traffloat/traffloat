@@ -194,9 +194,7 @@ impl EfficiencyModifier for FluidInput {
         let Some(storage) = params.fluid_storage.log_get(storage_entity) else {
             return EfficiencyModifierResult::INVALID;
         };
-        let Some(typed) = storage.get_type(self.ty) else {
-            return EfficiencyModifierResult::INVALID;
-        };
+        let typed = storage.get_type(self.ty);
         let mut out = self.conc_threshold.lerp(typed.molar_conc);
         if typed.moles < self.max_rate {
             out.maximum = out.maximum.min(typed.moles.0 / self.max_rate.0);
@@ -212,12 +210,11 @@ impl ReactionExecutor for FluidInput {
             return;
         };
         let Some(mut storage) = params.fluid_storage.log_get_mut(storage_entity) else { return };
-        storage.with_type_mut(self.ty, |typed| {
-            // The min branch is mathematically impossible since the efficiency would have reduced accordingly,
-            // but we still include it to avoid floating point errors leading to negative values,
-            // which could in turn result in a lot of unexpected behavior.
-            typed.moles -= fluid::Moles((efficiency * self.max_rate.0).min(typed.moles.0));
-        });
+        let typed = storage.get_type_mut(self.ty);
+        // The min branch is mathematically impossible since the efficiency would have reduced accordingly,
+        // but we still include it to avoid floating point errors leading to negative values,
+        // which could in turn result in a lot of unexpected behavior.
+        typed.moles -= fluid::Moles((efficiency * self.max_rate.0).min(typed.moles.0));
     }
 }
 
@@ -286,9 +283,8 @@ impl ReactionExecutor for FluidOutput {
             return;
         };
         let Some(mut storage) = params.fluid_storage.log_get_mut(storage_entity) else { return };
-        storage.with_type_mut(self.ty, |typed| {
-            typed.moles += fluid::Moles(efficiency * self.max_rate.0);
-        });
+        let typed = storage.get_type_mut(self.ty);
+        typed.moles += fluid::Moles(efficiency * self.max_rate.0);
     }
 }
 
@@ -339,9 +335,7 @@ impl EfficiencyModifier for FluidCatalyst {
         let Some(storage) = params.fluid_storage.log_get(storage_entity) else {
             return EfficiencyModifierResult::default();
         };
-        let Some(typed) = storage.get_type(self.ty) else {
-            return EfficiencyModifierResult::default();
-        };
+        let typed = storage.get_type(self.ty);
         self.conc_threshold.lerp(typed.molar_conc)
     }
 }

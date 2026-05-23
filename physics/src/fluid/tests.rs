@@ -8,8 +8,11 @@ use bevy::time;
 
 use crate::fluid;
 
+const NUM_TYPES: usize = 16;
+
 fn default_types() -> Vec<fluid::TypeDef> {
     iter::repeat_with(|| fluid::TypeDef {
+        name:                 "".into(),
         molar_heat_capacity:  1.0,
         advective_fluidity:   1.0,
         diffusive_fluidity:   1.0,
@@ -17,7 +20,7 @@ fn default_types() -> Vec<fluid::TypeDef> {
         thermal_conductivity: 1e-4,
         optical_extinction:   [0.0; 3],
     })
-    .take(16)
+    .take(NUM_TYPES)
     .collect()
 }
 
@@ -25,9 +28,9 @@ fn default_types() -> Vec<fluid::TypeDef> {
 fn test_empty() {
     do_test(
         |_| {},
-        fluid::Storage::vacuum(100.0, 1.5),
-        fluid::Storage::vacuum(100.0, 1.5),
-        fluid::Edge::new(1.0, 10.0),
+        fluid::Storage::vacuum(NUM_TYPES, 100.0, 1.5),
+        fluid::Storage::vacuum(NUM_TYPES, 100.0, 1.5),
+        fluid::Edge::new(NUM_TYPES, 1.0, 10.0),
     )
     .validate(20, |alpha, beta, edge| {
         expect_float(alpha.pressure, 0.0);
@@ -44,13 +47,13 @@ fn test_empty() {
 fn test_equilibrium_big_small() {
     do_test(
         |_| {},
-        fluid::Storage::vacuum(100.0, 1.5)
+        fluid::Storage::vacuum(NUM_TYPES, 100.0, 1.5)
             .with_heat(fluid::Energy(30000.0))
             .with_fluid(fluid::TypeId(0), 100.0),
-        fluid::Storage::vacuum(10.0, 0.15)
+        fluid::Storage::vacuum(NUM_TYPES, 10.0, 0.15)
             .with_heat(fluid::Energy(3000.0))
             .with_fluid(fluid::TypeId(0), 10.0),
-        fluid::Edge::new(1.0, 10.0),
+        fluid::Edge::new(NUM_TYPES, 1.0, 10.0),
     )
     .validate(20, |alpha, beta, edge| {
         expect_float(alpha.pressure, 2.34375);
@@ -67,13 +70,13 @@ fn test_equilibrium_big_small() {
 fn test_diffusion_big_small() {
     do_test(
         |_| {},
-        fluid::Storage::vacuum(100.0, 1.5)
+        fluid::Storage::vacuum(NUM_TYPES, 100.0, 1.5)
             .with_heat(fluid::Energy(30000.0))
             .with_fluid(fluid::TypeId(0), 100.0),
-        fluid::Storage::vacuum(10.0, 0.15)
+        fluid::Storage::vacuum(NUM_TYPES, 10.0, 0.15)
             .with_heat(fluid::Energy(3000.0))
             .with_fluid(fluid::TypeId(1), 10.0),
-        fluid::Edge::new(1.0, 10.0),
+        fluid::Edge::new(NUM_TYPES, 1.0, 10.0),
     )
     .validate(320, |alpha, beta, edge| {
         expect_float(alpha.pressure, 2.34375);
@@ -109,13 +112,13 @@ fn test_temperature_induced_advection() {
     //    so a pressure gradient is created that pushes fluids back from beta to alpha.
     do_test(
         |_| {},
-        fluid::Storage::vacuum(100.0, 1.5)
+        fluid::Storage::vacuum(NUM_TYPES, 100.0, 1.5)
             .with_heat(fluid::Energy(40000.0))
             .with_fluid(fluid::TypeId(0), 100.0),
-        fluid::Storage::vacuum(100.0, 1.5)
+        fluid::Storage::vacuum(NUM_TYPES, 100.0, 1.5)
             .with_heat(fluid::Energy(20000.0))
             .with_fluid(fluid::TypeId(0), 100.0),
-        fluid::Edge::new(1.0, 3.0),
+        fluid::Edge::new(NUM_TYPES, 1.0, 3.0),
     )
     .validate(20, |alpha, beta, edge| {
         expect_small(alpha.pressure - beta.pressure, 0.1);
@@ -221,7 +224,7 @@ fn debug_print_storage(
 ) {
     println!("{title}: pressure({pressure}) mass({mass}) {heat:?} temperature({temperature})");
 
-    for &fluid::TypedStorage { ty, moles, molar_conc, proportion } in types {
+    for (ty, &fluid::TypedStorage { moles, molar_conc, proportion }) in types.iter().enumerate() {
         println!("  Type {ty:?}: {moles:?}, molar_conc({molar_conc}) proportion({proportion})");
     }
 }
@@ -229,8 +232,8 @@ fn debug_print_storage(
 fn debug_print_edge(edge: &fluid::Edge) {
     println!("Heat flow: {}", print_flow(edge.last_heat.0));
 
-    for typed in &edge.last_typed_transfer {
-        println!("  Type {:?}: {}", typed.ty, print_flow(typed.atob_transfer.0));
+    for (ty, typed) in edge.last_typed_transfer.iter().enumerate() {
+        println!("  Type {ty:?}: {}", print_flow(typed.atob_transfer.0));
     }
 }
 

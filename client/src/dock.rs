@@ -298,7 +298,7 @@ impl CommonParams<'_, '_> {
         if ui.button("Settings").clicked() {
             self.commands.queue(|world: &mut World| {
                 world.resource_mut::<State>().focus_or_create(
-                    || TabEnum::Settings(settings::Tab).into(),
+                    || settings::Tab.into(),
                     dock::ReplaceTab(|tab| matches!(tab.tab, TabEnum::Settings(_)))
                         .or_always(dock::NewWindow),
                 );

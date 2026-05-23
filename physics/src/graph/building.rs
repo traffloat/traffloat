@@ -46,7 +46,9 @@ impl EntityCommand for SpawnCommand {
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
 
         // ambient storage
-        entity.insert(fluid::Storage::vacuum(ambient_volume, radius));
+        entity.reborrow_scope(|entity| {
+            fluid::AddStorageCommand { ambient_volume, radius }.apply(entity)
+        });
     }
 }
 
@@ -105,9 +107,14 @@ fn full_incr_viewer_system(
         if !subs.is_empty() {
             messages.write(view::SentUpdate {
                 viewers: subs.iter().copied().collect(),
-                body:    proto::Update::UpdateBuilding(proto::UpdateBuilding {
-                    id:    viewable.id,
-                    color: proto::Color(storage.rgba),
+                body:    proto::Update::UpdateBuildingFull(proto::UpdateBuildingFull {
+                    id:      viewable.id,
+                    color:   proto::Color(storage.rgba),
+                    ambient: proto::FluidStorageFull {
+                        pressure:    storage.pressure,
+                        temperature: storage.temperature,
+                        fluids:      storage.types.iter().map(|typed| typed.moles.0).collect(),
+                    },
                 }),
             });
         }

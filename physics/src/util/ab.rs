@@ -73,3 +73,18 @@ impl<T: IntoIterator> AlphaBeta<T> {
         merge_sorted(self.alpha, self.beta, key, key)
     }
 }
+
+impl<'a, T> AlphaBeta<&'a Box<[T]>> {
+    pub fn zip_iter(self) -> impl Iterator<Item = AlphaBeta<&'a T>> {
+        self.alpha.iter().zip(self.beta.iter()).map(|(alpha, beta)| AlphaBeta { alpha, beta })
+    }
+}
+
+impl<'a, T> AlphaBeta<&'a mut Box<[T]>> {
+    pub fn zip_iter_mut(self) -> impl Iterator<Item = AlphaBeta<&'a mut T>> {
+        self.alpha
+            .iter_mut()
+            .zip(self.beta.iter_mut())
+            .map(|(alpha, beta)| AlphaBeta { alpha, beta })
+    }
+}

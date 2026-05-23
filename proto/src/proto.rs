@@ -15,6 +15,7 @@ pub struct Color(pub [f32; 4]);
 pub enum Update {
     NewBuilding(NewBuilding),
     UpdateBuilding(UpdateBuilding),
+    UpdateBuildingFull(UpdateBuildingFull),
     NewCorridor(NewCorridor),
     UpdateCorridor(UpdateCorridor),
     RemoveViewable(RemoveViewable),
@@ -71,7 +72,7 @@ pub struct RemoveViewable {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FluidStorageFull {
     pub pressure:    f32,
-    pub tempreature: f32,
+    pub temperature: f32,
     pub fluids:      Vec<f32>,
 }
 

@@ -15,6 +15,7 @@ fn base_app(types: u32) -> App {
     app.insert_resource(fluid::Types {
         types: (0..types)
             .map(|ty| fluid::TypeDef {
+                name:                 String::new(),
                 molar_heat_capacity:  2.0,
                 advective_fluidity:   0.2,
                 diffusive_fluidity:   0.1,
@@ -41,8 +42,9 @@ fn bench_long_chain(c: &mut Criterion) {
                         let mut last = app
                             .world_mut()
                             .spawn({
-                                let mut storage = fluid::Storage::vacuum(100.0, 1.5)
-                                    .with_heat(fluid::Energy(30000.0));
+                                let mut storage =
+                                    fluid::Storage::vacuum(types as usize, 100.0, 1.5)
+                                        .with_heat(fluid::Energy(30000.0));
                                 for ty in 0..types {
                                     storage
                                         .set_fluid(fluid::TypeId(ty), Moles(100.0 + (ty as f32)));
@@ -55,8 +57,9 @@ fn bench_long_chain(c: &mut Criterion) {
                             let next = app
                                 .world_mut()
                                 .spawn({
-                                    let mut storage = fluid::Storage::vacuum(100.0, 1.5)
-                                        .with_heat(fluid::Energy(30000.0));
+                                    let mut storage =
+                                        fluid::Storage::vacuum(types as usize, 100.0, 1.5)
+                                            .with_heat(fluid::Energy(30000.0));
                                     for ty in 0..types {
                                         storage.set_fluid(
                                             fluid::TypeId(ty),
@@ -68,7 +71,7 @@ fn bench_long_chain(c: &mut Criterion) {
                                 .id();
 
                             app.world_mut().spawn((
-                                fluid::Edge::new(2.0, 3.0),
+                                fluid::Edge::new(types as usize, 2.0, 3.0),
                                 fluid::EdgeAlpha(last),
                                 fluid::EdgeBeta(next),
                             ));
