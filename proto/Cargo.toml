@@ -1,0 +1,16 @@
+[package]
+name = "traffloat-proto"
+description = "traffloat client-server protocol"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+bevy = { workspace = true }
+serde = { version = "1.0.228", features = ["derive"] }

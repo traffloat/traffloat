@@ -15,6 +15,7 @@ fn default_types() -> Vec<fluid::TypeDef> {
         diffusive_fluidity:   1.0,
         molar_density:        1.0,
         thermal_conductivity: 1e-4,
+        optical_extinction:   [0.0; 3],
     })
     .take(16)
     .collect()
@@ -24,8 +25,8 @@ fn default_types() -> Vec<fluid::TypeDef> {
 fn test_empty() {
     do_test(
         |_| {},
-        fluid::Storage::vacuum(100.0),
-        fluid::Storage::vacuum(100.0),
+        fluid::Storage::vacuum(100.0, 1.5),
+        fluid::Storage::vacuum(100.0, 1.5),
         fluid::Edge::new(1.0, 10.0),
     )
     .validate(20, |alpha, beta, edge| {
@@ -43,10 +44,10 @@ fn test_empty() {
 fn test_equilibrium_big_small() {
     do_test(
         |_| {},
-        fluid::Storage::vacuum(100.0)
+        fluid::Storage::vacuum(100.0, 1.5)
             .with_heat(fluid::Energy(30000.0))
             .with_fluid(fluid::TypeId(0), 100.0),
-        fluid::Storage::vacuum(10.0)
+        fluid::Storage::vacuum(10.0, 0.15)
             .with_heat(fluid::Energy(3000.0))
             .with_fluid(fluid::TypeId(0), 10.0),
         fluid::Edge::new(1.0, 10.0),
@@ -66,10 +67,10 @@ fn test_equilibrium_big_small() {
 fn test_diffusion_big_small() {
     do_test(
         |_| {},
-        fluid::Storage::vacuum(100.0)
+        fluid::Storage::vacuum(100.0, 1.5)
             .with_heat(fluid::Energy(30000.0))
             .with_fluid(fluid::TypeId(0), 100.0),
-        fluid::Storage::vacuum(10.0)
+        fluid::Storage::vacuum(10.0, 0.15)
             .with_heat(fluid::Energy(3000.0))
             .with_fluid(fluid::TypeId(1), 10.0),
         fluid::Edge::new(1.0, 10.0),
@@ -108,10 +109,10 @@ fn test_temperature_induced_advection() {
     //    so a pressure gradient is created that pushes fluids back from beta to alpha.
     do_test(
         |_| {},
-        fluid::Storage::vacuum(100.0)
+        fluid::Storage::vacuum(100.0, 1.5)
             .with_heat(fluid::Energy(40000.0))
             .with_fluid(fluid::TypeId(0), 100.0),
-        fluid::Storage::vacuum(100.0)
+        fluid::Storage::vacuum(100.0, 1.5)
             .with_heat(fluid::Energy(20000.0))
             .with_fluid(fluid::TypeId(0), 100.0),
         fluid::Edge::new(1.0, 3.0),

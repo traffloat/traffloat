@@ -1,6 +1,8 @@
 [workspace]
 members = [
+    "proto",
     "physics",
+    "client",
 ]
 resolver = "3"
 
@@ -17,6 +19,10 @@ bevy = { version = "0.18", default-features = false, features = [
     "bevy_log",
     "reflect_auto_register",
 ]}
+
+traffloat-proto = { version = "0.0.4", default-features = false, path = "proto" }
+traffloat-physics = { version = "0.0.4", default-features = false, path = "physics" }
+traffloat-client = { version = "0.0.4", default-features = false, path = "client" }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
@@ -38,6 +44,9 @@ collapsible_else_if = "allow"
 # unnecessary generalization
 implicit_hasher = "allow"
 
+# Too verbose, not necessary most of the time
+must_use_candidate = "allow"
+
 allow_attributes = "deny"
 allow_attributes_without_reason = "warn"
 
@@ -49,3 +58,5 @@ dbg_macro = "allow"
 unused_imports = "allow"
 dead_code = "allow"
 unused_variables = "allow"
+
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(rust_analyzer)'] }

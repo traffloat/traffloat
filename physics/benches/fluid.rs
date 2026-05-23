@@ -20,6 +20,7 @@ fn base_app(types: u32) -> App {
                 diffusive_fluidity:   0.1,
                 molar_density:        3.0,
                 thermal_conductivity: 1e-4,
+                optical_extinction:   [0.0; 3],
             })
             .collect(),
     });
@@ -40,8 +41,8 @@ fn bench_long_chain(c: &mut Criterion) {
                         let mut last = app
                             .world_mut()
                             .spawn({
-                                let mut storage =
-                                    fluid::Storage::vacuum(100.0).with_heat(fluid::Energy(30000.0));
+                                let mut storage = fluid::Storage::vacuum(100.0, 1.5)
+                                    .with_heat(fluid::Energy(30000.0));
                                 for ty in 0..types {
                                     storage
                                         .set_fluid(fluid::TypeId(ty), Moles(100.0 + (ty as f32)));
@@ -54,7 +55,7 @@ fn bench_long_chain(c: &mut Criterion) {
                             let next = app
                                 .world_mut()
                                 .spawn({
-                                    let mut storage = fluid::Storage::vacuum(100.0)
+                                    let mut storage = fluid::Storage::vacuum(100.0, 1.5)
                                         .with_heat(fluid::Energy(30000.0));
                                     for ty in 0..types {
                                         storage.set_fluid(

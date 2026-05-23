@@ -84,3 +84,10 @@ cargo test --all
   unless the system involves aggregation over all queried entities,
   in which case the aggregation result must not be used
   to avoid propagating errors.
+
+## Project structure
+
+- `physics`: Core simulation engine.
+- `client`: Frontend client for visualizing and interacting with the world.
+  Does not share any entities with the core simulation directly;
+  all gameplay interactions are done through `physics::view`.

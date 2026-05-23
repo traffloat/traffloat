@@ -100,9 +100,16 @@ impl Types {
     pub fn get(&self, ty: TypeId) -> &TypeDef {
         self.types.get(ty.0 as usize).expect("invalid fluid type reference created")
     }
+
+    pub fn push(&mut self, type_def: TypeDef) -> TypeId {
+        let id = u32::try_from(self.types.len()).expect("too many fluid types");
+        self.types.push(type_def);
+        TypeId(id)
+    }
 }
 
 pub struct TypeDef {
+    pub name:                 String,
     /// Heat energy per mole.
     pub molar_heat_capacity:  f32,
     /// Mass per mole.
@@ -117,6 +124,10 @@ pub struct TypeDef {
     pub diffusive_fluidity:   f32,
     /// Multiplier to heat transfer through conduction.
     pub thermal_conductivity: f32,
+    /// Base multiplier for transmitted color.
+    pub optical_extinction:   [f32; 3],
+    // /// Base multiplier for emitted color.
+    // pub optical_emission:  [f32; 3],
 }
 
 #[derive(Component, Debug, Clone)]
@@ -128,6 +139,8 @@ pub struct Storage {
     ///
     /// May be mutated by modules defining a storage.
     pub volume: f32,
+    /// Length of the storage to compute light absorption rate.
+    pub length: f32,
 
     /// Heat energy in the storage.
     pub heat:  Energy,
@@ -147,19 +160,28 @@ pub struct Storage {
     pub mass:        f32,
     /// Total moles of fluid in this storage.
     pub moles:       Moles,
+
+    pub optical_extinction: [f32; 3],
+    // pub optical_emission: [f32; 3],
+    /// RGBA color of the container.
+    pub rgba:               [f32; 4],
 }
 
 impl Storage {
     #[must_use]
-    pub fn vacuum(volume: f32) -> Self {
+    pub fn vacuum(volume: f32, length: f32) -> Self {
         Self {
             volume,
+            length,
             heat: Energy(0.0),
             types: Vec::new(),
             pressure: 0.0,
             temperature: 0.0,
             mass: 0.0,
             moles: Moles(0.0),
+            optical_extinction: [0.0; 3],
+            // optical_emission: [0.0; 3],
+            rgba: [0.0; 4],
         }
     }
 
@@ -535,13 +557,36 @@ fn apply_storage(
             )
         });
 
+    let mut extinction = [0.0, 0.0, 0.0];
+    // let mut emission = [0.0, 0.0, 0.0];
     for ty in &mut storage.types {
         ty.proportion = ty.moles.0 / total_moles;
         ty.molar_conc = ty.moles.0 / storage.volume;
+
+        #[expect(clippy::needless_range_loop, reason = "may be used for emission in the future")]
+        for chan in 0..3 {
+            let type_def = types.get(ty.ty);
+            extinction[chan] += ty.proportion * type_def.optical_extinction[chan];
+            // emission[chan] += ty.proportion * type_def.optical_emission[chan];
+        }
     }
 
     storage.temperature = if total_heat_cap > 0.0 { storage.heat.0 / total_heat_cap } else { 0.0 };
     storage.mass = total_mass;
     storage.moles = Moles(total_moles);
     storage.pressure = total_moles * storage.temperature / storage.volume * PRESSURE_COEFFICIENT;
+
+    storage.optical_extinction = extinction;
+    // storage.optical_emission = emission;
+
+    let mut transmittance_sum = 0.0;
+    let rgb = [0, 1, 2].map(|chan| {
+        let ambient = 1.0;
+        let transmittance = (-extinction[chan] * storage.length).exp();
+        transmittance_sum += transmittance;
+        ambient * transmittance
+    });
+    let alpha = 1.0 - transmittance_sum / 3.0;
+
+    storage.rgba = [rgb[0], rgb[1], rgb[2], alpha];
 }

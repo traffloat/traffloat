@@ -12,9 +12,15 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-bevy = {workspace = true}
+bevy = { workspace = true, features = ["serialize"] }
+bevy_mod_config = "0.6.1"
 derive_more = { version = "2.1.1", default-features = false, features = ["add", "add_assign"] }
+enum-map = "2.7.3"
 enum_dispatch = "0.3.13"
+serde = { version = "1.0.228", features = ["derive"] }
+tracing = "0.1.44"
+
+traffloat-proto = { workspace = true }
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports", "csv_output"] }

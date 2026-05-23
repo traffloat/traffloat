@@ -1,6 +1,7 @@
 use bevy::app::{App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
+use serde::{Deserialize, Serialize};
 
 use crate::Vector;
 use crate::util::AlphaBeta;
@@ -8,36 +9,16 @@ use crate::util::AlphaBeta;
 pub struct Plug;
 
 impl Plugin for Plug {
-    fn build(&self, app: &mut App) {}
+    fn build(&self, app: &mut App) { app.add_plugins(building::Plug); }
 }
 
-#[derive(Component)]
-pub struct Building {
-    pub position:       Vector,
-    pub radius:         f32,
-    pub ambient_volume: f32,
-}
+pub mod building;
+pub use building::Building;
 
-#[derive(Component)]
-pub struct Facility {
-    pub volume: f32,
-}
-
-#[derive(Component)]
-#[relationship_target(relationship = FacilityOf, linked_spawn)]
-pub struct FacilityList(Vec<Entity>);
-
-#[derive(Component)]
-#[relationship(relationship_target = FacilityList)]
-pub struct FacilityOf(pub Entity);
-
-#[derive(Component)]
-#[relationship_target(relationship = FacilityType)]
-pub struct FacilityTypeInstances(Vec<Entity>);
-
-#[derive(Component)]
-#[relationship(relationship_target = FacilityTypeInstances)]
-pub struct FacilityType(pub Entity);
+pub mod facility;
+pub use facility::{
+    Facility, FacilityList, FacilityOf, FacilityType, FacilityTypeDef, FacilityTypeInstances,
+};
 
 #[derive(Component)]
 pub struct Corridor {
@@ -50,4 +31,12 @@ pub struct Corridor {
 #[derive(Component)]
 pub struct Conduit {
     pub area: f32,
+    pub ty:   ConduitType,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ConduitType {
+    FluidPipe,
+    PowerCable,
+    VehicleRail,
 }

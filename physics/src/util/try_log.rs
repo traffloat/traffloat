@@ -24,7 +24,7 @@ macro_rules! try_log {
                 clippy::allow_attributes, clippy::question_mark,
                 reason = "potentially generalizes Option and Result in generated code"
             )]
-            if let Some(value) = $crate::TryLog::convert_or_log(
+            if let Some(value) = $crate::util::TryLog::convert_or_log(
                 $expr,
                 format_args!($must, $($($must_args),*)?),
             ) {
@@ -41,7 +41,7 @@ pub use try_log;
 #[macro_export]
 macro_rules! try_log_return {
     ($expr:expr, expect $must:literal $(, $($must_args:expr),*)? $(,)?) => {
-        $crate::try_log!($expr, expect $must $(($($must_args),*))? or return)
+        $crate::util::try_log!($expr, expect $must $(($($must_args),*))? or return)
     }
 }
 
@@ -79,16 +79,18 @@ where
     D: QueryData,
     F: QueryFilter,
 {
+    #[track_caller]
     fn log_get(&self, entity: Entity) -> Option<<D::ReadOnly as QueryData>::Item<'_, 's>> {
         match self.get(entity) {
             Ok(value) => Some(value),
             Err(err) => {
-                bevy::log::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
+                tracing::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
                 None
             }
         }
     }
 
+    #[track_caller]
     fn log_get_many<const N: usize>(
         &self,
         entity: [Entity; N],
@@ -96,22 +98,24 @@ where
         match self.get_many(entity) {
             Ok(value) => Some(value),
             Err(err) => {
-                bevy::log::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
+                tracing::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
                 None
             }
         }
     }
 
+    #[track_caller]
     fn log_get_mut(&mut self, entity: Entity) -> Option<D::Item<'_, 's>> {
         match self.get_mut(entity) {
             Ok(value) => Some(value),
             Err(err) => {
-                bevy::log::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
+                tracing::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
                 None
             }
         }
     }
 
+    #[track_caller]
     fn log_get_many_mut<const N: usize>(
         &mut self,
         entity: [Entity; N],
@@ -119,7 +123,7 @@ where
         match self.get_many_mut(entity) {
             Ok(value) => Some(value),
             Err(err) => {
-                bevy::log::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
+                tracing::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
                 None
             }
         }
@@ -136,15 +140,17 @@ pub trait WorldExt {
 }
 
 impl WorldExt for World {
+    #[track_caller]
     fn log_get<T: Component>(&self, entity: Entity) -> Option<&T> {
         if let Some(value) = self.get::<T>(entity) {
             Some(value)
         } else {
-            bevy::log::error!("Expected {entity:?} to have component {}", type_name::<T>());
+            tracing::error!("Expected {entity:?} to have component {}", type_name::<T>());
             None
         }
     }
 
+    #[track_caller]
     fn log_get_mut<T: Component<Mutability = Mutable>>(
         &mut self,
         entity: Entity,
@@ -152,7 +158,7 @@ impl WorldExt for World {
         if let Some(value) = self.get_mut::<T>(entity) {
             Some(value)
         } else {
-            bevy::log::error!("Expected {entity:?} to have component {}", type_name::<T>());
+            tracing::error!("Expected {entity:?} to have component {}", type_name::<T>());
             None
         }
     }
@@ -163,11 +169,12 @@ pub trait EntityRefExt {
 }
 
 impl EntityRefExt for EntityRef<'_> {
+    #[track_caller]
     fn log_get<T: Component>(&self) -> Option<&T> {
         if let Some(value) = self.get::<T>() {
             Some(value)
         } else {
-            bevy::log::error!("Expected {:?} to have component {}", self.id(), type_name::<T>());
+            tracing::error!("Expected {:?} to have component {}", self.id(), type_name::<T>());
             None
         }
     }
@@ -180,21 +187,23 @@ pub trait EntityWorldMutExt {
 }
 
 impl EntityWorldMutExt for EntityWorldMut<'_> {
+    #[track_caller]
     fn log_get<T: Component>(&self) -> Option<&T> {
         if let Some(value) = self.get::<T>() {
             Some(value)
         } else {
-            bevy::log::error!("Expected {:?} to have component {}", self.id(), type_name::<T>());
+            tracing::error!("Expected {:?} to have component {}", self.id(), type_name::<T>());
             None
         }
     }
 
+    #[track_caller]
     fn log_get_mut<T: Component<Mutability = Mutable>>(&mut self) -> Option<Mut<'_, T>> {
         let id = self.id(); // polonius does not like this being in the match arm
         if let Some(value) = self.get_mut::<T>() {
             Some(value)
         } else {
-            bevy::log::error!("Expected {:?} to have component {}", id, type_name::<T>());
+            tracing::error!("Expected {:?} to have component {}", id, type_name::<T>());
             None
         }
     }
@@ -206,21 +215,23 @@ pub trait SliceGet<T> {
 }
 
 impl<T> SliceGet<T> for [T] {
+    #[track_caller]
     fn log_get(&self, index: usize) -> Option<&T> {
         if let Some(value) = self.get(index) {
             Some(value)
         } else {
-            bevy::log::error!("Reference to index {index} in slice of length {}", self.len());
+            tracing::error!("Reference to index {index} in slice of length {}", self.len());
             None
         }
     }
 
+    #[track_caller]
     fn log_get_mut(&mut self, index: usize) -> Option<&mut T> {
         let len = self.len(); // polonius
         if let Some(value) = self.get_mut(index) {
             Some(value)
         } else {
-            bevy::log::error!("Reference to index {index} in slice of length {}", len);
+            tracing::error!("Reference to index {index} in slice of length {}", len);
             None
         }
     }
@@ -237,7 +248,7 @@ impl<T> TryLog<T> for Option<T> {
         if let Some(value) = this {
             Some(value)
         } else {
-            bevy::log::error!("{must}");
+            tracing::error!("{must}");
             None
         }
     }
@@ -248,7 +259,7 @@ impl<T, E: fmt::Display> TryLog<T> for Result<T, E> {
         match this {
             Ok(value) => Some(value),
             Err(err) => {
-                bevy::log::error!("{must}: {err}");
+                tracing::error!("{must}: {err}");
                 None
             }
         }
