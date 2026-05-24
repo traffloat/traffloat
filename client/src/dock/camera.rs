@@ -130,10 +130,23 @@ impl dock::Tab for Tab {
                 Ok(world_pos) => {
                     param.ui_state.hover_state = Some(HoverState {
                         camera: self.camera,
+                        image: self.image_handle.clone(),
                         viewport_pos,
                         world_pos,
                         primary_clicked: resp.clicked(),
+                        primary_just_pressed: resp
+                            .ctx
+                            .input(|input| input.pointer.primary_pressed()),
+                        primary_just_released: resp
+                            .ctx
+                            .input(|input| input.pointer.primary_released()),
                         secondary_clicked: resp.secondary_clicked(),
+                        secondary_just_pressed: resp
+                            .ctx
+                            .input(|input| input.pointer.secondary_pressed()),
+                        secondary_just_released: resp
+                            .ctx
+                            .input(|input| input.pointer.secondary_released()),
                     });
                 }
                 Err(err) => bevy::log::warn_once!(
@@ -175,11 +188,17 @@ impl UiState {
 }
 
 pub struct HoverState {
-    pub camera:            Entity,
-    pub viewport_pos:      egui::Vec2,
-    pub world_pos:         Vec2,
-    pub primary_clicked:   bool,
-    pub secondary_clicked: bool,
+    pub camera:       Entity,
+    pub image:        asset::Handle<Image>,
+    pub viewport_pos: egui::Vec2,
+    pub world_pos:    Vec2,
+
+    pub primary_clicked:         bool,
+    pub primary_just_pressed:    bool,
+    pub primary_just_released:   bool,
+    pub secondary_clicked:       bool,
+    pub secondary_just_pressed:  bool,
+    pub secondary_just_released: bool,
 }
 
 #[derive(Config)]

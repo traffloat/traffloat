@@ -46,7 +46,7 @@ Field types can apply transformations on Perlin noise output.
 Fields are mostly invisible and cannot be trivially detected.
 A player initially notices the presence of a field from its effects on fixtures.
 
-Laboratories can be bulit to research the mechanisms of the fields.
+Laboratories can be built to research the mechanisms of the fields.
 Research is more efficient if the player correctly identifies the field effect and areas it is stronger in.
 
 After sufficient research is completed, new building/corridor upgrades and facility classes are unlocked.

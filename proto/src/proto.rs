@@ -19,12 +19,14 @@ pub enum Update {
     NewCorridor(NewCorridor),
     UpdateCorridor(UpdateCorridor),
     RemoveViewable(RemoveViewable),
+    SetFluidTypes(SetFluidTypes),
 }
 
 /// Subscribed to a new building.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewBuilding {
     pub id:             Id,
+    pub name:           String,
     pub position:       Vector,
     pub radius:         f32,
     pub wall_thickness: f32,
@@ -43,13 +45,14 @@ pub struct UpdateBuildingFull {
     pub id:    Id,
     pub color: Color,
 
-    pub ambient: FluidStorageFull,
+    pub ambient_fluid: FluidStorageFull,
 }
 
 /// Subscribed to a new corridor.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewCorridor {
     pub id:             Id,
+    pub name:           String,
     pub alpha_position: Vector,
     pub beta_position:  Vector,
     pub radius:         f32,
@@ -70,10 +73,21 @@ pub struct RemoveViewable {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetFluidTypes {
+    pub types: Vec<FluidType>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FluidType {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FluidStorageFull {
+    pub volume:      f32,
     pub pressure:    f32,
     pub temperature: f32,
-    pub fluids:      Vec<f32>,
+    pub types:       Vec<f32>,
 }
 
 /// Approved messages from a specific viewer to the world.

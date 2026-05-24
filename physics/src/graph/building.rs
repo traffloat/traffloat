@@ -27,6 +27,7 @@ impl Plugin for Plug {
 
 #[derive(Component)]
 pub struct Building {
+    pub name:           String,
     pub position:       Vector,
     pub radius:         f32,
     pub wall_thickness: f32,
@@ -47,7 +48,7 @@ impl EntityCommand for SpawnCommand {
 
         // ambient storage
         entity.reborrow_scope(|entity| {
-            fluid::AddStorageCommand { ambient_volume, radius }.apply(entity)
+            fluid::AddStorageCommand { ambient_volume, radius }.apply(entity);
         });
     }
 }
@@ -71,6 +72,7 @@ fn init_viewer_system(
                 viewers: viewable.new_subscribers.iter().copied().collect(),
                 body:    proto::Update::NewBuilding(proto::NewBuilding {
                     id:             viewable.id,
+                    name:           building.name.clone(),
                     position:       building.position,
                     radius:         building.radius,
                     wall_thickness: building.wall_thickness,
@@ -81,9 +83,14 @@ fn init_viewer_system(
 }
 
 fn basic_incr_viewer_system(
+    mut throttle: view::BroadcastThrottle,
     building_query: Query<(&Building, &view::Viewable, &fluid::Storage)>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
+    if !throttle.should_run() {
+        return;
+    }
+
     for (building, viewable, storage) in building_query.iter() {
         let subs = &viewable.subscribers[view::SubscriptionLevel::Basic];
         if !subs.is_empty() {
@@ -99,21 +106,27 @@ fn basic_incr_viewer_system(
 }
 
 fn full_incr_viewer_system(
+    mut throttle: view::BroadcastThrottle,
     building_query: Query<(&Building, &view::Viewable, &fluid::Storage)>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
+    if !throttle.should_run() {
+        return;
+    }
+
     for (building, viewable, storage) in building_query.iter() {
         let subs = &viewable.subscribers[view::SubscriptionLevel::Full];
         if !subs.is_empty() {
             messages.write(view::SentUpdate {
                 viewers: subs.iter().copied().collect(),
                 body:    proto::Update::UpdateBuildingFull(proto::UpdateBuildingFull {
-                    id:      viewable.id,
-                    color:   proto::Color(storage.rgba),
-                    ambient: proto::FluidStorageFull {
+                    id:            viewable.id,
+                    color:         proto::Color(storage.rgba),
+                    ambient_fluid: proto::FluidStorageFull {
+                        volume:      storage.volume,
                         pressure:    storage.pressure,
                         temperature: storage.temperature,
-                        fluids:      storage.types.iter().map(|typed| typed.moles.0).collect(),
+                        types:       storage.types.iter().map(|typed| typed.moles.0).collect(),
                     },
                 }),
             });

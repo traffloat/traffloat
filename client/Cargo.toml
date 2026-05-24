@@ -15,6 +15,7 @@ workspace = true
 bevy_mod_config = { version = "0.6.1", features = ["egui"] }
 egui = "0.33.1"
 egui_dock = "0.18.0"
+egui_material_icons = "0.5.0" # { version = "0.6.0", default-features = false, features = ["filled"] }
 strum = { version = "0.28.0", features = ["derive"] }
 tracing = "0.1.44"
 

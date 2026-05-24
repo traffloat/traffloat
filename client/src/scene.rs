@@ -15,6 +15,7 @@ use bevy::ecs::system::{Commands, ParamSet, Query, ResMut, Single, SystemParam};
 use bevy::ecs::world::World;
 use bevy::math::Vec3;
 use bevy::mesh::Mesh2d;
+use bevy::picking::PickingSettings;
 use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
@@ -24,14 +25,17 @@ use traffloat_proto::proto;
 
 use crate::ConfigManager;
 
-mod building;
+pub mod building;
+mod picking;
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.init_resource::<IdRegistry>();
+        app.init_resource::<FluidTypes>();
         app.init_config::<ConfigManager, Conf>("scene");
+        app.add_plugins(picking::Plug);
         app.add_plugins(building::Plug);
         app.add_systems(app::Update, react_config_system);
         app.add_systems(app::Update, handle_update_system);
@@ -169,9 +173,11 @@ define_params! {
     'w, 's;
     NewBuilding(building::NewBuildingParams<'w, 's>) (),
     UpdateBuilding(building::UpdateBuildingParams<'w, 's>) (p1),
-    NewCorridor(NewCorridorParams<'w, 's>) (p1 p1),
-    UpdateCorridor(UpdateCorridorParams<'w, 's>) (p1 p1 p1),
-    RemoveViewable(RemoveViewableParams<'w, 's>) (p1 p1 p1 p1),
+    UpdateBuildingFull(building::UpdateBuildingFullParams<'w, 's>) (p1 p1),
+    NewCorridor(NewCorridorParams<'w, 's>) (p1 p1 p1),
+    UpdateCorridor(UpdateCorridorParams<'w, 's>) (p1 p1 p1 p1),
+    RemoveViewable(RemoveViewableParams<'w, 's>) (p1 p1 p1 p1 p1),
+    SetFluidTypes(SetFluidTypesParams<'w>) (p1 p1 p1 p1 p1 p1),
 }
 
 #[derive(SystemParam)]
@@ -208,6 +214,34 @@ impl RemoveViewableParams<'_, '_> {
             None => tracing::error!("Received remove for unknown fixture id {:?}", fixture.id),
         }
     }
+}
+
+#[derive(SystemParam)]
+struct SetFluidTypesParams<'w> {
+    fluids: ResMut<'w, FluidTypes>,
+}
+
+impl SetFluidTypesParams<'_> {
+    fn handle(&mut self, update: &proto::SetFluidTypes) {
+        self.fluids.0 = update.types.iter().map(|t| FluidType { name: t.name.clone() }).collect();
+    }
+}
+
+#[derive(Component)]
+pub struct GenericViewable {
+    pub name: String,
+    pub kind: ViewableKind,
+}
+
+pub enum ViewableKind {
+    Building,
+}
+
+#[derive(Resource, Default)]
+pub struct FluidTypes(pub Vec<FluidType>);
+
+pub struct FluidType {
+    pub name: String,
 }
 
 fn bevy_color(proto::Color([r, g, b, a]): proto::Color) -> Color { Color::linear_rgba(r, g, b, a) }

@@ -50,5 +50,6 @@
 //! # Viewer
 //! Components:
 //! - [`view::Viewer`]
+//! - [`fluid::ViewerSynced`]
 
 use crate::*;

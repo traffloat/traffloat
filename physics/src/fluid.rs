@@ -3,13 +3,16 @@ use std::{cmp, iter, mem, ops};
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::query::QueryData;
+use bevy::ecs::message::MessageWriter;
+use bevy::ecs::query::{QueryData, With};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
-use bevy::ecs::system::{Command, EntityCommand, Local, Query, Res, SystemParam};
+use bevy::ecs::system::{Command, Commands, EntityCommand, Local, Query, Res, SystemParam};
 use bevy::ecs::world::{EntityWorldMut, World};
+use traffloat_proto::proto;
 
 use crate::util::{AlphaBeta, MergeSortedItem, QueryExt, merge_sorted};
+use crate::view;
 
 #[cfg(test)]
 mod tests;
@@ -28,6 +31,7 @@ impl Plugin for Plug {
         app.init_resource::<Types>();
 
         app.add_systems(app::FixedUpdate, transfer_system.in_set(TransferSystemSet));
+        app.add_systems(app::Update, sync_types_to_viewers_system);
     }
 }
 
@@ -120,12 +124,15 @@ impl Command for AddTypeCommand {
         let num_types = types.types.len();
 
         for mut storage in world.query::<&mut Storage>().iter_mut(world) {
-            let new_typed = (0..num_types).map(|i| storage.types.get(i).cloned().unwrap_or_default()).collect();
+            let new_typed =
+                (0..num_types).map(|i| storage.types.get(i).copied().unwrap_or_default()).collect();
             storage.types = new_typed;
         }
 
         for mut edge in world.query::<&mut Edge>().iter_mut(world) {
-            let new_typed = (0..num_types).map(|i| edge.last_typed_transfer.get(i).cloned().unwrap_or_default()).collect();
+            let new_typed = (0..num_types)
+                .map(|i| edge.last_typed_transfer.get(i).cloned().unwrap_or_default())
+                .collect();
             edge.last_typed_transfer = new_typed;
         }
     }
@@ -230,8 +237,9 @@ impl Storage {
         self.get_type_mut(ty).moles = moles;
     }
 
+    /// Computes total heat capacity based on derived quantities.
     #[must_use]
-    pub fn total_heat_capacity(&self) -> f32 {
+    pub fn derived_total_heat_capacity(&self) -> f32 {
         if self.heat.0 == 0.0 || self.temperature == 0.0 {
             return 0.0;
         }
@@ -253,11 +261,17 @@ impl Storage {
     }
 
     pub fn types(&self) -> impl Iterator<Item = (TypeId, &TypedStorage)> {
-        self.types.iter().enumerate().map(|(i, t)| (TypeId(i as u32), t))
+        self.types
+            .iter()
+            .enumerate()
+            .map(|(i, t)| (TypeId(u32::try_from(i).expect("too many types in storage")), t))
     }
 
     pub fn types_mut(&mut self) -> impl Iterator<Item = (TypeId, &mut TypedStorage)> {
-        self.types.iter_mut().enumerate().map(|(i, t)| (TypeId(i as u32), t))
+        self.types
+            .iter_mut()
+            .enumerate()
+            .map(|(i, t)| (TypeId(u32::try_from(i).expect("too many types in storage")), t))
     }
 }
 
@@ -282,6 +296,28 @@ impl EntityCommand for AddStorageCommand {
     fn apply(self, mut entity: EntityWorldMut) {
         let num_types = entity.world().resource::<Types>().types.len();
         entity.insert(Storage::vacuum(num_types, self.ambient_volume, self.radius));
+    }
+}
+
+pub struct SetTemperatureCommand {
+    pub temperature: f32,
+}
+
+impl EntityCommand for SetTemperatureCommand {
+    fn apply(self, mut entity: EntityWorldMut) {
+        let storage = try_log!(entity.get::<Storage>(), expect "SetTemperatureCommand must be applied on fluid storage entities" or return);
+        let types = entity.world().resource::<Types>();
+        let heat = self.temperature
+            * storage
+                .types()
+                .map(|(type_id, typed)| {
+                    let type_def = types.get(type_id);
+                    typed.moles.0 * type_def.molar_heat_capacity
+                })
+                .sum::<f32>();
+
+        let mut storage = entity.get_mut::<Storage>().expect("checked at function start");
+        storage.heat = Energy(heat);
     }
 }
 
@@ -461,7 +497,7 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
     for (type_id, (typed_pair, typed_edge)) in
         storages.map(|s| &s.types).zip_iter().zip(&mut edge.last_typed_transfer).enumerate()
     {
-        let type_id = TypeId(type_id as u32);
+        let type_id = TypeId(u32::try_from(type_id).expect("too many fluid types"));
         let type_def = types.get(type_id);
 
         // if advection is positive, alpha is the source
@@ -474,8 +510,8 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
         let advective_heat = Energy(src_temp * typed_advection * type_def.molar_heat_capacity);
 
         let conc_pair = typed_pair.map(|t| t.molar_conc);
-        let typed_diffusibility = base_diffusion * type_def.diffusive_fluidity;
-        let typed_diffusion = conc_pair.map(|conc| Moles(conc * typed_diffusibility));
+        let typed_diffusivity = base_diffusion * type_def.diffusive_fluidity;
+        let typed_diffusion = conc_pair.map(|conc| Moles(conc * typed_diffusivity));
         let unclamped_diffusion = typed_diffusion.net_diff();
         let max_diffusion = conc_pair.net_diff() * storages.map(|s| s.volume).harmonic_mean();
         let net_diffusion = unclamped_diffusion.0.clamp(-max_diffusion.abs(), max_diffusion.abs());
@@ -502,7 +538,7 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
     let base_conduction = contact_coef * storages.map(|s| s.temperature).net_diff();
     let conductive_heat = base_conduction * conductivity;
     let max_conduction = storages.map(|s| s.temperature).net_diff()
-        * storages.map(Storage::total_heat_capacity).harmonic_mean();
+        * storages.map(Storage::derived_total_heat_capacity).harmonic_mean();
     let clamped_conductive_heat =
         conductive_heat.clamp(-max_conduction.abs(), max_conduction.abs());
     edge.last_heat = Energy(clamped_conductive_heat) + advective_convective_heat;
@@ -593,4 +629,32 @@ fn apply_storage(
     let alpha = 1.0 - transmittance_sum / 3.0;
 
     storage.rgba = [rgb[0], rgb[1], rgb[2], alpha];
+}
+
+#[derive(Component)]
+pub struct ViewerSynced {
+    num_types: usize,
+}
+
+fn sync_types_to_viewers_system(
+    types: Res<Types>,
+    viewers: Query<(Entity, Option<&ViewerSynced>), With<view::Viewer>>,
+    mut commands: Commands,
+    mut writer: MessageWriter<view::SentUpdate>,
+) {
+    for (entity, viewer) in viewers {
+        if viewer.is_none_or(|v| v.num_types != types.types.len()) {
+            commands.entity(entity).insert(ViewerSynced { num_types: types.types.len() });
+            writer.write(view::SentUpdate {
+                viewers: [entity].into(),
+                body:    proto::Update::SetFluidTypes(proto::SetFluidTypes {
+                    types: types
+                        .types
+                        .iter()
+                        .map(|type_def| proto::FluidType { name: type_def.name.clone() })
+                        .collect(),
+                }),
+            });
+        }
+    }
 }

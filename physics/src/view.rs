@@ -1,5 +1,6 @@
 use std::mem;
 use std::num::NonZeroU32;
+use std::time::Duration;
 
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
@@ -9,9 +10,12 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
+use bevy::time;
 use bevy_mod_config::Config;
 use enum_map::EnumMap;
 use traffloat_proto::proto;
+
+use crate::util::Throttle;
 
 pub struct Plug;
 
@@ -183,4 +187,13 @@ pub fn on_viewable_despawn(entity: &mut EntityWorldMut) {
 pub struct SentUpdate {
     pub viewers: EntityHashSet,
     pub body:    proto::Update,
+}
+
+#[derive(SystemParam)]
+pub struct BroadcastThrottle<'w, 's> {
+    throttle: Throttle<'w, 's, time::Virtual>,
+}
+
+impl BroadcastThrottle<'_, '_> {
+    pub fn should_run(&mut self) -> bool { self.throttle.should_run(Duration::from_millis(250)) }
 }

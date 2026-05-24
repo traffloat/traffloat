@@ -12,11 +12,12 @@ use egui::WidgetText;
 use egui_dock::tab_viewer::OnCloseResponse;
 use egui_dock::{DockArea, DockState, NodeIndex, SurfaceIndex, TabIndex};
 
-mod camera;
+pub mod camera;
 mod new_level;
 mod open_mode;
 mod settings;
 mod startup;
+pub mod viewable_info;
 pub use open_mode::*;
 
 use crate::dock;
@@ -36,7 +37,7 @@ impl Plugin for Plug {
 pub struct State(DockState<TabState>);
 
 pub struct TabState {
-    tab:      TabEnum,
+    pub tab:  TabEnum,
     location: Option<(SurfaceIndex, NodeIndex, TabIndex)>,
 }
 
@@ -53,11 +54,14 @@ impl State {
         &mut self,
         tab_fn: impl FnOnce() -> TabEnum,
         placement: impl AlwaysTabPlacement,
-    ) {
+    ) -> &mut TabEnum {
         let path =
             placement.always_place(&mut self.0, || TabState { tab: tab_fn(), location: None });
         self.0.set_focused_node_and_surface((path.0, path.1));
         self.0.set_active_tab(path);
+        &mut self.0[path.0][path.1].tabs_mut().expect("AlwaysPlacement ensures path must exist")
+            [path.2.0]
+            .tab
     }
 
     pub fn reset_all(&mut self, tab: TabEnum) { self.0 = DockState::new([tab.into()].into()); }
@@ -237,6 +241,8 @@ define_tabs! {
     (p0 p0) Settings(settings::Tab)
     /// Camera viewport
     (p0 p0 p0) Camera(camera::Tab)
+    /// Info page for a viewable entity.
+    (p0 p0 p0 p0) ViewableInfo(viewable_info::Tab)
 }
 
 fn setup_system(mut egui_global_settings: ResMut<EguiGlobalSettings>, mut commands: Commands) {
@@ -251,6 +257,8 @@ fn setup_system(mut egui_global_settings: ResMut<EguiGlobalSettings>, mut comman
 
 fn render_system(mut contexts: EguiContexts, mut state: ResMut<State>, params: TabViewerParams) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
+
+    egui_material_icons::initialize(ctx);
 
     let focused_node = state.0.focused_leaf();
     let focused_tab = focused_node.and_then(|(surface, node)| {
@@ -285,6 +293,7 @@ fn render_system(mut contexts: EguiContexts, mut state: ResMut<State>, params: T
             .show_add_popup(true)
             .style(egui_dock::Style::from_egui(ui.style().as_ref()))
             .show_inside(ui, &mut viewer);
+        viewer.params.ps.p0().global_dock_shortcuts(ui.ctx());
     });
 }
 
@@ -296,14 +305,29 @@ struct CommonParams<'w, 's> {
 impl CommonParams<'_, '_> {
     fn add_popup(&mut self, ui: &mut egui::Ui) {
         if ui.button("Settings").clicked() {
-            self.commands.queue(|world: &mut World| {
-                world.resource_mut::<State>().focus_or_create(
-                    || settings::Tab.into(),
-                    dock::ReplaceTab(|tab| matches!(tab.tab, TabEnum::Settings(_)))
-                        .or_always(dock::NewWindow),
-                );
-            });
+            self.open_settings();
             ui.close();
         }
     }
+
+    fn global_dock_shortcuts(&mut self, ctx: &egui::Context) {
+        ctx.input_mut(|input| {
+            if input.consume_shortcut(&SHORTCUT_SETTINGS) {
+                self.open_settings();
+            }
+        });
+    }
+
+    fn open_settings(&mut self) {
+        self.commands.queue(|world: &mut World| {
+            world.resource_mut::<State>().focus_or_create(
+                || settings::Tab.into(),
+                dock::ReplaceTab(|tab| matches!(tab.tab, TabEnum::Settings(_)))
+                    .or_always(dock::NewWindow),
+            );
+        });
+    }
 }
+
+const SHORTCUT_SETTINGS: egui::KeyboardShortcut =
+    egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::Comma);

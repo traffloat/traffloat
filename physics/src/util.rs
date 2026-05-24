@@ -7,3 +7,6 @@ pub use try_log::{EntityRefExt, EntityWorldMutExt, QueryExt, SliceGet, TryLog, W
 
 mod merge_sort;
 pub use merge_sort::{MergeSortedItem, merge_sorted};
+
+mod throttle;
+pub use throttle::Throttle;

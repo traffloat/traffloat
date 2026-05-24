@@ -2,6 +2,7 @@ use bevy::app::{App, AppExit, PluginGroup};
 use bevy::log::LogPlugin;
 use bevy::log::tracing_subscriber::fmt::format::FmtSpan;
 use bevy::log::tracing_subscriber::{self, Layer};
+use bevy::picking::mesh_picking::MeshPickingPlugin;
 use bevy_egui::EguiPlugin;
 
 mod dock;
@@ -16,6 +17,7 @@ pub fn run() -> AppExit {
         },
         ..Default::default()
     }));
+    app.add_plugins(MeshPickingPlugin);
     app.add_plugins(EguiPlugin::default());
     app.add_plugins(traffloat_physics::Plug);
     app.add_plugins((util::shapes::Plug, dock::Plug, scene::Plug));
