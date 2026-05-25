@@ -14,3 +14,5 @@ LLM was not used for the following:
 - Direct generation of non-trivial code
 - Direct, unverified derivation of formulas
 - Deciding unit test cases
+
+Contributors are expected not to use LLM for tasks beyond those allowed above.
