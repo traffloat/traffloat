@@ -4,6 +4,7 @@ use std::mem;
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets};
 use bevy::color::Color;
+use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::{Message, MessageReader};
@@ -33,16 +34,17 @@ pub(super) struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.init_config::<ConfigManager, Conf>("scene:building");
+        app.init_config::<ConfigManager, Conf>("scene:corridor");
         app.init_resource::<WallMaterials>();
         app.add_systems(app::Startup, WallMaterials::init);
         app.add_systems(app::Update, WallMaterials::update.ambiguous_with_all());
-        app.add_systems(app::Update, update_wall_hover_system);
+        app.add_systems(app::Update, update_wall_hover_system::<true>);
+        app.add_systems(app::Update, update_wall_hover_system::<false>);
     }
 }
 
 #[derive(SystemParam)]
-pub(super) struct NewBuildingParams<'w, 's> {
+pub(super) struct NewCorridorParams<'w, 's> {
     commands:       Commands<'w, 's>,
     ids:            ResMut<'w, IdRegistry>,
     shapes:         Shapes<'w>,
@@ -51,8 +53,25 @@ pub(super) struct NewBuildingParams<'w, 's> {
     wall_materials: Res<'w, WallMaterials>,
 }
 
-impl NewBuildingParams<'_, '_> {
-    pub(super) fn handle(&mut self, update: &proto::NewBuilding) {
+impl NewCorridorParams<'_, '_> {
+    pub(super) fn handle(&mut self, update: &proto::NewCorridor) {
+        fn wall_rect<const WHICH: bool>(
+            shapes: &Shapes,
+            update: &proto::NewCorridor,
+        ) -> impl Bundle {
+            let delta = update.alpha_position - update.beta_position;
+            let mut offset =
+                delta.perp().normalize_or_zero() * (update.radius + update.wall_thickness * 0.5);
+            if WHICH {
+                offset *= -1.0;
+            }
+            shapes.rect(
+                update.wall_thickness,
+                update.alpha_position + offset,
+                update.beta_position + offset,
+                Zorder::CorridorWall,
+            )
+        }
         let material = self.materials.add(ColorMaterial {
             color: Color::NONE,
             alpha_mode: AlphaMode2d::Blend,
@@ -62,74 +81,46 @@ impl NewBuildingParams<'_, '_> {
             .commands
             .spawn((
                 super::ProtoId(update.id),
-                Transform::from_translation(update.position.extend(Zorder::Building.z()))
-                    .with_scale(Vec3::splat(update.radius)),
-                Mesh2d(self.shapes.circle()),
+                self.shapes.rect(
+                    update.radius * 2.0,
+                    update.alpha_position,
+                    update.beta_position,
+                    Zorder::Corridor,
+                ),
                 MeshMaterial2d(material),
                 Pickable::default(),
-                GenericViewable { name: update.name.clone(), kind: ViewableKind::Building },
+                GenericViewable { name: update.name.clone(), kind: ViewableKind::Corridor },
                 Info::default(),
             ))
             .observe_picking()
-            .with_related::<WallEntityOf>((
-                Mesh2d(
-                    self.meshes
-                        .add(Annulus::new(update.radius, update.radius + update.wall_thickness)),
-                ),
+            .with_related::<WallEntityOf<true>>((
                 MeshMaterial2d(self.wall_materials.get_base().clone()),
-                Transform::from_translation(update.position.extend(Zorder::BuildingWall.z())),
+                wall_rect::<true>(&self.shapes, update),
+            ))
+            .with_related::<WallEntityOf<false>>((
+                MeshMaterial2d(self.wall_materials.get_base().clone()),
+                wall_rect::<false>(&self.shapes, update),
             ))
             .id();
-        self.ids.map.insert(update.id, TrackedId::Building(entity));
     }
 }
 
 #[derive(SystemParam)]
-pub(super) struct UpdateBuildingParams<'w, 's> {
-    ids:            ResMut<'w, IdRegistry>,
-    materials:      ResMut<'w, Assets<ColorMaterial>>,
-    building_query: Query<'w, 's, (&'static MeshMaterial2d<ColorMaterial>, &'static mut Info)>,
+pub(super) struct UpdateCorridorParams<'w, 's> {
+    commands: Commands<'w, 's>,
 }
 
-impl UpdateBuildingParams<'_, '_> {
-    pub(super) fn handle(&mut self, update: &proto::UpdateBuilding) {
-        let Some(entity) = self.ids.get_building(update.id) else {
-            tracing::error!("Received update for unknown building id {:?}", update.id);
-            return;
-        };
-        let Ok((handle, mut info)) = self.building_query.get_mut(entity) else {
-            // Happens when update is received immediately after update
-            return;
-        };
-        let material = try_log!(self.materials.get_mut(&handle.0), expect "building entity should reference a valid material" or return);
-        material.color = super::bevy_color(update.color);
-
-        info.ambient_fluid = None;
-    }
+impl UpdateCorridorParams<'_, '_> {
+    pub(super) fn handle(&mut self, corridor: &proto::UpdateCorridor) {}
 }
 
 #[derive(SystemParam)]
-pub(super) struct UpdateBuildingFullParams<'w, 's> {
-    ids:            ResMut<'w, IdRegistry>,
-    materials:      ResMut<'w, Assets<ColorMaterial>>,
-    building_query: Query<'w, 's, (&'static MeshMaterial2d<ColorMaterial>, &'static mut Info)>,
+pub(super) struct UpdateCorridorFullParams<'w, 's> {
+    commands: Commands<'w, 's>,
 }
 
-impl UpdateBuildingFullParams<'_, '_> {
-    pub(super) fn handle(&mut self, update: &proto::UpdateBuildingFull) {
-        let Some(entity) = self.ids.get_building(update.id) else {
-            tracing::error!("Received update for unknown building id {:?}", update.id);
-            return;
-        };
-        let Ok((handle, mut info)) = self.building_query.get_mut(entity) else {
-            // Happens when update is received immediately after update
-            return;
-        };
-        let material = try_log!(self.materials.get_mut(&handle.0), expect "building entity should reference a valid material" or return);
-        material.color = super::bevy_color(update.color);
-
-        info.ambient_fluid = Some(update.ambient_fluid.clone());
-    }
+impl UpdateCorridorFullParams<'_, '_> {
+    pub(super) fn handle(&mut self, corridor: &proto::UpdateCorridorFull) {}
 }
 
 #[derive(Default, Component)]
@@ -138,12 +129,12 @@ pub struct Info {
 }
 
 #[derive(Component)]
-#[relationship(relationship_target = HasWallEntity)]
-struct WallEntityOf(Entity);
+#[relationship(relationship_target = HasWallEntity<WHICH>)]
+struct WallEntityOf<const WHICH: bool>(Entity);
 
 #[derive(Component)]
-#[relationship_target(relationship =WallEntityOf)]
-struct HasWallEntity(Entity);
+#[relationship_target(relationship =WallEntityOf<WHICH>)]
+struct HasWallEntity<const WHICH: bool>(Entity);
 
 #[derive(Resource, Default)]
 struct WallMaterials {
@@ -181,13 +172,13 @@ impl WallMaterials {
     }
 }
 
-fn update_wall_hover_system(
-    wall_query: Query<(&mut MeshMaterial2d<ColorMaterial>, &WallEntityOf)>,
-    building_query: Query<Has<picking::Hovered>>,
+fn update_wall_hover_system<const WHICH: bool>(
+    wall_query: Query<(&mut MeshMaterial2d<ColorMaterial>, &WallEntityOf<WHICH>)>,
+    corridor_query: Query<Has<picking::Hovered>>,
     wall_materials: Res<WallMaterials>,
 ) {
     for (mut material, parent) in wall_query {
-        let hovered = building_query.get(parent.0).unwrap_or(false);
+        let hovered = corridor_query.get(parent.0).unwrap_or(false);
         let desired =
             if hovered { wall_materials.get_hovered() } else { wall_materials.get_base() };
         if material.0 != *desired {

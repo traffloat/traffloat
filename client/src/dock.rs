@@ -1,4 +1,5 @@
 use std::mem;
+use std::sync::atomic::{self, AtomicU32};
 
 use bevy::app::{self, App, Plugin};
 use bevy::camera::visibility::RenderLayers;
@@ -22,6 +23,8 @@ pub use open_mode::*;
 
 use crate::dock;
 
+static NEXT_TAB_ID: AtomicU32 = AtomicU32::new(0);
+
 pub struct Plug;
 
 impl Plugin for Plug {
@@ -37,12 +40,19 @@ impl Plugin for Plug {
 pub struct State(DockState<TabState>);
 
 pub struct TabState {
+    id:       u32,
     pub tab:  TabEnum,
     location: Option<(SurfaceIndex, NodeIndex, TabIndex)>,
 }
 
 impl<T: Into<TabEnum>> From<T> for TabState {
-    fn from(tab: T) -> Self { Self { tab: tab.into(), location: None } }
+    fn from(tab: T) -> Self {
+        Self {
+            id:       NEXT_TAB_ID.fetch_add(1, atomic::Ordering::Relaxed),
+            tab:      tab.into(),
+            location: None,
+        }
+    }
 }
 
 impl Default for State {
@@ -55,13 +65,12 @@ impl State {
         tab_fn: impl FnOnce() -> TabEnum,
         placement: impl AlwaysTabPlacement,
     ) -> &mut TabEnum {
-        let path =
-            placement.always_place(&mut self.0, || TabState { tab: tab_fn(), location: None });
+        let path = placement.always_place(&mut self.0, || TabState::from(tab_fn()));
         self.0.set_focused_node_and_surface((path.0, path.1));
         self.0.set_active_tab(path);
-        &mut self.0[path.0][path.1].tabs_mut().expect("AlwaysPlacement ensures path must exist")
-            [path.2.0]
-            .tab
+        let tabs =
+            self.0[path.0][path.1].tabs_mut().expect("AlwaysPlacement ensures path must exist");
+        &mut tabs[path.2.0].tab
     }
 
     pub fn reset_all(&mut self, tab: TabEnum) { self.0 = DockState::new([tab.into()].into()); }
@@ -116,6 +125,7 @@ macro_rules! define_tabs {
             $variant:ident ($tab_type:ty)
         )*
     ) => {
+        #[derive(strum::EnumIs)]
         pub enum TabEnum {
             $(
                 #[$meta]
@@ -322,8 +332,7 @@ impl CommonParams<'_, '_> {
         self.commands.queue(|world: &mut World| {
             world.resource_mut::<State>().focus_or_create(
                 || settings::Tab.into(),
-                dock::ReplaceTab(|tab| matches!(tab.tab, TabEnum::Settings(_)))
-                    .or_always(dock::NewWindow),
+                dock::ReplaceTab(|state| state.tab.is_settings()).or_always(dock::NewWindow),
             );
         });
     }

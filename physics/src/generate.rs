@@ -1,9 +1,14 @@
+use std::f32::consts::PI;
+
 use bevy::ecs::entity::Entity;
 use bevy::ecs::system::EntityCommand;
 use bevy::ecs::world::World;
 
-use crate::graph::{self, building};
+use crate::graph::{self, building, corridor};
+use crate::util::AlphaBeta;
 use crate::{WorldObject, fluid, view};
+
+const STANDARD_WALL_THICKNESS: f32 = 0.5;
 
 pub struct Config {}
 
@@ -12,7 +17,9 @@ pub fn generate(world: &mut World, _: Config) {
     let facilities = gen_facility_types(world);
     let fluids = gen_fluid_types(world);
     let std = StandardTypes { facilities, fluids };
-    gen_core(world, &std);
+    let core = gen_core(world, &std);
+    let garden = gen_garden(world, &std);
+    gen_corridor(world, &std, AlphaBeta { alpha: core, beta: garden }, 1.1);
 }
 
 struct StandardTypes {
@@ -26,7 +33,10 @@ struct StandardFacilityTypes {
 
 fn gen_facility_types(world: &mut World) -> StandardFacilityTypes {
     let core = world
-        .spawn((WorldObject, graph::FacilityTypeDef { display: "Core".into(), volume: 100.0 }))
+        .spawn((WorldObject, graph::FacilityTypeDef { display: "Core".into(), volume: 5000.0 }))
+        .id();
+    let garden = world
+        .spawn((WorldObject, graph::FacilityTypeDef { display: "Garden".into(), volume: 300.0 }))
         .id();
     StandardFacilityTypes { core }
 }
@@ -77,23 +87,82 @@ fn gen_fluid_types(world: &mut World) -> StandardFluidTypes {
     }
 }
 
-fn gen_core(world: &mut World, std: &StandardTypes) {
+fn gen_core(world: &mut World, std: &StandardTypes) -> Entity {
     let mut building = world.spawn((WorldObject,));
     building.reborrow_scope(|building| {
         building::SpawnCommand {
             building: graph::Building {
                 name:           "Core".into(),
                 position:       (0.0, 0.0).into(),
-                radius:         20.0,
+                radius:         15.0,
                 wall_thickness: 0.8,
-                ambient_volume: 500.0,
+                ambient_volume: const { sphere_volume(15.0) - 5000.0 },
             },
         }
         .apply(building);
     });
 
+    // TODO spawn facilities
+
     let building_id = building.id();
     std.fluids.fill_atmosphere(world, building_id);
+    building_id
+}
+
+fn gen_garden(world: &mut World, std: &StandardTypes) -> Entity {
+    let mut building = world.spawn((WorldObject,));
+    building.reborrow_scope(|building| {
+        building::SpawnCommand {
+            building: graph::Building {
+                name:           "Garden".into(),
+                position:       (40.0, 0.0).into(),
+                radius:         6.0,
+                wall_thickness: STANDARD_WALL_THICKNESS,
+                ambient_volume: const { sphere_volume(6.0) - 300.0 },
+            },
+        }
+        .apply(building);
+    });
+
+    // TODO spawn facilities
+
+    let building_id = building.id();
+    std.fluids.fill_atmosphere(world, building_id);
+    building_id
+}
+
+fn gen_corridor(world: &mut World, std: &StandardTypes, endpoints: AlphaBeta<Entity>, radius: f32) {
+    let (building_centers, building_radii) = endpoints
+        .map(|building| {
+            let building =
+                world.get::<graph::Building>(building).expect("endpoints must be buildings");
+            (building.position, building.radius)
+        })
+        .unzip();
+    let dir = building_centers.atob().normalize_or_zero();
+    let endpoint_positions = AlphaBeta {
+        alpha: building_centers.alpha + dir * building_radii.alpha,
+        beta:  building_centers.beta - dir * building_radii.beta,
+    };
+
+    let mut corridor = world.spawn((WorldObject,));
+    corridor.reborrow_scope(|corridor| {
+        corridor::SpawnCommand {
+            name: None,
+            endpoints: endpoints.map(Some),
+            endpoint_positions,
+            radius,
+            length: endpoint_positions.net_diff().length(),
+            wall_thickness: STANDARD_WALL_THICKNESS,
+            ambient_area: circle_area(radius),
+        }
+        .apply(corridor);
+    });
+
+    // TODO spawn pipes
+
+    let corridor_id = corridor.id();
+    std.fluids.fill_atmosphere(world, corridor_id);
 }
 
 impl StandardFluidTypes {
@@ -109,3 +178,7 @@ impl StandardFluidTypes {
         fluid::SetTemperatureCommand { temperature: self.temperature }.apply(building);
     }
 }
+
+const fn sphere_volume(radius: f32) -> f32 { 4.0 / 3.0 * PI * radius * radius * radius }
+
+const fn circle_area(radius: f32) -> f32 { 0.5 * PI * radius * radius }

@@ -40,8 +40,6 @@ pub enum SendUpdatesSystemSet {
     Incr,
 }
 
-pub struct SendInitialUpdatesSystemSet;
-
 #[derive(Resource)]
 struct NextProtoId(proto::Id);
 

@@ -30,7 +30,7 @@ impl dock::Tab for Tab {
                 commands.queue(|world: &mut World| {
                     world.resource_mut::<dock::State>().focus_or_create(
                         || new_level::Tab.into(),
-                        dock::ReplaceTab(|tab| matches!(tab.tab, dock::TabEnum::NewLevel(_)))
+                        dock::ReplaceTab(|state| state.tab.is_new_level())
                             .or_always(dock::NewWindow),
                     );
                 });

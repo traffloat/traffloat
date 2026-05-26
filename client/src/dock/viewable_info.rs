@@ -6,6 +6,7 @@ use crate::dock;
 use crate::scene::{GenericViewable, ViewableKind};
 
 mod building;
+mod corridor;
 
 pub struct Tab {
     pub entity: Entity,
@@ -19,6 +20,7 @@ impl dock::Tab for Tab {
         };
         match viewable.kind {
             ViewableKind::Building => format!("Building: {}", viewable.name),
+            ViewableKind::Corridor => format!("Corridor: {}", viewable.name),
         }
     }
 
@@ -46,6 +48,10 @@ impl dock::Tab for Tab {
                 let mut building_param = param.viewable_query.p0();
                 building_param.ui(self.entity, ui, dock);
             }
+            ViewableKind::Corridor => {
+                let mut corridor_param = param.viewable_query.p1();
+                corridor_param.ui(self.entity, ui, dock);
+            }
         }
     }
 
@@ -56,5 +62,6 @@ impl dock::Tab for Tab {
 #[derive(SystemParam)]
 pub struct UiSystemParam<'w, 's> {
     generic:        Query<'w, 's, &'static GenericViewable>,
-    viewable_query: ParamSet<'w, 's, (building::UiSystemParam<'w, 's>,)>,
+    viewable_query:
+        ParamSet<'w, 's, (building::UiSystemParam<'w, 's>, corridor::UiSystemParam<'w, 's>)>,
 }

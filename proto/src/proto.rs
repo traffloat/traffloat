@@ -18,6 +18,7 @@ pub enum Update {
     UpdateBuildingFull(UpdateBuildingFull),
     NewCorridor(NewCorridor),
     UpdateCorridor(UpdateCorridor),
+    UpdateCorridorFull(UpdateCorridorFull),
     RemoveViewable(RemoveViewable),
     SetFluidTypes(SetFluidTypes),
 }
@@ -56,7 +57,7 @@ pub struct NewCorridor {
     pub alpha_position: Vector,
     pub beta_position:  Vector,
     pub radius:         f32,
-    pub color:          Color,
+    pub wall_thickness: f32,
 }
 
 /// Updated information about a building.
@@ -64,6 +65,15 @@ pub struct NewCorridor {
 pub struct UpdateCorridor {
     pub id:    Id,
     pub color: Color,
+}
+
+/// Updated full information about a corridor.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateCorridorFull {
+    pub id:    Id,
+    pub color: Color,
+
+    pub ambient_fluid: FluidStorageFull,
 }
 
 /// Unsubscribed from a viewable.

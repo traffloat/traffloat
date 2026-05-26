@@ -26,6 +26,7 @@ use traffloat_proto::proto;
 use crate::ConfigManager;
 
 pub mod building;
+pub mod corridor;
 mod picking;
 
 pub struct Plug;
@@ -37,6 +38,7 @@ impl Plugin for Plug {
         app.init_config::<ConfigManager, Conf>("scene");
         app.add_plugins(picking::Plug);
         app.add_plugins(building::Plug);
+        app.add_plugins(corridor::Plug);
         app.add_systems(app::Update, react_config_system);
         app.add_systems(app::Update, handle_update_system);
     }
@@ -113,7 +115,9 @@ fn react_config_system(
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, strum::EnumCount)]
 pub enum Zorder {
     Building,
+    BuildingWall,
     Corridor,
+    CorridorWall,
     Facility,
     Conduit,
 }
@@ -174,29 +178,11 @@ define_params! {
     NewBuilding(building::NewBuildingParams<'w, 's>) (),
     UpdateBuilding(building::UpdateBuildingParams<'w, 's>) (p1),
     UpdateBuildingFull(building::UpdateBuildingFullParams<'w, 's>) (p1 p1),
-    NewCorridor(NewCorridorParams<'w, 's>) (p1 p1 p1),
-    UpdateCorridor(UpdateCorridorParams<'w, 's>) (p1 p1 p1 p1),
-    RemoveViewable(RemoveViewableParams<'w, 's>) (p1 p1 p1 p1 p1),
-    SetFluidTypes(SetFluidTypesParams<'w>) (p1 p1 p1 p1 p1 p1),
-}
-
-#[derive(SystemParam)]
-struct NewCorridorParams<'w, 's> {
-    commands: Commands<'w, 's>,
-    ids:      ResMut<'w, IdRegistry>,
-}
-
-impl NewCorridorParams<'_, '_> {
-    fn handle(&mut self, corridor: &proto::NewCorridor) {}
-}
-
-#[derive(SystemParam)]
-struct UpdateCorridorParams<'w, 's> {
-    commands: Commands<'w, 's>,
-}
-
-impl UpdateCorridorParams<'_, '_> {
-    fn handle(&mut self, corridor: &proto::UpdateCorridor) {}
+    NewCorridor(corridor::NewCorridorParams<'w, 's>) (p1 p1 p1),
+    UpdateCorridor(corridor::UpdateCorridorParams<'w, 's>) (p1 p1 p1 p1),
+    UpdateCorridorFull(corridor::UpdateCorridorFullParams<'w, 's>) (p1 p1 p1 p1 p1),
+    RemoveViewable(RemoveViewableParams<'w, 's>) (p1 p1 p1 p1 p1 p1),
+    SetFluidTypes(SetFluidTypesParams<'w>) (p1 p1 p1 p1 p1 p1 p1),
 }
 
 #[derive(SystemParam)]
@@ -235,6 +221,7 @@ pub struct GenericViewable {
 
 pub enum ViewableKind {
     Building,
+    Corridor,
 }
 
 #[derive(Resource, Default)]

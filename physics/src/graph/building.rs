@@ -20,6 +20,7 @@ impl Plugin for Plug {
             app::Update,
             (basic_incr_viewer_system, full_incr_viewer_system)
                 .chain()
+                .in_set(super::ViewSystemSets::Building)
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
     }
@@ -48,7 +49,7 @@ impl EntityCommand for SpawnCommand {
 
         // ambient storage
         entity.reborrow_scope(|entity| {
-            fluid::AddStorageCommand { ambient_volume, radius }.apply(entity);
+            fluid::AddStorageCommand { ambient_volume, optical_length: radius }.apply(entity);
         });
     }
 }
@@ -66,7 +67,7 @@ fn init_viewer_system(
     building_query: Query<(&Building, &view::Viewable)>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (building, viewable) in building_query.iter() {
+    for (building, viewable) in building_query {
         if !viewable.new_subscribers.is_empty() {
             messages.write(view::SentUpdate {
                 viewers: viewable.new_subscribers.iter().copied().collect(),
@@ -91,7 +92,7 @@ fn basic_incr_viewer_system(
         return;
     }
 
-    for (building, viewable, storage) in building_query.iter() {
+    for (building, viewable, storage) in building_query {
         let subs = &viewable.subscribers[view::SubscriptionLevel::Basic];
         if !subs.is_empty() {
             messages.write(view::SentUpdate {
@@ -114,7 +115,7 @@ fn full_incr_viewer_system(
         return;
     }
 
-    for (building, viewable, storage) in building_query.iter() {
+    for (building, viewable, storage) in building_query {
         let subs = &viewable.subscribers[view::SubscriptionLevel::Full];
         if !subs.is_empty() {
             messages.write(view::SentUpdate {

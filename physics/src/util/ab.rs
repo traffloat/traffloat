@@ -47,6 +47,8 @@ impl<T: ops::Add> AlphaBeta<T> {
 
 impl<T: ops::Sub> AlphaBeta<T> {
     pub fn net_diff(self) -> T::Output { self.alpha - self.beta }
+
+    pub fn atob(self) -> T::Output { self.beta - self.alpha }
 }
 
 impl AlphaBeta<f32> {
@@ -86,5 +88,14 @@ impl<'a, T> AlphaBeta<&'a mut Box<[T]>> {
             .iter_mut()
             .zip(self.beta.iter_mut())
             .map(|(alpha, beta)| AlphaBeta { alpha, beta })
+    }
+}
+
+impl<A, B> AlphaBeta<(A, B)> {
+    pub fn unzip(self) -> (AlphaBeta<A>, AlphaBeta<B>) {
+        (
+            AlphaBeta { alpha: self.alpha.0, beta: self.beta.0 },
+            AlphaBeta { alpha: self.alpha.1, beta: self.beta.1 },
+        )
     }
 }

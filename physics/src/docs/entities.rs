@@ -4,6 +4,7 @@
 //! Components:
 //! - [`graph::Building`]
 //! - [`fluid::Storage`] (for ambient storage)
+//! - [`graph::corridor::AlphaBuildingOf`], [`graph::corridor::BetaBuildingOf`] (non linked spawn)
 //!
 //! Parent of:
 //! - Facility.
@@ -24,6 +25,7 @@
 //! Components:
 //! - [`graph::Corridor`]
 //! - [`fluid::Storage`] (for ambient storage)
+//! - [`graph::corridor::AlphaBuilding`], [`graph::corridor::BetaBuilding`] (non linked spawn)
 //!
 //! Parent of:
 //! - Conduit.

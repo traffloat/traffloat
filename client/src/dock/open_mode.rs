@@ -124,12 +124,12 @@ where
     }
 }
 
-pub struct SplitRoot {
+pub struct Split {
     pub split: egui_dock::Split,
     pub ratio: f32,
 }
 
-impl AlwaysTabPlacement for SplitRoot {
+impl AlwaysTabPlacement for Split {
     fn always_place<F: FnOnce() -> TabState>(
         self,
         state: &mut DockState<TabState>,
@@ -142,6 +142,47 @@ impl AlwaysTabPlacement for SplitRoot {
             egui_dock::Node::leaf(tab()),
         );
         (SurfaceIndex::main(), new_node, TabIndex(0))
+    }
+}
+
+impl Split {
+    pub fn at<R: Fn(&TabState) -> bool>(self, leaf_fn: R) -> SplitLeaf<R> {
+        SplitLeaf { split: self.split, ratio: self.ratio, leaf_fn }
+    }
+}
+
+pub struct SplitLeaf<R: Fn(&TabState) -> bool> {
+    pub split:   egui_dock::Split,
+    pub ratio:   f32,
+    pub leaf_fn: R,
+}
+
+impl<R: Fn(&TabState) -> bool> TabPlacement for SplitLeaf<R> {
+    fn place<F: FnOnce() -> TabState>(
+        self,
+        state: &mut DockState<TabState>,
+        new_tab: F,
+    ) -> Result<TabPath, F> {
+        let mut path = None;
+        for (si, surface) in state.iter_surfaces_mut().enumerate() {
+            let si = SurfaceIndex(si);
+            for (ni, node) in surface.iter_nodes_mut().enumerate() {
+                let ni = NodeIndex(ni);
+                if let Some(leaf) = node.get_leaf_mut() {
+                    for (ti, tab) in leaf.tabs.iter().enumerate() {
+                        let ti = TabIndex(ti);
+                        if (self.leaf_fn)(tab) {
+                            path = Some((si, ni));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        let Some(path) = path else { return Err(new_tab) };
+        let [_, new_node] =
+            state.split(path, self.split, self.ratio, egui_dock::Node::leaf(new_tab()));
+        Ok((path.0, new_node, TabIndex(0)))
     }
 }
 
