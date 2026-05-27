@@ -17,8 +17,11 @@ pub fn run() -> AppExit {
         },
         ..Default::default()
     }));
+    #[cfg(feature = "dev")]
     app.add_plugins(MeshPickingPlugin);
     app.add_plugins(EguiPlugin::default());
+    #[cfg(feature = "dev")]
+    app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::default());
     app.add_plugins(traffloat_physics::Plug);
     app.add_plugins((util::shapes::Plug, dock::Plug, scene::Plug));
     app.run()

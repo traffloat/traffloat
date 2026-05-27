@@ -9,11 +9,11 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::{Message, MessageReader};
 use bevy::ecs::observer;
-use bevy::ecs::query::{Has, With};
+use bevy::ecs::query::{Has, QueryData, With};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, Single, SystemParam};
-use bevy::ecs::world::World;
+use bevy::ecs::world::{Mut, World};
 use bevy::math::Vec3;
 use bevy::math::primitives::Annulus;
 use bevy::mesh::{Mesh, Mesh2d};
@@ -21,13 +21,15 @@ use bevy::picking::{Pickable, events as pick};
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
-use traffloat_physics::util::QueryExt;
+use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
 use traffloat_physics::{try_log, view};
 use traffloat_proto::proto;
 
 use crate::ConfigManager;
 use crate::scene::picking::{self, ObservePicking};
-use crate::scene::{GenericViewable, IdRegistry, TrackedId, ViewableKind, Zorder};
+use crate::scene::{
+    GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
+};
 use crate::util::shapes::Shapes;
 
 pub(super) struct Plug;
@@ -53,8 +55,12 @@ pub(super) struct NewCorridorParams<'w, 's> {
     wall_materials: Res<'w, WallMaterials>,
 }
 
-impl NewCorridorParams<'_, '_> {
-    pub(super) fn handle(&mut self, update: &proto::NewCorridor) {
+impl UpdateHandler for NewCorridorParams<'_, '_> {
+    type Update = proto::NewCorridor;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+
+    fn handle(&mut self, update: &proto::NewCorridor) {
         fn wall_rect<const WHICH: bool>(
             shapes: &Shapes,
             update: &proto::NewCorridor,
@@ -102,30 +108,180 @@ impl NewCorridorParams<'_, '_> {
                 wall_rect::<false>(&self.shapes, update),
             ))
             .id();
+        self.ids.map.insert(update.id, TrackedId::Corridor(entity));
     }
 }
 
 #[derive(SystemParam)]
 pub(super) struct UpdateCorridorParams<'w, 's> {
-    commands: Commands<'w, 's>,
+    ids:            ResMut<'w, IdRegistry>,
+    materials:      ResMut<'w, Assets<ColorMaterial>>,
+    corridor_query: Query<'w, 's, (&'static MeshMaterial2d<ColorMaterial>, &'static mut Info)>,
 }
 
-impl UpdateCorridorParams<'_, '_> {
-    pub(super) fn handle(&mut self, corridor: &proto::UpdateCorridor) {}
+impl UpdateHandler for UpdateCorridorParams<'_, '_> {
+    type Update = proto::UpdateCorridor;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &proto::UpdateCorridor) {
+        let Some(entity) = self.ids.get_corridor(update.id) else {
+            tracing::error!("Received update for unknown corridor id {:?}", update.id);
+            return;
+        };
+        let Ok((handle, mut info)) = self.corridor_query.get_mut(entity) else {
+            // Happens when update is received immediately after update
+            return;
+        };
+        let material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
+        material.color = super::bevy_color(update.color);
+
+        info.ambient_fluid = None;
+    }
 }
 
 #[derive(SystemParam)]
 pub(super) struct UpdateCorridorFullParams<'w, 's> {
-    commands: Commands<'w, 's>,
+    ids:            ResMut<'w, IdRegistry>,
+    materials:      ResMut<'w, Assets<ColorMaterial>>,
+    corridor_query: Query<'w, 's, (&'static MeshMaterial2d<ColorMaterial>, &'static mut Info)>,
 }
 
-impl UpdateCorridorFullParams<'_, '_> {
-    pub(super) fn handle(&mut self, corridor: &proto::UpdateCorridorFull) {}
+impl UpdateHandler for UpdateCorridorFullParams<'_, '_> {
+    type Update = proto::UpdateCorridorFull;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &proto::UpdateCorridorFull) {
+        let Some(entity) = self.ids.get_corridor(update.id) else {
+            tracing::error!("Received update for unknown corridor id {:?}", update.id);
+            return;
+        };
+        let Ok((handle, mut info)) = self.corridor_query.get_mut(entity) else {
+            // Happens when update is received immediately after update
+            return;
+        };
+        let material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
+        material.color = super::bevy_color(update.color);
+
+        info.ambient_fluid = Some(update.ambient_fluid.clone());
+    }
+}
+
+#[derive(SystemParam)]
+pub(super) struct SetCorridorEndpointParams<'w, 's> {
+    ids:            ResMut<'w, IdRegistry>,
+    corridor_query: Query<'w, 's, CorridorEndpointQueryData>,
+    commands:       Commands<'w, 's>,
+}
+
+#[derive(QueryData)]
+#[query_data(mutable)]
+struct CorridorEndpointQueryData {
+    alpha: Option<(&'static EndpointRef<Alpha>, &'static mut GenericEndpointDetails<Alpha>)>,
+    beta:  Option<(&'static EndpointRef<Beta>, &'static mut GenericEndpointDetails<Beta>)>,
+}
+
+impl UpdateHandler for SetCorridorEndpointParams<'_, '_> {
+    type Update = proto::SetCorridorEndpoint;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::MixedSpawn }
+
+    fn handle(&mut self, update: &proto::SetCorridorEndpoint) {
+        let Some(corridor) = self.ids.get_corridor(update.corridor) else {
+            tracing::error!("Received update for unknown corridor id {:?}", update.corridor);
+            return;
+        };
+
+        let Some(data) = self.corridor_query.log_get_mut(corridor) else { return };
+
+        let current = match update.which {
+            proto::AlphaOrBeta::Alpha => {
+                data.alpha.map(|(b, d)| (b.0, Mut::map_unchanged(d, |d| &mut d.0)))
+            }
+            proto::AlphaOrBeta::Beta => {
+                data.beta.map(|(b, d)| (b.0, Mut::map_unchanged(d, |d| &mut d.0)))
+            }
+        };
+
+        match (current, &update.value) {
+            (None, None) => {}
+            (None, Some(value)) => {
+                let building = try_log!(
+                    self.ids.get_building(value.building),
+                    expect "Received update to conncet corridor {:?} to unknown building {:?}"
+                    (update.corridor, value.building)
+                    or return
+                );
+                let details = EndpointDetails::from(value);
+
+                let mut ec = self.commands.entity(corridor);
+                _ = match update.which {
+                    proto::AlphaOrBeta::Alpha => ec.insert((
+                        EndpointRef(building, Alpha),
+                        GenericEndpointDetails(details, Alpha),
+                    )),
+                    proto::AlphaOrBeta::Beta => ec.insert((
+                        EndpointRef(building, Beta),
+                        GenericEndpointDetails(details, Beta),
+                    )),
+                };
+            }
+            (Some(_), None) => {
+                let mut ec = self.commands.entity(corridor);
+                _ = match update.which {
+                    proto::AlphaOrBeta::Alpha => {
+                        ec.remove::<(EndpointRef<Alpha>, GenericEndpointDetails<Alpha>)>()
+                    }
+                    proto::AlphaOrBeta::Beta => {
+                        ec.remove::<(EndpointRef<Beta>, GenericEndpointDetails<Beta>)>()
+                    }
+                };
+            }
+            (Some((curr_building, mut curr_detail)), Some(value)) => {
+                let building = try_log!(
+                    self.ids.get_building(value.building),
+                    expect "Received update to conncet corridor {:?} to unknown building {:?}"
+                    (update.corridor, value.building)
+                    or return
+                );
+                if curr_building != building {
+                    let mut ec = self.commands.entity(corridor);
+                    _ = match update.which {
+                        proto::AlphaOrBeta::Alpha => ec.insert((EndpointRef(building, Alpha),)),
+                        proto::AlphaOrBeta::Beta => ec.insert((EndpointRef(building, Beta),)),
+                    };
+                }
+                *curr_detail = EndpointDetails::from(value);
+            }
+        }
+    }
 }
 
 #[derive(Default, Component)]
 pub struct Info {
     pub ambient_fluid: Option<proto::FluidStorageFull>,
+}
+
+/// References building from corridor.
+#[derive(Component)]
+#[relationship(relationship_target = IsEndpointOf<Ab>)]
+pub struct EndpointRef<Ab: Which>(#[relationship] pub Entity, Ab);
+
+#[derive(Component)]
+pub struct GenericEndpointDetails<Ab: Which>(pub EndpointDetails, Ab);
+
+/// Re
+#[derive(Component)]
+#[relationship_target(relationship = EndpointRef<Ab>)]
+pub struct IsEndpointOf<Ab: Which>(#[relationship] Vec<Entity>, Ab);
+
+pub struct EndpointDetails {
+    pub open: bool,
+}
+
+impl From<&proto::CorridorEndpoint> for EndpointDetails {
+    fn from(value: &proto::CorridorEndpoint) -> Self { Self { open: value.open } }
 }
 
 #[derive(Component)]

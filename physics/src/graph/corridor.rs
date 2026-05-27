@@ -2,6 +2,7 @@ use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
+use bevy::ecs::name::Name;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
@@ -40,30 +41,8 @@ pub struct Corridor {
 #[derive(Resource, Default)]
 struct NextCorridorId(u64);
 
-/// Alpha endpoint building of a corridor.
-///
-/// A corridor may have 1 or 2 endpoints.
-/// When a corridor is constructed, the base building is assigned as alpha.
-/// It is allowed to build the corridor towards either a new building or a fixed position.
-/// In case of the former, the new building becomes the beta endpoint.
-/// In case of the latter, the beta endpoint is not set.
-///
-/// When a building is destroyed,
-/// the corresponding relationship component is removed from its connected corridors.
-/// A corridor is removed only when both buildings are removed.
-///
-/// Thus, neither [`AlphaBuilding`] nor [`BetaBuliding`] is necessarily
-#[derive(Component)]
-#[relationship(relationship_target = AlphaBuildingOf)]
-pub struct AlphaBuilding(pub Entity);
-
-#[derive(Component)]
-#[relationship_target(relationship = AlphaBuilding)]
-pub struct AlphaBuildingOf(Vec<Entity>);
-
 pub struct SpawnCommand {
     pub name:               Option<String>,
-    pub endpoints:          AlphaBeta<Option<Entity>>,
     pub endpoint_positions: AlphaBeta<Vector>,
     pub length:             f32,
     pub radius:             f32,
@@ -81,14 +60,17 @@ impl EntityCommand for SpawnCommand {
                 format!("#{out}")
             })
         });
-        entity.insert(Corridor {
-            name,
-            length: self.length,
-            radius: self.radius,
-            wall_thickness: self.wall_thickness,
-            ambient_area: self.ambient_area,
-            endpoint_positions: self.endpoint_positions,
-        });
+        entity.insert((
+            Name::new(format!("Corridor {name}")),
+            Corridor {
+                name,
+                length: self.length,
+                radius: self.radius,
+                wall_thickness: self.wall_thickness,
+                ambient_area: self.ambient_area,
+                endpoint_positions: self.endpoint_positions,
+            },
+        ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
 
         // ambient conduit

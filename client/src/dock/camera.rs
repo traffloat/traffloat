@@ -1,6 +1,8 @@
-use bevy::app::{App, Plugin};
+use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets};
-use bevy::camera::{Camera, Camera2d, ClearColorConfig, ImageRenderTarget, RenderTarget, Viewport};
+use bevy::camera::{
+    Camera, Camera2d, ClearColor, ClearColorConfig, ImageRenderTarget, RenderTarget, Viewport,
+};
 use bevy::color::Color;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::resource::Resource;
@@ -14,7 +16,7 @@ use bevy::render::render_resource::{
 use bevy::transform::components::{GlobalTransform, Transform};
 use bevy_egui::helpers::egui_vec2_into_vec2;
 use bevy_egui::{EguiPrimaryContextPass, EguiTextureHandle, EguiUserTextures};
-use bevy_mod_config::{AppExt, Config};
+use bevy_mod_config::{AppExt, Config, ReadConfig};
 use egui::load::SizedTexture;
 use traffloat_physics::util::QueryExt;
 
@@ -29,6 +31,7 @@ impl Plugin for Plug {
         app.init_resource::<UiState>();
         app.init_config::<ConfigManager, Conf>("camera");
         app.add_systems(EguiPrimaryContextPass, UiState::cleanup.before(super::render_system));
+        app.add_systems(app::Update, update_clear_color_system);
     }
 }
 
@@ -61,7 +64,6 @@ impl Tab {
                     handle:       image_handle.clone(),
                     scale_factor: 1.0,
                 }),
-                Camera { clear_color: ClearColorConfig::Default, ..Default::default() },
             ))
             .id();
         Tab { is_main, title, camera, image_handle, image_id: Some(image_id) }
@@ -209,4 +211,11 @@ pub struct Conf {
     pub rotation_speed: f32,
     #[config(default = 1.4)]
     pub zoom_rate:      f32,
+
+    #[config(default = Color::srgb(0.12, 0.12, 0.12))]
+    pub background_color: Color,
+}
+
+fn update_clear_color_system(mut clear_color: ResMut<ClearColor>, conf: ReadConfig<Conf>) {
+    clear_color.0 = conf.read().background_color;
 }

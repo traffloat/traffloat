@@ -1,8 +1,9 @@
 use bevy::ecs::entity::Entity;
-use bevy::ecs::system::{ParamSet, Query, SystemParam};
+use bevy::ecs::system::{Command, ParamSet, Query, SystemParam};
+use bevy::ecs::world::World;
 use egui_material_icons::icons;
 
-use crate::dock;
+use crate::dock::{self, TabPlacement, viewable_info};
 use crate::scene::{GenericViewable, ViewableKind};
 
 mod building;
@@ -37,9 +38,13 @@ impl dock::Tab for Tab {
         };
 
         ui.horizontal(|ui| {
+            ui.heading(match generic.kind {
+                ViewableKind::Building => "Building",
+                ViewableKind::Corridor => "Corridor",
+            });
             ui.heading(&generic.name);
             if ui.button(icons::ICON_EDIT).clicked() {
-                // TODO switch to editor
+                // TODO edit text
             }
         });
 
@@ -64,4 +69,18 @@ pub struct UiSystemParam<'w, 's> {
     generic:        Query<'w, 's, &'static GenericViewable>,
     viewable_query:
         ParamSet<'w, 's, (building::UiSystemParam<'w, 's>, corridor::UiSystemParam<'w, 's>)>,
+}
+
+pub struct OpenCommand(pub Entity);
+
+impl Command for OpenCommand {
+    fn apply(self, world: &mut World) {
+        world.resource_mut::<dock::State>().focus_or_create(
+            || viewable_info::Tab { entity: self.0 }.into(),
+            dock::ReplaceTab(|state| state.tab.is_viewable_info())
+                .or(dock::Split { split: egui_dock::Split::Right, ratio: 0.7 }
+                    .at(|state| state.tab.is_camera()))
+                .or_always(dock::Split { split: egui_dock::Split::Right, ratio: 0.7 }),
+        );
+    }
 }

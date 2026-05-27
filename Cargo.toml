@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "macro-util",
     "proto",
     "physics",
     "client",
@@ -20,6 +21,7 @@ bevy = { version = "0.18", default-features = false, features = [
     "reflect_auto_register",
 ]}
 
+traffloat-macro-util = { version = "0.0.4", default-features = false, path = "macro-util" }
 traffloat-proto = { version = "0.0.4", default-features = false, path = "proto" }
 traffloat-physics = { version = "0.0.4", default-features = false, path = "physics" }
 traffloat-client = { version = "0.0.4", default-features = false, path = "client" }

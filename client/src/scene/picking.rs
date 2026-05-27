@@ -113,15 +113,7 @@ pub fn add_observers(entity: &mut EntityCommands) {
         .observe(
             move |event: observer::On<pick_event::Pointer<pick_event::Click>>,
                   mut commands: Commands| {
-                commands.queue(move |world: &mut World| {
-                    world.resource_mut::<dock::State>().focus_or_create(
-                        || viewable_info::Tab { entity: id }.into(),
-                        dock::ReplaceTab(|state| state.tab.is_viewable_info())
-                            .or(dock::Split { split: egui_dock::Split::Right, ratio: 0.7 }
-                                .at(|state| state.tab.is_camera()))
-                            .or_always(dock::Split { split: egui_dock::Split::Right, ratio: 0.7 }),
-                    );
-                });
+                commands.queue(viewable_info::OpenCommand(id));
             },
         );
 }

@@ -12,15 +12,25 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+bevy_mesh = { version = "0.18.1", default-features = false }
 bevy_mod_config = { version = "0.6.1", features = ["egui"] }
 egui = "0.33.1"
 egui_dock = "0.18.0"
 egui_material_icons = "0.5.0" # { version = "0.6.0", default-features = false, features = ["filled"] }
+enum-map = "2.7.3"
+itertools = "0.14.0"
 strum = { version = "0.28.0", features = ["derive"] }
 tracing = "0.1.44"
 
+traffloat-macro-util = { workspace = true }
 traffloat-physics = { workspace = true }
 traffloat-proto = { workspace = true }
+
+[dependencies.bevy-inspector-egui]
+version = "0.36.0"
+default-features = false
+optional = true
+features = ["documentation", "egui_clipboard", "bevy_render"]
 
 [dependencies.bevy]
 workspace = true
@@ -36,4 +46,6 @@ dev = [
     "bevy/dynamic_linking",
     "bevy/trace",
     "bevy/track_location",
+    "dep:bevy-inspector-egui",
+    "bevy_mesh/bevy_mikktspace",
 ]

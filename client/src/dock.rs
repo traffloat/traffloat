@@ -120,9 +120,25 @@ struct TabViewer<'w, 's> {
 macro_rules! define_tabs {
     (
         $(
-            #[$meta:meta]
-            $ps_path:tt
+            $(#[$meta:meta])*
             $variant:ident ($tab_type:ty)
+        )*
+    ) => {
+        traffloat_macro_util::triangle! {
+            define_tabs (p0);
+            @expanded;
+            $(
+                $(#[$meta])*
+                $variant ($tab_type),
+            )*
+        }
+    };
+    (
+        @expanded;
+        $(
+            $ps_path:tt
+            #[$meta:meta]
+            $variant:ident ($tab_type:ty),
         )*
     ) => {
         #[derive(strum::EnumIs)]
@@ -244,15 +260,15 @@ macro_rules! recurse_param_set {
 
 define_tabs! {
     /// Startup menu
-    () Startup(startup::Tab)
+    Startup(startup::Tab)
     /// Level creation menu
-    (p0) NewLevel(new_level::Tab)
+    NewLevel(new_level::Tab)
     /// Settings
-    (p0 p0) Settings(settings::Tab)
+    Settings(settings::Tab)
     /// Camera viewport
-    (p0 p0 p0) Camera(camera::Tab)
+    Camera(camera::Tab)
     /// Info page for a viewable entity.
-    (p0 p0 p0 p0) ViewableInfo(viewable_info::Tab)
+    ViewableInfo(viewable_info::Tab)
 }
 
 fn setup_system(mut egui_global_settings: ResMut<EguiGlobalSettings>, mut commands: Commands) {

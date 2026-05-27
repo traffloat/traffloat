@@ -4,10 +4,10 @@
 //! Components:
 //! - [`graph::Building`]
 //! - [`fluid::Storage`] (for ambient storage)
-//! - [`graph::corridor::AlphaBuildingOf`], [`graph::corridor::BetaBuildingOf`] (non linked spawn)
 //!
 //! Parent of:
 //! - Facility.
+//! - Graph Edge
 //!
 //! # Facility
 //! Components:
@@ -25,10 +25,20 @@
 //! Components:
 //! - [`graph::Corridor`]
 //! - [`fluid::Storage`] (for ambient storage)
-//! - [`graph::corridor::AlphaBuilding`], [`graph::corridor::BetaBuilding`] (non linked spawn)
 //!
 //! Parent of:
 //! - Conduit.
+//! - Graph Edge
+//!
+//! # Graph edge
+//! Describes the connection between a corridor and a building.
+//!
+//! Components:
+//! - [`graph::edge::Edge`]
+//! - [`graph::edge::OfBuilding`], [`graph::edge::OfCorridor`]
+//! - [`fluid::Edge`] (when open)
+//!     - [`fluid::EdgeAlpha`] always points to the building side of the edge.
+//!     - [`fluid::EdgeBeta`] always points to the corridor side of the edge.
 //!
 //! # Conduit
 //! Components:

@@ -1,5 +1,7 @@
 use std::{cmp, iter, ops};
 
+use traffloat_proto::proto;
+
 use crate::util::{MergeSortedItem, merge_sorted};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -99,3 +101,31 @@ impl<A, B> AlphaBeta<(A, B)> {
         )
     }
 }
+
+pub trait Which: Default + Copy + Send + Sync + 'static {
+    fn select<T>(self, ab: AlphaBeta<T>) -> T;
+    fn select_ref<T>(self, ab: &AlphaBeta<T>) -> &T;
+    fn select_mut<T>(self, ab: &mut AlphaBeta<T>) -> &mut T;
+
+    fn proto(self) -> proto::AlphaOrBeta;
+}
+
+macro_rules! define_which {
+    (
+        $ident:ident, $field:ident, $variant:ident
+    ) => {
+        #[derive(Default, Clone, Copy)]
+        pub struct $ident;
+
+        impl Which for $ident {
+            fn select<T>(self, ab: AlphaBeta<T>) -> T { ab.$field }
+            fn select_ref<T>(self, ab: &AlphaBeta<T>) -> &T { &ab.$field }
+            fn select_mut<T>(self, ab: &mut AlphaBeta<T>) -> &mut T { &mut ab.$field }
+
+            fn proto(self) -> proto::AlphaOrBeta { proto::AlphaOrBeta::$variant }
+        }
+    };
+}
+
+define_which!(Alpha, alpha, Alpha);
+define_which!(Beta, beta, Beta);

@@ -13,6 +13,7 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.add_plugins(building::Plug);
         app.add_plugins(corridor::Plug);
+        app.add_plugins(edge::Plug);
         app.configure_sets(
             app::Update,
             (
@@ -28,6 +29,7 @@ impl Plugin for Plug {
 pub enum ViewSystemSets {
     Building,
     Corridor,
+    Edge,
     Facility,
     Pipe,
 }
@@ -42,6 +44,8 @@ pub use facility::{
 
 pub mod corridor;
 pub use corridor::Corridor;
+
+pub mod edge;
 
 pub mod conduit;
 pub use conduit::{Conduit, ConduitType};

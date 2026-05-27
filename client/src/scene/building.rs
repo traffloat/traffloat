@@ -26,7 +26,9 @@ use traffloat_proto::proto;
 
 use crate::ConfigManager;
 use crate::scene::picking::{self, ObservePicking};
-use crate::scene::{GenericViewable, IdRegistry, TrackedId, ViewableKind, Zorder};
+use crate::scene::{
+    GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
+};
 use crate::util::shapes::Shapes;
 
 pub(super) struct Plug;
@@ -51,8 +53,12 @@ pub(super) struct NewBuildingParams<'w, 's> {
     wall_materials: Res<'w, WallMaterials>,
 }
 
-impl NewBuildingParams<'_, '_> {
-    pub(super) fn handle(&mut self, update: &proto::NewBuilding) {
+impl UpdateHandler for NewBuildingParams<'_, '_> {
+    type Update = proto::NewBuilding;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+
+    fn handle(&mut self, update: &proto::NewBuilding) {
         let material = self.materials.add(ColorMaterial {
             color: Color::NONE,
             alpha_mode: AlphaMode2d::Blend,
@@ -91,8 +97,12 @@ pub(super) struct UpdateBuildingParams<'w, 's> {
     building_query: Query<'w, 's, (&'static MeshMaterial2d<ColorMaterial>, &'static mut Info)>,
 }
 
-impl UpdateBuildingParams<'_, '_> {
-    pub(super) fn handle(&mut self, update: &proto::UpdateBuilding) {
+impl UpdateHandler for UpdateBuildingParams<'_, '_> {
+    type Update = proto::UpdateBuilding;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &proto::UpdateBuilding) {
         let Some(entity) = self.ids.get_building(update.id) else {
             tracing::error!("Received update for unknown building id {:?}", update.id);
             return;
@@ -115,8 +125,12 @@ pub(super) struct UpdateBuildingFullParams<'w, 's> {
     building_query: Query<'w, 's, (&'static MeshMaterial2d<ColorMaterial>, &'static mut Info)>,
 }
 
-impl UpdateBuildingFullParams<'_, '_> {
-    pub(super) fn handle(&mut self, update: &proto::UpdateBuildingFull) {
+impl UpdateHandler for UpdateBuildingFullParams<'_, '_> {
+    type Update = proto::UpdateBuildingFull;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &proto::UpdateBuildingFull) {
         let Some(entity) = self.ids.get_building(update.id) else {
             tracing::error!("Received update for unknown building id {:?}", update.id);
             return;
@@ -142,7 +156,7 @@ pub struct Info {
 struct WallEntityOf(Entity);
 
 #[derive(Component)]
-#[relationship_target(relationship =WallEntityOf)]
+#[relationship_target(relationship = WallEntityOf)]
 struct HasWallEntity(Entity);
 
 #[derive(Resource, Default)]

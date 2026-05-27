@@ -4,8 +4,8 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::system::EntityCommand;
 use bevy::ecs::world::World;
 
-use crate::graph::{self, building, corridor};
-use crate::util::AlphaBeta;
+use crate::graph::{self, building, corridor, edge};
+use crate::util::{Alpha, AlphaBeta, Beta, Which};
 use crate::{WorldObject, fluid, view};
 
 const STANDARD_WALL_THICKNESS: f32 = 0.5;
@@ -149,7 +149,6 @@ fn gen_corridor(world: &mut World, std: &StandardTypes, endpoints: AlphaBeta<Ent
     corridor.reborrow_scope(|corridor| {
         corridor::SpawnCommand {
             name: None,
-            endpoints: endpoints.map(Some),
             endpoint_positions,
             radius,
             length: endpoint_positions.net_diff().length(),
@@ -163,6 +162,22 @@ fn gen_corridor(world: &mut World, std: &StandardTypes, endpoints: AlphaBeta<Ent
 
     let corridor_id = corridor.id();
     std.fluids.fill_atmosphere(world, corridor_id);
+
+    spawn_edge(Alpha, world, endpoints, corridor_id);
+    spawn_edge(Beta, world, endpoints, corridor_id);
+}
+
+fn spawn_edge<Ab: Which>(
+    which: Ab,
+    world: &mut World,
+    endpoints: AlphaBeta<Entity>,
+    corridor: Entity,
+) {
+    let mut edge = world.spawn_empty();
+    edge.reborrow_scope(|edge| {
+        edge::SpawnCommand { building: which.select(endpoints), corridor, which, open: true }
+            .apply(edge);
+    });
 }
 
 impl StandardFluidTypes {

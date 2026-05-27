@@ -1,0 +1,163 @@
+//! An edge entity represents a connection between a corridor and a building.
+//!
+//! A corridor may have 1 or 2 endpoints.
+//! When a corridor is constructed, the base building is assigned as alpha.
+//! It is allowed to build the corridor towards either a new building or a fixed position.
+//! In case of the former, the new building becomes the beta endpoint.
+//! In case of the latter, the beta endpoint is not set.
+//!
+//! When a building is destroyed,
+//! the corresponding relationship component is removed from its connected corridors.
+//! A corridor is removed only when both buildings are removed.
+//!
+//! An edge needs to be its own entity because it needs to hold
+//! building-corridor components like [`crate::fluid::Edge`],
+//! which are independent on both sides of an edge.
+//!
+//! # Viewable
+//! The edge entity itself is not a viewable.
+//! Viewable updates would be sent as part of corridor updates instead.
+
+use bevy::app::{self, App, Plugin};
+use bevy::ecs::component::Component;
+use bevy::ecs::entity::Entity;
+use bevy::ecs::message::MessageWriter;
+use bevy::ecs::name::Name;
+use bevy::ecs::query::Changed;
+use bevy::ecs::schedule::IntoScheduleConfigs;
+use bevy::ecs::system::{EntityCommand, Query};
+use bevy::ecs::world::{EntityWorldMut, World};
+use traffloat_proto::proto;
+
+use crate::graph::{Building, Corridor};
+use crate::util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt};
+use crate::{fluid, view};
+
+pub struct Plug;
+
+impl Plugin for Plug {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            app::Update,
+            (broadcast_edge_change_system::<Alpha>, broadcast_edge_change_system::<Beta>)
+                .in_set(view::SendUpdatesSystemSet::Incr)
+                .in_set(super::ViewSystemSets::Edge),
+        );
+    }
+}
+
+#[derive(Component)]
+pub struct Edge {
+    pub open: bool,
+}
+
+/// Component on edge referencing building.
+#[derive(Component)]
+#[relationship(relationship_target = BuildingEdges<Ab>)]
+pub struct OfBuilding<Ab: Which>(#[relationship] pub Entity, Ab);
+
+/// Component on building listing edges.
+#[derive(Component)]
+#[relationship_target(relationship = OfBuilding<Ab>, linked_spawn)]
+pub struct BuildingEdges<Ab: Which>(#[relationship] Vec<Entity>, Ab);
+
+/// Component on edge referencing corridor.
+#[derive(Component)]
+#[relationship(relationship_target = CorridorEdge<Ab>)]
+pub struct OfCorridor<Ab: Which>(#[relationship] pub Entity, Ab);
+
+/// Component on corridor referencing edge.
+#[derive(Component)]
+#[relationship_target(relationship = OfCorridor<Ab>, linked_spawn)]
+pub struct CorridorEdge<Ab: Which>(#[relationship] Entity, Ab);
+
+pub struct SpawnCommand<Ab: Which> {
+    pub building: Entity,
+    pub corridor: Entity,
+    pub which:    Ab,
+    pub open:     bool,
+}
+
+impl<Ab: Which> EntityCommand for SpawnCommand<Ab> {
+    fn apply(self, mut entity: EntityWorldMut) {
+        entity.insert((
+            Name::new(format!("Edge {:?} -> {:?}", self.building, self.corridor)),
+            Edge { open: self.open },
+            OfBuilding(self.building, self.which),
+            OfCorridor(self.corridor, self.which),
+        ));
+
+        if self.open {
+            let entity_id = entity.id();
+            entity.world_scope(|world| {
+                insert_fluid_edge(world, entity_id, self.building, self.corridor);
+            });
+        }
+    }
+}
+
+fn insert_fluid_edge(world: &mut World, edge: Entity, building: Entity, corridor: Entity) {
+    let num_fluids = world.resource::<fluid::Types>().types.len();
+
+    let Some(building) = world.log_get::<Building>(building) else { return };
+    let Some(corridor) = world.log_get::<Corridor>(corridor) else { return };
+
+    let fluid_edge = fluid::Edge::new(
+        num_fluids,
+        1.0 / (building.radius + corridor.length * 0.5),
+        corridor.ambient_area,
+    );
+
+    world.entity_mut(edge).insert(fluid_edge);
+}
+
+fn broadcast_edge_change_system<Ab: Which>(
+    edge_query: Query<(&OfBuilding<Ab>, &OfCorridor<Ab>, &Edge), Changed<Edge>>,
+    viewable_query: Query<&view::Viewable>,
+    mut writer: MessageWriter<view::SentUpdate>,
+) {
+    for (building, corridor, edge) in edge_query {
+        let Some(corridor_viewable) = viewable_query.log_get(corridor.0) else { continue };
+        let Some(building_viewable) = viewable_query.log_get(building.0) else { continue };
+        writer.write_batch(corridor_viewable.broadcast_update(|_| {
+            proto::Update::SetCorridorEndpoint(proto::SetCorridorEndpoint {
+                corridor: corridor_viewable.id,
+                which:    Ab::default().proto(),
+                value:    Some(proto::CorridorEndpoint {
+                    building: building_viewable.id,
+                    open:     edge.open,
+                }),
+            })
+        }));
+    }
+}
+
+pub struct DespawnCommand;
+
+impl EntityCommand for DespawnCommand {
+    fn apply(self, mut entity: EntityWorldMut) {
+        fn cleanup<Ab: Which>(which: Ab, entity: &mut EntityWorldMut) {
+            let Some(&OfBuilding::<Ab>(building_entity, ..)) = entity.log_get() else { return };
+            let Some(&OfCorridor::<Ab>(corridor_entity, ..)) = entity.log_get() else { return };
+
+            entity.world_scope(|world| {
+                let Some(corridor_viewable) = world.log_get::<view::Viewable>(corridor_entity)
+                else {
+                    return;
+                };
+                let update = proto::Update::SetCorridorEndpoint(proto::SetCorridorEndpoint {
+                    corridor: corridor_viewable.id,
+                    which:    which.proto(),
+                    value:    None,
+                });
+                let messages: Vec<_> =
+                    corridor_viewable.broadcast_update(|_| update.clone()).collect();
+                world.write_message_batch(messages);
+            });
+        }
+
+        cleanup(Alpha, &mut entity);
+        cleanup(Beta, &mut entity);
+        entity.despawn();
+    }
+}

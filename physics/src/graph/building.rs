@@ -2,6 +2,7 @@ use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
+use bevy::ecs::name::Name;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, EntityCommand, Query};
 use bevy::ecs::world::EntityWorldMut;
@@ -44,7 +45,7 @@ impl EntityCommand for SpawnCommand {
         let ambient_volume = self.building.ambient_volume;
         let radius = self.building.radius;
 
-        entity.insert(self.building);
+        entity.insert((Name::new(format!("Building {}", self.building.name)), self.building));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
 
         // ambient storage
