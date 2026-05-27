@@ -21,7 +21,7 @@ mod startup;
 pub mod viewable_info;
 pub use open_mode::*;
 
-use crate::dock;
+use crate::util::new_id;
 
 static NEXT_TAB_ID: AtomicU32 = AtomicU32::new(0);
 
@@ -107,6 +107,7 @@ pub trait Tab {
 
 pub struct Context {
     pub order:    usize,
+    pub id:       egui::Id,
     pub location: (SurfaceIndex, NodeIndex, TabIndex),
     pub focused:  bool,
 }
@@ -205,7 +206,7 @@ macro_rules! define_tabs {
                 let order_mut = &mut self.next_order;
                 let order = mem::replace(order_mut, *order_mut + 1);
                 let location = tab.location.expect("location must be initialzed before DockArea rendering");
-                let dock = Context { order, location, focused: Some(location) == self.focused_tab };
+                let dock = Context { order, id: new_id!(tab.id), location, focused: Some(location) == self.focused_tab };
                 match tab.tab {
                     $(
                         TabEnum::$variant(ref mut t) => do_ps_path!(self.params.ps.p1(), $ps_path; |p| t.ui(p.p2(), ui, dock)),
@@ -348,7 +349,7 @@ impl CommonParams<'_, '_> {
         self.commands.queue(|world: &mut World| {
             world.resource_mut::<State>().focus_or_create(
                 || settings::Tab.into(),
-                dock::ReplaceTab(|state| state.tab.is_settings()).or_always(dock::NewWindow),
+                ReplaceTab(|state| state.tab.is_settings()).or_always(NewWindow),
             );
         });
     }

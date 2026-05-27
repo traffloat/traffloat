@@ -103,29 +103,43 @@ impl<A, B> AlphaBeta<(A, B)> {
 }
 
 pub trait Which: Default + Copy + Send + Sync + 'static {
+    type Other: Which;
+    fn other(self) -> Self::Other { Self::Other::default() }
+
     fn select<T>(self, ab: AlphaBeta<T>) -> T;
     fn select_ref<T>(self, ab: &AlphaBeta<T>) -> &T;
     fn select_mut<T>(self, ab: &mut AlphaBeta<T>) -> &mut T;
+
+    fn get<T>(self, ab: impl GetAb<T>) -> T;
 
     fn proto(self) -> proto::AlphaOrBeta;
 }
 
 macro_rules! define_which {
     (
-        $ident:ident, $field:ident, $variant:ident
+        $ident:ident, $field:ident, $variant:ident, $other:ident, $get:ident
     ) => {
         #[derive(Default, Clone, Copy)]
         pub struct $ident;
 
         impl Which for $ident {
+            type Other = $other;
+
             fn select<T>(self, ab: AlphaBeta<T>) -> T { ab.$field }
             fn select_ref<T>(self, ab: &AlphaBeta<T>) -> &T { &ab.$field }
             fn select_mut<T>(self, ab: &mut AlphaBeta<T>) -> &mut T { &mut ab.$field }
+
+            fn get<T>(self, ab: impl GetAb<T>) -> T { ab.$get() }
 
             fn proto(self) -> proto::AlphaOrBeta { proto::AlphaOrBeta::$variant }
         }
     };
 }
 
-define_which!(Alpha, alpha, Alpha);
-define_which!(Beta, beta, Beta);
+define_which!(Alpha, alpha, Alpha, Beta, alpha);
+define_which!(Beta, beta, Beta, Alpha, beta);
+
+pub trait GetAb<T> {
+    fn alpha(self) -> T;
+    fn beta(self) -> T;
+}

@@ -1,5 +1,5 @@
 mod ab;
-pub use ab::{Alpha, AlphaBeta, Beta, Which};
+pub use ab::{Alpha, AlphaBeta, Beta, GetAb, Which};
 
 #[macro_use]
 mod try_log;

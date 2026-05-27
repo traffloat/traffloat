@@ -1,5 +1,3 @@
-use std::convert::identity;
-
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, ParamSet, Query, Res, SystemParam};
@@ -42,15 +40,15 @@ impl UiSystemParam<'_, '_> {
 
         ui.heading("Connections");
         if let Some(alpha) = data.alpha {
-            show_connection(ui, &self.building_query, &mut self.commands, alpha);
+            show_connection(ui, dock.id, &self.building_query, &mut self.commands, alpha);
         }
         if let Some(beta) = data.beta {
-            show_connection(ui, &self.building_query, &mut self.commands, beta);
+            show_connection(ui, dock.id, &self.building_query, &mut self.commands, beta);
         }
 
         if let Some(ambient_fluid) = &data.info.ambient_fluid {
-            egui::CollapsingHeader::new("Ambient fluid").id_salt(new_id!()).show(ui, |ui| {
-                show_fluid(ui, ambient_fluid, &self.fluid_types);
+            egui::CollapsingHeader::new("Ambient fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
+                show_fluid(ui, dock.id, ambient_fluid, &self.fluid_types);
             });
         }
     }
@@ -58,6 +56,7 @@ impl UiSystemParam<'_, '_> {
 
 fn show_connection(
     ui: &mut egui::Ui,
+    id: egui::Id,
     building_query: &Query<&GenericViewable>,
     commands: &mut Commands,
     data: EndpointDataItem<impl Which>,
@@ -71,16 +70,29 @@ fn show_connection(
         ui.label(&building_info.name);
     });
 
-    let detail = &data.detail.0;
-    ui.checkbox(&mut identity(detail.open), "Conncetion open");
+    ui.indent(new_id!(id), |ui| {
+        let detail = &data.detail.0;
+        display_gate(ui, detail.open, "Gate");
+    });
 }
 
-fn show_fluid(ui: &mut egui::Ui, ambient_fluid: &proto::FluidStorageFull, types: &FluidTypes) {
+pub(super) fn display_gate(ui: &mut egui::Ui, open: bool, text: &str) {
+    let mut open_var = open;
+    ui.checkbox(&mut open_var, format!("{text} {}", if open { "open" } else { "closed" }));
+    // TODO send open/close request on change
+}
+
+fn show_fluid(
+    ui: &mut egui::Ui,
+    id: egui::Id,
+    ambient_fluid: &proto::FluidStorageFull,
+    types: &FluidTypes,
+) {
     ui.label(format!("Volume: {:.2}", ambient_fluid.volume));
     ui.label(format!("Pressure: {:.2}", ambient_fluid.pressure));
     ui.label(format!("Temperature: {:.2} K", ambient_fluid.temperature));
 
-    egui::CollapsingHeader::new("Composition").id_salt(new_id!()).show(ui, |ui| {
+    egui::CollapsingHeader::new("Composition").id_salt(new_id!(id)).show(ui, |ui| {
         for (id, fraction) in ambient_fluid.types.iter().enumerate() {
             ui.label(format!(
                 "{}: {:.2} mol",

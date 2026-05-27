@@ -271,7 +271,7 @@ pub struct EndpointRef<Ab: Which>(#[relationship] pub Entity, Ab);
 #[derive(Component)]
 pub struct GenericEndpointDetails<Ab: Which>(pub EndpointDetails, Ab);
 
-/// Re
+/// References corridor from building.
 #[derive(Component)]
 #[relationship_target(relationship = EndpointRef<Ab>)]
 pub struct IsEndpointOf<Ab: Which>(#[relationship] Vec<Entity>, Ab);
