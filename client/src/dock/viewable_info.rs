@@ -71,13 +71,24 @@ pub struct UiSystemParam<'w, 's> {
         ParamSet<'w, 's, (building::UiSystemParam<'w, 's>, corridor::UiSystemParam<'w, 's>)>,
 }
 
-pub struct OpenCommand(pub Entity);
+pub struct OpenCommand {
+    pub entity:    Entity,
+    pub force_new: bool,
+}
+
+impl OpenCommand {
+    pub fn from_click(entity: Entity, ctx: &egui::Context) -> Self {
+        let force_new = ctx.input(|input| input.modifiers.command);
+        Self { entity, force_new: false }
+    }
+}
 
 impl Command for OpenCommand {
     fn apply(self, world: &mut World) {
         world.resource_mut::<dock::State>().focus_or_create(
-            || viewable_info::Tab { entity: self.0 }.into(),
+            || viewable_info::Tab { entity: self.entity }.into(),
             dock::ReplaceTab(|state| state.tab.is_viewable_info())
+                .only_if(!self.force_new)
                 .or(dock::Split { split: egui_dock::Split::Right, ratio: 0.7 }
                     .at(|state| state.tab.is_camera()))
                 .or_always(dock::Split { split: egui_dock::Split::Right, ratio: 0.7 }),

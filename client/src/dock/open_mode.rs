@@ -11,6 +11,22 @@ pub trait TabPlacement: Sized {
         tab: F,
     ) -> Result<TabPath, F>;
 
+    fn only_if(self, condition: bool) -> impl TabPlacement {
+        struct OnlyIf<P>(P, bool);
+
+        impl<P: TabPlacement> TabPlacement for OnlyIf<P> {
+            fn place<F: FnOnce() -> TabState>(
+                self,
+                state: &mut DockState<TabState>,
+                tab: F,
+            ) -> Result<TabPath, F> {
+                if self.1 { self.0.place(state, tab) } else { Err(tab) }
+            }
+        }
+
+        OnlyIf(self, condition)
+    }
+
     fn or<P: TabPlacement>(self, other: P) -> impl TabPlacement {
         struct Or<A, B>(A, B);
 

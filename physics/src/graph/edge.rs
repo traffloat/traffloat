@@ -96,19 +96,16 @@ impl<Ab: Which> EntityCommand for SpawnCommand<Ab> {
     }
 }
 
+// Convention: fluid edge alpha = building, fluid edge beta = corridor
 fn insert_fluid_edge(world: &mut World, edge: Entity, building: Entity, corridor: Entity) {
-    let num_fluids = world.resource::<fluid::Types>().types.len();
+    let (resistance_recip, area) = {
+        let Some(building) = world.log_get::<Building>(building) else { return };
+        let Some(corridor) = world.log_get::<Corridor>(corridor) else { return };
+        (1.0 / (building.radius + corridor.length * 0.5), corridor.ambient_area)
+    };
 
-    let Some(building) = world.log_get::<Building>(building) else { return };
-    let Some(corridor) = world.log_get::<Corridor>(corridor) else { return };
-
-    let fluid_edge = fluid::Edge::new(
-        num_fluids,
-        1.0 / (building.radius + corridor.length * 0.5),
-        corridor.ambient_area,
-    );
-
-    world.entity_mut(edge).insert(fluid_edge);
+    fluid::AddEdgeCommand { resistance_recip, area, alpha: building, beta: corridor }
+        .apply(world.entity_mut(edge));
 }
 
 fn broadcast_edge_change_system<Ab: Which>(

@@ -112,8 +112,15 @@ pub fn add_observers(entity: &mut EntityCommands) {
         )
         .observe(
             move |event: observer::On<pick_event::Pointer<pick_event::Click>>,
-                  mut commands: Commands| {
-                commands.queue(viewable_info::OpenCommand(id));
+                  mut commands: Commands,
+                  ui_state: Res<camera::UiState>| {
+                commands.queue(viewable_info::OpenCommand {
+                    entity:    id,
+                    force_new: ui_state
+                        .hover_state
+                        .as_ref()
+                        .is_some_and(|state| state.modifiers.command),
+                });
             },
         );
 }

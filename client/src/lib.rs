@@ -1,4 +1,5 @@
 use bevy::app::{App, AppExit, PluginGroup};
+use bevy::ecs::resource::Resource;
 use bevy::log::LogPlugin;
 use bevy::log::tracing_subscriber::fmt::format::FmtSpan;
 use bevy::log::tracing_subscriber::{self, Layer};
@@ -9,11 +10,32 @@ mod dock;
 mod scene;
 mod util;
 
-pub fn run() -> AppExit {
+pub fn run(options: Options) -> AppExit {
     let mut app = App::new();
+    app.insert_resource(options);
     app.add_plugins(bevy::DefaultPlugins.set(LogPlugin {
-        fmt_layer: |_| {
-            Some(Box::new(tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE)))
+        // fmt_layer: |_| Some(Box::new(tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE))),
+        custom_layer: {
+            move |app| {
+                #[cfg(feature = "otel")]
+                {
+                    let options = &app.world().resource::<Options>().otel;
+                    if options.otel_export {
+                        use opentelemetry::trace::TracerProvider;
+
+                        let exporter = opentelemetry_otlp::SpanExporter::builder()
+                            .with_http()
+                            .build()
+                            .expect("failed to create otel exporter");
+                        let provider = opentelemetry_sdk::trace::SdkTracerProvider::builder()
+                            .with_simple_exporter(exporter)
+                            .build();
+                        let tracer = provider.tracer("traffloat");
+                        return Some(Box::new(tracing_opentelemetry::layer().with_tracer(tracer)));
+                    }
+                }
+                None
+            }
         },
         ..Default::default()
     }));
@@ -25,6 +47,24 @@ pub fn run() -> AppExit {
     app.add_plugins(traffloat_physics::Plug);
     app.add_plugins((util::shapes::Plug, dock::Plug, scene::Plug));
     app.run()
+}
+
+#[derive(Resource, clap::Parser)]
+pub struct Options {
+    #[cfg(feature = "otel")]
+    #[clap(flatten)]
+    pub otel: OtelOptions,
+}
+
+#[cfg(feature = "otel")]
+#[derive(clap::Args)]
+pub struct OtelOptions {
+    /// If specified, enables an OTLP otel exporter.
+    #[clap(long, env)]
+    pub otel_export:  bool,
+    /// Whether to batch otel exporter.
+    #[clap(long, env)]
+    pub otel_batched: bool,
 }
 
 pub type ConfigManager = (bevy_mod_config::manager::Egui,);

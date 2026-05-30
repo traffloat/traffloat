@@ -23,6 +23,7 @@ impl Plugin for Plug {
         app.add_plugins(view::Plug);
         app.add_plugins(graph::Plug);
         app.add_plugins(fluid::Plug);
+        app.add_plugins(reactor::Plug);
     }
 }
 

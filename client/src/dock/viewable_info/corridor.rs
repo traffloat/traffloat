@@ -65,7 +65,7 @@ fn show_connection(
 
     ui.horizontal(|ui| {
         if ui.button(icons::ICON_LINK).clicked() {
-            commands.queue(viewable_info::OpenCommand(data.building.0));
+            commands.queue(viewable_info::OpenCommand::from_click(data.building.0, ui.ctx()));
         }
         ui.label(&building_info.name);
     });

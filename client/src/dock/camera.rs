@@ -135,6 +135,7 @@ impl dock::Tab for Tab {
                         image: self.image_handle.clone(),
                         viewport_pos,
                         world_pos,
+                        modifiers: resp.ctx.input(|input| input.modifiers),
                         primary_clicked: resp.clicked(),
                         primary_just_pressed: resp
                             .ctx
@@ -195,6 +196,7 @@ pub struct HoverState {
     pub viewport_pos: egui::Vec2,
     pub world_pos:    Vec2,
 
+    pub modifiers:               egui::Modifiers,
     pub primary_clicked:         bool,
     pub primary_just_pressed:    bool,
     pub primary_just_released:   bool,

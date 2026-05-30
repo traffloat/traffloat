@@ -631,6 +631,7 @@ fn apply_storage(
     storage.rgba = [rgb[0], rgb[1], rgb[2], alpha];
 }
 
+/// Component on viewers to track fluid type definition sync.
 #[derive(Component)]
 pub struct ViewerSynced {
     num_types: usize,

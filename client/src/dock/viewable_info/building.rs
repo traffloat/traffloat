@@ -109,7 +109,7 @@ fn show_connection<Ab: Which>(
     ui.horizontal(|ui| {
         if let Some((peer_building, peer_detail)) = peer {
             if ui.button(icons::ICON_LINK).clicked() {
-                commands.queue(viewable_info::OpenCommand(peer_building));
+                commands.queue(viewable_info::OpenCommand::from_click(peer_building, ui.ctx()));
             }
 
             if let Some(peer_building_data) = building_query.log_get(peer_building) {
@@ -122,7 +122,7 @@ fn show_connection<Ab: Which>(
         ui.horizontal(|ui| {
             ui.label("through");
             if ui.small_button(icons::ICON_LINK).clicked() {
-                commands.queue(viewable_info::OpenCommand(corridor));
+                commands.queue(viewable_info::OpenCommand::from_click(corridor, ui.ctx()));
             }
             ui.label(&corridor_data.generic.name);
         });

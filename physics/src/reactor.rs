@@ -4,6 +4,7 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{Local, Query, Res, SystemParam};
+use bevy::math::FloatExt;
 use enum_dispatch::enum_dispatch;
 
 use crate::fluid;
@@ -83,15 +84,17 @@ fn execute_once(reactor: &Facility, def: &TypeDef, params: &mut ExecuteSystemPar
     }
 }
 
+/// Component on facilities.
 #[derive(Component)]
 pub struct Facility {
     pub id:             TypeId,
+    /// The maximum efficiency as configured by the player.
     pub efficiency_cap: f32,
-    pub refs:           Refs,
+    pub ports:          Ports,
 }
 
-pub struct Refs {
-    pub fluid_storage: Vec<Entity>,
+pub struct Ports {
+    pub fluid_storages: Vec<Option<Entity>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -107,6 +110,12 @@ impl Types {
     pub fn get(&self, id: TypeId) -> &TypeDef {
         self.types.get(id.0 as usize).expect("got invalid reactor type reference")
     }
+
+    pub fn push(&mut self, def: TypeDef) -> TypeId {
+        let id = u32::try_from(self.types.len()).expect("too many reactor types");
+        self.types.push(def);
+        TypeId(id)
+    }
 }
 
 /// A component on facilities.
@@ -117,6 +126,7 @@ pub struct TypeDef {
 }
 
 /// A reference to an entry in [`Refs::fluid_storage`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FluidStorageRef(pub u32);
 
 #[enum_dispatch]
@@ -187,8 +197,12 @@ impl EfficiencyModifier for FluidInput {
         params: &ExecuteSystemParams,
         reactor: &Facility,
     ) -> EfficiencyModifierResult {
-        let Some(&storage_entity) = reactor.refs.fluid_storage.log_get(self.storage.0 as usize)
+        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
         else {
+            tracing::warn!(
+                "reactor port {:?} is used as an input and must not be nil",
+                self.storage
+            );
             return EfficiencyModifierResult::INVALID;
         };
         let Some(storage) = params.fluid_storage.log_get(storage_entity) else {
@@ -205,8 +219,12 @@ impl EfficiencyModifier for FluidInput {
 
 impl ReactionExecutor for FluidInput {
     fn execute(&self, efficiency: f32, params: &mut ExecuteSystemParams, reactor: &Facility) {
-        let Some(&storage_entity) = reactor.refs.fluid_storage.log_get(self.storage.0 as usize)
+        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
         else {
+            tracing::warn!(
+                "reactor port {:?} is used as an input and must not be nil",
+                self.storage
+            );
             return;
         };
         let Some(mut storage) = params.fluid_storage.log_get_mut(storage_entity) else { return };
@@ -233,8 +251,12 @@ impl EfficiencyModifier for HeatInput {
         params: &ExecuteSystemParams,
         reactor: &Facility,
     ) -> EfficiencyModifierResult {
-        let Some(&storage_entity) = reactor.refs.fluid_storage.log_get(self.storage.0 as usize)
+        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
         else {
+            tracing::warn!(
+                "reactor port {:?} is used as an input and must not be nil",
+                self.storage
+            );
             return EfficiencyModifierResult::INVALID;
         };
         let Some(storage) = params.fluid_storage.log_get(storage_entity) else {
@@ -250,8 +272,12 @@ impl EfficiencyModifier for HeatInput {
 
 impl ReactionExecutor for HeatInput {
     fn execute(&self, efficiency: f32, params: &mut ExecuteSystemParams, reactor: &Facility) {
-        let Some(&storage_entity) = reactor.refs.fluid_storage.log_get(self.storage.0 as usize)
+        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
         else {
+            tracing::warn!(
+                "reactor port {:?} is used as an input and must not be nil",
+                self.storage
+            );
             return;
         };
         let Some(mut storage) = params.fluid_storage.log_get_mut(storage_entity) else { return };
@@ -278,8 +304,12 @@ pub struct FluidOutput {
 
 impl ReactionExecutor for FluidOutput {
     fn execute(&self, efficiency: f32, params: &mut ExecuteSystemParams, reactor: &Facility) {
-        let Some(&storage_entity) = reactor.refs.fluid_storage.log_get(self.storage.0 as usize)
+        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
         else {
+            tracing::warn!(
+                "reactor port {:?} is used as an output and must not be nil",
+                self.storage
+            );
             return;
         };
         let Some(mut storage) = params.fluid_storage.log_get_mut(storage_entity) else { return };
@@ -297,8 +327,12 @@ pub struct TemperatureOutput {
 
 impl ReactionExecutor for TemperatureOutput {
     fn execute(&self, efficiency: f32, params: &mut ExecuteSystemParams, reactor: &Facility) {
-        let Some(&storage_entity) = reactor.refs.fluid_storage.log_get(self.storage.0 as usize)
+        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
         else {
+            tracing::warn!(
+                "reactor port {:?} is used as an output and must not be nil",
+                self.storage
+            );
             return;
         };
         let Some(mut storage) = params.fluid_storage.log_get_mut(storage_entity) else { return };
@@ -328,11 +362,15 @@ impl EfficiencyModifier for FluidCatalyst {
         params: &ExecuteSystemParams,
         reactor: &Facility,
     ) -> EfficiencyModifierResult {
-        let Some(&storage_entity) = reactor.refs.fluid_storage.log_get(self.storage.0 as usize)
+        let Some(&maybe_storage) = reactor.ports.fluid_storages.log_get(self.storage.0 as usize)
         else {
             return EfficiencyModifierResult::default();
         };
-        let Some(storage) = params.fluid_storage.log_get(storage_entity) else {
+        let storage = if let Some(storage_entity) = maybe_storage
+            && let Some(storage) = params.fluid_storage.log_get(storage_entity)
+        {
+            storage
+        } else {
             return EfficiencyModifierResult::default();
         };
         let typed = storage.get_type(self.ty);
@@ -353,11 +391,15 @@ impl EfficiencyModifier for PressureCatalyst {
         params: &ExecuteSystemParams,
         reactor: &Facility,
     ) -> EfficiencyModifierResult {
-        let Some(&storage_entity) = reactor.refs.fluid_storage.log_get(self.storage.0 as usize)
+        let Some(&maybe_storage) = reactor.ports.fluid_storages.log_get(self.storage.0 as usize)
         else {
             return EfficiencyModifierResult::default();
         };
-        let Some(storage) = params.fluid_storage.log_get(storage_entity) else {
+        let storage = if let Some(storage_entity) = maybe_storage
+            && let Some(storage) = params.fluid_storage.log_get(storage_entity)
+        {
+            storage
+        } else {
             return EfficiencyModifierResult::default();
         };
         self.pressure_threshold.lerp(storage.pressure)
@@ -377,11 +419,15 @@ impl EfficiencyModifier for TemperatureCatalyst {
         params: &ExecuteSystemParams,
         reactor: &Facility,
     ) -> EfficiencyModifierResult {
-        let Some(&storage_entity) = reactor.refs.fluid_storage.log_get(self.storage.0 as usize)
+        let Some(&maybe_storage) = reactor.ports.fluid_storages.log_get(self.storage.0 as usize)
         else {
             return EfficiencyModifierResult::default();
         };
-        let Some(storage) = params.fluid_storage.log_get(storage_entity) else {
+        let storage = if let Some(storage_entity) = maybe_storage
+            && let Some(storage) = params.fluid_storage.log_get(storage_entity)
+        {
+            storage
+        } else {
             return EfficiencyModifierResult::default();
         };
         self.temp_threshold.lerp(storage.temperature)
@@ -389,29 +435,46 @@ impl EfficiencyModifier for TemperatureCatalyst {
 }
 
 pub struct Threshold {
-    /// Start X-coordinate of the interpolation curve.
-    pub min_input:                 f32,
-    /// End X-coordinate of the interpolation curve.
-    pub max_input:                 f32,
-    /// Start Y-coordinate of the interpolation curve.
-    pub min_efficiency_multiplier: f32,
-    /// End Y-coordinate of the interpolation curve.
-    pub max_efficiency_multiplier: f32,
     /// The interpolation curve to use between the min and max input.
-    pub curve:                     Curve,
+    pub curve:         Curve,
     /// How this threshold modifies the efficiency of the reactor.
-    pub modifier_type:             ThresholdModifierType,
+    pub modifier_type: ThresholdModifierType,
 }
 
 impl Threshold {
     #[must_use]
     pub fn lerp(&self, input: f32) -> EfficiencyModifierResult {
-        let clamped_input = input.clamp(self.min_input, self.max_input);
-        let t = (clamped_input - self.min_input) / (self.max_input - self.min_input);
         let out = match self.curve {
-            Curve::Linear => {
-                self.min_efficiency_multiplier
-                    + t * (self.max_efficiency_multiplier - self.min_efficiency_multiplier)
+            Curve::Linear { min_input, max_input, min_multiplier, max_multiplier } => {
+                let clamped_input = input.clamp(min_input, max_input);
+                let t = (clamped_input - min_input) / (max_input - min_input);
+                min_multiplier + t * (max_multiplier - min_multiplier)
+            }
+            Curve::Triangle {
+                min_input,
+                mid_input,
+                max_input,
+                start_multiplier,
+                mid_multiplier,
+                end_multiplier,
+            } => {
+                if input <= mid_input {
+                    let t = (input - min_input).max(0.0) / (mid_input - min_input);
+                    start_multiplier.lerp(mid_multiplier, t)
+                } else {
+                    let t = (max_input - input).max(0.0) / (max_input - mid_input);
+                    end_multiplier.lerp(mid_multiplier, t)
+                }
+            }
+            Curve::Gaussian {
+                optimal_input,
+                input_scale,
+                optimal_multiplier,
+                minimal_multiplier,
+            } => {
+                minimal_multiplier
+                    + (optimal_multiplier - minimal_multiplier)
+                        * (-(2.0 * (input - optimal_input) / input_scale).powi(2)).exp()
             }
         };
         match self.modifier_type {
@@ -433,5 +496,44 @@ pub enum ThresholdModifierType {
 }
 
 pub enum Curve {
-    Linear,
+    /// Linear slope within input range, constant beyond.
+    Linear {
+        /// Start X-coordinate of the interpolation curve.
+        min_input:      f32,
+        /// End X-coordinate of the interpolation curve.
+        max_input:      f32,
+        /// Start Y-coordinate of the interpolation curve.
+        min_multiplier: f32,
+        /// End Y-coordinate of the interpolation curve.
+        max_multiplier: f32,
+    },
+    /// Two piecewise linear curves within input range, constant beyond.
+    Triangle {
+        /// Start X-coordinate of the first piece.
+        min_input:        f32,
+        /// X-coordinate where the first piece transitions to the second piece.
+        mid_input:        f32,
+        /// End X-coordinate of the second piece.
+        max_input:        f32,
+        /// Y-coordinate below and at `min_input`.
+        start_multiplier: f32,
+        /// Y-coordinate at `mid_input`.
+        mid_multiplier:   f32,
+        /// Y-coordinate above and at `max_input`.
+        end_multiplier:   f32,
+    },
+    /// Gaussian curve, exactly optimal efficiency at `optimal_input`,
+    /// symmetrically asymptoting towards minimal efficiency towards &pm;&infin;,
+    /// passing at lerp(minimal, optimal, 1.83%) at `optimal_input` &pm; `input_scale`.
+    Gaussian {
+        /// The X-coordinate of the extremum of the Gaussian curve.
+        optimal_input:      f32,
+        /// Scales the input range.
+        /// This is approximately 2.49 times of the standard deviation.
+        input_scale:        f32,
+        /// The Y-coordinate at the extremum of the Gaussian curve.
+        optimal_multiplier: f32,
+        /// The Y-coordinate as input goes to &pm;&infin;.
+        minimal_multiplier: f32,
+    },
 }
