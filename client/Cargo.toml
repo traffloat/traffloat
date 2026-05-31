@@ -31,6 +31,8 @@ traffloat-macro-util = { workspace = true }
 traffloat-physics = { workspace = true }
 traffloat-proto = { workspace = true }
 opentelemetry-stdout = { version = "0.32.0", optional = true }
+ordered-float = "5.3.0"
+either = "1.16.0"
 
 [dependencies.bevy-inspector-egui]
 version = "0.36.0"

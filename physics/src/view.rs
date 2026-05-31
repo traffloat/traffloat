@@ -10,6 +10,7 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
+use bevy::reflect::Reflect;
 use bevy::time;
 use bevy_mod_config::Config;
 use enum_map::EnumMap;
@@ -21,6 +22,9 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        app.register_type::<Viewer>();
+        app.register_type::<NextProtoId>();
+
         app.init_resource::<NextProtoId>();
         app.add_message::<SentUpdate>();
         app.add_systems(
@@ -40,14 +44,14 @@ pub enum SendUpdatesSystemSet {
     Incr,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
 struct NextProtoId(proto::Id);
 
 impl Default for NextProtoId {
     fn default() -> Self { NextProtoId(proto::Id(const { NonZeroU32::new(1).unwrap() })) }
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Reflect, Default)]
 pub struct Viewer {
     level: SubscriptionLevel,
 }
@@ -67,7 +71,7 @@ impl Viewer {
     pub fn set_level(&mut self, level: impl Into<SubscriptionLevel>) { self.level = level.into(); }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, enum_map::Enum, Config)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, enum_map::Enum, Config, Reflect)]
 #[config(expose)]
 pub enum SubscriptionLevel {
     #[default]
@@ -97,6 +101,30 @@ pub struct Viewable {
     pub new_subscribers: Vec<Entity>,
 }
 
+impl Viewable {
+    pub fn broadcast_update(
+        &self,
+        mut update: impl FnMut(SubscriptionLevel) -> proto::Update,
+    ) -> impl Iterator<Item = SentUpdate> {
+        self.subscribers.iter().filter(|(_, viewers)| !viewers.is_empty()).map(
+            move |(level, viewers)| SentUpdate { viewers: viewers.clone(), body: update(level) },
+        )
+    }
+
+    pub fn broadcast_new<Iter: IntoIterator<Item = proto::Update>>(
+        &self,
+        update: impl FnOnce() -> Iter,
+    ) -> impl Iterator<Item = SentUpdate> {
+        (!self.new_subscribers.is_empty())
+            .then(|| {
+                let viewers: EntityHashSet = self.new_subscribers.iter().copied().collect();
+                update().into_iter().map(move |body| SentUpdate { viewers: viewers.clone(), body })
+            })
+            .into_iter()
+            .flatten()
+    }
+}
+
 pub struct AddViewableCommand;
 
 impl EntityCommand for AddViewableCommand {
@@ -113,17 +141,6 @@ impl EntityCommand for AddViewableCommand {
             id,
             new_subscribers: Vec::new(),
         });
-    }
-}
-
-impl Viewable {
-    pub fn broadcast_update(
-        &self,
-        mut update: impl FnMut(SubscriptionLevel) -> proto::Update,
-    ) -> impl Iterator<Item = SentUpdate> {
-        self.subscribers.iter().filter(|(_, viewers)| !viewers.is_empty()).map(
-            move |(level, viewers)| SentUpdate { viewers: viewers.clone(), body: update(level) },
-        )
     }
 }
 

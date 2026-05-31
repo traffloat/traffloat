@@ -1,0 +1,190 @@
+use std::collections::HashMap;
+use std::f32::consts::{FRAC_1_SQRT_2, SQRT_2};
+use std::{cmp, mem};
+
+use bevy::app::{self, App, Plugin};
+use bevy::asset::{self, AssetServer, Assets};
+use bevy::color::Color;
+use bevy::ecs::component::Component;
+use bevy::ecs::entity::Entity;
+use bevy::ecs::message::{Message, MessageReader};
+use bevy::ecs::name::Name;
+use bevy::ecs::observer;
+use bevy::ecs::query::{Has, With, Without};
+use bevy::ecs::relationship::RelationshipTarget;
+use bevy::ecs::resource::Resource;
+use bevy::ecs::schedule::IntoScheduleConfigs;
+use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, Single, SystemParam};
+use bevy::ecs::world::{EntityWorldMut, World};
+use bevy::image::Image;
+use bevy::math::Vec3;
+use bevy::math::primitives::Annulus;
+use bevy::mesh::{Mesh, Mesh2d};
+use bevy::picking::{Pickable, events as pick};
+use bevy::reflect::Reflect;
+use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
+use bevy::transform::components::Transform;
+use bevy_mod_config::{AppExt, Config, ReadConfig};
+use either::Either;
+use ordered_float::OrderedFloat;
+use traffloat_physics::util::QueryExt;
+use traffloat_physics::{try_log, view};
+use traffloat_proto::proto;
+
+use crate::ConfigManager;
+use crate::scene::picking::{self, ObservePicking};
+use crate::scene::{
+    AllHandlersSystemSet, GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler,
+    ViewableKind, Zorder,
+};
+use crate::util::shapes::Shapes;
+
+mod placement;
+
+pub(super) struct Plug;
+
+impl Plugin for Plug {
+    fn build(&self, app: &mut App) {
+        app.register_type::<NeedRearrangeTransform>();
+        app.register_type::<BuildingFacilities>();
+        app.register_type::<FacilityBuilding>();
+        app.register_type::<Info>();
+
+        app.add_systems(app::Update, rearrange_facility_tf_system.after(AllHandlersSystemSet));
+    }
+}
+
+/// List of facilities belonging to a building, component on buildings.
+#[derive(Component, Reflect)]
+#[relationship_target(relationship = FacilityBuilding, linked_spawn)]
+#[require(NeedRearrangeTransform)]
+pub struct BuildingFacilities(Vec<Entity>);
+
+/// Marks that a building has had dirty facility changes and transforms need to be rearranged.
+#[derive(Component, Default, Reflect)]
+pub struct NeedRearrangeTransform(pub bool);
+
+/// Building owning the facility, component on facilities.
+#[derive(Component, Reflect)]
+#[relationship(relationship_target = BuildingFacilities)]
+pub struct FacilityBuilding(pub Entity);
+
+#[derive(Component, Reflect, Default)]
+pub struct Info {
+    pub volume:       f32,
+    pub stored_fluid: Option<proto::FluidStorageFull>,
+}
+
+#[derive(SystemParam)]
+pub(super) struct NewFacilityParams<'w, 's> {
+    commands:     Commands<'w, 's>,
+    ids:          ResMut<'w, IdRegistry>,
+    shapes:       Shapes<'w>,
+    meshes:       ResMut<'w, Assets<Mesh>>,
+    materials:    ResMut<'w, Assets<ColorMaterial>>,
+    asset_server: Res<'w, AssetServer>,
+}
+
+impl NewFacilityParams<'_, '_> {
+    fn load_texture(&self, path: &str) -> asset::Handle<Image> {
+        self.asset_server.load(format!("sprites/{path}.png"))
+    }
+}
+
+impl UpdateHandler for NewFacilityParams<'_, '_> {
+    type Update = proto::NewFacility;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+
+    fn handle(&mut self, update: &Self::Update) {
+        let texture_handle = self.load_texture(&update.display.sprite_id);
+
+        let Some(&TrackedId::Building(building_entity)) = self.ids.map.get(&update.building) else {
+            tracing::error!(
+                "Received NewFacility belonging to unknown building id {:?}",
+                update.building
+            );
+            return;
+        };
+
+        self.commands.entity(building_entity).queue(|mut entity: EntityWorldMut| {
+            entity.insert(NeedRearrangeTransform(true));
+        });
+
+        let material = self.materials.add(ColorMaterial {
+            color: Color::WHITE,
+            texture: Some(texture_handle),
+            ..Default::default()
+        });
+
+        let entity = self
+            .commands
+            .spawn((
+                Name::new("Client facility"),
+                super::ProtoId(update.id),
+                Transform::IDENTITY, // to be reconciled in rearrange_facility_tf_system
+                Mesh2d(self.shapes.square()),
+                MeshMaterial2d(material),
+                Pickable::IGNORE, // to be set to Pickable::default() when building is hovered
+                FacilityBuilding(building_entity),
+                GenericViewable { name: update.name.clone(), kind: ViewableKind::Facility },
+                Info { volume: update.volume, ..Default::default() },
+            ))
+            .id();
+        self.ids.map.insert(update.id, TrackedId::Facility(entity));
+    }
+}
+
+#[derive(SystemParam)]
+pub struct SetFacilityTaintParams<'w, 's> {
+    ids:            ResMut<'w, IdRegistry>,
+    facility_query: Query<'w, 's, &'static MeshMaterial2d<ColorMaterial>, With<Info>>,
+    materials:      ResMut<'w, Assets<ColorMaterial>>,
+}
+
+impl UpdateHandler for SetFacilityTaintParams<'_, '_> {
+    type Update = proto::SetFacilityTaint;
+
+    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &Self::Update) {
+        let Some(&TrackedId::Facility(entity)) = self.ids.map.get(&update.id) else {
+            tracing::error!("Received SetFacilityTaint for unknown facility id {:?}", update.id);
+            return;
+        };
+        let Some(material) = self
+            .facility_query
+            .log_get(entity)
+            .and_then(|material| self.materials.get_mut(&material.0))
+        else {
+            return;
+        };
+        material.color = update.taint.into();
+    }
+}
+
+fn rearrange_facility_tf_system(
+    building_query: Query<
+        (&mut NeedRearrangeTransform, &Transform, &BuildingFacilities),
+        Without<FacilityBuilding>,
+    >,
+    mut facility_query: Query<(Entity, &Info, &mut Transform), With<FacilityBuilding>>,
+) {
+    for (mut need, &building_tf, facilities) in building_query {
+        if need.0 {
+            let mut facilities: Vec<_> = facilities
+                .iter()
+                .filter_map(|entity| facility_query.log_get(entity))
+                .map(|(entity, info, _)| (entity, info.volume))
+                .collect();
+            facilities.sort_by_key(|&(_, volume)| cmp::Reverse(OrderedFloat(volume)));
+            for (relative_tf, (entity, _)) in placement::compute(facilities.len()).zip(facilities) {
+                let (_, _, mut facility_tf) =
+                    facility_query.log_get_mut(entity).expect("facility entity should exist");
+                *facility_tf = building_tf.mul_transform(relative_tf);
+                facility_tf.translation.z = Zorder::Facility.z();
+            }
+            need.0 = false;
+        }
+    }
+}

@@ -27,6 +27,7 @@ use bevy::ecs::query::Changed;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
 use bevy::ecs::world::{EntityWorldMut, World};
+use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
 use crate::graph::{Building, Corridor};
@@ -37,6 +38,18 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        fn register_ab<Ab: Which>(app: &mut App) {
+            app.register_type::<OfBuilding<Ab>>();
+            app.register_type::<BuildingEdges<Ab>>();
+            app.register_type::<OfCorridor<Ab>>();
+            app.register_type::<CorridorEdge<Ab>>();
+        }
+
+        app.register_type::<Edge>();
+
+        register_ab::<Alpha>(app);
+        register_ab::<Beta>(app);
+
         app.add_systems(
             app::Update,
             (broadcast_edge_change_system::<Alpha>, broadcast_edge_change_system::<Beta>)
@@ -46,28 +59,28 @@ impl Plugin for Plug {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct Edge {
     pub open: bool,
 }
 
 /// Component on edge referencing building.
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship(relationship_target = BuildingEdges<Ab>)]
 pub struct OfBuilding<Ab: Which>(#[relationship] pub Entity, Ab);
 
 /// Component on building listing edges.
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship_target(relationship = OfBuilding<Ab>, linked_spawn)]
 pub struct BuildingEdges<Ab: Which>(#[relationship] Vec<Entity>, Ab);
 
 /// Component on edge referencing corridor.
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship(relationship_target = CorridorEdge<Ab>)]
 pub struct OfCorridor<Ab: Which>(#[relationship] pub Entity, Ab);
 
 /// Component on corridor referencing edge.
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship_target(relationship = OfCorridor<Ab>, linked_spawn)]
 pub struct CorridorEdge<Ab: Which>(#[relationship] Entity, Ab);
 

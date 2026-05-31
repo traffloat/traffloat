@@ -164,9 +164,10 @@ fn gen_facility_types(
         .spawn((
             WorldObject,
             graph::FacilityTypeDef {
-                display:   "Garden".into(),
-                volume:    300.0,
-                blueprint: Blueprint {
+                display_name: "Garden".into(),
+                volume:       300.0,
+                sprite_id:    "facility/garden".into(),
+                blueprint:    Blueprint {
                     reactor: Some(blueprint::Reactor {
                         ty:    std_reactor.garden,
                         ports: blueprint::Ports {
@@ -229,7 +230,12 @@ fn gen_garden(world: &mut World, std: &StandardTypes) -> Entity {
             ports:          reactor::Ports { fluid_storages: [Some(building_id), None].into() },
         },
     ));
-    facility::SpawnCommand { building: building_id, ty: std.facilities.garden }.apply(facility);
+    facility::SpawnCommand {
+        name:     None,
+        building: building_id,
+        ty:       std.facilities.garden,
+    }
+    .apply(facility);
 
     building_id
 }

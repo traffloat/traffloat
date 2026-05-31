@@ -4,8 +4,8 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use serde::{Deserialize, Serialize};
 
-use crate::Vector;
 use crate::util::AlphaBeta;
+use crate::{Vector, util};
 
 pub struct Plug;
 
@@ -14,18 +14,13 @@ impl Plugin for Plug {
         app.add_plugins(building::Plug);
         app.add_plugins(corridor::Plug);
         app.add_plugins(edge::Plug);
-        app.configure_sets(
-            app::Update,
-            (
-                ViewSystemSets::Building.before(ViewSystemSets::Corridor),
-                ViewSystemSets::Corridor.before(ViewSystemSets::Facility),
-                ViewSystemSets::Facility.before(ViewSystemSets::Pipe),
-            ),
-        );
+        app.add_plugins(facility::Plug);
+        app.add_plugins(conduit::Plug);
+        util::configure_enum_system_set::<ViewSystemSets>(app, app::Update);
     }
 }
 
-#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumIter)]
 pub enum ViewSystemSets {
     Building,
     Corridor,

@@ -9,6 +9,7 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{Command, Commands, EntityCommand, Local, Query, Res, SystemParam};
 use bevy::ecs::world::{EntityWorldMut, World};
+use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
 use crate::util::{AlphaBeta, MergeSortedItem, QueryExt, merge_sorted};
@@ -27,6 +28,16 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        app.register_type::<Types>();
+        app.register_type::<TypeDef>();
+        app.register_type::<Storage>();
+        app.register_type::<Edge>();
+        app.register_type::<AlphaOfEdgeList>();
+        app.register_type::<EdgeAlpha>();
+        app.register_type::<BetaOfEdgeList>();
+        app.register_type::<EdgeBeta>();
+        app.register_type::<ViewerSynced>();
+
         app.init_resource::<Conf>();
         app.init_resource::<Types>();
 
@@ -60,6 +71,7 @@ impl Default for Conf {
     derive_more::AddAssign,
     derive_more::Sub,
     derive_more::SubAssign,
+    Reflect,
 )]
 pub struct Moles(pub f32);
 
@@ -82,6 +94,7 @@ impl ops::Mul<f32> for Moles {
     derive_more::AddAssign,
     derive_more::Sub,
     derive_more::SubAssign,
+    Reflect,
 )]
 pub struct Energy(pub f32);
 
@@ -92,10 +105,10 @@ impl ops::Mul<f32> for Energy {
 }
 
 /// Identifies a fluid type, indexes [`Types::types`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
 pub struct TypeId(pub u32);
 
-#[derive(Resource, Default)]
+#[derive(Resource, Reflect, Default)]
 pub struct Types {
     pub types: Vec<TypeDef>,
 }
@@ -138,6 +151,7 @@ impl Command for AddTypeCommand {
     }
 }
 
+#[derive(Debug, Reflect)]
 pub struct TypeDef {
     pub name:                 String,
     /// Heat energy per mole.
@@ -160,7 +174,7 @@ pub struct TypeDef {
     // pub optical_emission:  [f32; 3],
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone)]
 pub struct Storage {
     /// Volume provided by the storage.
     ///
@@ -178,7 +192,7 @@ pub struct Storage {
     // TODO benchmark possible alternative representations:
     // 1. use smallvec
     // 2. use dynamic components for each type
-    pub types: Box<[TypedStorage]>,
+    pub types: Vec<TypedStorage>,
 
     // derived quantities
     /// Force per unit area exerted by the mixture.
@@ -275,7 +289,7 @@ impl Storage {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Reflect)]
 pub struct TypedStorage {
     /// Amount of this type in this storage, in moles.
     pub moles: Moles,
@@ -322,7 +336,7 @@ impl EntityCommand for SetTemperatureCommand {
 }
 
 /// The connection between two storages, through which fluid can transfer.
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone)]
 pub struct Edge {
     /// Reciprocal of resistance to transfer.
     ///
@@ -341,7 +355,7 @@ pub struct Edge {
     /// Heat transferred from alpha to beta in the last transfer step.
     last_heat:           Energy,
     /// Must always be sorted by type.
-    last_typed_transfer: Box<[TypedTransfer]>,
+    last_typed_transfer: Vec<TypedTransfer>,
 }
 
 impl Edge {
@@ -369,7 +383,7 @@ impl Edge {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Reflect)]
 struct TypedTransfer {
     atob_transfer: Moles,
 }
@@ -393,19 +407,19 @@ impl EntityCommand for AddEdgeCommand {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship(relationship_target = AlphaOfEdgeList)]
 pub struct EdgeAlpha(pub Entity);
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship_target(relationship = EdgeAlpha, linked_spawn)]
 pub struct AlphaOfEdgeList(Vec<Entity>);
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship(relationship_target = BetaOfEdgeList)]
 pub struct EdgeBeta(pub Entity);
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship_target(relationship = EdgeBeta, linked_spawn)]
 pub struct BetaOfEdgeList(Vec<Entity>);
 
@@ -494,8 +508,12 @@ fn compute_edge(edge: &mut Edge, storages: AlphaBeta<&Storage>, types: &Types, d
     let mut conductivity = 0.0;
     let mut advective_convective_heat = Energy(0.0);
 
-    for (type_id, (typed_pair, typed_edge)) in
-        storages.map(|s| &s.types).zip_iter().zip(&mut edge.last_typed_transfer).enumerate()
+    for (type_id, (typed_pair, typed_edge)) in storages
+        .map(|s| &s.types)
+        .as_deref()
+        .zip_iter()
+        .zip(&mut edge.last_typed_transfer)
+        .enumerate()
     {
         let type_id = TypeId(u32::try_from(type_id).expect("too many fluid types"));
         let type_def = types.get(type_id);
@@ -632,7 +650,7 @@ fn apply_storage(
 }
 
 /// Component on viewers to track fluid type definition sync.
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct ViewerSynced {
     num_types: usize,
 }

@@ -8,6 +8,7 @@ use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::{Message, MessageReader};
+use bevy::ecs::name::Name;
 use bevy::ecs::observer;
 use bevy::ecs::query::{Has, QueryData, With};
 use bevy::ecs::resource::Resource;
@@ -18,6 +19,7 @@ use bevy::math::Vec3;
 use bevy::math::primitives::Annulus;
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::picking::{Pickable, events as pick};
+use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
@@ -36,6 +38,16 @@ pub(super) struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        app.register_type::<Info>();
+        app.register_type::<GenericEndpointDetails<Alpha>>();
+        app.register_type::<GenericEndpointDetails<Beta>>();
+        app.register_type::<IsEndpointOf<Alpha>>();
+        app.register_type::<IsEndpointOf<Beta>>();
+        app.register_type::<WallEntityOf<true>>();
+        app.register_type::<WallEntityOf<false>>();
+        app.register_type::<HasWallEntity<true>>();
+        app.register_type::<HasWallEntity<false>>();
+
         app.init_config::<ConfigManager, Conf>("scene:corridor");
         app.init_resource::<WallMaterials>();
         app.add_systems(app::Startup, WallMaterials::init);
@@ -86,6 +98,7 @@ impl UpdateHandler for NewCorridorParams<'_, '_> {
         let entity = self
             .commands
             .spawn((
+                Name::new("Client corridor"),
                 super::ProtoId(update.id),
                 self.shapes.rect(
                     update.radius * 2.0,
@@ -134,7 +147,7 @@ impl UpdateHandler for UpdateCorridorParams<'_, '_> {
             return;
         };
         let material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
-        material.color = super::bevy_color(update.color);
+        material.color = update.color.into();
 
         info.ambient_fluid = None;
     }
@@ -162,7 +175,7 @@ impl UpdateHandler for UpdateCorridorFullParams<'_, '_> {
             return;
         };
         let material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
-        material.color = super::bevy_color(update.color);
+        material.color = update.color.into();
 
         info.ambient_fluid = Some(update.ambient_fluid.clone());
     }
@@ -258,24 +271,25 @@ impl UpdateHandler for SetCorridorEndpointParams<'_, '_> {
     }
 }
 
-#[derive(Default, Component)]
+#[derive(Default, Component, Reflect)]
 pub struct Info {
     pub ambient_fluid: Option<proto::FluidStorageFull>,
 }
 
 /// References building from corridor.
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship(relationship_target = IsEndpointOf<Ab>)]
 pub struct EndpointRef<Ab: Which>(#[relationship] pub Entity, Ab);
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct GenericEndpointDetails<Ab: Which>(pub EndpointDetails, Ab);
 
 /// References corridor from building.
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship_target(relationship = EndpointRef<Ab>)]
 pub struct IsEndpointOf<Ab: Which>(#[relationship] Vec<Entity>, Ab);
 
+#[derive(Reflect)]
 pub struct EndpointDetails {
     pub open: bool,
 }
@@ -284,12 +298,12 @@ impl From<&proto::CorridorEndpoint> for EndpointDetails {
     fn from(value: &proto::CorridorEndpoint) -> Self { Self { open: value.open } }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 #[relationship(relationship_target = HasWallEntity<WHICH>)]
 struct WallEntityOf<const WHICH: bool>(Entity);
 
-#[derive(Component)]
-#[relationship_target(relationship =WallEntityOf<WHICH>)]
+#[derive(Component, Reflect)]
+#[relationship_target(relationship = WallEntityOf<WHICH>)]
 struct HasWallEntity<const WHICH: bool>(Entity);
 
 #[derive(Resource, Default)]

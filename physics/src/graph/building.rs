@@ -6,6 +6,7 @@ use bevy::ecs::name::Name;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, EntityCommand, Query};
 use bevy::ecs::world::EntityWorldMut;
+use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
@@ -16,6 +17,8 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        app.register_type::<Building>();
+
         app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
         app.add_systems(
             app::Update,
@@ -27,7 +30,7 @@ impl Plugin for Plug {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct Building {
     pub name:           String,
     pub position:       Vector,
@@ -69,18 +72,15 @@ fn init_viewer_system(
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
     for (building, viewable) in building_query {
-        if !viewable.new_subscribers.is_empty() {
-            messages.write(view::SentUpdate {
-                viewers: viewable.new_subscribers.iter().copied().collect(),
-                body:    proto::Update::NewBuilding(proto::NewBuilding {
-                    id:             viewable.id,
-                    name:           building.name.clone(),
-                    position:       building.position,
-                    radius:         building.radius,
-                    wall_thickness: building.wall_thickness,
-                }),
-            });
-        }
+        messages.write_batch(viewable.broadcast_new(|| {
+            [proto::Update::NewBuilding(proto::NewBuilding {
+                id:             viewable.id,
+                name:           building.name.clone(),
+                position:       building.position,
+                radius:         building.radius,
+                wall_thickness: building.wall_thickness,
+            })]
+        }));
     }
 }
 

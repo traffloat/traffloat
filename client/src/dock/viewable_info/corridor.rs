@@ -6,6 +6,7 @@ use egui_material_icons::icons;
 use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
 use traffloat_proto::proto;
 
+use crate::dock::viewable_info::show_fluid;
 use crate::dock::{self, viewable_info};
 use crate::scene::{FluidTypes, GenericViewable, corridor};
 use crate::util::new_id;
@@ -80,25 +81,4 @@ pub(super) fn display_gate(ui: &mut egui::Ui, open: bool, text: &str) {
     let mut open_var = open;
     ui.checkbox(&mut open_var, format!("{text} {}", if open { "open" } else { "closed" }));
     // TODO send open/close request on change
-}
-
-fn show_fluid(
-    ui: &mut egui::Ui,
-    id: egui::Id,
-    ambient_fluid: &proto::FluidStorageFull,
-    types: &FluidTypes,
-) {
-    ui.label(format!("Volume: {:.2}", ambient_fluid.volume));
-    ui.label(format!("Pressure: {:.2}", ambient_fluid.pressure));
-    ui.label(format!("Temperature: {:.2} K", ambient_fluid.temperature));
-
-    egui::CollapsingHeader::new("Composition").id_salt(new_id!(id)).show(ui, |ui| {
-        for (id, fraction) in ambient_fluid.types.iter().enumerate() {
-            ui.label(format!(
-                "{}: {:.2} mol",
-                types.0.get(id).map_or("???", |ty| &ty.name),
-                fraction * 100.0
-            ));
-        }
-    });
 }

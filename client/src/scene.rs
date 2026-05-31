@@ -15,17 +15,18 @@ use bevy::ecs::schedule::{
     ApplyDeferred, IntoScheduleConfigs, Schedulable, ScheduleConfigs, SystemSet,
 };
 use bevy::ecs::system::{Commands, ParamSet, Query, ResMut, ScheduleSystem, Single, SystemParam};
-use bevy::ecs::world::World;
+use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::mesh::Mesh2d;
 use bevy::picking::PickingSettings;
+use bevy::reflect::Reflect;
 use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use enum_map::EnumMap;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
-use traffloat_physics::util::QueryExt;
+use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
 use traffloat_physics::{try_log, view};
 use traffloat_proto::proto;
 
@@ -33,22 +34,28 @@ use crate::ConfigManager;
 
 pub mod building;
 pub mod corridor;
+pub mod facility;
+
 mod picking;
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        app.register_type::<ProtoId>();
+        app.register_type::<IdRegistry>();
+
         app.init_resource::<IdRegistry>();
         app.init_resource::<FluidTypes>();
         app.init_config::<ConfigManager, Conf>("scene");
         app.add_plugins(picking::Plug);
         app.add_plugins(building::Plug);
         app.add_plugins(corridor::Plug);
+        app.add_plugins(facility::Plug);
         app.add_systems(app::Update, react_config_system);
 
         for (prev, next) in HandlerClass::iter().tuple_windows() {
-            app.configure_sets(app::Update, prev.before(next));
+            app.configure_sets(app::Update, prev.before(next).in_set(AllHandlersSystemSet));
             app.add_systems(app::Update, ApplyDeferred.before(next).after(prev));
         }
         for class in HandlerClass::iter() {
@@ -57,7 +64,7 @@ impl Plugin for Plug {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
 pub struct IdRegistry {
     map: HashMap<proto::Id, TrackedId>,
 }
@@ -98,12 +105,14 @@ impl IdRegistry {
     }
 }
 
+#[derive(Reflect)]
 enum TrackedId {
     Building(Entity),
     Corridor(Entity),
+    Facility(Entity),
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct ProtoId(pub proto::Id);
 
 /// Marks the viewer entity for singleplayer client.
@@ -173,6 +182,9 @@ enum HandlerClass {
     Update,
     Despawn,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, SystemSet)]
+pub struct AllHandlersSystemSet;
 
 macro_rules! define_params {
     (
@@ -246,6 +258,8 @@ define_params! {
     UpdateCorridor(corridor::UpdateCorridorParams<'w, 's>),
     UpdateCorridorFull(corridor::UpdateCorridorFullParams<'w, 's>),
     SetCorridorEndpoint(corridor::SetCorridorEndpointParams<'w, 's>),
+    NewFacility(facility::NewFacilityParams<'w, 's>),
+    SetFacilityTaint(facility::SetFacilityTaintParams<'w, 's>),
     RemoveViewable(RemoveViewableParams<'w, 's>),
     SetFluidTypes(SetFluidTypesParams<'w>),
 }
@@ -265,6 +279,22 @@ impl UpdateHandler for RemoveViewableParams<'_, '_> {
         match self.ids.map.remove(&fixture.id) {
             Some(TrackedId::Building(entity) | TrackedId::Corridor(entity)) => {
                 self.commands.entity(entity).despawn();
+            }
+            Some(TrackedId::Facility(entity)) => {
+                self.commands.entity(entity).queue(|mut entity: EntityWorldMut| {
+                    let building = entity.log_get::<facility::FacilityBuilding>().map(|b| b.0);
+                    if let Some(building) = building {
+                        entity.world_scope(|world| {
+                            if let Some(mut marker) =
+                                world.log_get_mut::<facility::NeedRearrangeTransform>(building)
+                            {
+                                marker.0 = true;
+                            }
+                        });
+                    }
+
+                    entity.despawn();
+                });
             }
             None => tracing::error!("Received remove for unknown fixture id {:?}", fixture.id),
         }
@@ -286,15 +316,17 @@ impl UpdateHandler for SetFluidTypesParams<'_> {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct GenericViewable {
     pub name: String,
     pub kind: ViewableKind,
 }
 
+#[derive(Debug, Clone, Copy, Reflect)]
 pub enum ViewableKind {
     Building,
     Corridor,
+    Facility,
 }
 
 #[derive(Resource, Default)]
@@ -303,8 +335,6 @@ pub struct FluidTypes(pub Vec<FluidType>);
 pub struct FluidType {
     pub name: String,
 }
-
-fn bevy_color(proto::Color([r, g, b, a]): proto::Color) -> Color { Color::linear_rgba(r, g, b, a) }
 
 #[derive(Config)]
 pub struct Conf {

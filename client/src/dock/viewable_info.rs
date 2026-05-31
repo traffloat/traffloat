@@ -2,12 +2,15 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::system::{Command, ParamSet, Query, SystemParam};
 use bevy::ecs::world::World;
 use egui_material_icons::icons;
+use traffloat_proto::proto;
 
 use crate::dock::{self, TabPlacement, viewable_info};
-use crate::scene::{GenericViewable, ViewableKind};
+use crate::scene::{FluidTypes, GenericViewable, ViewableKind};
+use crate::util::new_id;
 
 mod building;
 mod corridor;
+mod facility;
 
 pub struct Tab {
     pub entity: Entity,
@@ -22,6 +25,7 @@ impl dock::Tab for Tab {
         match viewable.kind {
             ViewableKind::Building => format!("Building: {}", viewable.name),
             ViewableKind::Corridor => format!("Corridor: {}", viewable.name),
+            ViewableKind::Facility => format!("Facility: {}", viewable.name),
         }
     }
 
@@ -39,8 +43,9 @@ impl dock::Tab for Tab {
 
         ui.horizontal(|ui| {
             ui.heading(match generic.kind {
-                ViewableKind::Building => "Building",
-                ViewableKind::Corridor => "Corridor",
+                ViewableKind::Building => "Building:",
+                ViewableKind::Corridor => "Corridor:",
+                ViewableKind::Facility => "Facility:",
             });
             ui.heading(&generic.name);
             if ui.button(icons::ICON_EDIT).clicked() {
@@ -57,6 +62,10 @@ impl dock::Tab for Tab {
                 let mut corridor_param = param.viewable_query.p1();
                 corridor_param.ui(self.entity, ui, dock);
             }
+            ViewableKind::Facility => {
+                let mut facility_param = param.viewable_query.p2();
+                facility_param.ui(self.entity, ui, dock);
+            }
         }
     }
 
@@ -67,8 +76,15 @@ impl dock::Tab for Tab {
 #[derive(SystemParam)]
 pub struct UiSystemParam<'w, 's> {
     generic:        Query<'w, 's, &'static GenericViewable>,
-    viewable_query:
-        ParamSet<'w, 's, (building::UiSystemParam<'w, 's>, corridor::UiSystemParam<'w, 's>)>,
+    viewable_query: ParamSet<
+        'w,
+        's,
+        (
+            building::UiSystemParam<'w, 's>,
+            corridor::UiSystemParam<'w, 's>,
+            facility::UiSystemParam<'w, 's>,
+        ),
+    >,
 }
 
 pub struct OpenCommand {
@@ -94,4 +110,25 @@ impl Command for OpenCommand {
                 .or_always(dock::Split { split: egui_dock::Split::Right, ratio: 0.7 }),
         );
     }
+}
+
+fn show_fluid(
+    ui: &mut egui::Ui,
+    id: egui::Id,
+    ambient_fluid: &proto::FluidStorageFull,
+    types: &FluidTypes,
+) {
+    ui.label(format!("Volume: {:.2}", ambient_fluid.volume));
+    ui.label(format!("Pressure: {:.2}", ambient_fluid.pressure));
+    ui.label(format!("Temperature: {:.2} K", ambient_fluid.temperature));
+
+    egui::CollapsingHeader::new("Composition").id_salt(new_id!(id)).show(ui, |ui| {
+        for (id, fraction) in ambient_fluid.types.iter().enumerate() {
+            ui.label(format!(
+                "{}: {:.2} mol",
+                types.0.get(id).map_or("???", |ty| &ty.name),
+                fraction * 100.0
+            ));
+        }
+    });
 }

@@ -5,6 +5,7 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{Local, Query, Res, SystemParam};
 use bevy::math::FloatExt;
+use bevy::reflect::Reflect;
 use enum_dispatch::enum_dispatch;
 
 use crate::fluid;
@@ -97,7 +98,7 @@ pub struct Ports {
     pub fluid_storages: Vec<Option<Entity>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
 pub struct TypeId(pub u32);
 
 #[derive(Resource, Default)]

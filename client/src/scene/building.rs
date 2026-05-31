@@ -5,8 +5,9 @@ use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets};
 use bevy::color::Color;
 use bevy::ecs::component::Component;
-use bevy::ecs::entity::Entity;
+use bevy::ecs::entity::{Entity, EntityHashSet};
 use bevy::ecs::message::{Message, MessageReader};
+use bevy::ecs::name::Name;
 use bevy::ecs::observer;
 use bevy::ecs::query::{Has, With};
 use bevy::ecs::resource::Resource;
@@ -17,6 +18,7 @@ use bevy::math::Vec3;
 use bevy::math::primitives::Annulus;
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::picking::{Pickable, events as pick};
+use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
@@ -24,17 +26,23 @@ use traffloat_physics::util::QueryExt;
 use traffloat_physics::{try_log, view};
 use traffloat_proto::proto;
 
-use crate::ConfigManager;
+use crate::scene::facility::FacilityBuilding;
 use crate::scene::picking::{self, ObservePicking};
 use crate::scene::{
     GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
 };
 use crate::util::shapes::Shapes;
+use crate::{ConfigManager, dock};
 
 pub(super) struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        app.register_type::<WallMaterials>();
+        app.register_type::<Info>();
+        app.register_type::<WallEntityOf>();
+        app.register_type::<WallMaterials>();
+
         app.init_config::<ConfigManager, Conf>("scene:building");
         app.init_resource::<WallMaterials>();
         app.add_systems(app::Startup, WallMaterials::init);
@@ -67,6 +75,7 @@ impl UpdateHandler for NewBuildingParams<'_, '_> {
         let entity = self
             .commands
             .spawn((
+                Name::new("Client building"),
                 super::ProtoId(update.id),
                 Transform::from_translation(update.position.extend(Zorder::Building.z()))
                     .with_scale(Vec3::splat(update.radius)),
@@ -112,7 +121,7 @@ impl UpdateHandler for UpdateBuildingParams<'_, '_> {
             return;
         };
         let material = try_log!(self.materials.get_mut(&handle.0), expect "building entity should reference a valid material" or return);
-        material.color = super::bevy_color(update.color);
+        material.color = update.color.into();
 
         info.ambient_fluid = None;
     }
@@ -140,26 +149,26 @@ impl UpdateHandler for UpdateBuildingFullParams<'_, '_> {
             return;
         };
         let material = try_log!(self.materials.get_mut(&handle.0), expect "building entity should reference a valid material" or return);
-        material.color = super::bevy_color(update.color);
+        material.color = update.color.into();
 
         info.ambient_fluid = Some(update.ambient_fluid.clone());
     }
 }
 
-#[derive(Default, Component)]
+#[derive(Default, Component, Reflect)]
 pub struct Info {
     pub ambient_fluid: Option<proto::FluidStorageFull>,
 }
 
-#[derive(Component)]
+#[derive(Component, Resource, Reflect)]
 #[relationship(relationship_target = HasWallEntity)]
 struct WallEntityOf(Entity);
 
-#[derive(Component)]
+#[derive(Component, Resource, Reflect)]
 #[relationship_target(relationship = WallEntityOf)]
 struct HasWallEntity(Entity);
 
-#[derive(Resource, Default)]
+#[derive(Resource, Reflect, Default)]
 struct WallMaterials {
     base:    Option<asset::Handle<ColorMaterial>>,
     hovered: Option<asset::Handle<ColorMaterial>>,
@@ -216,4 +225,25 @@ pub struct Conf {
     pub wall_color:         Color,
     #[config(default = Color::srgb(1.0, 0.4, 0.5))]
     pub hovered_wall_color: Color,
+}
+
+fn sync_clicked_pickable(
+    dock: &dock::State,
+    facility_query: Query<(&mut Pickable, &FacilityBuilding)>,
+) {
+    let opened_entities: EntityHashSet = dock
+        .tabs()
+        .filter_map(|tab| match tab {
+            dock::TabEnum::ViewableInfo(tab) => Some(tab.entity),
+            _ => None,
+        })
+        .collect();
+
+    for (mut pickable, building) in facility_query {
+        *pickable = if opened_entities.contains(&building.0) {
+            Pickable::default()
+        } else {
+            Pickable::IGNORE
+        };
+    }
 }

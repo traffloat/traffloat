@@ -1,3 +1,7 @@
+use bevy::app::App;
+use bevy::ecs::schedule::{IntoScheduleConfigs, ScheduleLabel, SystemSet};
+use itertools::Itertools;
+
 mod ab;
 pub use ab::{Alpha, AlphaBeta, Beta, GetAb, Which};
 
@@ -10,3 +14,12 @@ pub use merge_sort::{MergeSortedItem, merge_sorted};
 
 mod throttle;
 pub use throttle::Throttle;
+
+pub fn configure_enum_system_set<T>(app: &mut App, schedule: impl ScheduleLabel + Clone)
+where
+    T: 'static + Send + Sync + SystemSet + strum::IntoEnumIterator + Copy,
+{
+    for (prev, next) in <T as strum::IntoEnumIterator>::iter().tuple_windows() {
+        app.configure_sets(schedule.clone(), prev.before(next));
+    }
+}

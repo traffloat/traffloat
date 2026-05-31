@@ -7,7 +7,9 @@ use traffloat_physics::util::{Alpha, Beta, GetAb, QueryExt, Which};
 use traffloat_proto::proto;
 
 use crate::dock::viewable_info::corridor::display_gate;
+use crate::dock::viewable_info::show_fluid;
 use crate::dock::{self, viewable_info};
+use crate::scene::facility::BuildingFacilities;
 use crate::scene::{FluidTypes, GenericViewable, building, corridor};
 use crate::util::new_id;
 
@@ -16,6 +18,7 @@ pub struct UiSystemParam<'w, 's> {
     commands:       Commands<'w, 's>,
     building_query: Query<'w, 's, BuildingData>,
     corridor_query: Query<'w, 's, CorridorData>,
+    facility_query: Query<'w, 's, FacilityData>,
     fluid_types:    Res<'w, FluidTypes>,
 }
 
@@ -25,6 +28,7 @@ struct BuildingData {
     info:            &'static building::Info,
     corridors_alpha: Option<&'static corridor::IsEndpointOf<Alpha>>,
     corridors_beta:  Option<&'static corridor::IsEndpointOf<Beta>>,
+    facilities:      Option<&'static BuildingFacilities>,
 }
 
 #[derive(QueryData)]
@@ -49,12 +53,26 @@ impl<'a> GetAb<Option<(Entity, &'a corridor::EndpointDetails)>> for &'a Corridor
     }
 }
 
+#[derive(QueryData)]
+struct FacilityData {
+    generic: &'static GenericViewable,
+}
+
 impl UiSystemParam<'_, '_> {
     pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, dock: dock::Context) {
         let Ok(data) = self.building_query.get(entity) else {
             ui.label("Object has been unloaded");
             return;
         };
+
+        if let Some(facilities) = data.facilities
+            && !facilities.is_empty()
+        {
+            ui.heading("Facilities");
+            for facility in facilities.iter() {
+                show_facility(ui, dock.id, &mut self.commands, &self.facility_query, facility);
+            }
+        }
 
         if data.corridors_alpha.is_some_and(|c| !c.is_empty())
             || data.corridors_beta.is_some_and(|c| !c.is_empty())
@@ -132,23 +150,20 @@ fn show_connection<Ab: Which>(
     });
 }
 
-fn show_fluid(
+fn show_facility(
     ui: &mut egui::Ui,
     id: egui::Id,
-    ambient_fluid: &proto::FluidStorageFull,
-    types: &FluidTypes,
+    commands: &mut Commands,
+    facility_query: &Query<FacilityData>,
+    facility_entity: Entity,
 ) {
-    ui.label(format!("Volume: {:.2}", ambient_fluid.volume));
-    ui.label(format!("Pressure: {:.2}", ambient_fluid.pressure));
-    ui.label(format!("Temperature: {:.2} K", ambient_fluid.temperature));
+    let Some(facility_data) = facility_query.log_get(facility_entity) else { return };
 
-    egui::CollapsingHeader::new("Composition").id_salt(new_id!(id)).show(ui, |ui| {
-        for (id, fraction) in ambient_fluid.types.iter().enumerate() {
-            ui.label(format!(
-                "{}: {:.2} mol",
-                types.0.get(id).map_or("???", |ty| &ty.name),
-                fraction * 100.0
-            ));
+    ui.horizontal(|ui| {
+        if ui.button(icons::ICON_LINK).clicked() {
+            commands.queue(viewable_info::OpenCommand::from_click(facility_entity, ui.ctx()));
         }
+
+        ui.label(&facility_data.generic.name);
     });
 }

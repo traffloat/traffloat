@@ -73,6 +73,14 @@ impl State {
         &mut tabs[path.2.0].tab
     }
 
+    pub fn tabs(&self) -> impl Iterator<Item = &TabEnum> {
+        self.0.iter_all_tabs().map(|(_, tab)| &tab.tab)
+    }
+
+    pub fn tabs_mut(&mut self) -> impl Iterator<Item = &mut TabEnum> {
+        self.0.iter_all_tabs_mut().map(|(_, tab)| &mut tab.tab)
+    }
+
     pub fn reset_all(&mut self, tab: TabEnum) { self.0 = DockState::new([tab.into()].into()); }
 }
 

@@ -17,7 +17,9 @@ bevy_mod_config = "0.6.2"
 derive_more = { version = "2.1.1", default-features = false, features = ["add", "add_assign"] }
 enum-map = "2.7.3"
 enum_dispatch = "0.3.13"
+itertools = "0.14.0"
 serde = { version = "1.0.228", features = ["derive"] }
+strum = { version = "0.28.0", features = ["derive"] }
 tracing = "0.1.44"
 
 traffloat-proto = { workspace = true }

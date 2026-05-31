@@ -6,7 +6,7 @@ use bevy::app::App;
 use bevy::ecs::entity::Entity;
 use bevy::time;
 
-use crate::fluid;
+use crate::{fluid, view};
 
 const NUM_TYPES: usize = 16;
 
@@ -195,7 +195,7 @@ fn do_test(
     edge: fluid::Edge,
 ) -> Validate {
     let mut app = App::new();
-    app.add_plugins((time::TimePlugin, fluid::Plug));
+    app.add_plugins((time::TimePlugin, view::Plug, fluid::Plug));
     app.insert_resource(time::TimeUpdateStrategy::FixedTimesteps(1));
     app.insert_resource(fluid::Conf { transfer_timestep: 1 });
     {

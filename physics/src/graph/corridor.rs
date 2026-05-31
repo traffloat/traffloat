@@ -7,6 +7,7 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
 use bevy::ecs::world::EntityWorldMut;
+use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
 use crate::util::AlphaBeta;
@@ -16,6 +17,9 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        app.register_type::<NextCorridorId>();
+        app.register_type::<Corridor>();
+
         app.init_resource::<NextCorridorId>();
         app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
         app.add_systems(
@@ -28,7 +32,7 @@ impl Plugin for Plug {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct Corridor {
     pub name:               String,
     pub length:             f32,
@@ -38,7 +42,7 @@ pub struct Corridor {
     pub endpoint_positions: AlphaBeta<Vector>,
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
 struct NextCorridorId(u64);
 
 pub struct SpawnCommand {
@@ -98,19 +102,16 @@ fn init_viewer_system(
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
     for (corridor, viewable) in corridor_query {
-        if !viewable.new_subscribers.is_empty() {
-            messages.write(view::SentUpdate {
-                viewers: viewable.new_subscribers.iter().copied().collect(),
-                body:    proto::Update::NewCorridor(proto::NewCorridor {
-                    id:             viewable.id,
-                    name:           corridor.name.clone(),
-                    alpha_position: corridor.endpoint_positions.alpha,
-                    beta_position:  corridor.endpoint_positions.beta,
-                    radius:         corridor.radius,
-                    wall_thickness: corridor.wall_thickness,
-                }),
-            });
-        }
+        messages.write_batch(viewable.broadcast_new(|| {
+            [proto::Update::NewCorridor(proto::NewCorridor {
+                id:             viewable.id,
+                name:           corridor.name.clone(),
+                alpha_position: corridor.endpoint_positions.alpha,
+                beta_position:  corridor.endpoint_positions.beta,
+                radius:         corridor.radius,
+                wall_thickness: corridor.wall_thickness,
+            })]
+        }));
     }
 }
 

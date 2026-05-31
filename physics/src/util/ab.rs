@@ -1,10 +1,11 @@
 use std::{cmp, iter, ops};
 
+use bevy::reflect::{self, FromReflect, GetTypeRegistration, Reflect};
 use traffloat_proto::proto;
 
 use crate::util::{MergeSortedItem, merge_sorted};
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Reflect)]
 pub struct AlphaBeta<T> {
     pub alpha: T,
     pub beta:  T,
@@ -78,13 +79,19 @@ impl<T: IntoIterator> AlphaBeta<T> {
     }
 }
 
-impl<'a, T> AlphaBeta<&'a Box<[T]>> {
+impl<'a, T> AlphaBeta<&'a [T]> {
     pub fn zip_iter(self) -> impl Iterator<Item = AlphaBeta<&'a T>> {
         self.alpha.iter().zip(self.beta.iter()).map(|(alpha, beta)| AlphaBeta { alpha, beta })
     }
 }
 
-impl<'a, T> AlphaBeta<&'a mut Box<[T]>> {
+impl<'a, T: ops::Deref> AlphaBeta<&'a T> {
+    pub fn as_deref(self) -> AlphaBeta<&'a T::Target> {
+        AlphaBeta { alpha: &**self.alpha, beta: &**self.beta }
+    }
+}
+
+impl<'a, T> AlphaBeta<&'a mut [T]> {
     pub fn zip_iter_mut(self) -> impl Iterator<Item = AlphaBeta<&'a mut T>> {
         self.alpha
             .iter_mut()
@@ -102,7 +109,17 @@ impl<A, B> AlphaBeta<(A, B)> {
     }
 }
 
-pub trait Which: Default + Copy + Send + Sync + 'static {
+pub trait Which:
+    Default
+    + Copy
+    + Send
+    + Sync
+    + Reflect
+    + FromReflect
+    + GetTypeRegistration
+    + reflect::Typed
+    + 'static
+{
     type Other: Which;
     fn other(self) -> Self::Other { Self::Other::default() }
 
@@ -119,7 +136,7 @@ macro_rules! define_which {
     (
         $ident:ident, $field:ident, $variant:ident, $other:ident, $get:ident
     ) => {
-        #[derive(Default, Clone, Copy)]
+        #[derive(Default, Clone, Copy, Reflect)]
         pub struct $ident;
 
         impl Which for $ident {

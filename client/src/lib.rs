@@ -1,4 +1,5 @@
 use bevy::app::{App, AppExit, PluginGroup};
+use bevy::asset::AssetPlugin;
 use bevy::ecs::resource::Resource;
 use bevy::log::LogPlugin;
 use bevy::log::tracing_subscriber::fmt::format::FmtSpan;
@@ -12,33 +13,40 @@ mod util;
 
 pub fn run(options: Options) -> AppExit {
     let mut app = App::new();
-    app.insert_resource(options);
-    app.add_plugins(bevy::DefaultPlugins.set(LogPlugin {
-        // fmt_layer: |_| Some(Box::new(tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE))),
-        custom_layer: {
-            move |app| {
-                #[cfg(feature = "otel")]
-                {
-                    let options = &app.world().resource::<Options>().otel;
-                    if options.otel_export {
-                        use opentelemetry::trace::TracerProvider;
+    app.insert_resource(options.clone());
+    app.add_plugins(
+        bevy::DefaultPlugins
+            .set(LogPlugin {
+                // fmt_layer: |_| Some(Box::new(tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE))),
+                custom_layer: {
+                    move |app| {
+                        #[cfg(feature = "otel")]
+                        {
+                            let options = &app.world().resource::<Options>().otel;
+                            if options.otel_export {
+                                use opentelemetry::trace::TracerProvider;
 
-                        let exporter = opentelemetry_otlp::SpanExporter::builder()
-                            .with_http()
-                            .build()
-                            .expect("failed to create otel exporter");
-                        let provider = opentelemetry_sdk::trace::SdkTracerProvider::builder()
-                            .with_simple_exporter(exporter)
-                            .build();
-                        let tracer = provider.tracer("traffloat");
-                        return Some(Box::new(tracing_opentelemetry::layer().with_tracer(tracer)));
+                                let exporter = opentelemetry_otlp::SpanExporter::builder()
+                                    .with_http()
+                                    .build()
+                                    .expect("failed to create otel exporter");
+                                let provider =
+                                    opentelemetry_sdk::trace::SdkTracerProvider::builder()
+                                        .with_simple_exporter(exporter)
+                                        .build();
+                                let tracer = provider.tracer("traffloat");
+                                return Some(Box::new(
+                                    tracing_opentelemetry::layer().with_tracer(tracer),
+                                ));
+                            }
+                        }
+                        None
                     }
-                }
-                None
-            }
-        },
-        ..Default::default()
-    }));
+                },
+                ..Default::default()
+            })
+            .set(AssetPlugin { file_path: options.assets_path.clone(), ..Default::default() }),
+    );
     #[cfg(feature = "dev")]
     app.add_plugins(MeshPickingPlugin);
     app.add_plugins(EguiPlugin::default());
@@ -49,15 +57,18 @@ pub fn run(options: Options) -> AppExit {
     app.run()
 }
 
-#[derive(Resource, clap::Parser)]
+#[derive(Clone, Resource, clap::Parser)]
 pub struct Options {
+    #[clap(long)]
+    pub assets_path: String,
+
     #[cfg(feature = "otel")]
     #[clap(flatten)]
     pub otel: OtelOptions,
 }
 
 #[cfg(feature = "otel")]
-#[derive(clap::Args)]
+#[derive(clap::Args, Clone)]
 pub struct OtelOptions {
     /// If specified, enables an OTLP otel exporter.
     #[clap(long, env)]

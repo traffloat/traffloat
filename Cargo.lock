@@ -2726,9 +2726,9 @@ dependencies = [
 
 [[package]]
 name = "either"
-version = "1.15.0"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
+checksum = "91622ff5e7162018101f2fea40d6ebf4a78bbe5a49736a2020649edf9693679e"
 
 [[package]]
 name = "emath"
@@ -6113,12 +6113,14 @@ dependencies = [
  "egui",
  "egui_dock",
  "egui_material_icons",
+ "either",
  "enum-map",
  "itertools 0.14.0",
  "opentelemetry",
  "opentelemetry-otlp",
  "opentelemetry-stdout",
  "opentelemetry_sdk",
+ "ordered-float",
  "strum",
  "tracing",
  "tracing-opentelemetry",
@@ -6146,7 +6148,9 @@ dependencies = [
  "derive_more",
  "enum-map",
  "enum_dispatch",
+ "itertools 0.14.0",
  "serde",
+ "strum",
  "tracing",
  "traffloat-proto",
 ]
