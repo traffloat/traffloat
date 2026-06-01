@@ -6161,6 +6161,7 @@ version = "0.0.4"
 dependencies = [
  "bevy",
  "serde",
+ "strum",
 ]
 
 [[package]]

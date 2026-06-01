@@ -1,7 +1,6 @@
 //! A local mirror of the actual world based on incremental [proto](traffloat_proto) updates.
 
 use std::collections::HashMap;
-use std::mem;
 
 use bevy::app::{self, App, Plugin};
 use bevy::asset::Assets;
@@ -76,7 +75,7 @@ impl IdRegistry {
             Some(v) => {
                 tracing::error!(
                     "Expected received ID {id:?} to be a building, found {:?}",
-                    mem::discriminant(v)
+                    <&'static str>::from(v),
                 );
                 None
             }
@@ -93,7 +92,7 @@ impl IdRegistry {
             Some(v) => {
                 tracing::error!(
                     "Expected received ID {id:?} to be a corridor, found {:?}",
-                    mem::discriminant(v)
+                    <&'static str>::from(v),
                 );
                 None
             }
@@ -105,7 +104,7 @@ impl IdRegistry {
     }
 }
 
-#[derive(Reflect)]
+#[derive(Reflect, strum::IntoStaticStr)]
 enum TrackedId {
     Building(Entity),
     Corridor(Entity),
@@ -167,9 +166,11 @@ fn handle_update_system(class: HandlerClass, mut params: HandleUpdateParams) {
 
     for update in params.updates.read() {
         if update.viewers.contains(&*viewer) && UpdateHandlerMux::classify(&update.body) == class {
-            tracing::debug_span!("handle_update", update = ?update.body).in_scope(|| {
-                params.mux.handle(&update.body);
-            });
+            tracing::info_span!("handle_update", update = ?<&'static str>::from(&update.body))
+                .in_scope(|| {
+                    tracing::debug!("Handle update {:?}", update.body);
+                    params.mux.handle(&update.body);
+                });
         }
     }
 }
@@ -260,6 +261,7 @@ define_params! {
     SetCorridorEndpoint(corridor::SetCorridorEndpointParams<'w, 's>),
     NewFacility(facility::NewFacilityParams<'w, 's>),
     SetFacilityTaint(facility::SetFacilityTaintParams<'w, 's>),
+    SetFacilityFluid(facility::SetFacilityFluidParams<'w, 's>),
     RemoveViewable(RemoveViewableParams<'w, 's>),
     SetFluidTypes(SetFluidTypesParams<'w>),
 }

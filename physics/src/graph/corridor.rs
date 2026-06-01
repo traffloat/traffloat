@@ -24,8 +24,7 @@ impl Plugin for Plug {
         app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
         app.add_systems(
             app::Update,
-            (basic_incr_viewer_system, full_incr_viewer_system)
-                .chain()
+            incr_viewer_system
                 .in_set(super::ViewSystemSets::Corridor)
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
@@ -80,7 +79,7 @@ impl EntityCommand for SpawnCommand {
         // ambient conduit
         entity.reborrow_scope(|entity| {
             fluid::AddStorageCommand {
-                ambient_volume: self.ambient_area * self.length,
+                volume:         self.ambient_area * self.length,
                 optical_length: self.radius,
             }
             .apply(entity);
@@ -115,30 +114,7 @@ fn init_viewer_system(
     }
 }
 
-fn basic_incr_viewer_system(
-    mut throttle: view::BroadcastThrottle,
-    corridor_query: Query<(&Corridor, &view::Viewable, &fluid::Storage)>,
-    mut messages: MessageWriter<view::SentUpdate>,
-) {
-    if !throttle.should_run() {
-        return;
-    }
-
-    for (building, viewable, storage) in corridor_query {
-        let subs = &viewable.subscribers[view::SubscriptionLevel::Basic];
-        if !subs.is_empty() {
-            messages.write(view::SentUpdate {
-                viewers: subs.iter().copied().collect(),
-                body:    proto::Update::UpdateCorridor(proto::UpdateCorridor {
-                    id:    viewable.id,
-                    color: proto::Color(storage.rgba),
-                }),
-            });
-        }
-    }
-}
-
-fn full_incr_viewer_system(
+fn incr_viewer_system(
     mut throttle: view::BroadcastThrottle,
     corridor_query: Query<(&Corridor, &view::Viewable, &fluid::Storage)>,
     mut messages: MessageWriter<view::SentUpdate>,
@@ -148,11 +124,15 @@ fn full_incr_viewer_system(
     }
 
     for (corridor, viewable, storage) in corridor_query.iter() {
-        let subs = &viewable.subscribers[view::SubscriptionLevel::Full];
-        if !subs.is_empty() {
-            messages.write(view::SentUpdate {
-                viewers: subs.iter().copied().collect(),
-                body:    proto::Update::UpdateCorridorFull(proto::UpdateCorridorFull {
+        messages.write_batch(viewable.broadcast_update(|level| match level {
+            view::SubscriptionLevel::Basic => {
+                [proto::Update::UpdateCorridor(proto::UpdateCorridor {
+                    id:    viewable.id,
+                    color: proto::Color(storage.rgba),
+                })]
+            }
+            view::SubscriptionLevel::Full => {
+                [proto::Update::UpdateCorridorFull(proto::UpdateCorridorFull {
                     id:            viewable.id,
                     color:         proto::Color(storage.rgba),
                     ambient_fluid: proto::FluidStorageFull {
@@ -161,8 +141,8 @@ fn full_incr_viewer_system(
                         temperature: storage.temperature,
                         types:       storage.types.iter().map(|typed| typed.moles.0).collect(),
                     },
-                }),
-            });
-        }
+                })]
+            }
+        }));
     }
 }

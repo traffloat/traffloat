@@ -14,3 +14,4 @@ workspace = true
 [dependencies]
 bevy = { workspace = true }
 serde = { version = "1.0.228", features = ["derive"] }
+strum = { version = "0.28.0", features = ["derive"] }

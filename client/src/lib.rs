@@ -17,7 +17,16 @@ pub fn run(options: Options) -> AppExit {
     app.add_plugins(
         bevy::DefaultPlugins
             .set(LogPlugin {
-                // fmt_layer: |_| Some(Box::new(tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE))),
+                fmt_layer: move |app| {
+                    let options = app.world().resource::<Options>();
+                    if options.log_spans {
+                        Some(Box::new(
+                            tracing_subscriber::fmt::layer().with_span_events(FmtSpan::CLOSE),
+                        ))
+                    } else {
+                        None
+                    }
+                },
                 custom_layer: {
                     move |app| {
                         #[cfg(feature = "otel")]
@@ -59,12 +68,14 @@ pub fn run(options: Options) -> AppExit {
 
 #[derive(Clone, Resource, clap::Parser)]
 pub struct Options {
-    #[clap(long)]
+    #[clap(long, env, default_value = "./assets")]
     pub assets_path: String,
 
+    #[clap(long, env)]
+    pub log_spans: bool,
     #[cfg(feature = "otel")]
     #[clap(flatten)]
-    pub otel: OtelOptions,
+    pub otel:      OtelOptions,
 }
 
 #[cfg(feature = "otel")]

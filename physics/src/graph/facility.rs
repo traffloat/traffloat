@@ -4,16 +4,16 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
-use bevy::ecs::query::With;
+use bevy::ecs::query::{QueryData, With};
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
-use crate::graph::Building;
+use crate::graph::{Building, building};
 use crate::util::{QueryExt, WorldExt};
-use crate::view;
+use crate::{fluid, reactor, view};
 
 pub mod blueprint;
 pub use blueprint::Blueprint;
@@ -31,8 +31,7 @@ impl Plugin for Plug {
         app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
         app.add_systems(
             app::Update,
-            (basic_incr_viewer_system, full_incr_viewer_system)
-                .chain()
+            (incr_viewer_system)
                 .in_set(super::ViewSystemSets::Facility)
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
@@ -83,6 +82,8 @@ pub struct SpawnCommand {
     pub name:     Option<String>,
     pub building: Entity,
     pub ty:       Entity,
+
+    pub blueprint_params: blueprint::Params,
 }
 
 impl EntityCommand for SpawnCommand {
@@ -99,8 +100,46 @@ impl EntityCommand for SpawnCommand {
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
 
-        // TODO recompute remaining ambient volume in building
+        entity.world_scope(|world| {
+            building::RecomputeAmbientVolume.apply(world.entity_mut(self.building));
+        });
+
+        let Some(def) = entity.world().log_get::<FacilityTypeDef>(self.ty) else { return };
+        let exec_fluid = insert_fluid(&def.blueprint);
+        let exec_reactor = insert_reactor(&def.blueprint, &self.blueprint_params);
+
+        if let Some(f) = exec_fluid {
+            f(&mut entity);
+        }
+        if let Some(f) = exec_reactor {
+            f(&mut entity);
+        }
     }
+}
+
+fn insert_fluid(bp: &Blueprint) -> Option<impl FnOnce(&mut EntityWorldMut) + use<>> {
+    let def = bp.fluid_storage.as_ref()?;
+    let command =
+        fluid::AddStorageCommand { volume: def.volume, optical_length: def.optical_length };
+    Some(move |entity: &mut EntityWorldMut| {
+        entity.reborrow_scope(|entity| command.apply(entity));
+    })
+}
+
+fn insert_reactor(
+    bp: &Blueprint,
+    params: &blueprint::Params,
+) -> Option<impl FnOnce(&mut EntityWorldMut) + use<>> {
+    let def = bp.reactor.as_ref()?;
+    let params = try_log!(params.reactor.as_ref(), expect "reactor blueprint expects reactor params" or return None);
+    let reactor = reactor::Facility {
+        id:             def.ty,
+        efficiency_cap: 1.0,
+        ports:          reactor::Ports { fluid_storages: params.fluid_storages.clone() },
+    };
+    Some(move |entity: &mut EntityWorldMut| {
+        entity.insert(reactor);
+    })
 }
 
 fn init_viewer_system(
@@ -127,10 +166,39 @@ fn init_viewer_system(
     }
 }
 
-fn basic_incr_viewer_system() {
-    // TODO
+fn incr_viewer_system(
+    mut throttle: view::BroadcastThrottle,
+    facility_query: Query<IncrData, IncrFilter>,
+    mut messages: MessageWriter<view::SentUpdate>,
+) {
+    if !throttle.should_run() {
+        return;
+    }
+
+    for facility in facility_query {
+        let color = proto::Color(facility.storage.rgba);
+        messages.write_batch(facility.viewable.broadcast_update(|level| match level {
+            view::SubscriptionLevel::Basic => {
+                [proto::Update::SetFacilityTaint(proto::SetFacilityTaint {
+                    id:    facility.viewable.id,
+                    taint: color,
+                })]
+            }
+            view::SubscriptionLevel::Full => [
+                proto::Update::SetFacilityTaint(proto::SetFacilityTaint {
+                    id:    facility.viewable.id,
+                    taint: color,
+                }),
+                // TODO full details
+            ],
+        }));
+    }
 }
 
-fn full_incr_viewer_system() {
-    // TODO
+#[derive(QueryData)]
+struct IncrData {
+    viewable: &'static view::Viewable,
+    storage:  &'static fluid::Storage,
 }
+
+type IncrFilter = With<Facility>;

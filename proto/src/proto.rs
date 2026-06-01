@@ -32,7 +32,7 @@ impl From<Color> for LinearRgba {
 }
 
 /// Messages from the world to a specific viewer.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect, strum::IntoStaticStr)]
 pub enum Update {
     NewBuilding(NewBuilding),
     UpdateBuilding(UpdateBuilding),
@@ -43,6 +43,7 @@ pub enum Update {
     SetCorridorEndpoint(SetCorridorEndpoint),
     NewFacility(NewFacility),
     SetFacilityTaint(SetFacilityTaint),
+    SetFacilityFluid(SetFacilityFluid),
     RemoveViewable(RemoveViewable),
     SetFluidTypes(SetFluidTypes),
 }
@@ -134,6 +135,12 @@ pub struct FacilityDisplay {
 pub struct SetFacilityTaint {
     pub id:    Id,
     pub taint: Color,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetFacilityFluid {
+    pub id:    Id,
+    pub fluid: FluidStorageFull,
 }
 
 /// Unsubscribed from a viewable.

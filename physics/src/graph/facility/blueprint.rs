@@ -5,6 +5,7 @@
 //! such as whether a reactor port can be connected to ambient storage, an adjacent corridor, etc,
 //! while the actual instance component would point to the actual storage selected.
 
+use bevy::ecs::entity::Entity;
 use enum_map::EnumMap;
 
 use crate::reactor;
@@ -26,6 +27,9 @@ pub struct FluidStorage {
     ///
     /// This should be less than or equal to the volume of the facility.
     pub volume: f32,
+
+    /// Length of the fluid storage in terms of light absorption
+    pub optical_length: f32,
 }
 
 /// Constrains changes to a [`reactor::Facility`].
@@ -65,4 +69,14 @@ pub enum FluidStoragePortType {
     OtherFacility,
     /// This port can be connected to the fluid storage of a fluid conduit in an adjacent corridor.
     AdjacentPipe,
+}
+
+#[derive(Debug, Default)]
+pub struct Params {
+    pub reactor: Option<ReactorParams>,
+}
+
+#[derive(Debug)]
+pub struct ReactorParams {
+    pub fluid_storages: Vec<Option<Entity>>,
 }

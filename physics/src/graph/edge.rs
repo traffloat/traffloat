@@ -130,14 +130,14 @@ fn broadcast_edge_change_system<Ab: Which>(
         let Some(corridor_viewable) = viewable_query.log_get(corridor.0) else { continue };
         let Some(building_viewable) = viewable_query.log_get(building.0) else { continue };
         writer.write_batch(corridor_viewable.broadcast_update(|_| {
-            proto::Update::SetCorridorEndpoint(proto::SetCorridorEndpoint {
+            [proto::Update::SetCorridorEndpoint(proto::SetCorridorEndpoint {
                 corridor: corridor_viewable.id,
                 which:    Ab::default().proto(),
                 value:    Some(proto::CorridorEndpoint {
                     building: building_viewable.id,
                     open:     edge.open,
                 }),
-            })
+            })]
         }));
     }
 }
@@ -161,7 +161,7 @@ impl EntityCommand for DespawnCommand {
                     value:    None,
                 });
                 let messages: Vec<_> =
-                    corridor_viewable.broadcast_update(|_| update.clone()).collect();
+                    corridor_viewable.broadcast_update(|_| [update.clone()]).collect();
                 world.write_message_batch(messages);
             });
         }

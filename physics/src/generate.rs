@@ -153,7 +153,8 @@ fn gen_reactor_types(world: &mut World, std_fluids: &StandardFluidTypes) -> Stan
 }
 
 struct StandardFacilityTypes {
-    garden: Entity,
+    garden:     Entity,
+    small_tank: Entity,
 }
 
 fn gen_facility_types(
@@ -181,26 +182,52 @@ fn gen_facility_types(
             },
         ))
         .id();
-    StandardFacilityTypes { garden }
+
+    let small_tank = world
+        .spawn((
+            WorldObject,
+            graph::FacilityTypeDef {
+                display_name: "Small tank".into(),
+                volume:       120.0,
+                sprite_id:    "facility/small-tank".into(),
+                blueprint:    Blueprint {
+                    fluid_storage: Some(blueprint::FluidStorage {
+                        volume:         100.0,
+                        optical_length: inverse_sphere_volume(100.0),
+                    }),
+                    ..Default::default()
+                },
+            },
+        ))
+        .id();
+
+    StandardFacilityTypes { garden, small_tank }
 }
 
 fn gen_core(world: &mut World, std: &StandardTypes) -> Entity {
     let mut building = world.spawn((WorldObject,));
     building.reborrow_scope(|building| {
         building::SpawnCommand {
-            building: graph::Building {
-                name:           "Core".into(),
-                position:       (0.0, 0.0).into(),
-                radius:         15.0,
-                wall_thickness: 0.8,
-                ambient_volume: const { sphere_volume(15.0) },
-            },
+            name:           "Core".into(),
+            position:       (0.0, 0.0).into(),
+            radius:         15.0,
+            wall_thickness: 0.8,
         }
         .apply(building);
     });
 
     let building_id = building.id();
     std.fluids.fill_atmosphere(world, building_id);
+
+    let facility = world.spawn(WorldObject);
+    facility::SpawnCommand {
+        name:             Some("Core water tank".into()),
+        building:         building_id,
+        ty:               std.facilities.small_tank,
+        blueprint_params: blueprint::Params::default(),
+    }
+    .apply(facility);
+
     building_id
 }
 
@@ -208,13 +235,10 @@ fn gen_garden(world: &mut World, std: &StandardTypes) -> Entity {
     let mut building = world.spawn((WorldObject,));
     building.reborrow_scope(|building| {
         building::SpawnCommand {
-            building: graph::Building {
-                name:           "Garden".into(),
-                position:       (40.0, 0.0).into(),
-                radius:         6.0,
-                wall_thickness: STANDARD_WALL_THICKNESS,
-                ambient_volume: const { sphere_volume(6.0) },
-            },
+            name:           "Garden".into(),
+            position:       (40.0, 0.0).into(),
+            radius:         6.0,
+            wall_thickness: STANDARD_WALL_THICKNESS,
         }
         .apply(building);
     });
@@ -222,18 +246,16 @@ fn gen_garden(world: &mut World, std: &StandardTypes) -> Entity {
     let building_id = building.id();
     std.fluids.fill_atmosphere(world, building_id);
 
-    let facility = world.spawn((
-        WorldObject,
-        reactor::Facility {
-            id:             std.reactors.garden,
-            efficiency_cap: 1.0,
-            ports:          reactor::Ports { fluid_storages: [Some(building_id), None].into() },
-        },
-    ));
+    let facility = world.spawn(WorldObject);
     facility::SpawnCommand {
-        name:     None,
-        building: building_id,
-        ty:       std.facilities.garden,
+        name:             None,
+        building:         building_id,
+        ty:               std.facilities.garden,
+        blueprint_params: blueprint::Params {
+            reactor: Some(blueprint::ReactorParams {
+                fluid_storages: [Some(building_id), None].into(),
+            }),
+        },
     }
     .apply(facility);
 
@@ -303,6 +325,6 @@ impl StandardFluidTypes {
     }
 }
 
-const fn sphere_volume(radius: f32) -> f32 { 4.0 / 3.0 * PI * radius * radius * radius }
+fn inverse_sphere_volume(volume: f32) -> f32 { (volume * 3.0 / (4.0 * PI)).cbrt() }
 
 const fn circle_area(radius: f32) -> f32 { 0.5 * PI * radius * radius }

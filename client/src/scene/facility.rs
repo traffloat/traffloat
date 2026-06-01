@@ -163,6 +163,29 @@ impl UpdateHandler for SetFacilityTaintParams<'_, '_> {
     }
 }
 
+#[derive(SystemParam)]
+pub struct SetFacilityFluidParams<'w, 's> {
+    ids:            ResMut<'w, IdRegistry>,
+    facility_query: Query<'w, 's, &'static mut Info>,
+}
+
+impl UpdateHandler for SetFacilityFluidParams<'_, '_> {
+    type Update = proto::SetFacilityFluid;
+
+    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &Self::Update) {
+        let Some(&TrackedId::Facility(entity)) = self.ids.map.get(&update.id) else {
+            tracing::error!("Received SetFacilityFluid for unknown facility id {:?}", update.id);
+            return;
+        };
+        let Some(mut info) = self.facility_query.log_get_mut(entity) else {
+            return;
+        };
+        info.stored_fluid = Some(update.fluid.clone());
+    }
+}
+
 fn rearrange_facility_tf_system(
     building_query: Query<
         (&mut NeedRearrangeTransform, &Transform, &BuildingFacilities),

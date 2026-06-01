@@ -302,14 +302,14 @@ pub struct TypedStorage {
 }
 
 pub struct AddStorageCommand {
-    pub ambient_volume: f32,
+    pub volume:         f32,
     pub optical_length: f32,
 }
 
 impl EntityCommand for AddStorageCommand {
     fn apply(self, mut entity: EntityWorldMut) {
         let num_types = entity.world().resource::<Types>().types.len();
-        entity.insert(Storage::vacuum(num_types, self.ambient_volume, self.optical_length));
+        entity.insert(Storage::vacuum(num_types, self.volume, self.optical_length));
     }
 }
 

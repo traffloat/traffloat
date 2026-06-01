@@ -102,15 +102,19 @@ pub struct Viewable {
 }
 
 impl Viewable {
-    pub fn broadcast_update(
+    #[must_use = "pass the result to MessageWrite::write_batch"]
+    pub fn broadcast_update<Iter: IntoIterator<Item = proto::Update>>(
         &self,
-        mut update: impl FnMut(SubscriptionLevel) -> proto::Update,
+        mut update: impl FnMut(SubscriptionLevel) -> Iter,
     ) -> impl Iterator<Item = SentUpdate> {
-        self.subscribers.iter().filter(|(_, viewers)| !viewers.is_empty()).map(
-            move |(level, viewers)| SentUpdate { viewers: viewers.clone(), body: update(level) },
+        self.subscribers.iter().filter(|(_, viewers)| !viewers.is_empty()).flat_map(
+            move |(level, viewers)| {
+                update(level).into_iter().map(|body| SentUpdate { viewers: viewers.clone(), body })
+            },
         )
     }
 
+    #[must_use = "pass the result to MessageWrite::write_batch"]
     pub fn broadcast_new<Iter: IntoIterator<Item = proto::Update>>(
         &self,
         update: impl FnOnce() -> Iter,
