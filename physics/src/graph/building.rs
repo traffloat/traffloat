@@ -149,12 +149,7 @@ fn incr_viewer_system(
                 [proto::Update::UpdateBuildingFull(proto::UpdateBuildingFull {
                     id:            viewable.id,
                     color:         proto::Color(storage.rgba),
-                    ambient_fluid: proto::FluidStorageFull {
-                        volume:      storage.volume,
-                        pressure:    storage.pressure,
-                        temperature: storage.temperature,
-                        types:       storage.types.iter().map(|typed| typed.moles.0).collect(),
-                    },
+                    ambient_fluid: storage.to_proto(),
                 })]
             }
         }));

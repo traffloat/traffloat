@@ -7,6 +7,7 @@ use bevy::asset::{self, AssetServer, Assets};
 use bevy::color::Color;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
+use bevy::ecs::hierarchy::ChildOf;
 use bevy::ecs::message::{Message, MessageReader};
 use bevy::ecs::name::Name;
 use bevy::ecs::observer;
@@ -49,6 +50,8 @@ impl Plugin for Plug {
         app.register_type::<BuildingFacilities>();
         app.register_type::<FacilityBuilding>();
         app.register_type::<Info>();
+        app.register_type::<TaintOf>();
+        app.register_type::<HasTaint>();
 
         app.add_systems(app::Update, rearrange_facility_tf_system.after(AllHandlersSystemSet));
     }
@@ -74,6 +77,14 @@ pub struct Info {
     pub volume:       f32,
     pub stored_fluid: Option<proto::FluidStorageFull>,
 }
+
+#[derive(Component, Reflect)]
+#[relationship(relationship_target = HasTaint)]
+struct TaintOf(Entity);
+
+#[derive(Component, Reflect)]
+#[relationship_target(relationship = TaintOf, linked_spawn)]
+struct HasTaint(Entity);
 
 #[derive(SystemParam)]
 pub(super) struct NewFacilityParams<'w, 's> {
@@ -112,8 +123,8 @@ impl UpdateHandler for NewFacilityParams<'_, '_> {
         });
 
         let material = self.materials.add(ColorMaterial {
-            color: Color::WHITE,
             texture: Some(texture_handle),
+            alpha_mode: AlphaMode2d::Blend,
             ..Default::default()
         });
 
@@ -131,6 +142,31 @@ impl UpdateHandler for NewFacilityParams<'_, '_> {
                 Info { volume: update.volume, ..Default::default() },
             ))
             .id();
+
+        if let Some(taint) = update.display.taint {
+            let texture = self.load_texture(&format!("{}.taint", update.display.sprite_id));
+            let taint_material = self.materials.add(ColorMaterial {
+                color: taint.into(),
+                texture: Some(texture),
+                alpha_mode: AlphaMode2d::Blend,
+                ..Default::default()
+            });
+            self.commands.spawn((
+                ChildOf(entity),
+                TaintOf(entity),
+                Mesh2d(self.shapes.square()),
+                MeshMaterial2d(taint_material),
+                // ensure rendering order is below the facility
+                Transform::IDENTITY.with_translation(Vec3::new(
+                    0.0,
+                    0.0,
+                    Zorder::FacilityTaint.z() - Zorder::Facility.z(),
+                )),
+                // never clickable
+                Pickable::IGNORE,
+            ));
+        }
+
         self.ids.map.insert(update.id, TrackedId::Facility(entity));
     }
 }
@@ -138,7 +174,8 @@ impl UpdateHandler for NewFacilityParams<'_, '_> {
 #[derive(SystemParam)]
 pub struct SetFacilityTaintParams<'w, 's> {
     ids:            ResMut<'w, IdRegistry>,
-    facility_query: Query<'w, 's, &'static MeshMaterial2d<ColorMaterial>, With<Info>>,
+    facility_query: Query<'w, 's, Option<&'static HasTaint>, With<Info>>,
+    taint_query:    Query<'w, 's, &'static MeshMaterial2d<ColorMaterial>>,
     materials:      ResMut<'w, Assets<ColorMaterial>>,
 }
 
@@ -152,10 +189,16 @@ impl UpdateHandler for SetFacilityTaintParams<'_, '_> {
             tracing::error!("Received SetFacilityTaint for unknown facility id {:?}", update.id);
             return;
         };
+
+        let Some(taint_entity) = self.facility_query.log_get(entity) else { return };
+        let Some(taint_entity) = taint_entity else {
+            tracing::error!("Facility {entity:?} did not have a taint when created");
+            return;
+        };
         let Some(material) = self
-            .facility_query
-            .log_get(entity)
-            .and_then(|material| self.materials.get_mut(&material.0))
+            .taint_query
+            .log_get(taint_entity.0)
+            .map(|material| self.materials.get_mut(&material.0).expect("strong material handle"))
         else {
             return;
         };

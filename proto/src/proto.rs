@@ -128,7 +128,7 @@ pub struct NewFacility {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct FacilityDisplay {
     pub sprite_id: String,
-    pub taint:     Color,
+    pub taint:     Option<Color>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]

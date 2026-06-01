@@ -77,7 +77,7 @@ fn gen_fluid_types(world: &mut World) -> StandardFluidTypes {
         advective_fluidity:   0.1,
         diffusive_fluidity:   0.01,
         thermal_conductivity: 0.6,
-        optical_extinction:   [0.055, 0.53, 0.8],
+        optical_extinction:   [0.8, 0.53, 0.055],
     });
     StandardFluidTypes {
         nitrogen,
@@ -219,14 +219,19 @@ fn gen_core(world: &mut World, std: &StandardTypes) -> Entity {
     let building_id = building.id();
     std.fluids.fill_atmosphere(world, building_id);
 
-    let facility = world.spawn(WorldObject);
-    facility::SpawnCommand {
-        name:             Some("Core water tank".into()),
-        building:         building_id,
-        ty:               std.facilities.small_tank,
-        blueprint_params: blueprint::Params::default(),
-    }
-    .apply(facility);
+    let mut facility = world.spawn(WorldObject);
+    facility.reborrow_scope(|facility| {
+        facility::SpawnCommand {
+            name:             Some("Core water tank".into()),
+            building:         building_id,
+            ty:               std.facilities.small_tank,
+            blueprint_params: blueprint::Params::default(),
+        }
+        .apply(facility);
+    });
+    let mut fluid_storage =
+        facility.get_mut::<fluid::Storage>().expect("blueprint contains fluid storage");
+    fluid_storage.set_fluid(std.fluids.water, fluid::Moles(80.0));
 
     building_id
 }

@@ -9,6 +9,7 @@ use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
+use itertools::Either;
 use traffloat_proto::proto;
 
 use crate::graph::{Building, building};
@@ -143,12 +144,20 @@ fn insert_reactor(
 }
 
 fn init_viewer_system(
-    facility_query: Query<(&Facility, &view::Viewable, &FacilityType, &FacilityOf)>,
+    facility_query: Query<(
+        &Facility,
+        &view::Viewable,
+        &FacilityType,
+        &FacilityOf,
+        Option<&fluid::Storage>,
+    )>,
     building_query: Query<&view::Viewable, With<Building>>,
     type_query: Query<&FacilityTypeDef>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (facility, viewable, &FacilityType(ty), &FacilityOf(building_entity)) in facility_query {
+    for (facility, viewable, &FacilityType(ty), &FacilityOf(building_entity), fluid_storage) in
+        facility_query
+    {
         messages.write_batch(viewable.broadcast_new(|| {
             let building_viewable = building_query.log_get(building_entity)?;
             let typedef = type_query.log_get(ty)?;
@@ -159,7 +168,7 @@ fn init_viewer_system(
                 volume:   facility.volume,
                 display:  proto::FacilityDisplay {
                     sprite_id: typedef.sprite_id.clone(),
-                    taint:     Color::WHITE.into(),
+                    taint:     fluid_storage.map(|s| proto::Color(s.rgba)),
                 },
             }))
         }));
@@ -176,29 +185,40 @@ fn incr_viewer_system(
     }
 
     for facility in facility_query {
-        let color = proto::Color(facility.storage.rgba);
-        messages.write_batch(facility.viewable.broadcast_update(|level| match level {
-            view::SubscriptionLevel::Basic => {
-                [proto::Update::SetFacilityTaint(proto::SetFacilityTaint {
-                    id:    facility.viewable.id,
-                    taint: color,
-                })]
-            }
-            view::SubscriptionLevel::Full => [
-                proto::Update::SetFacilityTaint(proto::SetFacilityTaint {
-                    id:    facility.viewable.id,
-                    taint: color,
-                }),
-                // TODO full details
-            ],
-        }));
+        if let Some(fluid_storage) = facility.storage {
+            let color = proto::Color(fluid_storage.rgba);
+            messages.write_batch(facility.viewable.broadcast_update(|level| {
+                match level {
+                    view::SubscriptionLevel::Basic => Either::Left(
+                        [proto::Update::SetFacilityTaint(proto::SetFacilityTaint {
+                            id:    facility.viewable.id,
+                            taint: color,
+                        })]
+                        .into_iter(),
+                    ),
+                    view::SubscriptionLevel::Full => Either::Right(
+                        [
+                            proto::Update::SetFacilityTaint(proto::SetFacilityTaint {
+                                id:    facility.viewable.id,
+                                taint: color,
+                            }),
+                            proto::Update::SetFacilityFluid(proto::SetFacilityFluid {
+                                id:    facility.viewable.id,
+                                fluid: fluid_storage.to_proto(),
+                            }),
+                        ]
+                        .into_iter(),
+                    ),
+                }
+            }));
+        }
     }
 }
 
 #[derive(QueryData)]
 struct IncrData {
     viewable: &'static view::Viewable,
-    storage:  &'static fluid::Storage,
+    storage:  Option<&'static fluid::Storage>,
 }
 
 type IncrFilter = With<Facility>;

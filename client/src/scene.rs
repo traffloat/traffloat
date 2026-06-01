@@ -139,6 +139,7 @@ pub enum Zorder {
     BuildingWall,
     Corridor,
     CorridorWall,
+    FacilityTaint,
     Facility,
     Conduit,
 }

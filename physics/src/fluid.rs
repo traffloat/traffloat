@@ -287,6 +287,15 @@ impl Storage {
             .enumerate()
             .map(|(i, t)| (TypeId(u32::try_from(i).expect("too many types in storage")), t))
     }
+
+    pub fn to_proto(&self) -> proto::FluidStorageFull {
+        proto::FluidStorageFull {
+            volume:      self.volume,
+            pressure:    self.pressure,
+            temperature: self.temperature,
+            types:       self.types.iter().map(|typed| typed.moles.0).collect(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, Reflect)]

@@ -95,7 +95,7 @@ pub struct OpenCommand {
 impl OpenCommand {
     pub fn from_click(entity: Entity, ctx: &egui::Context) -> Self {
         let force_new = ctx.input(|input| input.modifiers.command);
-        Self { entity, force_new: false }
+        Self { entity, force_new }
     }
 }
 
