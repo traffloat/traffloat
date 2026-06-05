@@ -8,35 +8,34 @@ use traffloat_proto::proto;
 
 use crate::dock::viewable_info::show_fluid;
 use crate::dock::{self, viewable_info};
-use crate::scene::{FluidTypes, GenericViewable, facility};
+use crate::scene::{FluidTypes, GenericViewable, conduit};
 use crate::util::new_id;
 
 #[derive(SystemParam)]
 pub struct UiSystemParam<'w, 's> {
-    facility_query: Query<'w, 's, FacilityData>,
-    building_query: Query<'w, 's, &'static GenericViewable>,
+    conduit_query:  Query<'w, 's, ConduitData>,
+    corridor_query: Query<'w, 's, &'static GenericViewable>,
     fluid_types:    Res<'w, FluidTypes>,
     commands:       Commands<'w, 's>,
 }
 
 #[derive(QueryData)]
-struct FacilityData {
-    info:     &'static facility::Info,
-    building: &'static facility::FacilityBuilding,
+struct ConduitData {
+    info:     &'static conduit::Info,
+    corridor: &'static conduit::ConduitCorridor,
 }
 
 impl UiSystemParam<'_, '_> {
     pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, dock: dock::Context) {
-        let Ok(data) = self.facility_query.get(entity) else {
+        let Ok(data) = self.conduit_query.get(entity) else {
             ui.label("Object has been unloaded");
             return;
         };
 
         ui.heading("Located in");
-        show_building(ui, dock.id, &self.building_query, &mut self.commands, data.building.0);
+        show_corridor(ui, dock.id, &self.corridor_query, &mut self.commands, data.corridor.0);
 
-        // TODO conduit connections
-        // TODO intra-building connections
+        // TODO facility connections
 
         if let Some(ambient_fluid) = &data.info.stored_fluid {
             egui::CollapsingHeader::new("Stored fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
@@ -46,19 +45,19 @@ impl UiSystemParam<'_, '_> {
     }
 }
 
-fn show_building(
+fn show_corridor(
     ui: &mut egui::Ui,
     id: egui::Id,
-    building_query: &Query<&GenericViewable>,
+    corridor_query: &Query<&GenericViewable>,
     commands: &mut Commands,
-    building_entity: Entity,
+    corridor_entity: Entity,
 ) {
-    let Some(building_info) = building_query.log_get(building_entity) else { return };
+    let Some(corridor_info) = corridor_query.log_get(corridor_entity) else { return };
 
     ui.horizontal(|ui| {
         if ui.button(icons::ICON_LINK).clicked() {
-            commands.queue(viewable_info::OpenCommand::from_click(building_entity, ui.ctx()));
+            commands.queue(viewable_info::OpenCommand::from_click(corridor_entity, ui.ctx()));
         }
-        ui.label(&building_info.name);
+        ui.label(&corridor_info.name);
     });
 }

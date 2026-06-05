@@ -28,7 +28,7 @@ use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use either::Either;
 use ordered_float::OrderedFloat;
-use traffloat_physics::util::QueryExt;
+use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
 use traffloat_physics::{try_log, view};
 use traffloat_proto::proto;
 
@@ -185,10 +185,7 @@ impl UpdateHandler for SetFacilityTaintParams<'_, '_> {
     fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
-        let Some(&TrackedId::Facility(entity)) = self.ids.map.get(&update.id) else {
-            tracing::error!("Received SetFacilityTaint for unknown facility id {:?}", update.id);
-            return;
-        };
+        let Some(entity) = self.ids.get_facility(update.id) else { return };
 
         let Some(taint_entity) = self.facility_query.log_get(entity) else { return };
         let Some(taint_entity) = taint_entity else {
@@ -218,10 +215,7 @@ impl UpdateHandler for SetFacilityFluidParams<'_, '_> {
     fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
-        let Some(&TrackedId::Facility(entity)) = self.ids.map.get(&update.id) else {
-            tracing::error!("Received SetFacilityFluid for unknown facility id {:?}", update.id);
-            return;
-        };
+        let Some(entity) = self.ids.get_facility(update.id) else { return };
         let Some(mut info) = self.facility_query.log_get_mut(entity) else {
             return;
         };
@@ -252,5 +246,16 @@ fn rearrange_facility_tf_system(
             }
             need.0 = false;
         }
+    }
+}
+
+pub(super) fn on_despawn(entity: &mut EntityWorldMut) {
+    let building = entity.log_get::<FacilityBuilding>().map(|b| b.0);
+    if let Some(building) = building {
+        entity.world_scope(|world| {
+            if let Some(mut marker) = world.log_get_mut::<NeedRearrangeTransform>(building) {
+                marker.0 = true;
+            }
+        });
     }
 }

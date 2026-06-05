@@ -6160,6 +6160,7 @@ name = "traffloat-proto"
 version = "0.0.4"
 dependencies = [
  "bevy",
+ "derive_more",
  "serde",
  "strum",
 ]

@@ -121,6 +121,12 @@ pub fn add_observers(entity: &mut EntityCommands) {
                         .as_ref()
                         .is_some_and(|state| state.modifiers.command),
                 });
+
+                if let Some(camera_id) = ui_state.hover_state.as_ref().map(|state| state.camera) {
+                    commands.queue(move |world: &mut World| {
+                        world.resource_mut::<dock::State>().focus_tab(|tab| matches!(tab, dock::TabEnum::Camera(tab) if tab.camera == camera_id));
+                    });
+                }
             },
         );
 }

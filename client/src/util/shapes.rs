@@ -33,6 +33,7 @@ impl Shapes<'_> {
         self.res.square.clone().expect("Square mesh initialized at startup")
     }
 
+    /// Returns a rect with X axis along `from`/`to` and Y axis along `width`.
     pub fn rect(&self, width: f32, from: Vec2, to: Vec2, zorder: Zorder) -> impl Bundle {
         let center = (from + to) / 2.0;
         let delta = to - from;

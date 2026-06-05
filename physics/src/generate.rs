@@ -5,7 +5,7 @@ use bevy::ecs::system::EntityCommand;
 use bevy::ecs::world::World;
 
 use crate::graph::facility::{self, Blueprint, blueprint};
-use crate::graph::{self, building, corridor, edge};
+use crate::graph::{self, building, conduit, corridor, edge};
 use crate::util::{Alpha, AlphaBeta, Beta, Which};
 use crate::{WorldObject, fluid, reactor, view};
 
@@ -22,7 +22,15 @@ pub fn generate(world: &mut World, _: Config) {
 
     let core = gen_core(world, &std);
     let garden = gen_garden(world, &std);
-    gen_corridor(world, &std, AlphaBeta { alpha: core, beta: garden }, 1.1);
+    spawn_corridor(
+        world,
+        &std,
+        AlphaBeta { alpha: core.building, beta: garden.building },
+        1.1,
+        |world, corridor| {
+            spawn_fluid_pipe(world, corridor, core.facility, garden.facility, "Water pipe", 0.1);
+        },
+    );
 }
 
 struct StandardTypes {
@@ -204,7 +212,7 @@ fn gen_facility_types(
     StandardFacilityTypes { garden, small_tank }
 }
 
-fn gen_core(world: &mut World, std: &StandardTypes) -> Entity {
+fn gen_core(world: &mut World, std: &StandardTypes) -> CoreGen {
     let mut building = world.spawn((WorldObject,));
     building.reborrow_scope(|building| {
         building::SpawnCommand {
@@ -232,11 +240,20 @@ fn gen_core(world: &mut World, std: &StandardTypes) -> Entity {
     let mut fluid_storage =
         facility.get_mut::<fluid::Storage>().expect("blueprint contains fluid storage");
     fluid_storage.set_fluid(std.fluids.water, fluid::Moles(80.0));
+    facility.reborrow_scope(|facility| {
+        fluid::SetTemperatureCommand { temperature: std.fluids.temperature }.apply(facility)
+    });
+    let facility = facility.id();
 
-    building_id
+    CoreGen { building: building_id, facility }
 }
 
-fn gen_garden(world: &mut World, std: &StandardTypes) -> Entity {
+struct CoreGen {
+    building: Entity,
+    facility: Entity,
+}
+
+fn gen_garden(world: &mut World, std: &StandardTypes) -> GardenGen {
     let mut building = world.spawn((WorldObject,));
     building.reborrow_scope(|building| {
         building::SpawnCommand {
@@ -251,23 +268,37 @@ fn gen_garden(world: &mut World, std: &StandardTypes) -> Entity {
     let building_id = building.id();
     std.fluids.fill_atmosphere(world, building_id);
 
-    let facility = world.spawn(WorldObject);
-    facility::SpawnCommand {
-        name:             None,
-        building:         building_id,
-        ty:               std.facilities.garden,
-        blueprint_params: blueprint::Params {
-            reactor: Some(blueprint::ReactorParams {
-                fluid_storages: [Some(building_id), None].into(),
-            }),
-        },
-    }
-    .apply(facility);
+    let mut facility = world.spawn(WorldObject);
+    facility.reborrow_scope(|facility| {
+        facility::SpawnCommand {
+            name:             None,
+            building:         building_id,
+            ty:               std.facilities.garden,
+            blueprint_params: blueprint::Params {
+                reactor: Some(blueprint::ReactorParams {
+                    fluid_storages: [Some(building_id), None].into(),
+                }),
+            },
+        }
+        .apply(facility);
+    });
+    let facility = facility.id();
 
-    building_id
+    GardenGen { building: building_id, facility }
 }
 
-fn gen_corridor(world: &mut World, std: &StandardTypes, endpoints: AlphaBeta<Entity>, radius: f32) {
+struct GardenGen {
+    building: Entity,
+    facility: Entity,
+}
+
+fn spawn_corridor(
+    world: &mut World,
+    std: &StandardTypes,
+    endpoints: AlphaBeta<Entity>,
+    radius: f32,
+    conduits: impl FnOnce(&mut World, Entity),
+) {
     let (building_centers, building_radii) = endpoints
         .map(|building| {
             let building =
@@ -289,18 +320,40 @@ fn gen_corridor(world: &mut World, std: &StandardTypes, endpoints: AlphaBeta<Ent
             radius,
             length: endpoint_positions.net_diff().length(),
             wall_thickness: STANDARD_WALL_THICKNESS,
-            ambient_area: circle_area(radius),
         }
         .apply(corridor);
     });
-
-    // TODO spawn pipes
 
     let corridor_id = corridor.id();
     std.fluids.fill_atmosphere(world, corridor_id);
 
     spawn_edge(Alpha, world, endpoints, corridor_id);
     spawn_edge(Beta, world, endpoints, corridor_id);
+
+    conduits(world, corridor_id);
+}
+
+fn spawn_fluid_pipe(
+    world: &mut World,
+    corridor: Entity,
+    from_facility: Entity,
+    to_facility: Entity,
+    name: impl Into<String>,
+    radius: f32,
+) {
+    let mut pipe = world.spawn((WorldObject,));
+
+    pipe.reborrow_scope(|pipe| {
+        conduit::SpawnCommand {
+            corridor,
+            name: name.into(),
+            radius,
+            typed: conduit::TypedSpawn::FluidPipe,
+        }
+        .apply(pipe);
+    });
+
+    // TODO connect with facilities
 }
 
 fn spawn_edge<Ab: Which>(
@@ -331,5 +384,3 @@ impl StandardFluidTypes {
 }
 
 fn inverse_sphere_volume(volume: f32) -> f32 { (volume * 3.0 / (4.0 * PI)).cbrt() }
-
-const fn circle_area(radius: f32) -> f32 { 0.5 * PI * radius * radius }

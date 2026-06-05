@@ -138,7 +138,7 @@ fn show_connection<Ab: Which>(
 
     ui.indent(new_id!(id), |ui| {
         ui.horizontal(|ui| {
-            ui.label("through");
+            ui.label("through corridor");
             if ui.small_button(icons::ICON_LINK).clicked() {
                 commands.queue(viewable_info::OpenCommand::from_click(corridor, ui.ctx()));
             }

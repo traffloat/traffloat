@@ -2,11 +2,12 @@ use std::collections::HashMap;
 use std::mem;
 
 use bevy::app::{self, App, Plugin};
-use bevy::asset::{self, Assets};
+use bevy::asset::{self, Assets, RenderAssetUsages};
 use bevy::color::Color;
 use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
+use bevy::ecs::hierarchy::ChildOf;
 use bevy::ecs::message::{Message, MessageReader};
 use bevy::ecs::name::Name;
 use bevy::ecs::observer;
@@ -22,12 +23,14 @@ use bevy::picking::{Pickable, events as pick};
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
+use bevy_mesh::PrimitiveTopology;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
 use traffloat_physics::{try_log, view};
 use traffloat_proto::proto;
 
 use crate::ConfigManager;
+use crate::scene::conduit::ConduitOutlineOf;
 use crate::scene::picking::{self, ObservePicking};
 use crate::scene::{
     GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
@@ -39,6 +42,8 @@ pub(super) struct Plug;
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Info>();
+        app.register_type::<EndpointRef<Alpha>>();
+        app.register_type::<EndpointRef<Beta>>();
         app.register_type::<GenericEndpointDetails<Alpha>>();
         app.register_type::<GenericEndpointDetails<Beta>>();
         app.register_type::<IsEndpointOf<Alpha>>();
@@ -47,24 +52,29 @@ impl Plugin for Plug {
         app.register_type::<WallEntityOf<false>>();
         app.register_type::<HasWallEntity<true>>();
         app.register_type::<HasWallEntity<false>>();
+        app.register_type::<ConduitOutlineMaterial>();
 
         app.init_config::<ConfigManager, Conf>("scene:corridor");
         app.init_resource::<WallMaterials>();
+        app.init_resource::<ConduitOutlineMaterial>();
+        app.add_systems(app::Startup, ConduitOutlineMaterial::init);
         app.add_systems(app::Startup, WallMaterials::init);
         app.add_systems(app::Update, WallMaterials::update.ambiguous_with_all());
         app.add_systems(app::Update, update_wall_hover_system::<true>);
         app.add_systems(app::Update, update_wall_hover_system::<false>);
+        app.add_systems(app::Update, update_conduit_outline_color_system);
     }
 }
 
 #[derive(SystemParam)]
 pub(super) struct NewCorridorParams<'w, 's> {
-    commands:       Commands<'w, 's>,
-    ids:            ResMut<'w, IdRegistry>,
-    shapes:         Shapes<'w>,
-    meshes:         ResMut<'w, Assets<Mesh>>,
-    materials:      ResMut<'w, Assets<ColorMaterial>>,
-    wall_materials: Res<'w, WallMaterials>,
+    commands:                 Commands<'w, 's>,
+    ids:                      ResMut<'w, IdRegistry>,
+    shapes:                   Shapes<'w>,
+    meshes:                   ResMut<'w, Assets<Mesh>>,
+    materials:                ResMut<'w, Assets<ColorMaterial>>,
+    wall_materials:           Res<'w, WallMaterials>,
+    conduit_outline_material: Res<'w, ConduitOutlineMaterial>,
 }
 
 impl UpdateHandler for NewCorridorParams<'_, '_> {
@@ -90,6 +100,7 @@ impl UpdateHandler for NewCorridorParams<'_, '_> {
                 Zorder::CorridorWall,
             )
         }
+
         let material = self.materials.add(ColorMaterial {
             color: Color::NONE,
             alpha_mode: AlphaMode2d::Blend,
@@ -109,7 +120,7 @@ impl UpdateHandler for NewCorridorParams<'_, '_> {
                 MeshMaterial2d(material),
                 Pickable::default(),
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Corridor },
-                Info::default(),
+                Info { radius: update.radius, ambient_fluid: None },
             ))
             .observe_picking()
             .with_related::<WallEntityOf<true>>((
@@ -121,6 +132,19 @@ impl UpdateHandler for NewCorridorParams<'_, '_> {
                 wall_rect::<false>(&self.shapes, update),
             ))
             .id();
+        self.commands.spawn((
+            MeshMaterial2d(
+                self.conduit_outline_material.0.clone().expect("initialized at startup"),
+            ),
+            Mesh2d(
+                self.meshes.add(
+                    Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::all())
+                        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, Vec::<[f32; 3]>::new()),
+                ),
+            ),
+            ChildOf(entity),
+            ConduitOutlineOf(entity),
+        ));
         self.ids.map.insert(update.id, TrackedId::Corridor(entity));
     }
 }
@@ -271,8 +295,9 @@ impl UpdateHandler for SetCorridorEndpointParams<'_, '_> {
     }
 }
 
-#[derive(Default, Component, Reflect)]
+#[derive(Component, Reflect)]
 pub struct Info {
+    pub radius:        f32,
     pub ambient_fluid: Option<proto::FluidStorageFull>,
 }
 
@@ -357,10 +382,33 @@ fn update_wall_hover_system<const WHICH: bool>(
     }
 }
 
+#[derive(Resource, Reflect, Default)]
+pub struct ConduitOutlineMaterial(pub Option<asset::Handle<ColorMaterial>>);
+
+impl ConduitOutlineMaterial {
+    fn init(mut materials: ResMut<Assets<ColorMaterial>>, mut resource: ResMut<Self>) {
+        let material = ColorMaterial::from_color(Color::WHITE);
+        resource.0 = Some(materials.add(material));
+    }
+}
+
 #[derive(Config)]
 pub struct Conf {
     #[config(default = Color::WHITE)]
-    pub wall_color:         Color,
+    pub wall_color:            Color,
     #[config(default = Color::srgb(1.0, 0.4, 0.5))]
-    pub hovered_wall_color: Color,
+    pub hovered_wall_color:    Color,
+    #[config(default = Color::srgb(0.9, 0.9, 0.9))]
+    pub conduit_outline_color: Color,
+}
+
+fn update_conduit_outline_color_system(
+    conf: ReadConfig<Conf>,
+    outline_material: Res<ConduitOutlineMaterial>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let material = materials
+        .get_mut(outline_material.0.as_ref().expect("initialized during startup"))
+        .expect("referenced by strong handle");
+    material.color = conf.read().conduit_outline_color;
 }

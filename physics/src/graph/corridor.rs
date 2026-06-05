@@ -1,8 +1,12 @@
+use std::f32::consts::PI;
+
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
+use bevy::ecs::query::With;
+use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
@@ -10,7 +14,9 @@ use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
-use crate::util::AlphaBeta;
+use crate::graph::Conduit;
+use crate::graph::conduit::ConduitList;
+use crate::util::{AlphaBeta, EntityWorldMutExt, WorldExt};
 use crate::{Vector, fluid, view};
 
 pub struct Plug;
@@ -50,7 +56,6 @@ pub struct SpawnCommand {
     pub length:             f32,
     pub radius:             f32,
     pub wall_thickness:     f32,
-    pub ambient_area:       f32,
 }
 
 impl EntityCommand for SpawnCommand {
@@ -63,6 +68,7 @@ impl EntityCommand for SpawnCommand {
                 format!("#{out}")
             })
         });
+        let ambient_area = self.radius * self.radius * PI;
         entity.insert((
             Name::new(format!("Corridor {name}")),
             Corridor {
@@ -70,7 +76,7 @@ impl EntityCommand for SpawnCommand {
                 length: self.length,
                 radius: self.radius,
                 wall_thickness: self.wall_thickness,
-                ambient_area: self.ambient_area,
+                ambient_area,
                 endpoint_positions: self.endpoint_positions,
             },
         ));
@@ -79,7 +85,7 @@ impl EntityCommand for SpawnCommand {
         // ambient conduit
         entity.reborrow_scope(|entity| {
             fluid::AddStorageCommand {
-                volume:         self.ambient_area * self.length,
+                volume:         ambient_area * self.length,
                 optical_length: self.radius,
             }
             .apply(entity);
@@ -93,6 +99,33 @@ impl EntityCommand for DespawnCommand {
     fn apply(self, mut entity: EntityWorldMut) {
         view::on_viewable_despawn(&mut entity);
         entity.despawn();
+    }
+}
+
+pub struct RecomputeAmbientVolume;
+
+impl EntityCommand for RecomputeAmbientVolume {
+    fn apply(self, mut entity: EntityWorldMut) {
+        let used_by_conduits: f32 = if let Some(conduit_list) = entity.get::<ConduitList>() {
+            let conduits: Vec<_> = conduit_list.iter().collect();
+            conduits
+                .iter()
+                .filter_map(|&f| entity.world().log_get::<Conduit>(f))
+                .map(|f| f.radius * f.radius)
+                .sum()
+        } else {
+            0.0
+        };
+        let Some(mut corridor) = entity.log_get_mut::<Corridor>() else { return };
+
+        let ambient_base = corridor.radius * corridor.radius - used_by_conduits;
+        let ambient_area = ambient_base * PI;
+        corridor.ambient_area = ambient_area;
+        let ambient_volume = ambient_area * corridor.length;
+
+        if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>() {
+            fluid.volume = ambient_volume;
+        }
     }
 }
 
@@ -116,14 +149,14 @@ fn init_viewer_system(
 
 fn incr_viewer_system(
     mut throttle: view::BroadcastThrottle,
-    corridor_query: Query<(&Corridor, &view::Viewable, &fluid::Storage)>,
+    corridor_query: Query<(&view::Viewable, &fluid::Storage), With<Corridor>>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
     if !throttle.should_run() {
         return;
     }
 
-    for (corridor, viewable, storage) in corridor_query.iter() {
+    for (viewable, storage) in corridor_query.iter() {
         messages.write_batch(viewable.broadcast_update(|level| match level {
             view::SubscriptionLevel::Basic => {
                 [proto::Update::UpdateCorridor(proto::UpdateCorridor {

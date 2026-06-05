@@ -73,6 +73,16 @@ impl State {
         &mut tabs[path.2.0].tab
     }
 
+    pub fn focus_tab(&mut self, tab_fn: impl Fn(&TabEnum) -> bool) -> bool {
+        if let Some(path) = self.0.find_tab_from(|tab| tab_fn(&tab.tab)) {
+            self.0.set_focused_node_and_surface((path.0, path.1));
+            self.0.set_active_tab(path);
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn tabs(&self) -> impl Iterator<Item = &TabEnum> {
         self.0.iter_all_tabs().map(|(_, tab)| &tab.tab)
     }

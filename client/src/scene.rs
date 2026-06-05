@@ -32,6 +32,7 @@ use traffloat_proto::proto;
 use crate::ConfigManager;
 
 pub mod building;
+pub mod conduit;
 pub mod corridor;
 pub mod facility;
 
@@ -51,6 +52,7 @@ impl Plugin for Plug {
         app.add_plugins(building::Plug);
         app.add_plugins(corridor::Plug);
         app.add_plugins(facility::Plug);
+        app.add_plugins(conduit::Plug);
         app.add_systems(app::Update, react_config_system);
 
         for (prev, next) in HandlerClass::iter().tuple_windows() {
@@ -102,6 +104,40 @@ impl IdRegistry {
             }
         }
     }
+
+    pub fn get_facility(&self, id: proto::Id) -> Option<Entity> {
+        match self.map.get(&id) {
+            Some(TrackedId::Facility(entity)) => Some(*entity),
+            Some(v) => {
+                tracing::error!(
+                    "Expected received ID {id:?} to be a facility, found {:?}",
+                    <&'static str>::from(v),
+                );
+                None
+            }
+            None => {
+                tracing::error!("Received unknown facility id {id:?}");
+                None
+            }
+        }
+    }
+
+    pub fn get_conduit(&self, id: proto::Id) -> Option<Entity> {
+        match self.map.get(&id) {
+            Some(TrackedId::Conduit(entity)) => Some(*entity),
+            Some(v) => {
+                tracing::error!(
+                    "Expected received ID {id:?} to be a conduit, found {:?}",
+                    <&'static str>::from(v),
+                );
+                None
+            }
+            None => {
+                tracing::error!("Received unknown conduit id {id:?}");
+                None
+            }
+        }
+    }
 }
 
 #[derive(Reflect, strum::IntoStaticStr)]
@@ -109,6 +145,7 @@ enum TrackedId {
     Building(Entity),
     Corridor(Entity),
     Facility(Entity),
+    Conduit(Entity),
 }
 
 #[derive(Component, Reflect)]
@@ -263,6 +300,9 @@ define_params! {
     NewFacility(facility::NewFacilityParams<'w, 's>),
     SetFacilityTaint(facility::SetFacilityTaintParams<'w, 's>),
     SetFacilityFluid(facility::SetFacilityFluidParams<'w, 's>),
+    NewConduit(conduit::NewConduitParams<'w, 's>),
+    UpdateFluidConduit(conduit::UpdateFluidConduitParams<'w, 's>),
+    UpdateFluidConduitFull(conduit::UpdateFluidConduitFullParams<'w, 's>),
     RemoveViewable(RemoveViewableParams<'w, 's>),
     SetFluidTypes(SetFluidTypesParams<'w>),
 }
@@ -285,17 +325,13 @@ impl UpdateHandler for RemoveViewableParams<'_, '_> {
             }
             Some(TrackedId::Facility(entity)) => {
                 self.commands.entity(entity).queue(|mut entity: EntityWorldMut| {
-                    let building = entity.log_get::<facility::FacilityBuilding>().map(|b| b.0);
-                    if let Some(building) = building {
-                        entity.world_scope(|world| {
-                            if let Some(mut marker) =
-                                world.log_get_mut::<facility::NeedRearrangeTransform>(building)
-                            {
-                                marker.0 = true;
-                            }
-                        });
-                    }
-
+                    facility::on_despawn(&mut entity);
+                    entity.despawn();
+                });
+            }
+            Some(TrackedId::Conduit(entity)) => {
+                self.commands.entity(entity).queue(|mut entity: EntityWorldMut| {
+                    conduit::on_despawn(&mut entity);
                     entity.despawn();
                 });
             }
@@ -330,6 +366,7 @@ pub enum ViewableKind {
     Building,
     Corridor,
     Facility,
+    Conduit,
 }
 
 #[derive(Resource, Default)]

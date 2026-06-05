@@ -1,5 +1,6 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
+use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{Commands, ParamSet, Query, Res, SystemParam};
 use bevy::ecs::world::World;
 use egui_material_icons::icons;
@@ -8,6 +9,7 @@ use traffloat_proto::proto;
 
 use crate::dock::viewable_info::show_fluid;
 use crate::dock::{self, viewable_info};
+use crate::scene::conduit::CorridorConduits;
 use crate::scene::{FluidTypes, GenericViewable, corridor};
 use crate::util::new_id;
 
@@ -15,15 +17,17 @@ use crate::util::new_id;
 pub struct UiSystemParam<'w, 's> {
     corridor_query: Query<'w, 's, CorridorData>,
     building_query: Query<'w, 's, &'static GenericViewable>,
+    conduit_query:  Query<'w, 's, &'static GenericViewable>,
     fluid_types:    Res<'w, FluidTypes>,
     commands:       Commands<'w, 's>,
 }
 
 #[derive(QueryData)]
 struct CorridorData {
-    info:  &'static corridor::Info,
-    alpha: Option<EndpointData<Alpha>>,
-    beta:  Option<EndpointData<Beta>>,
+    info:     &'static corridor::Info,
+    alpha:    Option<EndpointData<Alpha>>,
+    beta:     Option<EndpointData<Beta>>,
+    conduits: Option<&'static CorridorConduits>,
 }
 
 #[derive(QueryData)]
@@ -39,6 +43,11 @@ impl UiSystemParam<'_, '_> {
             return;
         };
 
+        ui.heading("Conduits");
+        for conduit in data.conduits.into_iter().flat_map(|d| d.iter()) {
+            show_conduit(ui, dock.id, &self.conduit_query, &mut self.commands, conduit);
+        }
+
         ui.heading("Connections");
         if let Some(alpha) = data.alpha {
             show_connection(ui, dock.id, &self.building_query, &mut self.commands, alpha);
@@ -53,6 +62,23 @@ impl UiSystemParam<'_, '_> {
             });
         }
     }
+}
+
+fn show_conduit(
+    ui: &mut egui::Ui,
+    id: egui::Id,
+    conduit_query: &Query<&GenericViewable>,
+    commands: &mut Commands,
+    entity: Entity,
+) {
+    let Some(conduit_viewable) = conduit_query.log_get(entity) else { return };
+
+    ui.horizontal(|ui| {
+        if ui.button(icons::ICON_LINK).clicked() {
+            commands.queue(viewable_info::OpenCommand::from_click(entity, ui.ctx()));
+        }
+        ui.label(&conduit_viewable.name);
+    });
 }
 
 fn show_connection(

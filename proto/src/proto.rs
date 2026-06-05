@@ -32,7 +32,9 @@ impl From<Color> for LinearRgba {
 }
 
 /// Messages from the world to a specific viewer.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect, strum::IntoStaticStr)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, Reflect, strum::IntoStaticStr, derive_more::From,
+)]
 pub enum Update {
     NewBuilding(NewBuilding),
     UpdateBuilding(UpdateBuilding),
@@ -44,6 +46,9 @@ pub enum Update {
     NewFacility(NewFacility),
     SetFacilityTaint(SetFacilityTaint),
     SetFacilityFluid(SetFacilityFluid),
+    NewConduit(NewConduit),
+    UpdateFluidConduit(UpdateFluidConduit),
+    UpdateFluidConduitFull(UpdateFluidConduitFull),
     RemoveViewable(RemoveViewable),
     SetFluidTypes(SetFluidTypes),
 }
@@ -125,21 +130,62 @@ pub struct NewFacility {
     pub display:  FacilityDisplay,
 }
 
+/// Display information about a facility.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct FacilityDisplay {
+    /// Asset path.
+    ///
+    /// Currently loads from `assets/sprites/{sprite_id}.png` directly.
+    /// May be extended to support dynamically loaded assets in the future.
     pub sprite_id: String,
+    /// `Some` when the facility is a fluid storage, represents the fluid color.
     pub taint:     Option<Color>,
 }
 
+/// Sets the taint color of a facility.
+///
+/// The facility must have been previously created with [`FacilityDisplay::taint`] set to `Some`.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct SetFacilityTaint {
     pub id:    Id,
     pub taint: Color,
 }
 
+/// Updated fluid information of a facility with a fluid storage.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct SetFacilityFluid {
     pub id:    Id,
+    pub fluid: FluidStorageFull,
+}
+
+/// Subscribed to a new conduit in an existing corridor.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct NewConduit {
+    pub id:       Id,
+    pub name:     String,
+    pub corridor: Id,
+    pub radius:   f32,
+    pub ty:       ConduitType,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Reflect)]
+pub enum ConduitType {
+    FluidPipe,
+}
+
+/// Updated information about a fluid pipe.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateFluidConduit {
+    pub id:    Id,
+    pub color: Color,
+}
+
+/// Updated full information about a fluid pipe.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateFluidConduitFull {
+    pub id:    Id,
+    pub color: Color,
+
     pub fluid: FluidStorageFull,
 }
 

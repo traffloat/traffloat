@@ -39,7 +39,7 @@ pub struct Tab {
     pub is_main:  bool,
     title:        String,
     /// The bevy camera entity.
-    camera:       Entity,
+    pub camera:   Entity,
     image_handle: asset::Handle<Image>,
     image_id:     Option<egui::TextureId>,
 }

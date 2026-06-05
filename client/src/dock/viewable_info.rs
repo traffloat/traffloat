@@ -9,6 +9,7 @@ use crate::scene::{FluidTypes, GenericViewable, ViewableKind};
 use crate::util::new_id;
 
 mod building;
+mod conduit;
 mod corridor;
 mod facility;
 
@@ -26,6 +27,7 @@ impl dock::Tab for Tab {
             ViewableKind::Building => format!("Building: {}", viewable.name),
             ViewableKind::Corridor => format!("Corridor: {}", viewable.name),
             ViewableKind::Facility => format!("Facility: {}", viewable.name),
+            ViewableKind::Conduit => format!("Conduit: {}", viewable.name),
         }
     }
 
@@ -46,6 +48,7 @@ impl dock::Tab for Tab {
                 ViewableKind::Building => "Building:",
                 ViewableKind::Corridor => "Corridor:",
                 ViewableKind::Facility => "Facility:",
+                ViewableKind::Conduit => "Conduit:",
             });
             ui.heading(&generic.name);
             if ui.button(icons::ICON_EDIT).clicked() {
@@ -66,6 +69,10 @@ impl dock::Tab for Tab {
                 let mut facility_param = param.viewable_query.p2();
                 facility_param.ui(self.entity, ui, dock);
             }
+            ViewableKind::Conduit => {
+                let mut conduit_param = param.viewable_query.p3();
+                conduit_param.ui(self.entity, ui, dock);
+            }
         }
     }
 
@@ -83,6 +90,7 @@ pub struct UiSystemParam<'w, 's> {
             building::UiSystemParam<'w, 's>,
             corridor::UiSystemParam<'w, 's>,
             facility::UiSystemParam<'w, 's>,
+            conduit::UiSystemParam<'w, 's>,
         ),
     >,
 }
