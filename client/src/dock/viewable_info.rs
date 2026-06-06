@@ -1,5 +1,5 @@
 use bevy::ecs::entity::Entity;
-use bevy::ecs::system::{Command, ParamSet, Query, SystemParam};
+use bevy::ecs::system::{Command, Commands, ParamSet, Query, SystemParam};
 use bevy::ecs::world::World;
 use egui_material_icons::icons;
 use traffloat_proto::proto;
@@ -44,6 +44,12 @@ impl dock::Tab for Tab {
         };
 
         ui.horizontal(|ui| {
+            if ui.button(icons::ICON_RECENTER).clicked() {
+                param
+                    .ps
+                    .p0()
+                    .queue(dock::camera::FocusCommand { target: self.entity, which: None });
+            }
             ui.heading(match generic.kind {
                 ViewableKind::Building => "Building:",
                 ViewableKind::Corridor => "Corridor:",
@@ -58,19 +64,19 @@ impl dock::Tab for Tab {
 
         match generic.kind {
             ViewableKind::Building => {
-                let mut building_param = param.viewable_query.p0();
+                let mut building_param = param.ps.p1();
                 building_param.ui(self.entity, ui, dock);
             }
             ViewableKind::Corridor => {
-                let mut corridor_param = param.viewable_query.p1();
+                let mut corridor_param = param.ps.p2();
                 corridor_param.ui(self.entity, ui, dock);
             }
             ViewableKind::Facility => {
-                let mut facility_param = param.viewable_query.p2();
+                let mut facility_param = param.ps.p3();
                 facility_param.ui(self.entity, ui, dock);
             }
             ViewableKind::Conduit => {
-                let mut conduit_param = param.viewable_query.p3();
+                let mut conduit_param = param.ps.p4();
                 conduit_param.ui(self.entity, ui, dock);
             }
         }
@@ -82,11 +88,12 @@ impl dock::Tab for Tab {
 
 #[derive(SystemParam)]
 pub struct UiSystemParam<'w, 's> {
-    generic:        Query<'w, 's, &'static GenericViewable>,
-    viewable_query: ParamSet<
+    generic: Query<'w, 's, &'static GenericViewable>,
+    ps: ParamSet<
         'w,
         's,
         (
+            Commands<'w, 's>,
             building::UiSystemParam<'w, 's>,
             corridor::UiSystemParam<'w, 's>,
             facility::UiSystemParam<'w, 's>,
@@ -94,6 +101,8 @@ pub struct UiSystemParam<'w, 's> {
         ),
     >,
 }
+
+fn focus_camera_around(entity: Entity) {}
 
 pub struct OpenCommand {
     pub entity:    Entity,

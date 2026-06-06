@@ -85,9 +85,33 @@ cargo test --all
   in which case the aggregation result must not be used
   to avoid propagating errors.
 
+### Plugin structure
+
+The typical plugin module should be structured in the following order:
+
+- Plugin struct (conventionally named `Plug`) and `impl Plugin for Plug`.
+- System sets
+- Resources
+- Components
+- Commands (e.g. `SpawnCommand`, `DespawnCommand`)
+- Private systems
+
+All components and resources should derive `Reflect` and register through `App::register_type`.
+
 ## Project structure
 
+- `proto`: Shared types from `physics` to `client`.
 - `physics`: Core simulation engine.
 - `client`: Frontend client for visualizing and interacting with the world.
   Does not share any entities with the core simulation directly;
-  all gameplay interactions are done through `physics::view`.
+  all gameplay interactions are done through `proto`.
+  - `client::scene` syncs updates received from `physics` and creates separate client entities with render components
+  - `client::dock` manages client UI through `egui_dock`, with a `Camera` tab to display scene entities.
+- `server` (unimplemented): Server exposing `physics`
+
+Singleplayer communication channels:
+
+```mermaid
+graph LR
+physics -->|physics entities| physics::view -->|MessageWriter<proto::Update>| client::scene -->|bevy_render| client::dock
+```

@@ -1,6 +1,6 @@
 use egui_dock::{DockState, NodeIndex, SurfaceIndex, TabIndex};
 
-use crate::dock::{TabEnum, TabState};
+use crate::dock::TabState;
 
 pub type TabPath = (SurfaceIndex, NodeIndex, TabIndex);
 

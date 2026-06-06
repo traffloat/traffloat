@@ -1,19 +1,17 @@
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
-use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::With;
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{Commands, EntityCommand, Query};
+use bevy::ecs::system::{EntityCommand, Query};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
-use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
-use crate::graph::{Facility, FacilityList};
-use crate::util::{AlphaBeta, EntityWorldMutExt, WorldExt};
+use crate::graph::{Facility, facility};
+use crate::util::{EntityWorldMutExt, WorldExt};
 use crate::{Vector, fluid, view};
 
 pub struct Plug;
@@ -88,16 +86,17 @@ pub struct RecomputeAmbientVolume;
 
 impl EntityCommand for RecomputeAmbientVolume {
     fn apply(self, mut entity: EntityWorldMut) {
-        let used_by_facilities: f32 = if let Some(facility_list) = entity.get::<FacilityList>() {
-            let facilities: Vec<_> = facility_list.iter().collect();
-            facilities
-                .iter()
-                .filter_map(|&f| entity.world().log_get::<Facility>(f))
-                .map(|f| f.volume)
-                .sum()
-        } else {
-            0.0
-        };
+        let used_by_facilities: f32 =
+            if let Some(facility_list) = entity.get::<facility::ListOnBuilding>() {
+                let facilities: Vec<_> = facility_list.iter().collect();
+                facilities
+                    .iter()
+                    .filter_map(|&f| entity.world().log_get::<Facility>(f))
+                    .map(|f| f.volume)
+                    .sum()
+            } else {
+                0.0
+            };
         let Some(mut building) = entity.log_get_mut::<Building>() else { return };
 
         let ambient_volume = sphere_volume(building.radius) - used_by_facilities;

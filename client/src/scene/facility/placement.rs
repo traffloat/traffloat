@@ -9,7 +9,6 @@ use std::f32::consts::{FRAC_1_SQRT_2, SQRT_2};
 
 use bevy::math::Vec3;
 use bevy::transform::components::Transform;
-use either::Either;
 
 #[cfg(test)]
 mod tests;

@@ -1,5 +1,4 @@
 use bevy::app::{self, App, Plugin};
-use bevy::color::Color;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
@@ -24,8 +23,8 @@ pub struct Plug;
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Facility>();
-        app.register_type::<FacilityList>();
-        app.register_type::<FacilityOf>();
+        app.register_type::<ListOnBuilding>();
+        app.register_type::<OfBuilding>();
         app.register_type::<FacilityTypeInstances>();
         app.register_type::<FacilityType>();
 
@@ -47,13 +46,13 @@ pub struct Facility {
 
 /// Facilities in a building. Component on buildings.
 #[derive(Component, Reflect)]
-#[relationship_target(relationship = FacilityOf, linked_spawn)]
-pub struct FacilityList(Vec<Entity>);
+#[relationship_target(relationship = OfBuilding, linked_spawn)]
+pub struct ListOnBuilding(Vec<Entity>);
 
 /// Building owning the facility. Component on facilities.
 #[derive(Component, Reflect)]
-#[relationship(relationship_target = FacilityList)]
-pub struct FacilityOf(pub Entity);
+#[relationship(relationship_target = ListOnBuilding)]
+pub struct OfBuilding(pub Entity);
 
 /// Facility instances of a facility type. Component on facility types.
 #[derive(Component, Reflect)]
@@ -96,7 +95,7 @@ impl EntityCommand for SpawnCommand {
         entity.insert((
             Name::new("Facility"),
             FacilityType(self.ty),
-            FacilityOf(self.building),
+            OfBuilding(self.building),
             Facility { name, volume },
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
@@ -148,14 +147,14 @@ fn init_viewer_system(
         &Facility,
         &view::Viewable,
         &FacilityType,
-        &FacilityOf,
+        &OfBuilding,
         Option<&fluid::Storage>,
     )>,
     building_query: Query<&view::Viewable, With<Building>>,
     type_query: Query<&FacilityTypeDef>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (facility, viewable, &FacilityType(ty), &FacilityOf(building_entity), fluid_storage) in
+    for (facility, viewable, &FacilityType(ty), &OfBuilding(building_entity), fluid_storage) in
         facility_query
     {
         messages.write_batch(viewable.broadcast_new(|| {

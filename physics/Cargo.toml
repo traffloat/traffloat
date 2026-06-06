@@ -1,6 +1,6 @@
 [package]
 name = "traffloat-physics"
-description = "traffloat core physics"
+description = "traffloat core server-side simulation"
 version.workspace = true
 authors.workspace = true
 repository.workspace = true

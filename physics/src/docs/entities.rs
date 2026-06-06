@@ -1,4 +1,4 @@
-//! Relationship between archetype and key component types.
+//! Relationship between archetype and key component types in the physics world..
 //!
 //! # Building
 //! Components:
@@ -39,6 +39,20 @@
 //! - [`fluid::Edge`] (when open)
 //!     - [`fluid::EdgeAlpha`] always points to the building side of the edge.
 //!     - [`fluid::EdgeBeta`] always points to the corridor side of the edge.
+//!
+//! # Facility connection
+//! Describes the connection from a facility to one of the following:
+//! - Its parent building (ambient fluid)
+//! - Another facility in the same building
+//! - A fluid conduit in an adjacent corridor
+//!
+//! Components:
+//! - [`graph::connection::Connection`]
+//! - [`graph::connection::MainFacility`] (the "main" source facility)
+//! - Depending on the peer type,
+//!   - [`graph::connection::ToBuilding`], referencing the parent building entity
+//!   - [`graph::connection::AltFacility`], referencing the peer facility entity
+//!   - [`graph::connection::ToPipe`], referencing the adjacent conduit entity
 //!
 //! # Conduit
 //! Components:

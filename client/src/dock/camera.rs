@@ -1,24 +1,21 @@
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets};
-use bevy::camera::{
-    Camera, Camera2d, ClearColor, ClearColorConfig, ImageRenderTarget, RenderTarget, Viewport,
-};
+use bevy::camera::{Camera, Camera2d, ClearColor, ImageRenderTarget, RenderTarget, Viewport};
 use bevy::color::Color;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{Commands, Query, ResMut, SystemParam};
+use bevy::ecs::system::{Command, Commands, Query, ResMut, SystemParam};
+use bevy::ecs::world::World;
 use bevy::image::Image;
-use bevy::math::{UVec2, Vec2};
-use bevy::render::render_resource::{
-    Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-};
+use bevy::math::{UVec2, Vec2, Vec3};
+use bevy::render::render_resource::{Extent3d, TextureFormat};
 use bevy::transform::components::{GlobalTransform, Transform};
 use bevy_egui::helpers::egui_vec2_into_vec2;
 use bevy_egui::{EguiPrimaryContextPass, EguiTextureHandle, EguiUserTextures};
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use egui::load::SizedTexture;
-use traffloat_physics::util::QueryExt;
+use traffloat_physics::util::{QueryExt, WorldExt};
 
 use crate::{ConfigManager, dock};
 
@@ -64,6 +61,7 @@ impl Tab {
                     handle:       image_handle.clone(),
                     scale_factor: 1.0,
                 }),
+                Transform::from_scale(Vec3 { x: 0.2, y: 0.2, z: 1.0 }),
             ))
             .id();
         Tab { is_main, title, camera, image_handle, image_id: Some(image_id) }
@@ -220,4 +218,28 @@ pub struct Conf {
 
 fn update_clear_color_system(mut clear_color: ResMut<ClearColor>, conf: ReadConfig<Conf>) {
     clear_color.0 = conf.read().background_color;
+}
+
+pub struct FocusCommand {
+    pub target: Entity,
+    pub which:  Option<Entity>,
+}
+
+impl Command for FocusCommand {
+    fn apply(self, world: &mut World) {
+        let Some(camera) = self.which.or_else(|| {
+            world.resource::<dock::State>().tabs().find_map(|tab| match tab {
+                dock::TabEnum::Camera(tab) if tab.is_main => Some(tab.camera),
+                _ => None,
+            })
+        }) else {
+            tracing::warn!("no camera found");
+            return;
+        };
+
+        let Some(&target_tf) = world.log_get::<GlobalTransform>(self.target) else { return };
+
+        let Some(mut camera) = world.log_get_mut::<Transform>(camera) else { return };
+        camera.translation = target_tf.translation();
+    }
 }

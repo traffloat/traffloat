@@ -1,10 +1,9 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::relationship::RelationshipTarget;
-use bevy::ecs::system::{Commands, ParamSet, Query, Res, SystemParam};
+use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use egui_material_icons::icons;
 use traffloat_physics::util::{Alpha, Beta, GetAb, QueryExt, Which};
-use traffloat_proto::proto;
 
 use crate::dock::viewable_info::corridor::display_gate;
 use crate::dock::viewable_info::show_fluid;

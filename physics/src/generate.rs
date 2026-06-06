@@ -5,9 +5,9 @@ use bevy::ecs::system::EntityCommand;
 use bevy::ecs::world::World;
 
 use crate::graph::facility::{self, Blueprint, blueprint};
-use crate::graph::{self, building, conduit, corridor, edge};
+use crate::graph::{self, building, conduit, connection, corridor, edge};
 use crate::util::{Alpha, AlphaBeta, Beta, Which};
-use crate::{WorldObject, fluid, reactor, view};
+use crate::{WorldObject, fluid, reactor};
 
 const STANDARD_WALL_THICKNESS: f32 = 0.5;
 
@@ -28,7 +28,9 @@ pub fn generate(world: &mut World, _: Config) {
         AlphaBeta { alpha: core.building, beta: garden.building },
         1.1,
         |world, corridor| {
-            spawn_fluid_pipe(world, corridor, core.facility, garden.facility, "Water pipe", 0.1);
+            let pipe =
+                spawn_fluid_pipe(world, corridor, core.tank, garden.facility, "Water pipe", 0.1);
+            connect_facility_pipe(world, core.tank, pipe);
         },
     );
 }
@@ -227,8 +229,8 @@ fn gen_core(world: &mut World, std: &StandardTypes) -> CoreGen {
     let building_id = building.id();
     std.fluids.fill_atmosphere(world, building_id);
 
-    let mut facility = world.spawn(WorldObject);
-    facility.reborrow_scope(|facility| {
+    let mut tank = world.spawn(WorldObject);
+    tank.reborrow_scope(|facility| {
         facility::SpawnCommand {
             name:             Some("Core water tank".into()),
             building:         building_id,
@@ -238,19 +240,19 @@ fn gen_core(world: &mut World, std: &StandardTypes) -> CoreGen {
         .apply(facility);
     });
     let mut fluid_storage =
-        facility.get_mut::<fluid::Storage>().expect("blueprint contains fluid storage");
+        tank.get_mut::<fluid::Storage>().expect("blueprint contains fluid storage");
     fluid_storage.set_fluid(std.fluids.water, fluid::Moles(80.0));
-    facility.reborrow_scope(|facility| {
-        fluid::SetTemperatureCommand { temperature: std.fluids.temperature }.apply(facility)
+    tank.reborrow_scope(|facility| {
+        fluid::SetTemperatureCommand { temperature: std.fluids.temperature }.apply(facility);
     });
-    let facility = facility.id();
+    let tank = tank.id();
 
-    CoreGen { building: building_id, facility }
+    CoreGen { building: building_id, tank }
 }
 
 struct CoreGen {
     building: Entity,
-    facility: Entity,
+    tank:     Entity,
 }
 
 fn gen_garden(world: &mut World, std: &StandardTypes) -> GardenGen {
@@ -340,7 +342,7 @@ fn spawn_fluid_pipe(
     to_facility: Entity,
     name: impl Into<String>,
     radius: f32,
-) {
+) -> Entity {
     let mut pipe = world.spawn((WorldObject,));
 
     pipe.reborrow_scope(|pipe| {
@@ -353,7 +355,7 @@ fn spawn_fluid_pipe(
         .apply(pipe);
     });
 
-    // TODO connect with facilities
+    pipe.id()
 }
 
 fn spawn_edge<Ab: Which>(
@@ -367,6 +369,13 @@ fn spawn_edge<Ab: Which>(
         edge::SpawnCommand { building: which.select(endpoints), corridor, which, open: true }
             .apply(edge);
     });
+}
+
+fn connect_facility_pipe(world: &mut World, facility: Entity, pipe: Entity) {
+    let connection = world.spawn((WorldObject,));
+
+    connection::SpawnCommand { main: facility, peer: connection::SpawnPeer::Pipe(pipe) }
+        .apply(connection);
 }
 
 impl StandardFluidTypes {

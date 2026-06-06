@@ -14,16 +14,16 @@ use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
 use crate::graph::{Corridor, corridor};
-use crate::util::{AlphaBeta, QueryExt};
-use crate::{Vector, fluid, view};
+use crate::util::QueryExt;
+use crate::{fluid, view};
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Conduit>();
-        app.register_type::<ConduitOf>();
-        app.register_type::<ConduitList>();
+        app.register_type::<OfCorridor>();
+        app.register_type::<ListOnCorridor>();
 
         app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
         app.add_systems(
@@ -44,13 +44,13 @@ pub struct Conduit {
 
 /// Conduits in a corridor. Component on corridors.
 #[derive(Component, Reflect)]
-#[relationship_target(relationship = ConduitOf, linked_spawn)]
-pub struct ConduitList(Vec<Entity>);
+#[relationship_target(relationship = OfCorridor, linked_spawn)]
+pub struct ListOnCorridor(Vec<Entity>);
 
 /// Corridor owning the conduit. Component on conduits.
 #[derive(Component, Reflect)]
-#[relationship(relationship_target = ConduitList)]
-pub struct ConduitOf(pub Entity);
+#[relationship(relationship_target = ListOnCorridor)]
+pub struct OfCorridor(pub Entity);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Reflect)]
 pub enum ConduitType {
@@ -87,7 +87,7 @@ impl EntityCommand for SpawnCommand {
                     TypedSpawn::FluidPipe => ConduitType::FluidPipe,
                 },
             },
-            ConduitOf(self.corridor),
+            OfCorridor(self.corridor),
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
 
@@ -108,11 +108,11 @@ impl EntityCommand for SpawnCommand {
 }
 
 fn init_viewer_system(
-    conduit_query: Query<(&Conduit, &view::Viewable, &ConduitOf)>,
+    conduit_query: Query<(&Conduit, &view::Viewable, &OfCorridor)>,
     corridor_query: Query<&view::Viewable, With<Corridor>>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (conduit, viewable, &ConduitOf(corridor_entity)) in conduit_query {
+    for (conduit, viewable, &OfCorridor(corridor_entity)) in conduit_query {
         messages.write_batch(viewable.broadcast_new(|| {
             let corridor_viewable = corridor_query.log_get(corridor_entity)?;
             Some(proto::Update::NewConduit(proto::NewConduit {

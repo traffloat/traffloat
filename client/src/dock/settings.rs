@@ -1,9 +1,4 @@
-use bevy::app::{App, Plugin};
-use bevy::ecs::system::Commands;
-use bevy::ecs::world::World;
-use egui_dock::tab_viewer::OnCloseResponse;
-
-use crate::dock::{self, TabPlacement, new_level};
+use crate::dock::{self};
 
 pub struct Tab;
 

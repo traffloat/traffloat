@@ -36,16 +36,12 @@ macro_rules! try_log {
     }
 }
 
-pub use try_log;
-
 #[macro_export]
 macro_rules! try_log_return {
     ($expr:expr, expect $must:literal $(, $($must_args:expr),*)? $(,)?) => {
         $crate::util::try_log!($expr, expect $must $(($($must_args),*))? or return)
     }
 }
-
-pub use try_log_return;
 
 pub trait QueryExtSuper {
     type Read<'a>;

@@ -6,7 +6,7 @@ use bevy::camera::visibility::RenderLayers;
 use bevy::camera::{Camera, Camera2d};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{self, Schedulable, ScheduleConfigs};
-use bevy::ecs::system::{Commands, Local, ParamSet, ResMut, SystemParam};
+use bevy::ecs::system::{Commands, ParamSet, ResMut, SystemParam};
 use bevy::ecs::world::World;
 use bevy_egui::{EguiContexts, EguiGlobalSettings, EguiPrimaryContextPass, PrimaryEguiContext};
 use egui::WidgetText;
@@ -223,7 +223,7 @@ macro_rules! define_tabs {
             fn ui(&mut self, ui: &mut egui::Ui, tab: &mut TabState) {
                 let order_mut = &mut self.next_order;
                 let order = mem::replace(order_mut, *order_mut + 1);
-                let location = tab.location.expect("location must be initialzed before DockArea rendering");
+                let location = tab.location.expect("location must be initialized before DockArea rendering");
                 let dock = Context { order, id: new_id!(tab.id), location, focused: Some(location) == self.focused_tab };
                 match tab.tab {
                     $(

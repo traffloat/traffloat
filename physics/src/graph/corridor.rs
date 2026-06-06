@@ -2,7 +2,6 @@ use std::f32::consts::PI;
 
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
-use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::With;
@@ -15,7 +14,7 @@ use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
 use crate::graph::Conduit;
-use crate::graph::conduit::ConduitList;
+use crate::graph::conduit::ListOnCorridor;
 use crate::util::{AlphaBeta, EntityWorldMutExt, WorldExt};
 use crate::{Vector, fluid, view};
 
@@ -106,7 +105,7 @@ pub struct RecomputeAmbientVolume;
 
 impl EntityCommand for RecomputeAmbientVolume {
     fn apply(self, mut entity: EntityWorldMut) {
-        let used_by_conduits: f32 = if let Some(conduit_list) = entity.get::<ConduitList>() {
+        let used_by_conduits: f32 = if let Some(conduit_list) = entity.get::<ListOnCorridor>() {
             let conduits: Vec<_> = conduit_list.iter().collect();
             conduits
                 .iter()

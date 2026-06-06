@@ -1,3 +1,5 @@
+#![allow(clippy::used_underscore_binding, reason = "derive(Reflect) bug")]
+
 use std::num::NonZeroU32;
 
 use bevy::color::LinearRgba;
@@ -39,6 +41,7 @@ pub enum Update {
     NewBuilding(NewBuilding),
     UpdateBuilding(UpdateBuilding),
     UpdateBuildingFull(UpdateBuildingFull),
+    SetBuildingFluidConnections(SetBuildingFluidConnections),
     NewCorridor(NewCorridor),
     UpdateCorridor(UpdateCorridor),
     UpdateCorridorFull(UpdateCorridorFull),
@@ -156,6 +159,31 @@ pub struct SetFacilityTaint {
 pub struct SetFacilityFluid {
     pub id:    Id,
     pub fluid: FluidStorageFull,
+}
+
+/// Sets the fluid connections within a building.
+///
+/// This does not include building-corridor edges.
+/// Building-corridor connections must be either open or closed instead of adjustable area,
+/// and are set with [`SetCorridorEndpoint`] instead of this message.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetBuildingFluidConnections {
+    pub id:          Id,
+    pub connections: Vec<BuildingFluidConnection>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct BuildingFluidConnection {
+    pub current_area: f32,
+    pub max_area:     f32,
+    pub pair:         BuildingFluidConnectionPair,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub enum BuildingFluidConnectionPair {
+    FacilityFacility(Id, Id),
+    FacilityBuilding { facility: Id, building: Id },
+    FacilityPipe { facility: Id, pipe: Id },
 }
 
 /// Subscribed to a new conduit in an existing corridor.

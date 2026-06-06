@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-use std::mem;
-
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets, RenderAssetUsages};
 use bevy::color::Color;
@@ -8,25 +5,20 @@ use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::hierarchy::ChildOf;
-use bevy::ecs::message::{Message, MessageReader};
 use bevy::ecs::name::Name;
-use bevy::ecs::observer;
-use bevy::ecs::query::{Has, QueryData, With};
+use bevy::ecs::query::{Has, QueryData};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, Single, SystemParam};
-use bevy::ecs::world::{Mut, World};
-use bevy::math::Vec3;
-use bevy::math::primitives::Annulus;
+use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
+use bevy::ecs::world::Mut;
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::picking::{Pickable, events as pick};
+use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
-use bevy::transform::components::Transform;
 use bevy_mesh::PrimitiveTopology;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
+use traffloat_physics::try_log;
 use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
-use traffloat_physics::{try_log, view};
 use traffloat_proto::proto;
 
 use crate::ConfigManager;
@@ -246,7 +238,7 @@ impl UpdateHandler for SetCorridorEndpointParams<'_, '_> {
             (None, Some(value)) => {
                 let building = try_log!(
                     self.ids.get_building(value.building),
-                    expect "Received update to conncet corridor {:?} to unknown building {:?}"
+                    expect "Received update to connect corridor {:?} to unknown building {:?}"
                     (update.corridor, value.building)
                     or return
                 );
@@ -278,7 +270,7 @@ impl UpdateHandler for SetCorridorEndpointParams<'_, '_> {
             (Some((curr_building, mut curr_detail)), Some(value)) => {
                 let building = try_log!(
                     self.ids.get_building(value.building),
-                    expect "Received update to conncet corridor {:?} to unknown building {:?}"
+                    expect "Received update to connect corridor {:?} to unknown building {:?}"
                     (update.corridor, value.building)
                     or return
                 );
@@ -393,6 +385,7 @@ impl ConduitOutlineMaterial {
 }
 
 #[derive(Config)]
+#[expect(clippy::struct_field_names, reason = "pure coincidence")]
 pub struct Conf {
     #[config(default = Color::WHITE)]
     pub wall_color:            Color,

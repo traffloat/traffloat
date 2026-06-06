@@ -1,11 +1,9 @@
-use bevy::camera::Camera;
-use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{Res, SystemParam};
 use bevy::math::Vec2;
 use bevy::time;
 use bevy::time::Time;
 use bevy::transform::components::Transform;
-use bevy_mod_config::{Config, ReadConfig};
+use bevy_mod_config::ReadConfig;
 
 #[derive(SystemParam)]
 pub struct Param<'w, 's> {

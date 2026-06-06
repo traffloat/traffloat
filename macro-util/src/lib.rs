@@ -1,4 +1,4 @@
-use proc_macro2::{Span, TokenStream, TokenTree};
+use proc_macro2::{TokenStream, TokenTree};
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;

@@ -3,8 +3,7 @@ use bevy::asset::AssetPlugin;
 use bevy::ecs::resource::Resource;
 use bevy::log::LogPlugin;
 use bevy::log::tracing_subscriber::fmt::format::FmtSpan;
-use bevy::log::tracing_subscriber::{self, Layer};
-use bevy::picking::mesh_picking::MeshPickingPlugin;
+use bevy::log::tracing_subscriber::{self};
 use bevy_egui::EguiPlugin;
 
 mod dock;

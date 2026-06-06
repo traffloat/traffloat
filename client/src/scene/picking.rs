@@ -1,23 +1,20 @@
-use std::mem;
-
 use bevy::app::{self, App, Plugin};
 use bevy::camera::{ImageRenderTarget, NormalizedRenderTarget};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::message::{Message, MessageReader, MessageWriter};
+use bevy::ecs::message::MessageWriter;
 use bevy::ecs::observer;
 use bevy::ecs::query::With;
 use bevy::ecs::system::{Commands, EntityCommands, Local, Query, Res};
 use bevy::ecs::world::World;
 use bevy::math::Vec2;
-use bevy::picking::backend::PointerHits;
 use bevy::picking::input::PointerInputSettings;
 use bevy::picking::mesh_picking::{MeshPickingCamera, MeshPickingSettings};
 use bevy::picking::pointer::{PointerAction, PointerId, PointerInput};
 use bevy::picking::{PickingSettings, events as pick_event, pointer};
 use bevy_egui::helpers::egui_vec2_into_vec2;
 
-use crate::dock::{self, TabPlacement, camera, viewable_info};
+use crate::dock::{self, camera, viewable_info};
 
 pub struct Plug;
 

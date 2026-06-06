@@ -1,39 +1,27 @@
-use std::collections::HashMap;
-use std::f32::consts::{FRAC_1_SQRT_2, SQRT_2};
-use std::{cmp, mem};
+use std::cmp;
 
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, AssetServer, Assets};
-use bevy::color::Color;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::hierarchy::ChildOf;
-use bevy::ecs::message::{Message, MessageReader};
 use bevy::ecs::name::Name;
-use bevy::ecs::observer;
-use bevy::ecs::query::{Has, With, Without};
+use bevy::ecs::query::{With, Without};
 use bevy::ecs::relationship::RelationshipTarget;
-use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, Single, SystemParam};
-use bevy::ecs::world::{EntityWorldMut, World};
+use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
+use bevy::ecs::world::EntityWorldMut;
 use bevy::image::Image;
 use bevy::math::Vec3;
-use bevy::math::primitives::Annulus;
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::picking::{Pickable, events as pick};
+use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
-use bevy_mod_config::{AppExt, Config, ReadConfig};
-use either::Either;
 use ordered_float::OrderedFloat;
 use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
-use traffloat_physics::{try_log, view};
 use traffloat_proto::proto;
 
-use crate::ConfigManager;
-use crate::scene::picking::{self, ObservePicking};
 use crate::scene::{
     AllHandlersSystemSet, GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler,
     ViewableKind, Zorder,

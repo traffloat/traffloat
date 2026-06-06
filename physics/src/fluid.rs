@@ -1,4 +1,4 @@
-use std::{cmp, iter, mem, ops};
+use std::{iter, ops};
 
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
@@ -7,12 +7,12 @@ use bevy::ecs::message::MessageWriter;
 use bevy::ecs::query::{QueryData, With};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
-use bevy::ecs::system::{Command, Commands, EntityCommand, Local, Query, Res, SystemParam};
+use bevy::ecs::system::{Command, Commands, EntityCommand, Local, Query, Res};
 use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
-use crate::util::{AlphaBeta, MergeSortedItem, QueryExt, merge_sorted};
+use crate::util::{AlphaBeta, QueryExt};
 use crate::view;
 
 #[cfg(test)]

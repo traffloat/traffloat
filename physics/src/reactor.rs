@@ -408,7 +408,7 @@ impl EfficiencyModifier for PressureCatalyst {
 }
 
 pub struct TemperatureCatalyst {
-    /// The fluid storage entity to chcek.
+    /// The fluid storage entity to check.
     pub storage:        FluidStorageRef,
     /// How temperature affects the efficiency of the reactor.
     pub temp_threshold: Threshold,

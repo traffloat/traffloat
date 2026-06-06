@@ -147,7 +147,7 @@ pub struct DespawnCommand;
 impl EntityCommand for DespawnCommand {
     fn apply(self, mut entity: EntityWorldMut) {
         fn cleanup<Ab: Which>(which: Ab, entity: &mut EntityWorldMut) {
-            let Some(&OfBuilding::<Ab>(building_entity, ..)) = entity.log_get() else { return };
+            let Some(&OfBuilding::<Ab>(building_entity, ..)) = entity.get() else { return };
             let Some(&OfCorridor::<Ab>(corridor_entity, ..)) = entity.log_get() else { return };
 
             entity.world_scope(|world| {
@@ -166,6 +166,7 @@ impl EntityCommand for DespawnCommand {
             });
         }
 
+        // Either Alpha or Beta, whichever is absent will return on first line.
         cleanup(Alpha, &mut entity);
         cleanup(Beta, &mut entity);
         entity.despawn();

@@ -3,30 +3,19 @@
 use std::collections::HashMap;
 
 use bevy::app::{self, App, Plugin};
-use bevy::asset::Assets;
-use bevy::color::Color;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::message::{Message, MessageReader};
+use bevy::ecs::message::MessageReader;
 use bevy::ecs::query::With;
 use bevy::ecs::resource::Resource;
-use bevy::ecs::schedule::{
-    ApplyDeferred, IntoScheduleConfigs, Schedulable, ScheduleConfigs, SystemSet,
-};
-use bevy::ecs::system::{Commands, ParamSet, Query, ResMut, ScheduleSystem, Single, SystemParam};
+use bevy::ecs::schedule::{ApplyDeferred, IntoScheduleConfigs, ScheduleConfigs, SystemSet};
+use bevy::ecs::system::{Commands, ParamSet, ResMut, ScheduleSystem, Single, SystemParam};
 use bevy::ecs::world::{EntityWorldMut, World};
-use bevy::math::Vec3;
-use bevy::mesh::Mesh2d;
-use bevy::picking::PickingSettings;
 use bevy::reflect::Reflect;
-use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
-use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
-use enum_map::EnumMap;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
-use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
-use traffloat_physics::{try_log, view};
+use traffloat_physics::view;
 use traffloat_proto::proto;
 
 use crate::ConfigManager;
@@ -293,6 +282,7 @@ define_params! {
     NewBuilding(building::NewBuildingParams<'w, 's>),
     UpdateBuilding(building::UpdateBuildingParams<'w, 's>),
     UpdateBuildingFull(building::UpdateBuildingFullParams<'w, 's>),
+    SetBuildingFluidConnections(building::SetBuildingFluidConnectionsParams<'w, 's>),
     NewCorridor(corridor::NewCorridorParams<'w, 's>),
     UpdateCorridor(corridor::UpdateCorridorParams<'w, 's>),
     UpdateCorridorFull(corridor::UpdateCorridorFullParams<'w, 's>),

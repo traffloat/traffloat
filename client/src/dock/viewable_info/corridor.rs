@@ -1,11 +1,9 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::relationship::RelationshipTarget;
-use bevy::ecs::system::{Commands, ParamSet, Query, Res, SystemParam};
-use bevy::ecs::world::World;
+use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use egui_material_icons::icons;
 use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
-use traffloat_proto::proto;
 
 use crate::dock::viewable_info::show_fluid;
 use crate::dock::{self, viewable_info};
@@ -44,7 +42,7 @@ impl UiSystemParam<'_, '_> {
         };
 
         ui.heading("Conduits");
-        for conduit in data.conduits.into_iter().flat_map(|d| d.iter()) {
+        for conduit in data.conduits.into_iter().flat_map(RelationshipTarget::iter) {
             show_conduit(ui, dock.id, &self.conduit_query, &mut self.commands, conduit);
         }
 

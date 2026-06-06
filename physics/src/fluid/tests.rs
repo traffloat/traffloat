@@ -108,7 +108,7 @@ fn test_temperature_induced_advection() {
     //    This carries mass and heat from alpha to beta.
     // 2. Alpha and beta exchange heat by convection and conduction.
     //    Alpha cools down and shrinks, while beta heats up and expands,
-    //    but container volumes remain unchaged,
+    //    but container volumes remain unchanged,
     //    so a pressure gradient is created that pushes fluids back from beta to alpha.
     do_test(
         |_| {},

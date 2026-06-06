@@ -1,29 +1,23 @@
-use std::collections::HashMap;
-use std::mem;
-
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets};
 use bevy::color::Color;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::{Entity, EntityHashSet};
-use bevy::ecs::message::{Message, MessageReader};
 use bevy::ecs::name::Name;
-use bevy::ecs::observer;
-use bevy::ecs::query::{Has, With};
+use bevy::ecs::query::Has;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, Single, SystemParam};
-use bevy::ecs::world::World;
+use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
 use bevy::math::Vec3;
 use bevy::math::primitives::Annulus;
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::picking::{Pickable, events as pick};
+use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
+use traffloat_physics::try_log;
 use traffloat_physics::util::QueryExt;
-use traffloat_physics::{try_log, view};
 use traffloat_proto::proto;
 
 use crate::scene::facility::FacilityBuilding;
@@ -112,10 +106,7 @@ impl UpdateHandler for UpdateBuildingParams<'_, '_> {
     fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &proto::UpdateBuilding) {
-        let Some(entity) = self.ids.get_building(update.id) else {
-            tracing::error!("Received update for unknown building id {:?}", update.id);
-            return;
-        };
+        let Some(entity) = self.ids.get_building(update.id) else { return };
         let Ok((handle, mut info)) = self.building_query.get_mut(entity) else {
             // Happens when update is received immediately after update
             return;
@@ -140,10 +131,7 @@ impl UpdateHandler for UpdateBuildingFullParams<'_, '_> {
     fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &proto::UpdateBuildingFull) {
-        let Some(entity) = self.ids.get_building(update.id) else {
-            tracing::error!("Received update for unknown building id {:?}", update.id);
-            return;
-        };
+        let Some(entity) = self.ids.get_building(update.id) else { return };
         let Ok((handle, mut info)) = self.building_query.get_mut(entity) else {
             // Happens when update is received immediately after update
             return;
@@ -155,9 +143,65 @@ impl UpdateHandler for UpdateBuildingFullParams<'_, '_> {
     }
 }
 
+#[derive(SystemParam)]
+pub struct SetBuildingFluidConnectionsParams<'w, 's> {
+    ids:            ResMut<'w, IdRegistry>,
+    building_query: Query<'w, 's, &'static mut Info>,
+}
+
+impl UpdateHandler for SetBuildingFluidConnectionsParams<'_, '_> {
+    type Update = proto::SetBuildingFluidConnections;
+
+    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &Self::Update) {
+        let Some(entity) = self.ids.get_building(update.id) else { return };
+        let Some(mut info) = self.building_query.log_get_mut(entity) else { return };
+        info.connections.clone_from(&update.connections);
+    }
+}
+
 #[derive(Default, Component, Reflect)]
 pub struct Info {
     pub ambient_fluid: Option<proto::FluidStorageFull>,
+    pub connections:   Vec<proto::BuildingFluidConnection>,
+}
+
+impl Info {
+    pub fn facility_fluid_connections(
+        &self,
+        target_facility: proto::Id,
+        ids: &IdRegistry,
+    ) -> impl Iterator<Item = (&proto::BuildingFluidConnection, FluidConnectionPeer)> {
+        self.connections.iter().filter_map(move |conn| {
+            let peer = match conn.pair {
+                proto::BuildingFluidConnectionPair::FacilityFacility(a, b) => (a
+                    == target_facility)
+                    .then_some(b)
+                    .or_else(|| (b == target_facility).then_some(a))
+                    .and_then(|facility| ids.get_facility(facility))
+                    .map(FluidConnectionPeer::Facility),
+                proto::BuildingFluidConnectionPair::FacilityBuilding { facility, building } => {
+                    (building == target_facility)
+                        .then(|| ids.get_building(building))
+                        .flatten()
+                        .map(FluidConnectionPeer::Building)
+                }
+                proto::BuildingFluidConnectionPair::FacilityPipe { facility, pipe } => (facility
+                    == target_facility)
+                    .then(|| ids.get_conduit(pipe))
+                    .flatten()
+                    .map(FluidConnectionPeer::Pipe),
+            };
+            peer.map(|peer| (conn, peer))
+        })
+    }
+}
+
+pub enum FluidConnectionPeer {
+    Facility(Entity),
+    Building(Entity),
+    Pipe(Entity),
 }
 
 #[derive(Component, Resource, Reflect)]

@@ -1,40 +1,26 @@
-use std::collections::HashMap;
-use std::f32::consts::{FRAC_1_SQRT_2, SQRT_2};
-use std::{cmp, mem};
-
 use bevy::app::{self, App, Plugin};
-use bevy::asset::{self, AssetServer, Assets};
+use bevy::asset::Assets;
 use bevy::color::Color;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::hierarchy::ChildOf;
-use bevy::ecs::message::{Message, MessageReader};
 use bevy::ecs::name::Name;
-use bevy::ecs::observer;
-use bevy::ecs::query::{Has, With, Without};
+use bevy::ecs::query::{With, Without};
 use bevy::ecs::relationship::RelationshipTarget;
-use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, Single, SystemParam};
-use bevy::ecs::world::{EntityWorldMut, World};
-use bevy::image::Image;
-use bevy::math::primitives::Annulus;
-use bevy::math::{Quat, Vec2, Vec3};
+use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
+use bevy::ecs::world::EntityWorldMut;
+use bevy::math::{Quat, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
-use bevy::picking::{Pickable, events as pick};
+use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
-use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
+use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mesh::VertexAttributeValues;
-use bevy_mod_config::{AppExt, Config, ReadConfig};
-use either::Either;
 use ordered_float::OrderedFloat;
+use traffloat_physics::try_log;
 use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
-use traffloat_physics::{try_log, view};
 use traffloat_proto::proto;
 
-use crate::ConfigManager;
-use crate::scene::picking::{self, ObservePicking};
 use crate::scene::{
     AllHandlersSystemSet, GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler,
     ViewableKind, Zorder, corridor,
@@ -229,7 +215,6 @@ fn rearrange_conduit_tf_system(
 
                 mesh_positions.push([0.5, y1, 0.0]);
                 mesh_positions.push([-0.5, y1, 0.0]);
-                dbg!(y1, y2);
                 last_y2 = Some(y2);
             }
             if let Some(last_y2) = last_y2 {
@@ -253,12 +238,11 @@ fn compute_placement(
         .then(|| {
             let total = corridor_radius.powi(2);
 
-            let radius_sum: f32 = radii.clone().into_iter().sum();
+            let radius_sum: f32 = radii.clone().sum();
             let radius_ratio = (radius_sum / corridor_radius).clamp(0.3, 0.8);
             let width_scale = radius_ratio / (radius_sum / corridor_radius);
             let mut next_y_offset = -radius_ratio * 0.5;
 
-            dbg!(width_scale);
             radii.into_iter().map(move |radius| {
                 let scale = (radius / corridor_radius) * width_scale;
 
