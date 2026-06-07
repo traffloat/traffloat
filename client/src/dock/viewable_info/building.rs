@@ -125,7 +125,7 @@ fn show_connection<Ab: Which>(
 
     ui.horizontal(|ui| {
         if let Some((peer_building, peer_detail)) = peer {
-            if ui.button(icons::ICON_LINK).clicked() {
+            if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
                 commands.queue(viewable_info::OpenCommand::from_click(peer_building, ui.ctx()));
             }
 
@@ -159,7 +159,7 @@ fn show_facility(
     let Some(facility_data) = facility_query.log_get(facility_entity) else { return };
 
     ui.horizontal(|ui| {
-        if ui.button(icons::ICON_LINK).clicked() {
+        if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
             commands.queue(viewable_info::OpenCommand::from_click(facility_entity, ui.ctx()));
         }
 

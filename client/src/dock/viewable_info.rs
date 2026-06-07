@@ -12,6 +12,7 @@ mod building;
 mod conduit;
 mod corridor;
 mod facility;
+mod resident;
 
 pub struct Tab {
     pub entity: Entity,
@@ -28,6 +29,7 @@ impl dock::Tab for Tab {
             ViewableKind::Corridor => format!("Corridor: {}", viewable.name),
             ViewableKind::Facility => format!("Facility: {}", viewable.name),
             ViewableKind::Conduit => format!("Conduit: {}", viewable.name),
+            ViewableKind::Resident => format!("Resident: {}", viewable.name),
         }
     }
 
@@ -44,7 +46,7 @@ impl dock::Tab for Tab {
         };
 
         ui.horizontal(|ui| {
-            if ui.button(icons::ICON_RECENTER).clicked() {
+            if ui.button(icons::ICON_RECENTER).on_hover_text("Focus").clicked() {
                 param
                     .ps
                     .p0()
@@ -55,29 +57,34 @@ impl dock::Tab for Tab {
                 ViewableKind::Corridor => "Corridor:",
                 ViewableKind::Facility => "Facility:",
                 ViewableKind::Conduit => "Conduit:",
+                ViewableKind::Resident => "Resident:",
             });
             ui.heading(&generic.name);
-            if ui.button(icons::ICON_EDIT).clicked() {
+            if ui.button(icons::ICON_EDIT).on_hover_text("Rename").clicked() {
                 // TODO edit text
             }
         });
 
         match generic.kind {
             ViewableKind::Building => {
-                let mut building_param = param.ps.p1();
-                building_param.ui(self.entity, ui, dock);
+                let mut param = param.ps.p1();
+                param.ui(self.entity, ui, dock);
             }
             ViewableKind::Corridor => {
-                let mut corridor_param = param.ps.p2();
-                corridor_param.ui(self.entity, ui, dock);
+                let mut param = param.ps.p2();
+                param.ui(self.entity, ui, dock);
             }
             ViewableKind::Facility => {
-                let mut facility_param = param.ps.p3();
-                facility_param.ui(self.entity, ui, dock);
+                let mut param = param.ps.p3();
+                param.ui(self.entity, ui, dock);
             }
             ViewableKind::Conduit => {
-                let mut conduit_param = param.ps.p4();
-                conduit_param.ui(self.entity, ui, dock);
+                let mut param = param.ps.p4();
+                param.ui(self.entity, ui, dock);
+            }
+            ViewableKind::Resident => {
+                let mut param = param.ps.p5();
+                param.ui(self.entity, ui, dock);
             }
         }
     }
@@ -98,6 +105,7 @@ pub struct UiSystemParam<'w, 's> {
             corridor::UiSystemParam<'w, 's>,
             facility::UiSystemParam<'w, 's>,
             conduit::UiSystemParam<'w, 's>,
+            resident::UiSystemParam<'w, 's>,
         ),
     >,
 }

@@ -1,5 +1,6 @@
 use std::ops;
 
+use bevy::math::VectorSpace;
 use bevy::reflect::{self, FromReflect, GetTypeRegistration, Reflect};
 use traffloat_proto::proto;
 
@@ -66,6 +67,10 @@ impl AlphaBeta<f32> {
             product / sum
         }
     }
+}
+
+impl<T: VectorSpace> AlphaBeta<T> {
+    pub fn lerp(self, ratio: T::Scalar) -> T { self.alpha.lerp(self.beta, ratio) }
 }
 
 impl<T: IntoIterator> AlphaBeta<T> {

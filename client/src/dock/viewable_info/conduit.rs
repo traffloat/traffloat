@@ -69,7 +69,7 @@ fn show_corridor(
     let Some(corridor_info) = corridor_query.log_get(corridor_entity) else { return };
 
     ui.horizontal(|ui| {
-        if ui.button(icons::ICON_LINK).clicked() {
+        if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
             commands.queue(viewable_info::OpenCommand::from_click(corridor_entity, ui.ctx()));
         }
         ui.label("Corridor:");
@@ -145,7 +145,7 @@ fn show_connection_ui(
     id: egui::Id,
 ) {
     ui.horizontal(|ui| {
-        if ui.button(icons::ICON_LINK).clicked() {
+        if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
             commands.queue(viewable_info::OpenCommand::from_click(facility, ui.ctx()));
         }
         ui.label("Facility:");
@@ -153,7 +153,7 @@ fn show_connection_ui(
             ui.label(&facility_viewable.name);
         }
         ui.label("in building:");
-        if ui.button(icons::ICON_LINK).clicked() {
+        if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
             commands.queue(viewable_info::OpenCommand::from_click(building, ui.ctx()));
         }
         if let Some(building_viewable) = viewable_query.log_get(building) {

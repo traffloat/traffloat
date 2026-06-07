@@ -8,8 +8,8 @@ use bevy::ecs::query::Has;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
-use bevy::math::Vec3;
 use bevy::math::primitives::Annulus;
+use bevy::math::{Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
@@ -77,7 +77,7 @@ impl UpdateHandler for NewBuildingParams<'_, '_> {
                 MeshMaterial2d(material),
                 Pickable::default(),
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Building },
-                Info::default(),
+                Info { position: update.position, radius: update.radius, ..Default::default() },
             ))
             .observe_picking()
             .with_related::<WallEntityOf>((
@@ -163,6 +163,8 @@ impl UpdateHandler for SetBuildingFluidConnectionsParams<'_, '_> {
 
 #[derive(Default, Component, Reflect)]
 pub struct Info {
+    pub position:      Vec2,
+    pub radius:        f32,
     pub ambient_fluid: Option<proto::FluidStorageFull>,
     pub connections:   Vec<proto::BuildingFluidConnection>,
 }

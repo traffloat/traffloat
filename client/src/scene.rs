@@ -24,6 +24,7 @@ pub mod building;
 pub mod conduit;
 pub mod corridor;
 pub mod facility;
+pub mod resident;
 
 mod picking;
 
@@ -42,6 +43,7 @@ impl Plugin for Plug {
         app.add_plugins(corridor::Plug);
         app.add_plugins(facility::Plug);
         app.add_plugins(conduit::Plug);
+        app.add_plugins(resident::Plug);
         app.add_systems(app::Update, react_config_system);
 
         for (prev, next) in HandlerClass::iter().tuple_windows() {
@@ -59,74 +61,34 @@ pub struct IdRegistry {
     map: HashMap<proto::Id, TrackedId>,
 }
 
+macro_rules! impl_id_registry_get {
+    ($method:ident, $variant:ident, $kind_str:expr) => {
+        pub fn $method(&self, id: proto::Id) -> Option<Entity> {
+            match self.map.get(&id) {
+                Some(TrackedId::$variant(entity)) => Some(*entity),
+                Some(v) => {
+                    tracing::error!(
+                        "Expected received ID {id:?} to be a {}, found {:?}",
+                        $kind_str,
+                        <&'static str>::from(v),
+                    );
+                    None
+                }
+                None => {
+                    tracing::error!("Received unknown {} id {id:?}", $kind_str);
+                    None
+                }
+            }
+        }
+    };
+}
+
 impl IdRegistry {
-    pub fn get_building(&self, id: proto::Id) -> Option<Entity> {
-        match self.map.get(&id) {
-            Some(TrackedId::Building(entity)) => Some(*entity),
-            Some(v) => {
-                tracing::error!(
-                    "Expected received ID {id:?} to be a building, found {:?}",
-                    <&'static str>::from(v),
-                );
-                None
-            }
-            None => {
-                tracing::error!("Received unknown building id {id:?}");
-                None
-            }
-        }
-    }
-
-    pub fn get_corridor(&self, id: proto::Id) -> Option<Entity> {
-        match self.map.get(&id) {
-            Some(TrackedId::Corridor(entity)) => Some(*entity),
-            Some(v) => {
-                tracing::error!(
-                    "Expected received ID {id:?} to be a corridor, found {:?}",
-                    <&'static str>::from(v),
-                );
-                None
-            }
-            None => {
-                tracing::error!("Received unknown corridor id {id:?}");
-                None
-            }
-        }
-    }
-
-    pub fn get_facility(&self, id: proto::Id) -> Option<Entity> {
-        match self.map.get(&id) {
-            Some(TrackedId::Facility(entity)) => Some(*entity),
-            Some(v) => {
-                tracing::error!(
-                    "Expected received ID {id:?} to be a facility, found {:?}",
-                    <&'static str>::from(v),
-                );
-                None
-            }
-            None => {
-                tracing::error!("Received unknown facility id {id:?}");
-                None
-            }
-        }
-    }
-
-    pub fn get_conduit(&self, id: proto::Id) -> Option<Entity> {
-        match self.map.get(&id) {
-            Some(TrackedId::Conduit(entity)) => Some(*entity),
-            Some(v) => {
-                tracing::error!(
-                    "Expected received ID {id:?} to be a conduit, found {:?}",
-                    <&'static str>::from(v),
-                );
-                None
-            }
-            None => {
-                tracing::error!("Received unknown conduit id {id:?}");
-                None
-            }
-        }
-    }
+    impl_id_registry_get!(get_building, Building, "building");
+    impl_id_registry_get!(get_corridor, Corridor, "corridor");
+    impl_id_registry_get!(get_facility, Facility, "facility");
+    impl_id_registry_get!(get_conduit, Conduit, "conduit");
+    impl_id_registry_get!(get_resident, Resident, "resident");
 }
 
 #[derive(Reflect, strum::IntoStaticStr)]
@@ -135,6 +97,7 @@ enum TrackedId {
     Corridor(Entity),
     Facility(Entity),
     Conduit(Entity),
+    Resident(Entity),
 }
 
 #[derive(Component, Reflect)]
@@ -168,6 +131,7 @@ pub enum Zorder {
     FacilityTaint,
     Facility,
     Conduit,
+    Resident,
 }
 
 impl Zorder {
@@ -279,6 +243,7 @@ trait UpdateHandler {
 
 define_params! {
     'w, 's;
+    SetFluidTypes(SetFluidTypesParams<'w>),
     NewBuilding(building::NewBuildingParams<'w, 's>),
     UpdateBuilding(building::UpdateBuildingParams<'w, 's>),
     UpdateBuildingFull(building::UpdateBuildingFullParams<'w, 's>),
@@ -293,41 +258,9 @@ define_params! {
     NewConduit(conduit::NewConduitParams<'w, 's>),
     UpdateFluidConduit(conduit::UpdateFluidConduitParams<'w, 's>),
     UpdateFluidConduitFull(conduit::UpdateFluidConduitFullParams<'w, 's>),
+    NewResident(resident::NewResidentParams<'w, 's>),
+    UpdateResidentLocation(resident::UpdateResidentLocationParams<'w, 's>),
     RemoveViewable(RemoveViewableParams<'w, 's>),
-    SetFluidTypes(SetFluidTypesParams<'w>),
-}
-
-#[derive(SystemParam)]
-struct RemoveViewableParams<'w, 's> {
-    commands: Commands<'w, 's>,
-    ids:      ResMut<'w, IdRegistry>,
-}
-
-impl UpdateHandler for RemoveViewableParams<'_, '_> {
-    type Update = proto::RemoveViewable;
-
-    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Despawn }
-
-    fn handle(&mut self, fixture: &proto::RemoveViewable) {
-        match self.ids.map.remove(&fixture.id) {
-            Some(TrackedId::Building(entity) | TrackedId::Corridor(entity)) => {
-                self.commands.entity(entity).despawn();
-            }
-            Some(TrackedId::Facility(entity)) => {
-                self.commands.entity(entity).queue(|mut entity: EntityWorldMut| {
-                    facility::on_despawn(&mut entity);
-                    entity.despawn();
-                });
-            }
-            Some(TrackedId::Conduit(entity)) => {
-                self.commands.entity(entity).queue(|mut entity: EntityWorldMut| {
-                    conduit::on_despawn(&mut entity);
-                    entity.despawn();
-                });
-            }
-            None => tracing::error!("Received remove for unknown fixture id {:?}", fixture.id),
-        }
-    }
 }
 
 #[derive(SystemParam)]
@@ -345,6 +278,48 @@ impl UpdateHandler for SetFluidTypesParams<'_> {
     }
 }
 
+#[derive(SystemParam)]
+struct RemoveViewableParams<'w, 's> {
+    commands: Commands<'w, 's>,
+    ids:      ResMut<'w, IdRegistry>,
+}
+
+impl UpdateHandler for RemoveViewableParams<'_, '_> {
+    type Update = proto::RemoveViewable;
+
+    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Despawn }
+
+    fn handle(&mut self, fixture: &proto::RemoveViewable) {
+        let Some(tracked) = self.ids.map.remove(&fixture.id) else {
+            tracing::error!("Received remove for unknown fixture id {:?}", fixture.id);
+            return;
+        };
+        match tracked {
+            TrackedId::Building(entity) | TrackedId::Corridor(entity) => {
+                self.commands.entity(entity).despawn();
+            }
+            TrackedId::Facility(entity) => {
+                self.commands.entity(entity).queue(|mut entity: EntityWorldMut| {
+                    facility::on_despawn(&mut entity);
+                    entity.despawn();
+                });
+            }
+            TrackedId::Conduit(entity) => {
+                self.commands.entity(entity).queue(|mut entity: EntityWorldMut| {
+                    conduit::on_despawn(&mut entity);
+                    entity.despawn();
+                });
+            }
+            TrackedId::Resident(entity) => {
+                self.commands.entity(entity).queue(|mut entity: EntityWorldMut| {
+                    resident::on_despawn(&mut entity);
+                    entity.despawn();
+                });
+            }
+        }
+    }
+}
+
 #[derive(Component, Reflect)]
 pub struct GenericViewable {
     pub name: String,
@@ -357,6 +332,7 @@ pub enum ViewableKind {
     Corridor,
     Facility,
     Conduit,
+    Resident,
 }
 
 #[derive(Resource, Default)]

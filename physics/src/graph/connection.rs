@@ -79,14 +79,14 @@ pub struct AltFacility(pub Entity);
 /// Component on facilities.
 ///
 /// In practice, users of this component will almost always want to
-/// use [`ListOnFacility`] as well.
+/// use [`ListOnMainFacility`] as well.
 #[derive(Component, Reflect)]
 #[relationship_target(relationship = AltFacility, linked_spawn)]
 pub struct ListOnAltFacility(Vec<Entity>);
 
 /// Marks the connection as a facility&ndash;building connections.
 ///
-/// The referenced entity is always the parent building of the facility referenced by [`OfFacility`].
+/// The referenced entity is always the parent building of the facility referenced by [`MainFacility`].
 #[derive(Component, Reflect)]
 #[relationship(relationship_target = ListOnBuilding)]
 pub struct ToBuilding(pub Entity);

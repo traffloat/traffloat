@@ -11,6 +11,7 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
 use bevy::ecs::world::Mut;
+use bevy::math::Vec2;
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
@@ -18,7 +19,7 @@ use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy_mesh::PrimitiveTopology;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use traffloat_physics::try_log;
-use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
+use traffloat_physics::util::{Alpha, AlphaBeta, Beta, QueryExt, Which};
 use traffloat_proto::proto;
 
 use crate::ConfigManager;
@@ -112,7 +113,14 @@ impl UpdateHandler for NewCorridorParams<'_, '_> {
                 MeshMaterial2d(material),
                 Pickable::default(),
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Corridor },
-                Info { radius: update.radius, ambient_fluid: None },
+                Info {
+                    endpoint_positions: AlphaBeta {
+                        alpha: update.alpha_position,
+                        beta:  update.beta_position,
+                    },
+                    radius:             update.radius,
+                    ambient_fluid:      None,
+                },
             ))
             .observe_picking()
             .with_related::<WallEntityOf<true>>((
@@ -289,8 +297,9 @@ impl UpdateHandler for SetCorridorEndpointParams<'_, '_> {
 
 #[derive(Component, Reflect)]
 pub struct Info {
-    pub radius:        f32,
-    pub ambient_fluid: Option<proto::FluidStorageFull>,
+    pub endpoint_positions: AlphaBeta<Vec2>,
+    pub radius:             f32,
+    pub ambient_fluid:      Option<proto::FluidStorageFull>,
 }
 
 /// References building from corridor.

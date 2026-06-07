@@ -72,7 +72,7 @@ fn show_conduit(
     let Some(conduit_viewable) = conduit_query.log_get(entity) else { return };
 
     ui.horizontal(|ui| {
-        if ui.button(icons::ICON_LINK).clicked() {
+        if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
             commands.queue(viewable_info::OpenCommand::from_click(entity, ui.ctx()));
         }
         ui.label(&conduit_viewable.name);
@@ -89,7 +89,7 @@ fn show_connection(
     let Some(building_info) = building_query.log_get(data.building.0) else { return };
 
     ui.horizontal(|ui| {
-        if ui.button(icons::ICON_LINK).clicked() {
+        if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
             commands.queue(viewable_info::OpenCommand::from_click(data.building.0, ui.ctx()));
         }
         ui.label(&building_info.name);

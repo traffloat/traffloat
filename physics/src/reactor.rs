@@ -126,7 +126,7 @@ pub struct TypeDef {
     pub catalysts: Vec<Catalyst>,
 }
 
-/// A reference to an entry in [`Refs::fluid_storage`].
+/// A reference to an entry in [`Ports::fluid_storages`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FluidStorageRef(pub u32);
 

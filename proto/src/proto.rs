@@ -1,8 +1,7 @@
-#![allow(clippy::used_underscore_binding, reason = "derive(Reflect) bug")]
-
 use std::num::NonZeroU32;
 
 use bevy::color::LinearRgba;
+use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
@@ -33,11 +32,26 @@ impl From<Color> for LinearRgba {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct FluidStorageFull {
+    pub volume:      f32,
+    pub pressure:    f32,
+    pub temperature: f32,
+    pub types:       Vec<f32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub enum AlphaOrBeta {
+    Alpha,
+    Beta,
+}
+
 /// Messages from the world to a specific viewer.
 #[derive(
     Debug, Clone, Serialize, Deserialize, Reflect, strum::IntoStaticStr, derive_more::From,
 )]
 pub enum Update {
+    SetFluidTypes(SetFluidTypes),
     NewBuilding(NewBuilding),
     UpdateBuilding(UpdateBuilding),
     UpdateBuildingFull(UpdateBuildingFull),
@@ -52,8 +66,19 @@ pub enum Update {
     NewConduit(NewConduit),
     UpdateFluidConduit(UpdateFluidConduit),
     UpdateFluidConduitFull(UpdateFluidConduitFull),
+    NewResident(NewResident),
+    UpdateResidentLocation(UpdateResidentLocation),
     RemoveViewable(RemoveViewable),
-    SetFluidTypes(SetFluidTypes),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetFluidTypes {
+    pub types: Vec<FluidType>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct FluidType {
+    pub name: String,
 }
 
 /// Subscribed to a new building.
@@ -217,34 +242,31 @@ pub struct UpdateFluidConduitFull {
     pub fluid: FluidStorageFull,
 }
 
+/// Subscribed to a new resident.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct NewResident {
+    pub id:       Id,
+    pub name:     String,
+    pub location: ResidentLocation,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateResidentLocation {
+    pub id:       Id,
+    pub location: ResidentLocation,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub enum ResidentLocation {
+    Building { building: Id, interior_pos: Vec3, speed: Vec3 },
+    Corridor { corridor: Id, linear_pos: f32, speed: f32 },
+    Facility { facility: Id },
+}
+
 /// Unsubscribed from a viewable.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct RemoveViewable {
     pub id: Id,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct SetFluidTypes {
-    pub types: Vec<FluidType>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct FluidType {
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct FluidStorageFull {
-    pub volume:      f32,
-    pub pressure:    f32,
-    pub temperature: f32,
-    pub types:       Vec<f32>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub enum AlphaOrBeta {
-    Alpha,
-    Beta,
 }
 
 /// Approved messages from a specific viewer to the world.

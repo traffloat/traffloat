@@ -13,6 +13,7 @@ impl Plugin for Plug {
         app.add_plugins(facility::Plug);
         app.add_plugins(connection::Plug);
         app.add_plugins(conduit::Plug);
+
         util::configure_enum_system_set::<ViewSystemSets>(app, app::Update);
     }
 }

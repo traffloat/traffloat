@@ -7,7 +7,7 @@ use bevy::ecs::world::World;
 use crate::graph::facility::{self, Blueprint, blueprint};
 use crate::graph::{self, building, conduit, connection, corridor, edge};
 use crate::util::{Alpha, AlphaBeta, Beta, Which};
-use crate::{WorldObject, fluid, reactor};
+use crate::{WorldObject, fluid, reactor, resident};
 
 const STANDARD_WALL_THICKNESS: f32 = 0.5;
 
@@ -33,6 +33,8 @@ pub fn generate(world: &mut World, _: Config) {
             connect_facility_pipe(world, core.tank, pipe);
         },
     );
+
+    spawn_resident_in_building(world, garden.building);
 }
 
 struct StandardTypes {
@@ -227,7 +229,7 @@ fn gen_core(world: &mut World, std: &StandardTypes) -> CoreGen {
     });
 
     let building_id = building.id();
-    std.fluids.fill_atmosphere(world, building_id);
+    fill_atmosphere(&std.fluids, world, building_id);
 
     let mut tank = world.spawn(WorldObject);
     tank.reborrow_scope(|facility| {
@@ -268,7 +270,7 @@ fn gen_garden(world: &mut World, std: &StandardTypes) -> GardenGen {
     });
 
     let building_id = building.id();
-    std.fluids.fill_atmosphere(world, building_id);
+    fill_atmosphere(&std.fluids, world, building_id);
 
     let mut facility = world.spawn(WorldObject);
     facility.reborrow_scope(|facility| {
@@ -327,7 +329,7 @@ fn spawn_corridor(
     });
 
     let corridor_id = corridor.id();
-    std.fluids.fill_atmosphere(world, corridor_id);
+    fill_atmosphere(&std.fluids, world, corridor_id);
 
     spawn_edge(Alpha, world, endpoints, corridor_id);
     spawn_edge(Beta, world, endpoints, corridor_id);
@@ -378,18 +380,23 @@ fn connect_facility_pipe(world: &mut World, facility: Entity, pipe: Entity) {
         .apply(connection);
 }
 
-impl StandardFluidTypes {
-    fn fill_atmosphere(&self, world: &mut World, building: Entity) {
-        let mut building = world.entity_mut(building);
-        let mut storage =
-            building.get_mut::<fluid::Storage>().expect("building must have fluid storage");
-        for &(ty, fraction) in &self.atmosphere {
-            let moles = fluid::Moles(fraction * storage.volume);
-            storage.set_fluid(ty, moles);
-        }
+fn spawn_resident_in_building(world: &mut World, building: Entity) {
+    let mut resident = world.spawn((WorldObject,));
+    resident.reborrow_scope(|resident| {
+        resident::SpawnCommand { building }.apply(resident);
+    });
+}
 
-        fluid::SetTemperatureCommand { temperature: self.temperature }.apply(building);
+fn fill_atmosphere(std: &StandardFluidTypes, world: &mut World, building: Entity) {
+    let mut building = world.entity_mut(building);
+    let mut storage =
+        building.get_mut::<fluid::Storage>().expect("building must have fluid storage");
+    for &(ty, fraction) in &std.atmosphere {
+        let moles = fluid::Moles(fraction * storage.volume);
+        storage.set_fluid(ty, moles);
     }
+
+    fluid::SetTemperatureCommand { temperature: std.temperature }.apply(building);
 }
 
 fn inverse_sphere_volume(volume: f32) -> f32 { (volume * 3.0 / (4.0 * PI)).cbrt() }

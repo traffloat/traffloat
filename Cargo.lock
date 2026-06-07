@@ -6145,6 +6145,7 @@ dependencies = [
  "bevy",
  "bevy_mod_config",
  "criterion",
+ "derivative",
  "derive_more",
  "enum-map",
  "enum_dispatch",

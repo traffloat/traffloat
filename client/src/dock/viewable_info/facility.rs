@@ -69,7 +69,7 @@ fn show_building(
     building_entity: Entity,
 ) {
     ui.horizontal(|ui| {
-        if ui.button(icons::ICON_LINK).clicked() {
+        if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
             commands.queue(viewable_info::OpenCommand::from_click(building_entity, ui.ctx()));
         }
         ui.label(&building_viewable.name);
@@ -98,7 +98,7 @@ fn show_connections(
             move |ui: &mut egui::Ui, commands: &mut Commands| {
                 ui.horizontal(|ui| match peer {
                     FluidConnectionPeer::Facility(peer) => {
-                        if ui.button(icons::ICON_LINK).clicked() {
+                        if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
                             commands.queue(viewable_info::OpenCommand::from_click(peer, ui.ctx()));
                         }
                         ui.label("Neighbor facility:");
@@ -107,13 +107,13 @@ fn show_connections(
                         }
                     }
                     FluidConnectionPeer::Building(peer) => {
-                        if ui.button(icons::ICON_LINK).clicked() {
+                        if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
                             commands.queue(viewable_info::OpenCommand::from_click(peer, ui.ctx()));
                         }
                         ui.label("Parent building");
                     }
                     FluidConnectionPeer::Pipe(peer) => {
-                        if ui.button(icons::ICON_LINK).clicked() {
+                        if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
                             commands.queue(viewable_info::OpenCommand::from_click(peer, ui.ctx()));
                         }
                         ui.label("Pipe:");
@@ -123,7 +123,7 @@ fn show_connections(
 
                         if let Some(corridor) = params.conduit_query.log_get(peer) {
                             ui.label("in corridor:");
-                            if ui.button(icons::ICON_LINK).clicked() {
+                            if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
                                 commands
                                     .queue(viewable_info::OpenCommand::from_click(peer, ui.ctx()));
                             }
