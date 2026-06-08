@@ -3,7 +3,8 @@ use bevy::ecs::query::QueryData;
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use egui_material_icons::icons;
-use traffloat_physics::util::{Alpha, Beta, GetAb, QueryExt, Which};
+use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
+use traffloat_proto::proto::AlphaOrBeta;
 
 use crate::dock::viewable_info::corridor::display_gate;
 use crate::dock::viewable_info::show_fluid;
@@ -41,15 +42,6 @@ struct CorridorData {
         &'static corridor::EndpointRef<Beta>,
         &'static corridor::GenericEndpointDetails<Beta>,
     )>,
-}
-
-impl<'a> GetAb<Option<(Entity, &'a corridor::EndpointDetails)>> for &'a CorridorDataItem<'_, '_> {
-    fn alpha(self) -> Option<(Entity, &'a corridor::EndpointDetails)> {
-        self.alpha_building.map(|(endpoint, detail)| (endpoint.0, &detail.0))
-    }
-    fn beta(self) -> Option<(Entity, &'a corridor::EndpointDetails)> {
-        self.beta_building.map(|(endpoint, detail)| (endpoint.0, &detail.0))
-    }
 }
 
 #[derive(QueryData)]
@@ -118,10 +110,24 @@ fn show_connection<Ab: Which>(
     corridor: Entity,
     which: Ab,
 ) {
+    fn get_corridor_data<'a>(
+        data: &'a CorridorDataItem,
+        which: impl Which,
+    ) -> Option<(Entity, &'a corridor::EndpointDetails)> {
+        match which.proto() {
+            AlphaOrBeta::Alpha => {
+                data.alpha_building.as_ref().map(|(endpoint, details)| (endpoint.0, &details.0))
+            }
+            AlphaOrBeta::Beta => {
+                data.beta_building.as_ref().map(|(endpoint, details)| (endpoint.0, &details.0))
+            }
+        }
+    }
+
     let Ok(corridor_data) = corridor_query.get(corridor) else { return };
-    let (_, near_detail) =
-        which.get(&corridor_data).expect("IsEndpointOf implies EndpointRef presence");
-    let peer = which.other().get(&corridor_data);
+    let (_, near_detail) = get_corridor_data(&corridor_data, which)
+        .expect("IsEndpointOf implies EndpointRef presence");
+    let peer = get_corridor_data(&corridor_data, which.other());
 
     ui.horizontal(|ui| {
         if let Some((peer_building, peer_detail)) = peer {
@@ -145,7 +151,9 @@ fn show_connection<Ab: Which>(
         });
 
         display_gate(ui, near_detail.open, "Proximal gate");
-        display_gate(ui, near_detail.open, "Distal gate");
+        if let Some((_, peer_detail)) = peer {
+            display_gate(ui, peer_detail.open, "Distal gate");
+        }
     });
 }
 

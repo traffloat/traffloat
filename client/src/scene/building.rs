@@ -42,6 +42,7 @@ impl Plugin for Plug {
         app.add_systems(app::Startup, WallMaterials::init);
         app.add_systems(app::Update, WallMaterials::update.ambiguous_with_all());
         app.add_systems(app::Update, update_wall_hover_system);
+        app.add_systems(app::Update, sync_clicked_pickable_system);
     }
 }
 
@@ -273,8 +274,8 @@ pub struct Conf {
     pub hovered_wall_color: Color,
 }
 
-fn sync_clicked_pickable(
-    dock: &dock::State,
+fn sync_clicked_pickable_system(
+    dock: Res<dock::State>,
     facility_query: Query<(&mut Pickable, &FacilityBuilding)>,
 ) {
     let opened_entities: EntityHashSet = dock

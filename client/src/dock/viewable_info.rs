@@ -2,10 +2,11 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::system::{Command, Commands, ParamSet, Query, SystemParam};
 use bevy::ecs::world::World;
 use egui_material_icons::icons;
+use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
 
 use crate::dock::{self, TabPlacement, viewable_info};
-use crate::scene::{FluidTypes, GenericViewable, ViewableKind};
+use crate::scene::{self, FluidTypes, GenericViewable, ViewableKind};
 use crate::util::new_id;
 
 mod building;
@@ -40,32 +41,39 @@ impl dock::Tab for Tab {
         ui: &mut egui::Ui,
         dock: dock::Context,
     ) {
-        let Ok(generic) = param.generic.get(self.entity) else {
+        let mut generic = param.ps.p0();
+
+        let Ok(viewable) = generic.viewable_query.get(self.entity) else {
             ui.label("Object has been unloaded");
             return;
         };
 
         ui.horizontal(|ui| {
             if ui.button(icons::ICON_RECENTER).on_hover_text("Focus").clicked() {
-                param
-                    .ps
-                    .p0()
+                generic
+                    .commands
                     .queue(dock::camera::FocusCommand { target: self.entity, which: None });
             }
-            ui.heading(match generic.kind {
+            ui.heading(match viewable.kind {
                 ViewableKind::Building => "Building:",
                 ViewableKind::Corridor => "Corridor:",
                 ViewableKind::Facility => "Facility:",
-                ViewableKind::Conduit => "Conduit:",
+                ViewableKind::Conduit => match generic.conduit_query.log_get(self.entity) {
+                    Some(info) => match info.ty {
+                        proto::ConduitType::FluidPipe => "Fluid pipe:",
+                    },
+                    None => "Invalid conduit:",
+                },
                 ViewableKind::Resident => "Resident:",
             });
-            ui.heading(&generic.name);
+            ui.heading(&viewable.name);
             if ui.button(icons::ICON_EDIT).on_hover_text("Rename").clicked() {
                 // TODO edit text
             }
         });
 
-        match generic.kind {
+        let kind = viewable.kind;
+        match kind {
             ViewableKind::Building => {
                 let mut param = param.ps.p1();
                 param.ui(self.entity, ui, dock);
@@ -95,12 +103,11 @@ impl dock::Tab for Tab {
 
 #[derive(SystemParam)]
 pub struct UiSystemParam<'w, 's> {
-    generic: Query<'w, 's, &'static GenericViewable>,
     ps: ParamSet<
         'w,
         's,
         (
-            Commands<'w, 's>,
+            GenericUiSystemParams<'w, 's>,
             building::UiSystemParam<'w, 's>,
             corridor::UiSystemParam<'w, 's>,
             facility::UiSystemParam<'w, 's>,
@@ -110,7 +117,12 @@ pub struct UiSystemParam<'w, 's> {
     >,
 }
 
-fn focus_camera_around(entity: Entity) {}
+#[derive(SystemParam)]
+struct GenericUiSystemParams<'w, 's> {
+    commands:       Commands<'w, 's>,
+    conduit_query:  Query<'w, 's, &'static scene::conduit::Info>,
+    viewable_query: Query<'w, 's, &'static GenericViewable>,
+}
 
 pub struct OpenCommand {
     pub entity:    Entity,

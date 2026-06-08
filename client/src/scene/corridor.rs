@@ -3,7 +3,7 @@ use bevy::asset::{self, Assets, RenderAssetUsages};
 use bevy::color::Color;
 use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
-use bevy::ecs::entity::Entity;
+use bevy::ecs::entity::{Entity, EntityHashSet};
 use bevy::ecs::hierarchy::ChildOf;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::{Has, QueryData};
@@ -22,13 +22,13 @@ use traffloat_physics::try_log;
 use traffloat_physics::util::{Alpha, AlphaBeta, Beta, QueryExt, Which};
 use traffloat_proto::proto;
 
-use crate::ConfigManager;
-use crate::scene::conduit::ConduitOutlineOf;
+use crate::scene::conduit::{ConduitCorridor, ConduitOutlineOf};
 use crate::scene::picking::{self, ObservePicking};
 use crate::scene::{
     GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
 };
 use crate::util::shapes::Shapes;
+use crate::{ConfigManager, dock};
 
 pub(super) struct Plug;
 
@@ -56,6 +56,7 @@ impl Plugin for Plug {
         app.add_systems(app::Update, update_wall_hover_system::<true>);
         app.add_systems(app::Update, update_wall_hover_system::<false>);
         app.add_systems(app::Update, update_conduit_outline_color_system);
+        app.add_systems(app::Update, sync_clicked_pickable_system);
     }
 }
 
@@ -413,4 +414,25 @@ fn update_conduit_outline_color_system(
         .get_mut(outline_material.0.as_ref().expect("initialized during startup"))
         .expect("referenced by strong handle");
     material.color = conf.read().conduit_outline_color;
+}
+
+fn sync_clicked_pickable_system(
+    dock: Res<dock::State>,
+    conduit_query: Query<(&mut Pickable, &ConduitCorridor)>,
+) {
+    let opened_entities: EntityHashSet = dock
+        .tabs()
+        .filter_map(|tab| match tab {
+            dock::TabEnum::ViewableInfo(tab) => Some(tab.entity),
+            _ => None,
+        })
+        .collect();
+
+    for (mut pickable, corridor) in conduit_query {
+        *pickable = if opened_entities.contains(&corridor.0) {
+            Pickable::default()
+        } else {
+            Pickable::IGNORE
+        };
+    }
 }

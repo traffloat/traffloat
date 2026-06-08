@@ -7,7 +7,7 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::With;
-use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
+use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Vec2, Vec3Swizzles};
 use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
@@ -31,12 +31,11 @@ impl Plugin for Plug {
 
 #[derive(SystemParam)]
 pub(super) struct NewResidentParams<'w, 's> {
-    commands:          Commands<'w, 's>,
-    asset_server:      Res<'w, AssetServer>,
-    materials:         ResMut<'w, Assets<ColorMaterial>>,
-    shapes:            Shapes<'w>,
-    location_resolver: LocationResolver<'w, 's>,
-    ids:               ResMut<'w, IdRegistry>,
+    commands:        Commands<'w, 's>,
+    asset_server:    Res<'w, AssetServer>,
+    materials:       ResMut<'w, Assets<ColorMaterial>>,
+    shapes:          Shapes<'w>,
+    ids_location_ps: ParamSet<'w, 's, (ResMut<'w, IdRegistry>, LocationResolver<'w, 's>)>,
 }
 
 impl UpdateHandler for NewResidentParams<'_, '_> {
@@ -45,7 +44,8 @@ impl UpdateHandler for NewResidentParams<'_, '_> {
     fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &Self::Update) {
-        let Some((location, dynamic_position)) = self.location_resolver.resolve(&update.location)
+        let Some((location, dynamic_position)) =
+            self.ids_location_ps.p1().resolve(&update.location)
         else {
             return;
         };
@@ -64,7 +64,7 @@ impl UpdateHandler for NewResidentParams<'_, '_> {
                 })),
             ))
             .id();
-        self.ids.map.insert(update.id, TrackedId::Resident(entity));
+        self.ids_location_ps.p0().map.insert(update.id, TrackedId::Resident(entity));
     }
 }
 

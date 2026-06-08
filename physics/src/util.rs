@@ -6,7 +6,7 @@ use derivative::Derivative;
 use itertools::Itertools;
 
 mod ab;
-pub use ab::{Alpha, AlphaBeta, Beta, GetAb, Which};
+pub use ab::{Alpha, AlphaBeta, Beta, Which};
 
 #[macro_use]
 mod try_log;
