@@ -21,6 +21,7 @@ use traffloat_physics::try_log;
 use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
 use traffloat_proto::proto;
 
+use crate::scene::picking::ObservePicking;
 use crate::scene::{
     AllHandlersSystemSet, GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler,
     ViewableKind, Zorder, corridor,
@@ -99,11 +100,12 @@ impl UpdateHandler for NewConduitParams<'_, '_> {
                 Transform::IDENTITY, // to be reconciled in rearrange_conduit_tf_system
                 Mesh2d(self.shapes.square()),
                 MeshMaterial2d(material),
-                Pickable::IGNORE, // to be set to Pickable::default() when corridor is hovered
+                Pickable::IGNORE,
                 ConduitCorridor(corridor_entity),
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Conduit },
                 Info { ty: update.ty, radius: update.radius, stored_fluid: None },
             ))
+            .observe_picking()
             .id();
 
         self.ids.map.insert(update.id, TrackedId::Conduit(entity));
@@ -253,7 +255,7 @@ fn compute_placement(
                     Transform {
                         translation: Vec3::new(
                             0.0,
-                            y_offset,
+                            y_offset + scale * 0.5,
                             Zorder::Conduit.z() - Zorder::Corridor.z(),
                         ),
                         rotation:    Quat::IDENTITY,

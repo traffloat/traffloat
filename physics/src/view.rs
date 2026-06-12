@@ -53,24 +53,43 @@ impl Default for NextProtoId {
 
 #[derive(Component, Reflect, Default)]
 pub struct Viewer {
-    level: SubscriptionLevel,
+    pub config: SubscriptionConfig,
 }
 
 impl Viewer {
-    fn should_view(&self, viewable: &Viewable) -> bool {
+    #[expect(
+        clippy::unnecessary_wraps,
+        reason = "will return None in the future with distance pruning"
+    )]
+    fn should_view(&self, viewable: &Viewable) -> Option<SubscriptionLevel> {
         // TODO distance pruning
         // TODO type filtering
-        true
+        match self.config {
+            SubscriptionConfig::Basic => Some(SubscriptionLevel::Basic),
+            SubscriptionConfig::Full => Some(SubscriptionLevel::Full),
+        }
     }
 
     #[must_use]
-    pub fn with_level(mut self, level: SubscriptionLevel) -> Self {
-        self.level = level;
+    pub fn with_level(mut self, level: SubscriptionConfig) -> Self {
+        self.config = level;
         self
     }
-    pub fn set_level(&mut self, level: impl Into<SubscriptionLevel>) { self.level = level.into(); }
+    pub fn set_level(&mut self, level: impl Into<SubscriptionConfig>) {
+        self.config = level.into();
+    }
 }
 
+/// How much information a viewer wants to receive in general.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, enum_map::Enum, Config, Reflect)]
+#[config(expose)]
+pub enum SubscriptionConfig {
+    #[default]
+    Basic,
+    Full,
+}
+
+/// How much information a viewer receives about a specific viewable.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, enum_map::Enum, Config, Reflect)]
 #[config(expose)]
 pub enum SubscriptionLevel {
@@ -79,11 +98,11 @@ pub enum SubscriptionLevel {
     Full,
 }
 
-impl From<SubscriptionLevelRead> for SubscriptionLevel {
-    fn from(value: SubscriptionLevelRead) -> Self {
+impl From<SubscriptionConfigRead> for SubscriptionConfig {
+    fn from(value: SubscriptionConfigRead) -> Self {
         match value {
-            SubscriptionLevelRead::Basic => SubscriptionLevel::Basic,
-            SubscriptionLevelRead::Full => SubscriptionLevel::Full,
+            SubscriptionConfigRead::Basic => SubscriptionConfig::Basic,
+            SubscriptionConfigRead::Full => SubscriptionConfig::Full,
         }
     }
 }
@@ -158,8 +177,8 @@ fn reconcile_subscription_system(
 
         let mut new_subscribers = EnumMap::<_, EntityHashSet>::default();
         for (viewer_entity, viewer) in &viewer_query {
-            if viewer.should_view(&viewable) {
-                new_subscribers[viewer.level].insert(viewer_entity);
+            if let Some(level) = viewer.should_view(&viewable) {
+                new_subscribers[level].insert(viewer_entity);
             }
         }
 

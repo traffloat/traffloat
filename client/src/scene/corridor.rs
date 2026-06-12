@@ -6,7 +6,7 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::{Entity, EntityHashSet};
 use bevy::ecs::hierarchy::ChildOf;
 use bevy::ecs::name::Name;
-use bevy::ecs::query::{Has, QueryData};
+use bevy::ecs::query::QueryData;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
@@ -14,6 +14,7 @@ use bevy::ecs::world::Mut;
 use bevy::math::Vec2;
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::picking::Pickable;
+use bevy::picking::hover::PickingInteraction;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy_mesh::PrimitiveTopology;
@@ -23,7 +24,7 @@ use traffloat_physics::util::{Alpha, AlphaBeta, Beta, QueryExt, Which};
 use traffloat_proto::proto;
 
 use crate::scene::conduit::{ConduitCorridor, ConduitOutlineOf};
-use crate::scene::picking::{self, ObservePicking};
+use crate::scene::picking::ObservePicking;
 use crate::scene::{
     GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
 };
@@ -207,7 +208,7 @@ impl UpdateHandler for UpdateCorridorFullParams<'_, '_> {
 }
 
 #[derive(SystemParam)]
-pub(super) struct SetCorridorEndpointParams<'w, 's> {
+pub(super) struct UpdateCorridorEndpointParams<'w, 's> {
     ids:            ResMut<'w, IdRegistry>,
     corridor_query: Query<'w, 's, CorridorEndpointQueryData>,
     commands:       Commands<'w, 's>,
@@ -220,12 +221,12 @@ struct CorridorEndpointQueryData {
     beta:  Option<(&'static EndpointRef<Beta>, &'static mut GenericEndpointDetails<Beta>)>,
 }
 
-impl UpdateHandler for SetCorridorEndpointParams<'_, '_> {
-    type Update = proto::SetCorridorEndpoint;
+impl UpdateHandler for UpdateCorridorEndpointParams<'_, '_> {
+    type Update = proto::UpdateCorridorEndpoint;
 
     fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::MixedSpawn }
 
-    fn handle(&mut self, update: &proto::SetCorridorEndpoint) {
+    fn handle(&mut self, update: &proto::UpdateCorridorEndpoint) {
         let Some(corridor) = self.ids.get_corridor(update.corridor) else {
             tracing::error!("Received update for unknown corridor id {:?}", update.corridor);
             return;
@@ -371,13 +372,17 @@ impl WallMaterials {
 
 fn update_wall_hover_system<const WHICH: bool>(
     wall_query: Query<(&mut MeshMaterial2d<ColorMaterial>, &WallEntityOf<WHICH>)>,
-    corridor_query: Query<Has<picking::Hovered>>,
+    corridor_query: Query<&PickingInteraction>,
     wall_materials: Res<WallMaterials>,
 ) {
     for (mut material, parent) in wall_query {
-        let hovered = corridor_query.get(parent.0).unwrap_or(false);
-        let desired =
-            if hovered { wall_materials.get_hovered() } else { wall_materials.get_base() };
+        let interaction = corridor_query.get(parent.0).unwrap_or(&PickingInteraction::None);
+        let desired = match interaction {
+            PickingInteraction::Hovered | PickingInteraction::Pressed => {
+                wall_materials.get_hovered()
+            }
+            PickingInteraction::None => wall_materials.get_base(),
+        };
         if material.0 != *desired {
             material.0 = desired.clone();
         }

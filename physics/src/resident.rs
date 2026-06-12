@@ -7,13 +7,15 @@ use bevy::ecs::query::With;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
-use bevy::ecs::world::{EntityWorldMut, World};
+use bevy::ecs::world::EntityWorldMut;
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
 use crate::util::{AllSystemSets, QueryExt};
 use crate::{graph, view};
+
+mod attr;
 
 pub struct Plug;
 

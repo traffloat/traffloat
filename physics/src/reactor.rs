@@ -101,7 +101,7 @@ pub struct Ports {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
 pub struct TypeId(pub u32);
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
 pub struct Types {
     pub types: Vec<TypeDef>,
 }
@@ -120,6 +120,7 @@ impl Types {
 }
 
 /// A component on facilities.
+#[derive(Reflect)]
 pub struct TypeDef {
     pub inputs:    Vec<Input>,
     pub outputs:   Vec<Output>,
@@ -127,7 +128,7 @@ pub struct TypeDef {
 }
 
 /// A reference to an entry in [`Ports::fluid_storages`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub struct FluidStorageRef(pub u32);
 
 #[enum_dispatch]
@@ -169,6 +170,7 @@ impl EfficiencyModifierResult {
     pub fn to_scalar(&self) -> f32 { self.multiplier.min(self.maximum) }
 }
 
+#[derive(Reflect)]
 #[enum_dispatch(EfficiencyModifier)]
 #[enum_dispatch(ReactionExecutor)]
 pub enum Input {
@@ -181,6 +183,7 @@ pub enum Input {
     Heat(HeatInput),
 }
 
+#[derive(Reflect)]
 pub struct FluidInput {
     /// The storage entity to take fluid from.
     pub storage:        FluidStorageRef,
@@ -237,6 +240,7 @@ impl ReactionExecutor for FluidInput {
     }
 }
 
+#[derive(Reflect)]
 pub struct HeatInput {
     /// The storage entity to take heat from.
     pub storage:        FluidStorageRef,
@@ -288,12 +292,14 @@ impl ReactionExecutor for HeatInput {
     }
 }
 
+#[derive(Reflect)]
 #[enum_dispatch(ReactionExecutor)]
 pub enum Output {
     Fluid(FluidOutput),
     Temperature(TemperatureOutput),
 }
 
+#[derive(Reflect)]
 pub struct FluidOutput {
     /// The storage entity to put fluid into.
     pub storage:  FluidStorageRef,
@@ -319,6 +325,7 @@ impl ReactionExecutor for FluidOutput {
     }
 }
 
+#[derive(Reflect)]
 pub struct TemperatureOutput {
     /// The storage entity to put heat into.
     pub storage:  FluidStorageRef,
@@ -341,6 +348,7 @@ impl ReactionExecutor for TemperatureOutput {
     }
 }
 
+#[derive(Reflect)]
 #[enum_dispatch(EfficiencyModifier)]
 pub enum Catalyst {
     Fluid(FluidCatalyst),
@@ -348,6 +356,7 @@ pub enum Catalyst {
     Temperature(TemperatureCatalyst),
 }
 
+#[derive(Reflect)]
 pub struct FluidCatalyst {
     /// The storage entity to check.
     pub storage:        FluidStorageRef,
@@ -379,6 +388,7 @@ impl EfficiencyModifier for FluidCatalyst {
     }
 }
 
+#[derive(Reflect)]
 pub struct PressureCatalyst {
     /// The fluid storage entity to check.
     pub storage:            FluidStorageRef,
@@ -407,6 +417,7 @@ impl EfficiencyModifier for PressureCatalyst {
     }
 }
 
+#[derive(Reflect)]
 pub struct TemperatureCatalyst {
     /// The fluid storage entity to check.
     pub storage:        FluidStorageRef,
@@ -435,6 +446,7 @@ impl EfficiencyModifier for TemperatureCatalyst {
     }
 }
 
+#[derive(Reflect)]
 pub struct Threshold {
     /// The interpolation curve to use between the min and max input.
     pub curve:         Curve,
@@ -489,6 +501,7 @@ impl Threshold {
     }
 }
 
+#[derive(Reflect)]
 pub enum ThresholdModifierType {
     /// This threshold multiplies the efficiency by the output of the curve.
     Multiplier,
@@ -496,6 +509,7 @@ pub enum ThresholdModifierType {
     Maximum,
 }
 
+#[derive(Reflect)]
 pub enum Curve {
     /// Linear slope within input range, constant beyond.
     Linear {

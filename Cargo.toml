@@ -52,16 +52,20 @@ must_use_candidate = "allow"
 allow_attributes = "deny"
 allow_attributes_without_reason = "warn"
 
-# Allowed during dev, checked during precommit
-dbg_macro = "allow"
-unused_self = "allow"
-
 # There are valid cases to have product types of bools rather than sum types.
 struct_excessive_bools = "allow"
 
 # derive(Reflect) bug
 used_underscore_binding = "allow"
 
+# Allowed during dev, checked during precommit
+dbg_macro = "allow"
+unused_self = "allow"
+
+
+[workspace.lints.rustdoc]
+# We use `# /* */` to render syntax-highlighted code blocks without compiling.
+invalid_rust_codeblocks = "allow"
 
 [workspace.lints.rust]
 # Allowed during dev, checked during precommit

@@ -52,22 +52,25 @@ pub enum AlphaOrBeta {
 )]
 pub enum Update {
     SetFluidTypes(SetFluidTypes),
+    SetResidentAttrTypes(SetResidentAttrTypes),
     NewBuilding(NewBuilding),
     UpdateBuilding(UpdateBuilding),
     UpdateBuildingFull(UpdateBuildingFull),
-    SetBuildingFluidConnections(SetBuildingFluidConnections),
+    UpdateBuildingFluidConnections(UpdateBuildingFluidConnections),
     NewCorridor(NewCorridor),
     UpdateCorridor(UpdateCorridor),
     UpdateCorridorFull(UpdateCorridorFull),
-    SetCorridorEndpoint(SetCorridorEndpoint),
+    UpdateCorridorEndpoint(UpdateCorridorEndpoint),
     NewFacility(NewFacility),
-    SetFacilityTaint(SetFacilityTaint),
-    SetFacilityFluid(SetFacilityFluid),
+    UpdateFacilityTaint(UpdateFacilityTaint),
+    UpdateFacilityFluid(UpdateFacilityFluid),
     NewConduit(NewConduit),
     UpdateFluidConduit(UpdateFluidConduit),
     UpdateFluidConduitFull(UpdateFluidConduitFull),
     NewResident(NewResident),
     UpdateResidentLocation(UpdateResidentLocation),
+    UpdateResidentAttributesFull(UpdateResidentAttributesFull),
+    UpdateResidentAttributesPartial(UpdateResidentAttributesPartial),
     RemoveViewable(RemoveViewable),
 }
 
@@ -79,6 +82,17 @@ pub struct SetFluidTypes {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct FluidType {
     pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetResidentAttrTypes {
+    pub types: Vec<ResidentAttrType>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct ResidentAttrType {
+    pub name:       String,
+    pub subscribed: bool,
 }
 
 /// Subscribed to a new building.
@@ -136,7 +150,7 @@ pub struct UpdateCorridorFull {
 
 /// Set or unset the endpoint building of a corridor.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct SetCorridorEndpoint {
+pub struct UpdateCorridorEndpoint {
     pub corridor: Id,
     pub which:    AlphaOrBeta,
     pub value:    Option<CorridorEndpoint>,
@@ -174,14 +188,14 @@ pub struct FacilityDisplay {
 ///
 /// The facility must have been previously created with [`FacilityDisplay::taint`] set to `Some`.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct SetFacilityTaint {
+pub struct UpdateFacilityTaint {
     pub id:    Id,
     pub taint: Color,
 }
 
 /// Updated fluid information of a facility with a fluid storage.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct SetFacilityFluid {
+pub struct UpdateFacilityFluid {
     pub id:    Id,
     pub fluid: FluidStorageFull,
 }
@@ -190,9 +204,9 @@ pub struct SetFacilityFluid {
 ///
 /// This does not include building-corridor edges.
 /// Building-corridor connections must be either open or closed instead of adjustable area,
-/// and are set with [`SetCorridorEndpoint`] instead of this message.
+/// and are set with [`UpdateCorridorEndpoint`] instead of this message.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct SetBuildingFluidConnections {
+pub struct UpdateBuildingFluidConnections {
     pub id:          Id,
     pub connections: Vec<BuildingFluidConnection>,
 }
@@ -254,6 +268,18 @@ pub struct NewResident {
 pub struct UpdateResidentLocation {
     pub id:       Id,
     pub location: ResidentLocation,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateResidentAttributesFull {
+    pub id:    Id,
+    pub attrs: Vec<f32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateResidentAttributesPartial {
+    pub id:    Id,
+    pub attrs: Vec<(u32, f32)>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]

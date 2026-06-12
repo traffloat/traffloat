@@ -7,9 +7,12 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::With;
-use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, SystemParam};
+use bevy::ecs::resource::Resource;
+use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, SystemParam, SystemState};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Vec2, Vec3Swizzles};
+use bevy::picking::Pickable;
+use bevy::reflect::Reflect;
 use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
 use bevy::time::{self, Time};
 use bevy::transform::components::{GlobalTransform, Transform};
@@ -17,6 +20,7 @@ use bevy_mesh::Mesh2d;
 use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
 
+use crate::scene::picking::ObservePicking;
 use crate::scene::{
     GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
     building, corridor, facility,
@@ -26,7 +30,31 @@ use crate::util::shapes::Shapes;
 pub struct Plug;
 
 impl Plugin for Plug {
-    fn build(&self, app: &mut App) { app.add_systems(app::Update, update_dynamic_position_system); }
+    fn build(&self, app: &mut App) {
+        app.register_type::<Info>();
+        app.register_type::<DynamicPosition>();
+        app.register_type::<Types>();
+        app.init_resource::<Types>();
+        app.add_systems(app::Update, update_dynamic_position_system);
+    }
+}
+
+#[derive(Resource, Default, Reflect)]
+pub struct Types {
+    pub types: Vec<proto::ResidentAttrType>,
+}
+
+#[derive(SystemParam)]
+pub(super) struct SetResidentAttrTypesParams<'w> {
+    types: ResMut<'w, Types>,
+}
+
+impl UpdateHandler for SetResidentAttrTypesParams<'_> {
+    type Update = proto::SetResidentAttrTypes;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Meta }
+
+    fn handle(&mut self, update: &Self::Update) { self.types.types.clone_from(&update.types); }
 }
 
 #[derive(SystemParam)]
@@ -44,17 +72,11 @@ impl UpdateHandler for NewResidentParams<'_, '_> {
     fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &Self::Update) {
-        let Some((location, dynamic_position)) =
-            self.ids_location_ps.p1().resolve(&update.location)
-        else {
-            return;
-        };
+        let proto_location = update.location.clone();
         let entity = self
             .commands
             .spawn((
                 Name::new("Client resident"),
-                Info { location },
-                dynamic_position,
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Resident },
                 Mesh2d(self.shapes.square()),
                 MeshMaterial2d(self.materials.add(ColorMaterial {
@@ -62,7 +84,19 @@ impl UpdateHandler for NewResidentParams<'_, '_> {
                     texture: Some(self.asset_server.load("sprites/resident.png")),
                     ..Default::default()
                 })),
+                Pickable::default(),
             ))
+            .queue(move |mut entity: EntityWorldMut| {
+                let Some((location, dynamic_position)) = entity.world_scope(|world| {
+                    let mut state = SystemState::<LocationResolver>::new(world);
+                    let resolver = state.get_mut(world);
+                    resolver.resolve(&proto_location)
+                }) else {
+                    return;
+                };
+                entity.insert((Info { location, attributes: Vec::new() }, dynamic_position));
+            })
+            .observe_picking()
             .id();
         self.ids_location_ps.p0().map.insert(update.id, TrackedId::Resident(entity));
     }
@@ -125,18 +159,95 @@ impl LocationResolver<'_, '_> {
     }
 }
 
-#[derive(Component)]
-pub struct Info {
-    pub location: Location,
+#[derive(SystemParam)]
+pub(super) struct UpdateResidentAttributesFullParams<'w, 's> {
+    ids:            Res<'w, IdRegistry>,
+    types:          Res<'w, Types>,
+    resident_query: Query<'w, 's, &'static mut Info>,
 }
 
+impl UpdateHandler for UpdateResidentAttributesFullParams<'_, '_> {
+    type Update = proto::UpdateResidentAttributesFull;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &Self::Update) {
+        let Some(entity) = self.ids.get_resident(update.id) else { return };
+        let Some(mut info) = self.resident_query.log_get_mut(entity) else { return };
+
+        info.attributes.resize(self.types.types.len(), None);
+
+        let mut attr_value_iter = update.attrs.iter();
+        for (ty, slot) in self.types.types.iter().zip(&mut info.attributes) {
+            if ty.subscribed {
+                let Some(&value) = attr_value_iter.next() else {
+                    tracing::warn!(
+                        "Received fewer resident attributes in full update than last received \
+                         subscribed type definitions"
+                    );
+                    return;
+                };
+                *slot = Some(value);
+            } else {
+                *slot = None;
+            }
+        }
+
+        if attr_value_iter.next().is_some() {
+            tracing::warn!(
+                "Received more resident attributes in full update than last received subscribed \
+                 type definitions"
+            );
+        }
+    }
+}
+
+#[derive(SystemParam)]
+pub(super) struct UpdateResidentAttributesPartialParams<'w, 's> {
+    ids:            Res<'w, IdRegistry>,
+    types:          Res<'w, Types>,
+    resident_query: Query<'w, 's, &'static mut Info>,
+}
+
+impl UpdateHandler for UpdateResidentAttributesPartialParams<'_, '_> {
+    type Update = proto::UpdateResidentAttributesPartial;
+
+    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &Self::Update) {
+        let Some(entity) = self.ids.get_resident(update.id) else { return };
+        let Some(mut info) = self.resident_query.log_get_mut(entity) else { return };
+
+        info.attributes.resize(self.types.types.len(), None);
+
+        for &(ty, value) in &update.attrs {
+            let ty = usize::try_from(ty).expect("usize >= u32 on supported targets");
+            let Some(slot) = info.attributes.get_mut(ty) else {
+                tracing::warn!(
+                    "Received resident attribute update for undefined type index {ty} >= {}",
+                    self.types.types.len()
+                );
+                continue;
+            };
+            *slot = Some(value);
+        }
+    }
+}
+
+#[derive(Component, Reflect)]
+pub struct Info {
+    pub location:   Location,
+    pub attributes: Vec<Option<f32>>,
+}
+
+#[derive(Reflect)]
 pub enum Location {
     Building(Entity),
     Corridor(Entity),
     Facility(Entity),
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Reflect)]
 pub struct DynamicPosition {
     epoch_position: Vec2,
     epoch_time:     Duration,

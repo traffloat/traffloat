@@ -15,6 +15,7 @@ use bevy::reflect::Reflect;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use itertools::Itertools;
 use strum::IntoEnumIterator;
+use traffloat_macro_util::fan_out;
 use traffloat_physics::view;
 use traffloat_proto::proto;
 
@@ -178,61 +179,6 @@ enum HandlerClass {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, SystemSet)]
 pub struct AllHandlersSystemSet;
 
-macro_rules! define_params {
-    (
-        $w:lifetime, $s:lifetime;
-        $(
-            $short:ident($param:ty),
-        )*
-    ) => {
-        traffloat_macro_util::triangle! {
-            define_params (p1);
-            @expanded $w, $s;
-            $($short($param),)*
-        }
-    };
-    (
-        @expanded $w:lifetime, $s:lifetime;
-        $(
-            ($($p1:ident)*) $short:ident($param:ty),
-        )*
-    ) => {
-        #[derive(SystemParam)]
-        struct UpdateHandlerMux<$w, $s>(recurse_nested_tuple!($w, $s; $($param,)*));
-
-        impl<'w, 's> UpdateHandler for UpdateHandlerMux<'w, 's> {
-            type Update = proto::Update;
-
-            fn classify(update: &proto::Update) -> HandlerClass {
-                match update {
-                    $(
-                        proto::Update::$short(update) => {
-                            <$param as UpdateHandler>::classify(update)
-                        }
-                    )*
-                }
-            }
-
-            fn handle(&mut self, update: &proto::Update) {
-                match update {
-                    $(
-                        proto::Update::$short(update) => {
-                            UpdateHandler::handle(&mut self.0 $(.$p1())* .p0(), update)
-                        }
-                    )*
-                }
-            }
-        }
-    }
-}
-
-macro_rules! recurse_nested_tuple {
-    ($w:lifetime, $s:lifetime; ) => { () };
-    ($w:lifetime, $s:lifetime; $param:ty, $($rest:ty,)*) => {
-        ParamSet<$w, $s, ($param, recurse_nested_tuple!($w, $s; $($rest,)*))>
-    };
-}
-
 trait UpdateHandler {
     type Update;
 
@@ -241,25 +187,99 @@ trait UpdateHandler {
     fn handle(&mut self, update: &Self::Update);
 }
 
-define_params! {
-    'w, 's;
+macro_rules! define_params {
+    (
+        [$w:lifetime, $s:lifetime]
+        $paramset_tuple:ty;
+        {
+            $(
+                $message:ident ($param:ty) $path:tt,
+            )*
+        }
+    ) => {
+        #[derive(SystemParam)]
+        struct UpdateHandlerMux<$w, $s> {
+            ps: $paramset_tuple,
+        }
+
+        impl<$w, $s> UpdateHandler for UpdateHandlerMux<$w, $s> {
+            type Update = proto::Update;
+
+            fn classify(update: &Self::Update) -> HandlerClass {
+                match update {
+                    $(
+                        proto::Update::$message(update) => <$param as UpdateHandler>::classify(update),
+                    )*
+                }
+            }
+
+            fn handle(&mut self, update: &proto::Update) {
+                match update {
+                    $(
+                        proto::Update::$message(update) => {
+                            define_params_handle_let!(self, param, $path);
+                            UpdateHandler::handle(&mut param, update)
+                        }
+                    )*
+                }
+            }
+        }
+    }
+}
+
+macro_rules! define_params_handle_let {
+    ($mux:ident, $var:ident, ($($path:ident)*)) => {
+        let $var = &mut $mux.ps;
+        $(
+            let mut $var = $var.$path();
+        )*
+    }
+}
+
+macro_rules! define_params_item {
+    (
+        [$w:lifetime, $s:lifetime]
+        $message:ident ($param:ty)
+    ) => {
+        $param
+    };
+}
+
+macro_rules! define_params_tuple {
+    (
+        [$w:lifetime, $s:lifetime]
+        $($params:ty,)*
+    ) => {
+        ParamSet<$w, $s, (
+            $($params,)*
+        )>
+    }
+}
+
+fan_out! {
+    ['w, 's]
+    define_params, define_params_tuple, define_params_item;
+    8, 2;
     SetFluidTypes(SetFluidTypesParams<'w>),
+    SetResidentAttrTypes(resident::SetResidentAttrTypesParams<'w>),
     NewBuilding(building::NewBuildingParams<'w, 's>),
     UpdateBuilding(building::UpdateBuildingParams<'w, 's>),
     UpdateBuildingFull(building::UpdateBuildingFullParams<'w, 's>),
-    SetBuildingFluidConnections(building::SetBuildingFluidConnectionsParams<'w, 's>),
+    UpdateBuildingFluidConnections(building::UpdateBuildingFluidConnectionsParams<'w, 's>),
     NewCorridor(corridor::NewCorridorParams<'w, 's>),
     UpdateCorridor(corridor::UpdateCorridorParams<'w, 's>),
     UpdateCorridorFull(corridor::UpdateCorridorFullParams<'w, 's>),
-    SetCorridorEndpoint(corridor::SetCorridorEndpointParams<'w, 's>),
+    UpdateCorridorEndpoint(corridor::UpdateCorridorEndpointParams<'w, 's>),
     NewFacility(facility::NewFacilityParams<'w, 's>),
-    SetFacilityTaint(facility::SetFacilityTaintParams<'w, 's>),
-    SetFacilityFluid(facility::SetFacilityFluidParams<'w, 's>),
+    UpdateFacilityTaint(facility::UpdateFacilityTaintParams<'w, 's>),
+    UpdateFacilityFluid(facility::UpdateFacilityFluidParams<'w, 's>),
     NewConduit(conduit::NewConduitParams<'w, 's>),
     UpdateFluidConduit(conduit::UpdateFluidConduitParams<'w, 's>),
     UpdateFluidConduitFull(conduit::UpdateFluidConduitFullParams<'w, 's>),
     NewResident(resident::NewResidentParams<'w, 's>),
     UpdateResidentLocation(resident::UpdateResidentLocationParams<'w, 's>),
+    UpdateResidentAttributesFull(resident::UpdateResidentAttributesFullParams<'w, 's>),
+    UpdateResidentAttributesPartial(resident::UpdateResidentAttributesPartialParams<'w, 's>),
     RemoveViewable(RemoveViewableParams<'w, 's>),
 }
 
@@ -344,5 +364,5 @@ pub struct FluidType {
 
 #[derive(Config)]
 pub struct Conf {
-    subscription_level: view::SubscriptionLevel,
+    subscription_level: view::SubscriptionConfig,
 }

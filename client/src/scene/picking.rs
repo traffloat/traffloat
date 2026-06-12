@@ -1,6 +1,5 @@
 use bevy::app::{self, App, Plugin};
 use bevy::camera::{ImageRenderTarget, NormalizedRenderTarget};
-use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::observer;
@@ -89,43 +88,29 @@ fn input_system(
     }
 }
 
-#[derive(Component)]
-pub struct Hovered;
-
 pub fn add_observers(entity: &mut EntityCommands) {
     let id = entity.id();
-    entity
-        .observe(
-            move |event: observer::On<pick_event::Pointer<pick_event::Over>>,
-                  mut commands: Commands| {
-                commands.entity(id).insert(Hovered);
-            },
-        )
-        .observe(
-            move |event: observer::On<pick_event::Pointer<pick_event::Out>>,
-                  mut commands: Commands| {
-                commands.entity(id).remove::<Hovered>();
-            },
-        )
-        .observe(
-            move |event: observer::On<pick_event::Pointer<pick_event::Click>>,
-                  mut commands: Commands,
-                  ui_state: Res<camera::UiState>| {
-                commands.queue(viewable_info::OpenCommand {
-                    entity:    id,
-                    force_new: ui_state
-                        .hover_state
-                        .as_ref()
-                        .is_some_and(|state| state.modifiers.command),
-                });
+    entity.observe(
+        move |event: observer::On<pick_event::Pointer<pick_event::Click>>,
+              mut commands: Commands,
+              ui_state: Res<camera::UiState>| {
+            commands.queue(viewable_info::OpenCommand {
+                entity:    id,
+                force_new: ui_state
+                    .hover_state
+                    .as_ref()
+                    .is_some_and(|state| state.modifiers.command),
+            });
 
-                if let Some(camera_id) = ui_state.hover_state.as_ref().map(|state| state.camera) {
-                    commands.queue(move |world: &mut World| {
-                        world.resource_mut::<dock::State>().focus_tab(|tab| matches!(tab, dock::TabEnum::Camera(tab) if tab.camera == camera_id));
-                    });
-                }
-            },
-        );
+            if let Some(camera_id) = ui_state.hover_state.as_ref().map(|state| state.camera) {
+                commands.queue(move |world: &mut World| {
+                    world.resource_mut::<dock::State>().focus_tab(
+                        |tab| matches!(tab, dock::TabEnum::Camera(tab) if tab.camera == camera_id),
+                    );
+                });
+            }
+        },
+    );
 }
 
 pub trait ObservePicking {

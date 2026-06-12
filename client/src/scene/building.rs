@@ -4,7 +4,6 @@ use bevy::color::Color;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::{Entity, EntityHashSet};
 use bevy::ecs::name::Name;
-use bevy::ecs::query::Has;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
@@ -12,6 +11,7 @@ use bevy::math::primitives::Annulus;
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::picking::Pickable;
+use bevy::picking::hover::PickingInteraction;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
@@ -21,7 +21,7 @@ use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
 
 use crate::scene::facility::FacilityBuilding;
-use crate::scene::picking::{self, ObservePicking};
+use crate::scene::picking::ObservePicking;
 use crate::scene::{
     GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
 };
@@ -145,13 +145,13 @@ impl UpdateHandler for UpdateBuildingFullParams<'_, '_> {
 }
 
 #[derive(SystemParam)]
-pub struct SetBuildingFluidConnectionsParams<'w, 's> {
+pub struct UpdateBuildingFluidConnectionsParams<'w, 's> {
     ids:            ResMut<'w, IdRegistry>,
     building_query: Query<'w, 's, &'static mut Info>,
 }
 
-impl UpdateHandler for SetBuildingFluidConnectionsParams<'_, '_> {
-    type Update = proto::SetBuildingFluidConnections;
+impl UpdateHandler for UpdateBuildingFluidConnectionsParams<'_, '_> {
+    type Update = proto::UpdateBuildingFluidConnections;
 
     fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
@@ -253,13 +253,17 @@ impl WallMaterials {
 
 fn update_wall_hover_system(
     wall_query: Query<(&mut MeshMaterial2d<ColorMaterial>, &WallEntityOf)>,
-    building_query: Query<Has<picking::Hovered>>,
+    building_query: Query<&PickingInteraction>,
     wall_materials: Res<WallMaterials>,
 ) {
     for (mut material, parent) in wall_query {
-        let hovered = building_query.get(parent.0).unwrap_or(false);
-        let desired =
-            if hovered { wall_materials.get_hovered() } else { wall_materials.get_base() };
+        let interaction = building_query.get(parent.0).unwrap_or(&PickingInteraction::None);
+        let desired = match interaction {
+            PickingInteraction::Hovered | PickingInteraction::Pressed => {
+                wall_materials.get_hovered()
+            }
+            PickingInteraction::None => wall_materials.get_base(),
+        };
         if material.0 != *desired {
             material.0 = desired.clone();
         }

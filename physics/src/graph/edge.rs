@@ -130,7 +130,7 @@ fn broadcast_edge_change_system<Ab: Which>(
         let Some(corridor_viewable) = viewable_query.log_get(corridor.0) else { continue };
         let Some(building_viewable) = viewable_query.log_get(building.0) else { continue };
         writer.write_batch(corridor_viewable.broadcast_update(|_| {
-            [proto::Update::SetCorridorEndpoint(proto::SetCorridorEndpoint {
+            [proto::Update::UpdateCorridorEndpoint(proto::UpdateCorridorEndpoint {
                 corridor: corridor_viewable.id,
                 which:    Ab::default().proto(),
                 value:    Some(proto::CorridorEndpoint {
@@ -155,7 +155,7 @@ impl EntityCommand for DespawnCommand {
                 else {
                     return;
                 };
-                let update = proto::Update::SetCorridorEndpoint(proto::SetCorridorEndpoint {
+                let update = proto::Update::UpdateCorridorEndpoint(proto::UpdateCorridorEndpoint {
                     corridor: corridor_viewable.id,
                     which:    which.proto(),
                     value:    None,

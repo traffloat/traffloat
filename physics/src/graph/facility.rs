@@ -189,7 +189,7 @@ fn incr_viewer_system(
             messages.write_batch(facility.viewable.broadcast_update(|level| {
                 match level {
                     view::SubscriptionLevel::Basic => Either::Left(
-                        [proto::Update::SetFacilityTaint(proto::SetFacilityTaint {
+                        [proto::Update::UpdateFacilityTaint(proto::UpdateFacilityTaint {
                             id:    facility.viewable.id,
                             taint: color,
                         })]
@@ -197,11 +197,11 @@ fn incr_viewer_system(
                     ),
                     view::SubscriptionLevel::Full => Either::Right(
                         [
-                            proto::Update::SetFacilityTaint(proto::SetFacilityTaint {
+                            proto::Update::UpdateFacilityTaint(proto::UpdateFacilityTaint {
                                 id:    facility.viewable.id,
                                 taint: color,
                             }),
-                            proto::Update::SetFacilityFluid(proto::SetFacilityFluid {
+                            proto::Update::UpdateFacilityFluid(proto::UpdateFacilityFluid {
                                 id:    facility.viewable.id,
                                 fluid: fluid_storage.to_proto(),
                             }),

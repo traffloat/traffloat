@@ -288,7 +288,7 @@ fn broadcast_changes(
             }
         }
 
-        proto::Update::SetBuildingFluidConnections(proto::SetBuildingFluidConnections {
+        proto::Update::UpdateBuildingFluidConnections(proto::UpdateBuildingFluidConnections {
             id: building_viewable.id,
             connections,
         })
