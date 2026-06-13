@@ -22,6 +22,7 @@ use ordered_float::OrderedFloat;
 use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
 use traffloat_proto::proto;
 
+use crate::scene::picking::ObservePicking;
 use crate::scene::{
     AllHandlersSystemSet, GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler,
     ViewableKind, Zorder,
@@ -129,6 +130,7 @@ impl UpdateHandler for NewFacilityParams<'_, '_> {
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Facility },
                 Info { volume: update.volume, ..Default::default() },
             ))
+            .observe_picking()
             .id();
 
         if let Some(taint) = update.display.taint {
@@ -160,15 +162,15 @@ impl UpdateHandler for NewFacilityParams<'_, '_> {
 }
 
 #[derive(SystemParam)]
-pub struct SetFacilityTaintParams<'w, 's> {
+pub struct UpdateFacilityTaintParams<'w, 's> {
     ids:            ResMut<'w, IdRegistry>,
     facility_query: Query<'w, 's, Option<&'static HasTaint>, With<Info>>,
     taint_query:    Query<'w, 's, &'static MeshMaterial2d<ColorMaterial>>,
     materials:      ResMut<'w, Assets<ColorMaterial>>,
 }
 
-impl UpdateHandler for SetFacilityTaintParams<'_, '_> {
-    type Update = proto::SetFacilityTaint;
+impl UpdateHandler for UpdateFacilityTaintParams<'_, '_> {
+    type Update = proto::UpdateFacilityTaint;
 
     fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
@@ -192,13 +194,13 @@ impl UpdateHandler for SetFacilityTaintParams<'_, '_> {
 }
 
 #[derive(SystemParam)]
-pub struct SetFacilityFluidParams<'w, 's> {
+pub struct UpdateFacilityFluidParams<'w, 's> {
     ids:            ResMut<'w, IdRegistry>,
     facility_query: Query<'w, 's, &'static mut Info>,
 }
 
-impl UpdateHandler for SetFacilityFluidParams<'_, '_> {
-    type Update = proto::SetFacilityFluid;
+impl UpdateHandler for UpdateFacilityFluidParams<'_, '_> {
+    type Update = proto::UpdateFacilityFluid;
 
     fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
 

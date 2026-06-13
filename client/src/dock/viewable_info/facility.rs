@@ -4,7 +4,7 @@ use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use egui_material_icons::icons;
 use traffloat_physics::util::QueryExt;
 
-use crate::dock::viewable_info::show_fluid;
+use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
 use crate::dock::{self, viewable_info};
 use crate::scene::building::FluidConnectionPeer;
 use crate::scene::conduit::ConduitCorridor;
@@ -69,9 +69,7 @@ fn show_building(
     building_entity: Entity,
 ) {
     ui.horizontal(|ui| {
-        if ui.button(icons::ICON_LINK).clicked() {
-            commands.queue(viewable_info::OpenCommand::from_click(building_entity, ui.ctx()));
-        }
+        show_link(ui, commands, building_entity);
         ui.label(&building_viewable.name);
     });
 }
@@ -98,24 +96,18 @@ fn show_connections(
             move |ui: &mut egui::Ui, commands: &mut Commands| {
                 ui.horizontal(|ui| match peer {
                     FluidConnectionPeer::Facility(peer) => {
-                        if ui.button(icons::ICON_LINK).clicked() {
-                            commands.queue(viewable_info::OpenCommand::from_click(peer, ui.ctx()));
-                        }
+                        show_link(ui, commands, peer);
                         ui.label("Neighbor facility:");
                         if let Some(peer_viewable) = params.viewable_query.log_get(peer) {
                             ui.label(&peer_viewable.name);
                         }
                     }
                     FluidConnectionPeer::Building(peer) => {
-                        if ui.button(icons::ICON_LINK).clicked() {
-                            commands.queue(viewable_info::OpenCommand::from_click(peer, ui.ctx()));
-                        }
+                        show_link(ui, commands, peer);
                         ui.label("Parent building");
                     }
                     FluidConnectionPeer::Pipe(peer) => {
-                        if ui.button(icons::ICON_LINK).clicked() {
-                            commands.queue(viewable_info::OpenCommand::from_click(peer, ui.ctx()));
-                        }
+                        show_link(ui, commands, peer);
                         ui.label("Pipe:");
                         if let Some(peer_viewable) = params.viewable_query.log_get(peer) {
                             ui.label(&peer_viewable.name);
@@ -123,10 +115,7 @@ fn show_connections(
 
                         if let Some(corridor) = params.conduit_query.log_get(peer) {
                             ui.label("in corridor:");
-                            if ui.button(icons::ICON_LINK).clicked() {
-                                commands
-                                    .queue(viewable_info::OpenCommand::from_click(peer, ui.ctx()));
-                            }
+                            show_link_small(ui, commands, corridor.0);
                             if let Some(corridor_viewable) =
                                 params.viewable_query.log_get(corridor.0)
                             {

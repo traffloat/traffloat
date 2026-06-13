@@ -14,6 +14,7 @@ use bevy::reflect::Reflect;
 use bevy::time;
 use bevy_mod_config::Config;
 use enum_map::EnumMap;
+use strum::IntoEnumIterator;
 use traffloat_proto::proto;
 
 use crate::util::Throttle;
@@ -35,10 +36,13 @@ impl Plugin for Plug {
             app::Update,
             SendUpdatesSystemSet::Init.before(SendUpdatesSystemSet::Incr),
         );
+        for set in SendUpdatesSystemSet::iter() {
+            app.configure_sets(app::Update, set.before(traffloat_proto::UpdateHandlerSystemSet));
+        }
     }
 }
 
-#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumIter)]
 pub enum SendUpdatesSystemSet {
     Init,
     Incr,
@@ -53,37 +57,55 @@ impl Default for NextProtoId {
 
 #[derive(Component, Reflect, Default)]
 pub struct Viewer {
-    level: SubscriptionLevel,
+    pub config: SubscriptionConfig,
 }
 
 impl Viewer {
-    fn should_view(&self, viewable: &Viewable) -> bool {
+    #[expect(
+        clippy::unnecessary_wraps,
+        reason = "will return None in the future with distance pruning"
+    )]
+    fn should_view(&self, viewable: &Viewable) -> Option<SubscriptionLevel> {
         // TODO distance pruning
         // TODO type filtering
-        true
+        match self.config {
+            SubscriptionConfig::Basic => Some(SubscriptionLevel::Basic),
+            SubscriptionConfig::Full => Some(SubscriptionLevel::Full),
+        }
     }
 
     #[must_use]
-    pub fn with_level(mut self, level: SubscriptionLevel) -> Self {
-        self.level = level;
+    pub fn with_level(mut self, level: SubscriptionConfig) -> Self {
+        self.config = level;
         self
     }
-    pub fn set_level(&mut self, level: impl Into<SubscriptionLevel>) { self.level = level.into(); }
+    pub fn set_level(&mut self, level: impl Into<SubscriptionConfig>) {
+        self.config = level.into();
+    }
 }
 
+/// How much information a viewer wants to receive in general.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, enum_map::Enum, Config, Reflect)]
 #[config(expose)]
+pub enum SubscriptionConfig {
+    #[default]
+    Basic,
+    Full,
+}
+
+/// How much information a viewer receives about a specific viewable.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, enum_map::Enum, strum::EnumIter, Reflect)]
 pub enum SubscriptionLevel {
     #[default]
     Basic,
     Full,
 }
 
-impl From<SubscriptionLevelRead> for SubscriptionLevel {
-    fn from(value: SubscriptionLevelRead) -> Self {
+impl From<SubscriptionConfigRead> for SubscriptionConfig {
+    fn from(value: SubscriptionConfigRead) -> Self {
         match value {
-            SubscriptionLevelRead::Basic => SubscriptionLevel::Basic,
-            SubscriptionLevelRead::Full => SubscriptionLevel::Full,
+            SubscriptionConfigRead::Basic => SubscriptionConfig::Basic,
+            SubscriptionConfigRead::Full => SubscriptionConfig::Full,
         }
     }
 }
@@ -109,7 +131,14 @@ impl Viewable {
     ) -> impl Iterator<Item = SentUpdate> {
         self.subscribers.iter().filter(|(_, viewers)| !viewers.is_empty()).flat_map(
             move |(level, viewers)| {
-                update(level).into_iter().map(|body| SentUpdate { viewers: viewers.clone(), body })
+                update(level).into_iter().map(|body| {
+                    tracing::trace!(
+                        "broadcast message {} to viewers of {:?}",
+                        AsRef::<str>::as_ref(&body),
+                        self.id
+                    );
+                    SentUpdate { viewers: viewers.clone(), body }
+                })
             },
         )
     }
@@ -122,7 +151,43 @@ impl Viewable {
         (!self.new_subscribers.is_empty())
             .then(|| {
                 let viewers: EntityHashSet = self.new_subscribers.iter().copied().collect();
-                update().into_iter().map(move |body| SentUpdate { viewers: viewers.clone(), body })
+                update().into_iter().map(move |body| {
+                    tracing::trace!(
+                        "broadcast message {} to incremental viewers of {:?}",
+                        AsRef::<str>::as_ref(&body),
+                        self.id
+                    );
+                    SentUpdate { viewers: viewers.clone(), body }
+                })
+            })
+            .into_iter()
+            .flatten()
+    }
+
+    #[must_use = "pass the result to MessageWrite::write_batch"]
+    pub fn broadcast_new_by_level<Iter: IntoIterator<Item = proto::Update>>(
+        &self,
+        update: impl Fn(SubscriptionLevel) -> Iter,
+    ) -> impl Iterator<Item = SentUpdate> {
+        // TODO FIXME: new_subscribers does not contain subscription level changes right now.
+        (!self.new_subscribers.is_empty())
+            .then(|| {
+                SubscriptionLevel::iter().flat_map(move |level| {
+                    let viewers: EntityHashSet = self
+                        .new_subscribers
+                        .iter()
+                        .copied()
+                        .filter(|viewer| self.subscribers[level].contains(viewer))
+                        .collect();
+                    update(level).into_iter().map(move |body| {
+                        tracing::trace!(
+                            "broadcast message {} to incremental viewers of {:?}",
+                            AsRef::<str>::as_ref(&body),
+                            self.id
+                        );
+                        SentUpdate { viewers: viewers.clone(), body }
+                    })
+                })
             })
             .into_iter()
             .flatten()
@@ -158,8 +223,8 @@ fn reconcile_subscription_system(
 
         let mut new_subscribers = EnumMap::<_, EntityHashSet>::default();
         for (viewer_entity, viewer) in &viewer_query {
-            if viewer.should_view(&viewable) {
-                new_subscribers[viewer.level].insert(viewer_entity);
+            if let Some(level) = viewer.should_view(&viewable) {
+                new_subscribers[level].insert(viewer_entity);
             }
         }
 

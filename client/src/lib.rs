@@ -1,9 +1,9 @@
-use bevy::app::{App, AppExit, PluginGroup};
+use bevy::app::{self, App, AppExit, PluginGroup};
 use bevy::asset::AssetPlugin;
 use bevy::ecs::resource::Resource;
-use bevy::log::LogPlugin;
 use bevy::log::tracing_subscriber::fmt::format::FmtSpan;
-use bevy::log::tracing_subscriber::{self};
+use bevy::log::{LogPlugin, tracing_subscriber};
+use bevy::picking::mesh_picking::MeshPickingPlugin;
 use bevy_egui::EguiPlugin;
 
 mod dock;
@@ -55,13 +55,14 @@ pub fn run(options: Options) -> AppExit {
             })
             .set(AssetPlugin { file_path: options.assets_path.clone(), ..Default::default() }),
     );
-    #[cfg(feature = "dev")]
     app.add_plugins(MeshPickingPlugin);
     app.add_plugins(EguiPlugin::default());
     #[cfg(feature = "dev")]
     app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::default());
     app.add_plugins(traffloat_physics::Plug);
     app.add_plugins((util::shapes::Plug, dock::Plug, scene::Plug));
+    app.add_systems(app::PreUpdate, || tracing::trace!("pre update"));
+    app.add_systems(app::PostUpdate, || tracing::trace!("post update"));
     app.run()
 }
 

@@ -179,7 +179,7 @@ pub struct UiSystemParam<'w, 's> {
     input:        input::Param<'w, 's>,
 }
 
-#[derive(Resource, Default)]
+#[derive(Debug, Resource, Default)]
 pub struct UiState {
     pub hover_state: Option<HoverState>,
 }
@@ -188,6 +188,7 @@ impl UiState {
     fn cleanup(mut this: ResMut<UiState>) { this.hover_state = None; }
 }
 
+#[derive(Debug)]
 pub struct HoverState {
     pub camera:       Entity,
     pub image:        asset::Handle<Image>,

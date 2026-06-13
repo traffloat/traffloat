@@ -3,31 +3,33 @@ use bevy::asset::{self, Assets, RenderAssetUsages};
 use bevy::color::Color;
 use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
-use bevy::ecs::entity::Entity;
+use bevy::ecs::entity::{Entity, EntityHashSet};
 use bevy::ecs::hierarchy::ChildOf;
 use bevy::ecs::name::Name;
-use bevy::ecs::query::{Has, QueryData};
+use bevy::ecs::query::QueryData;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
 use bevy::ecs::world::Mut;
+use bevy::math::Vec2;
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::picking::Pickable;
+use bevy::picking::hover::PickingInteraction;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy_mesh::PrimitiveTopology;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use traffloat_physics::try_log;
-use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
+use traffloat_physics::util::{Alpha, AlphaBeta, Beta, QueryExt, Which};
 use traffloat_proto::proto;
 
-use crate::ConfigManager;
-use crate::scene::conduit::ConduitOutlineOf;
-use crate::scene::picking::{self, ObservePicking};
+use crate::scene::conduit::{ConduitCorridor, ConduitOutlineOf};
+use crate::scene::picking::ObservePicking;
 use crate::scene::{
     GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
 };
 use crate::util::shapes::Shapes;
+use crate::{ConfigManager, dock};
 
 pub(super) struct Plug;
 
@@ -55,6 +57,7 @@ impl Plugin for Plug {
         app.add_systems(app::Update, update_wall_hover_system::<true>);
         app.add_systems(app::Update, update_wall_hover_system::<false>);
         app.add_systems(app::Update, update_conduit_outline_color_system);
+        app.add_systems(app::Update, sync_clicked_pickable_system);
     }
 }
 
@@ -112,7 +115,14 @@ impl UpdateHandler for NewCorridorParams<'_, '_> {
                 MeshMaterial2d(material),
                 Pickable::default(),
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Corridor },
-                Info { radius: update.radius, ambient_fluid: None },
+                Info {
+                    endpoint_positions: AlphaBeta {
+                        alpha: update.alpha_position,
+                        beta:  update.beta_position,
+                    },
+                    radius:             update.radius,
+                    ambient_fluid:      None,
+                },
             ))
             .observe_picking()
             .with_related::<WallEntityOf<true>>((
@@ -198,7 +208,7 @@ impl UpdateHandler for UpdateCorridorFullParams<'_, '_> {
 }
 
 #[derive(SystemParam)]
-pub(super) struct SetCorridorEndpointParams<'w, 's> {
+pub(super) struct UpdateCorridorEndpointParams<'w, 's> {
     ids:            ResMut<'w, IdRegistry>,
     corridor_query: Query<'w, 's, CorridorEndpointQueryData>,
     commands:       Commands<'w, 's>,
@@ -211,12 +221,12 @@ struct CorridorEndpointQueryData {
     beta:  Option<(&'static EndpointRef<Beta>, &'static mut GenericEndpointDetails<Beta>)>,
 }
 
-impl UpdateHandler for SetCorridorEndpointParams<'_, '_> {
-    type Update = proto::SetCorridorEndpoint;
+impl UpdateHandler for UpdateCorridorEndpointParams<'_, '_> {
+    type Update = proto::UpdateCorridorEndpoint;
 
     fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::MixedSpawn }
 
-    fn handle(&mut self, update: &proto::SetCorridorEndpoint) {
+    fn handle(&mut self, update: &proto::UpdateCorridorEndpoint) {
         let Some(corridor) = self.ids.get_corridor(update.corridor) else {
             tracing::error!("Received update for unknown corridor id {:?}", update.corridor);
             return;
@@ -289,8 +299,9 @@ impl UpdateHandler for SetCorridorEndpointParams<'_, '_> {
 
 #[derive(Component, Reflect)]
 pub struct Info {
-    pub radius:        f32,
-    pub ambient_fluid: Option<proto::FluidStorageFull>,
+    pub endpoint_positions: AlphaBeta<Vec2>,
+    pub radius:             f32,
+    pub ambient_fluid:      Option<proto::FluidStorageFull>,
 }
 
 /// References building from corridor.
@@ -361,13 +372,17 @@ impl WallMaterials {
 
 fn update_wall_hover_system<const WHICH: bool>(
     wall_query: Query<(&mut MeshMaterial2d<ColorMaterial>, &WallEntityOf<WHICH>)>,
-    corridor_query: Query<Has<picking::Hovered>>,
+    corridor_query: Query<&PickingInteraction>,
     wall_materials: Res<WallMaterials>,
 ) {
     for (mut material, parent) in wall_query {
-        let hovered = corridor_query.get(parent.0).unwrap_or(false);
-        let desired =
-            if hovered { wall_materials.get_hovered() } else { wall_materials.get_base() };
+        let interaction = corridor_query.get(parent.0).unwrap_or(&PickingInteraction::None);
+        let desired = match interaction {
+            PickingInteraction::Hovered | PickingInteraction::Pressed => {
+                wall_materials.get_hovered()
+            }
+            PickingInteraction::None => wall_materials.get_base(),
+        };
         if material.0 != *desired {
             material.0 = desired.clone();
         }
@@ -404,4 +419,25 @@ fn update_conduit_outline_color_system(
         .get_mut(outline_material.0.as_ref().expect("initialized during startup"))
         .expect("referenced by strong handle");
     material.color = conf.read().conduit_outline_color;
+}
+
+fn sync_clicked_pickable_system(
+    dock: Res<dock::State>,
+    conduit_query: Query<(&mut Pickable, &ConduitCorridor)>,
+) {
+    let opened_entities: EntityHashSet = dock
+        .tabs()
+        .filter_map(|tab| match tab {
+            dock::TabEnum::ViewableInfo(tab) => Some(tab.entity),
+            _ => None,
+        })
+        .collect();
+
+    for (mut pickable, corridor) in conduit_query {
+        *pickable = if opened_entities.contains(&corridor.0) {
+            Pickable::default()
+        } else {
+            Pickable::IGNORE
+        };
+    }
 }

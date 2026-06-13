@@ -1,4 +1,4 @@
-use crate::dock::{self};
+use crate::dock;
 
 pub struct Tab;
 

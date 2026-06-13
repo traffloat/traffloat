@@ -1,5 +1,6 @@
 use std::ops;
 
+use bevy::math::VectorSpace;
 use bevy::reflect::{self, FromReflect, GetTypeRegistration, Reflect};
 use traffloat_proto::proto;
 
@@ -68,6 +69,10 @@ impl AlphaBeta<f32> {
     }
 }
 
+impl<T: VectorSpace> AlphaBeta<T> {
+    pub fn lerp(self, ratio: T::Scalar) -> T { self.alpha.lerp(self.beta, ratio) }
+}
+
 impl<T: IntoIterator> AlphaBeta<T> {
     /// Merges two iterators with sorted and strictly increasing `key`s
     /// into a single iterator that yields items in sorted order by `key`.
@@ -127,8 +132,6 @@ pub trait Which:
     fn select_ref<T>(self, ab: &AlphaBeta<T>) -> &T;
     fn select_mut<T>(self, ab: &mut AlphaBeta<T>) -> &mut T;
 
-    fn get<T>(self, ab: impl GetAb<T>) -> T;
-
     fn proto(self) -> proto::AlphaOrBeta;
 }
 
@@ -146,8 +149,6 @@ macro_rules! define_which {
             fn select_ref<T>(self, ab: &AlphaBeta<T>) -> &T { &ab.$field }
             fn select_mut<T>(self, ab: &mut AlphaBeta<T>) -> &mut T { &mut ab.$field }
 
-            fn get<T>(self, ab: impl GetAb<T>) -> T { ab.$get() }
-
             fn proto(self) -> proto::AlphaOrBeta { proto::AlphaOrBeta::$variant }
         }
     };
@@ -155,8 +156,3 @@ macro_rules! define_which {
 
 define_which!(Alpha, alpha, Alpha, Beta, alpha);
 define_which!(Beta, beta, Beta, Alpha, beta);
-
-pub trait GetAb<T> {
-    fn alpha(self) -> T;
-    fn beta(self) -> T;
-}

@@ -6,6 +6,7 @@
 //! while the actual instance component would point to the actual storage selected.
 
 use bevy::ecs::entity::Entity;
+use bevy::reflect::Reflect;
 use enum_map::EnumMap;
 
 use crate::reactor;
@@ -33,21 +34,22 @@ pub struct FluidStorage {
 }
 
 /// Constrains changes to a [`reactor::Facility`].
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct Reactor {
     pub ty:    reactor::TypeId,
     pub ports: Ports,
 }
 
 /// Constrains changes to [`reactor::Ports`].
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct Ports {
     pub fluid_storages: Vec<FluidStoragePort>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Reflect)]
 pub struct FluidStoragePort {
     /// Which port types are compatible.
+    #[reflect(ignore, default)]
     pub compat: EnumMap<FluidStoragePortType, bool>,
 }
 

@@ -1,13 +1,14 @@
 use std::f32::consts::PI;
 
 use bevy::ecs::entity::Entity;
-use bevy::ecs::system::EntityCommand;
+use bevy::ecs::system::{Command, EntityCommand};
 use bevy::ecs::world::World;
+use enum_map::enum_map;
 
 use crate::graph::facility::{self, Blueprint, blueprint};
 use crate::graph::{self, building, conduit, connection, corridor, edge};
 use crate::util::{Alpha, AlphaBeta, Beta, Which};
-use crate::{WorldObject, fluid, reactor};
+use crate::{WorldObject, fluid, reactor, resident, view};
 
 const STANDARD_WALL_THICKNESS: f32 = 0.5;
 
@@ -18,7 +19,8 @@ pub fn generate(world: &mut World, _: Config) {
     let fluids = gen_fluid_types(world);
     let reactors = gen_reactor_types(world, &fluids);
     let facilities = gen_facility_types(world, &reactors);
-    let std = StandardTypes { fluids, reactors, facilities };
+    let resident_attrs = gen_resident_attr_types(world);
+    let std = StandardTypes { fluids, reactors, facilities, resident_attrs };
 
     let core = gen_core(world, &std);
     let garden = gen_garden(world, &std);
@@ -33,12 +35,15 @@ pub fn generate(world: &mut World, _: Config) {
             connect_facility_pipe(world, core.tank, pipe);
         },
     );
+
+    spawn_resident_in_building(world, garden.building);
 }
 
 struct StandardTypes {
-    fluids:     StandardFluidTypes,
-    reactors:   StandardReactorTypes,
-    facilities: StandardFacilityTypes,
+    fluids:         StandardFluidTypes,
+    reactors:       StandardReactorTypes,
+    facilities:     StandardFacilityTypes,
+    resident_attrs: StandardResidentAttrTypes,
 }
 
 struct StandardFluidTypes {
@@ -214,6 +219,35 @@ fn gen_facility_types(
     StandardFacilityTypes { garden, small_tank }
 }
 
+struct StandardResidentAttrTypes {
+    health: resident::attr::TypeId,
+    volume: resident::attr::TypeId,
+}
+
+fn gen_resident_attr_types(world: &mut World) -> StandardResidentAttrTypes {
+    let health = resident::attr::AddTypeCommand::new(resident::attr::TypeDef {
+        name:          "Health".into(),
+        default_value: 100.0,
+        visibility:    enum_map! {
+            view::SubscriptionConfig::Basic => false,
+            view::SubscriptionConfig::Full => true,
+        },
+    })
+    .with_niche(resident::attr::Niche::Health)
+    .apply(world);
+    let volume = resident::attr::AddTypeCommand::new(resident::attr::TypeDef {
+        name:          "Height".into(),
+        default_value: 1.7,
+        visibility:    enum_map! {
+            view::SubscriptionConfig::Basic => true,
+            view::SubscriptionConfig::Full => true,
+        },
+    })
+    .with_niche(resident::attr::Niche::Health)
+    .apply(world);
+    StandardResidentAttrTypes { health, volume }
+}
+
 fn gen_core(world: &mut World, std: &StandardTypes) -> CoreGen {
     let mut building = world.spawn((WorldObject,));
     building.reborrow_scope(|building| {
@@ -227,7 +261,7 @@ fn gen_core(world: &mut World, std: &StandardTypes) -> CoreGen {
     });
 
     let building_id = building.id();
-    std.fluids.fill_atmosphere(world, building_id);
+    fill_atmosphere(&std.fluids, world, building_id);
 
     let mut tank = world.spawn(WorldObject);
     tank.reborrow_scope(|facility| {
@@ -268,7 +302,7 @@ fn gen_garden(world: &mut World, std: &StandardTypes) -> GardenGen {
     });
 
     let building_id = building.id();
-    std.fluids.fill_atmosphere(world, building_id);
+    fill_atmosphere(&std.fluids, world, building_id);
 
     let mut facility = world.spawn(WorldObject);
     facility.reborrow_scope(|facility| {
@@ -327,7 +361,7 @@ fn spawn_corridor(
     });
 
     let corridor_id = corridor.id();
-    std.fluids.fill_atmosphere(world, corridor_id);
+    fill_atmosphere(&std.fluids, world, corridor_id);
 
     spawn_edge(Alpha, world, endpoints, corridor_id);
     spawn_edge(Beta, world, endpoints, corridor_id);
@@ -378,18 +412,23 @@ fn connect_facility_pipe(world: &mut World, facility: Entity, pipe: Entity) {
         .apply(connection);
 }
 
-impl StandardFluidTypes {
-    fn fill_atmosphere(&self, world: &mut World, building: Entity) {
-        let mut building = world.entity_mut(building);
-        let mut storage =
-            building.get_mut::<fluid::Storage>().expect("building must have fluid storage");
-        for &(ty, fraction) in &self.atmosphere {
-            let moles = fluid::Moles(fraction * storage.volume);
-            storage.set_fluid(ty, moles);
-        }
+fn spawn_resident_in_building(world: &mut World, building: Entity) {
+    let mut resident = world.spawn((WorldObject,));
+    resident.reborrow_scope(|resident| {
+        resident::SpawnCommand { building }.apply(resident);
+    });
+}
 
-        fluid::SetTemperatureCommand { temperature: self.temperature }.apply(building);
+fn fill_atmosphere(std: &StandardFluidTypes, world: &mut World, building: Entity) {
+    let mut building = world.entity_mut(building);
+    let mut storage =
+        building.get_mut::<fluid::Storage>().expect("building must have fluid storage");
+    for &(ty, fraction) in &std.atmosphere {
+        let moles = fluid::Moles(fraction * storage.volume);
+        storage.set_fluid(ty, moles);
     }
+
+    fluid::SetTemperatureCommand { temperature: std.temperature }.apply(building);
 }
 
 fn inverse_sphere_volume(volume: f32) -> f32 { (volume * 3.0 / (4.0 * PI)).cbrt() }

@@ -10,7 +10,7 @@ use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
-use crate::graph::{Facility, facility};
+use crate::graph::{Facility, ViewInitSystemSets, facility};
 use crate::util::{EntityWorldMutExt, WorldExt};
 use crate::{Vector, fluid, view};
 
@@ -20,11 +20,16 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Building>();
 
-        app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
+        app.add_systems(
+            app::Update,
+            init_viewer_system
+                .in_set(view::SendUpdatesSystemSet::Init)
+                .in_set(ViewInitSystemSets::Building),
+        );
         app.add_systems(
             app::Update,
             incr_viewer_system
-                .in_set(super::ViewSystemSets::Building)
+                .in_set(super::ViewIncrSystemSets::Building)
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
     }

@@ -11,6 +11,7 @@ pub mod fluid;
 pub mod generate;
 pub mod graph;
 pub mod reactor;
+pub mod resident;
 pub mod view;
 
 #[cfg(any(rust_analyzer, doc))]
@@ -23,6 +24,7 @@ impl Plugin for Plug {
         app.add_plugins(view::Plug);
         app.add_plugins(graph::Plug);
         app.add_plugins(fluid::Plug);
+        app.add_plugins(resident::Plug);
         app.add_plugins(reactor::Plug);
     }
 }

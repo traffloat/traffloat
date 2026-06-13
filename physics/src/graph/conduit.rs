@@ -13,7 +13,7 @@ use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
-use crate::graph::{Corridor, corridor};
+use crate::graph::{Corridor, ViewInitSystemSets, corridor};
 use crate::util::QueryExt;
 use crate::{fluid, view};
 
@@ -25,11 +25,16 @@ impl Plugin for Plug {
         app.register_type::<OfCorridor>();
         app.register_type::<ListOnCorridor>();
 
-        app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
+        app.add_systems(
+            app::Update,
+            init_viewer_system
+                .in_set(view::SendUpdatesSystemSet::Init)
+                .in_set(ViewInitSystemSets::Conduit),
+        );
         app.add_systems(
             app::Update,
             incr_viewer_system
-                .in_set(super::ViewSystemSets::Facility)
+                .in_set(super::ViewIncrSystemSets::Conduit)
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
     }

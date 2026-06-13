@@ -4,14 +4,14 @@ use bevy::color::Color;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::{Entity, EntityHashSet};
 use bevy::ecs::name::Name;
-use bevy::ecs::query::Has;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
-use bevy::math::Vec3;
 use bevy::math::primitives::Annulus;
+use bevy::math::{Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::picking::Pickable;
+use bevy::picking::hover::PickingInteraction;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
@@ -21,7 +21,7 @@ use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
 
 use crate::scene::facility::FacilityBuilding;
-use crate::scene::picking::{self, ObservePicking};
+use crate::scene::picking::ObservePicking;
 use crate::scene::{
     GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
 };
@@ -42,6 +42,7 @@ impl Plugin for Plug {
         app.add_systems(app::Startup, WallMaterials::init);
         app.add_systems(app::Update, WallMaterials::update.ambiguous_with_all());
         app.add_systems(app::Update, update_wall_hover_system);
+        app.add_systems(app::Update, sync_clicked_pickable_system);
     }
 }
 
@@ -77,7 +78,7 @@ impl UpdateHandler for NewBuildingParams<'_, '_> {
                 MeshMaterial2d(material),
                 Pickable::default(),
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Building },
-                Info::default(),
+                Info { position: update.position, radius: update.radius, ..Default::default() },
             ))
             .observe_picking()
             .with_related::<WallEntityOf>((
@@ -144,13 +145,13 @@ impl UpdateHandler for UpdateBuildingFullParams<'_, '_> {
 }
 
 #[derive(SystemParam)]
-pub struct SetBuildingFluidConnectionsParams<'w, 's> {
+pub struct UpdateBuildingFluidConnectionsParams<'w, 's> {
     ids:            ResMut<'w, IdRegistry>,
     building_query: Query<'w, 's, &'static mut Info>,
 }
 
-impl UpdateHandler for SetBuildingFluidConnectionsParams<'_, '_> {
-    type Update = proto::SetBuildingFluidConnections;
+impl UpdateHandler for UpdateBuildingFluidConnectionsParams<'_, '_> {
+    type Update = proto::UpdateBuildingFluidConnections;
 
     fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
@@ -163,6 +164,8 @@ impl UpdateHandler for SetBuildingFluidConnectionsParams<'_, '_> {
 
 #[derive(Default, Component, Reflect)]
 pub struct Info {
+    pub position:      Vec2,
+    pub radius:        f32,
     pub ambient_fluid: Option<proto::FluidStorageFull>,
     pub connections:   Vec<proto::BuildingFluidConnection>,
 }
@@ -250,13 +253,17 @@ impl WallMaterials {
 
 fn update_wall_hover_system(
     wall_query: Query<(&mut MeshMaterial2d<ColorMaterial>, &WallEntityOf)>,
-    building_query: Query<Has<picking::Hovered>>,
+    building_query: Query<&PickingInteraction>,
     wall_materials: Res<WallMaterials>,
 ) {
     for (mut material, parent) in wall_query {
-        let hovered = building_query.get(parent.0).unwrap_or(false);
-        let desired =
-            if hovered { wall_materials.get_hovered() } else { wall_materials.get_base() };
+        let interaction = building_query.get(parent.0).unwrap_or(&PickingInteraction::None);
+        let desired = match interaction {
+            PickingInteraction::Hovered | PickingInteraction::Pressed => {
+                wall_materials.get_hovered()
+            }
+            PickingInteraction::None => wall_materials.get_base(),
+        };
         if material.0 != *desired {
             material.0 = desired.clone();
         }
@@ -271,8 +278,8 @@ pub struct Conf {
     pub hovered_wall_color: Color,
 }
 
-fn sync_clicked_pickable(
-    dock: &dock::State,
+fn sync_clicked_pickable_system(
+    dock: Res<dock::State>,
     facility_query: Query<(&mut Pickable, &FacilityBuilding)>,
 ) {
     let opened_entities: EntityHashSet = dock

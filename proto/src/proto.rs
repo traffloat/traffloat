@@ -1,8 +1,7 @@
-#![allow(clippy::used_underscore_binding, reason = "derive(Reflect) bug")]
-
 use std::num::NonZeroU32;
 
 use bevy::color::LinearRgba;
+use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
@@ -33,27 +32,83 @@ impl From<Color> for LinearRgba {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct FluidStorageFull {
+    pub volume:      f32,
+    pub pressure:    f32,
+    pub temperature: f32,
+    pub types:       Vec<f32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub enum AlphaOrBeta {
+    Alpha,
+    Beta,
+}
+
 /// Messages from the world to a specific viewer.
 #[derive(
-    Debug, Clone, Serialize, Deserialize, Reflect, strum::IntoStaticStr, derive_more::From,
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    Reflect,
+    strum::IntoStaticStr,
+    strum::AsRefStr,
+    derive_more::From,
 )]
 pub enum Update {
+    SetFluidTypes(SetFluidTypes),
+    SetResidentAttrTypes(SetResidentAttrTypes),
     NewBuilding(NewBuilding),
     UpdateBuilding(UpdateBuilding),
     UpdateBuildingFull(UpdateBuildingFull),
-    SetBuildingFluidConnections(SetBuildingFluidConnections),
+    UpdateBuildingFluidConnections(UpdateBuildingFluidConnections),
     NewCorridor(NewCorridor),
     UpdateCorridor(UpdateCorridor),
     UpdateCorridorFull(UpdateCorridorFull),
-    SetCorridorEndpoint(SetCorridorEndpoint),
+    UpdateCorridorEndpoint(UpdateCorridorEndpoint),
     NewFacility(NewFacility),
-    SetFacilityTaint(SetFacilityTaint),
-    SetFacilityFluid(SetFacilityFluid),
+    UpdateFacilityTaint(UpdateFacilityTaint),
+    UpdateFacilityFluid(UpdateFacilityFluid),
     NewConduit(NewConduit),
     UpdateFluidConduit(UpdateFluidConduit),
     UpdateFluidConduitFull(UpdateFluidConduitFull),
+    NewResident(NewResident),
+    UpdateResidentLocation(UpdateResidentLocation),
+    UpdateResidentAttributesFull(UpdateResidentAttributesFull),
+    UpdateResidentAttributesPartial(UpdateResidentAttributesPartial),
     RemoveViewable(RemoveViewable),
-    SetFluidTypes(SetFluidTypes),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetFluidTypes {
+    pub types: Vec<FluidType>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct FluidType {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetResidentAttrTypes {
+    pub types: Vec<ResidentAttrType>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct ResidentAttrType {
+    pub name:       String,
+    pub subscribed: bool,
+    #[reflect(ignore, default)]
+    pub niches:     ResidentAttrNiche,
+}
+
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+    pub struct ResidentAttrNiche: u16 {
+        const SIZE = 1 << 0;
+    }
 }
 
 /// Subscribed to a new building.
@@ -111,7 +166,7 @@ pub struct UpdateCorridorFull {
 
 /// Set or unset the endpoint building of a corridor.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct SetCorridorEndpoint {
+pub struct UpdateCorridorEndpoint {
     pub corridor: Id,
     pub which:    AlphaOrBeta,
     pub value:    Option<CorridorEndpoint>,
@@ -149,14 +204,14 @@ pub struct FacilityDisplay {
 ///
 /// The facility must have been previously created with [`FacilityDisplay::taint`] set to `Some`.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct SetFacilityTaint {
+pub struct UpdateFacilityTaint {
     pub id:    Id,
     pub taint: Color,
 }
 
 /// Updated fluid information of a facility with a fluid storage.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct SetFacilityFluid {
+pub struct UpdateFacilityFluid {
     pub id:    Id,
     pub fluid: FluidStorageFull,
 }
@@ -165,9 +220,9 @@ pub struct SetFacilityFluid {
 ///
 /// This does not include building-corridor edges.
 /// Building-corridor connections must be either open or closed instead of adjustable area,
-/// and are set with [`SetCorridorEndpoint`] instead of this message.
+/// and are set with [`UpdateCorridorEndpoint`] instead of this message.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct SetBuildingFluidConnections {
+pub struct UpdateBuildingFluidConnections {
     pub id:          Id,
     pub connections: Vec<BuildingFluidConnection>,
 }
@@ -217,34 +272,43 @@ pub struct UpdateFluidConduitFull {
     pub fluid: FluidStorageFull,
 }
 
+/// Subscribed to a new resident.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct NewResident {
+    pub id:       Id,
+    pub name:     String,
+    pub location: ResidentLocation,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateResidentLocation {
+    pub id:       Id,
+    pub location: ResidentLocation,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateResidentAttributesFull {
+    pub id:    Id,
+    pub attrs: Vec<f32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateResidentAttributesPartial {
+    pub id:    Id,
+    pub attrs: Vec<(u32, f32)>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub enum ResidentLocation {
+    Building { building: Id, interior_pos: Vec3, speed: Vec3 },
+    Corridor { corridor: Id, linear_pos: f32, speed: f32 },
+    Facility { facility: Id },
+}
+
 /// Unsubscribed from a viewable.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct RemoveViewable {
     pub id: Id,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct SetFluidTypes {
-    pub types: Vec<FluidType>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct FluidType {
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct FluidStorageFull {
-    pub volume:      f32,
-    pub pressure:    f32,
-    pub temperature: f32,
-    pub types:       Vec<f32>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub enum AlphaOrBeta {
-    Alpha,
-    Beta,
 }
 
 /// Approved messages from a specific viewer to the world.

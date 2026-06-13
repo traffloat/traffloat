@@ -5,7 +5,7 @@ use egui_material_icons::icons;
 use traffloat_physics::util::{Alpha, Beta, QueryExt};
 use traffloat_proto::proto;
 
-use crate::dock::viewable_info::show_fluid;
+use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
 use crate::dock::{self, viewable_info};
 use crate::scene::{FluidTypes, GenericViewable, IdRegistry, ProtoId, building, conduit, corridor};
 use crate::util::new_id;
@@ -69,9 +69,7 @@ fn show_corridor(
     let Some(corridor_info) = corridor_query.log_get(corridor_entity) else { return };
 
     ui.horizontal(|ui| {
-        if ui.button(icons::ICON_LINK).clicked() {
-            commands.queue(viewable_info::OpenCommand::from_click(corridor_entity, ui.ctx()));
-        }
+        show_link(ui, commands, corridor_entity);
         ui.label("Corridor:");
         ui.label(&corridor_info.name);
     });
@@ -145,17 +143,13 @@ fn show_connection_ui(
     id: egui::Id,
 ) {
     ui.horizontal(|ui| {
-        if ui.button(icons::ICON_LINK).clicked() {
-            commands.queue(viewable_info::OpenCommand::from_click(facility, ui.ctx()));
-        }
+        show_link(ui, commands, facility);
         ui.label("Facility:");
         if let Some(facility_viewable) = viewable_query.log_get(facility) {
             ui.label(&facility_viewable.name);
         }
         ui.label("in building:");
-        if ui.button(icons::ICON_LINK).clicked() {
-            commands.queue(viewable_info::OpenCommand::from_click(building, ui.ctx()));
-        }
+        show_link_small(ui, commands, building);
         if let Some(building_viewable) = viewable_query.log_get(building) {
             ui.label(&building_viewable.name);
         }

@@ -18,7 +18,7 @@ use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
-use crate::graph::{Conduit, Corridor, Facility, conduit, facility};
+use crate::graph::{Conduit, Corridor, Facility, ViewInitSystemSets, conduit, facility};
 use crate::util::{QueryExt, WorldExt};
 use crate::{fluid, view};
 
@@ -36,11 +36,16 @@ impl Plugin for Plug {
         app.register_type::<ToPipe>();
         app.register_type::<ListOnPipe>();
 
-        app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
+        app.add_systems(
+            app::Update,
+            init_viewer_system
+                .in_set(view::SendUpdatesSystemSet::Init)
+                .in_set(ViewInitSystemSets::Connection),
+        );
         app.add_systems(
             app::Update,
             broadcast_building_changes_system
-                .in_set(super::ViewSystemSets::Connection)
+                .in_set(super::ViewIncrSystemSets::Connection)
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
     }
@@ -79,14 +84,14 @@ pub struct AltFacility(pub Entity);
 /// Component on facilities.
 ///
 /// In practice, users of this component will almost always want to
-/// use [`ListOnFacility`] as well.
+/// use [`ListOnMainFacility`] as well.
 #[derive(Component, Reflect)]
 #[relationship_target(relationship = AltFacility, linked_spawn)]
 pub struct ListOnAltFacility(Vec<Entity>);
 
 /// Marks the connection as a facility&ndash;building connections.
 ///
-/// The referenced entity is always the parent building of the facility referenced by [`OfFacility`].
+/// The referenced entity is always the parent building of the facility referenced by [`MainFacility`].
 #[derive(Component, Reflect)]
 #[relationship(relationship_target = ListOnBuilding)]
 pub struct ToBuilding(pub Entity);
@@ -288,7 +293,7 @@ fn broadcast_changes(
             }
         }
 
-        proto::Update::SetBuildingFluidConnections(proto::SetBuildingFluidConnections {
+        proto::Update::UpdateBuildingFluidConnections(proto::UpdateBuildingFluidConnections {
             id: building_viewable.id,
             connections,
         })

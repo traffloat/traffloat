@@ -2,16 +2,18 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::system::{Command, Commands, ParamSet, Query, SystemParam};
 use bevy::ecs::world::World;
 use egui_material_icons::icons;
+use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
 
 use crate::dock::{self, TabPlacement, viewable_info};
-use crate::scene::{FluidTypes, GenericViewable, ViewableKind};
+use crate::scene::{self, FluidTypes, GenericViewable, ViewableKind};
 use crate::util::new_id;
 
 mod building;
 mod conduit;
 mod corridor;
 mod facility;
+mod resident;
 
 pub struct Tab {
     pub entity: Entity,
@@ -28,6 +30,7 @@ impl dock::Tab for Tab {
             ViewableKind::Corridor => format!("Corridor: {}", viewable.name),
             ViewableKind::Facility => format!("Facility: {}", viewable.name),
             ViewableKind::Conduit => format!("Conduit: {}", viewable.name),
+            ViewableKind::Resident => format!("Resident: {}", viewable.name),
         }
     }
 
@@ -38,46 +41,58 @@ impl dock::Tab for Tab {
         ui: &mut egui::Ui,
         dock: dock::Context,
     ) {
-        let Ok(generic) = param.generic.get(self.entity) else {
+        let mut generic = param.ps.p0();
+
+        let Ok(viewable) = generic.viewable_query.get(self.entity) else {
             ui.label("Object has been unloaded");
             return;
         };
 
         ui.horizontal(|ui| {
-            if ui.button(icons::ICON_RECENTER).clicked() {
-                param
-                    .ps
-                    .p0()
+            if ui.button(icons::ICON_RECENTER).on_hover_text("Focus").clicked() {
+                generic
+                    .commands
                     .queue(dock::camera::FocusCommand { target: self.entity, which: None });
             }
-            ui.heading(match generic.kind {
+            ui.heading(match viewable.kind {
                 ViewableKind::Building => "Building:",
                 ViewableKind::Corridor => "Corridor:",
                 ViewableKind::Facility => "Facility:",
-                ViewableKind::Conduit => "Conduit:",
+                ViewableKind::Conduit => match generic.conduit_query.log_get(self.entity) {
+                    Some(info) => match info.ty {
+                        proto::ConduitType::FluidPipe => "Fluid pipe:",
+                    },
+                    None => "Invalid conduit:",
+                },
+                ViewableKind::Resident => "Resident:",
             });
-            ui.heading(&generic.name);
-            if ui.button(icons::ICON_EDIT).clicked() {
+            ui.heading(&viewable.name);
+            if ui.button(icons::ICON_EDIT).on_hover_text("Rename").clicked() {
                 // TODO edit text
             }
         });
 
-        match generic.kind {
+        let kind = viewable.kind;
+        match kind {
             ViewableKind::Building => {
-                let mut building_param = param.ps.p1();
-                building_param.ui(self.entity, ui, dock);
+                let mut param = param.ps.p1();
+                param.ui(self.entity, ui, dock);
             }
             ViewableKind::Corridor => {
-                let mut corridor_param = param.ps.p2();
-                corridor_param.ui(self.entity, ui, dock);
+                let mut param = param.ps.p2();
+                param.ui(self.entity, ui, dock);
             }
             ViewableKind::Facility => {
-                let mut facility_param = param.ps.p3();
-                facility_param.ui(self.entity, ui, dock);
+                let mut param = param.ps.p3();
+                param.ui(self.entity, ui, dock);
             }
             ViewableKind::Conduit => {
-                let mut conduit_param = param.ps.p4();
-                conduit_param.ui(self.entity, ui, dock);
+                let mut param = param.ps.p4();
+                param.ui(self.entity, ui, dock);
+            }
+            ViewableKind::Resident => {
+                let mut param = param.ps.p5();
+                param.ui(self.entity, ui, dock);
             }
         }
     }
@@ -88,21 +103,26 @@ impl dock::Tab for Tab {
 
 #[derive(SystemParam)]
 pub struct UiSystemParam<'w, 's> {
-    generic: Query<'w, 's, &'static GenericViewable>,
     ps: ParamSet<
         'w,
         's,
         (
-            Commands<'w, 's>,
+            GenericUiSystemParams<'w, 's>,
             building::UiSystemParam<'w, 's>,
             corridor::UiSystemParam<'w, 's>,
             facility::UiSystemParam<'w, 's>,
             conduit::UiSystemParam<'w, 's>,
+            resident::UiSystemParam<'w, 's>,
         ),
     >,
 }
 
-fn focus_camera_around(entity: Entity) {}
+#[derive(SystemParam)]
+struct GenericUiSystemParams<'w, 's> {
+    commands:       Commands<'w, 's>,
+    conduit_query:  Query<'w, 's, &'static scene::conduit::Info>,
+    viewable_query: Query<'w, 's, &'static GenericViewable>,
+}
 
 pub struct OpenCommand {
     pub entity:    Entity,
@@ -148,4 +168,16 @@ fn show_fluid(
             ));
         }
     });
+}
+
+fn show_link(ui: &mut egui::Ui, commands: &mut Commands, entity: Entity) {
+    if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
+        commands.queue(viewable_info::OpenCommand::from_click(entity, ui.ctx()));
+    }
+}
+
+fn show_link_small(ui: &mut egui::Ui, commands: &mut Commands, entity: Entity) {
+    if ui.small_button(icons::ICON_LINK).on_hover_text("View").clicked() {
+        commands.queue(viewable_info::OpenCommand::from_click(entity, ui.ctx()));
+    }
 }

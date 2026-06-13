@@ -1,9 +1,12 @@
+use std::marker::PhantomData;
+
 use bevy::app::App;
 use bevy::ecs::schedule::{IntoScheduleConfigs, ScheduleLabel, SystemSet};
+use derivative::Derivative;
 use itertools::Itertools;
 
 mod ab;
-pub use ab::{Alpha, AlphaBeta, Beta, GetAb, Which};
+pub use ab::{Alpha, AlphaBeta, Beta, Which};
 
 #[macro_use]
 mod try_log;
@@ -22,4 +25,12 @@ where
     for (prev, next) in <T as strum::IntoEnumIterator>::iter().tuple_windows() {
         app.configure_sets(schedule.clone(), prev.before(next));
     }
+
+    for set in <T as strum::IntoEnumIterator>::iter() {
+        app.configure_sets(schedule.clone(), set.in_set(AllSystemSets::<T>::default()));
+    }
 }
+
+#[derive(SystemSet, Derivative)]
+#[derivative(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub struct AllSystemSets<T>(PhantomData<T>);
