@@ -1,6 +1,6 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
-use bevy::ecs::system::{Commands, Query, SystemParam};
+use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use egui_material_icons::icons;
 use traffloat_physics::util::QueryExt;
 
@@ -12,6 +12,7 @@ pub struct UiSystemParam<'w, 's> {
     resident_query: Query<'w, 's, ResidentData>,
     viewable_query: Query<'w, 's, &'static GenericViewable>,
     commands:       Commands<'w, 's>,
+    types:          Res<'w, resident::Types>,
 }
 
 #[derive(QueryData)]
@@ -34,6 +35,9 @@ impl UiSystemParam<'_, '_> {
             &mut self.commands,
             &self.viewable_query,
         );
+
+        ui.heading("Attributes");
+        show_attributes(ui, dock.id, &self.types, &resident_data.info.attributes);
     }
 }
 
@@ -73,4 +77,19 @@ fn show_location(
             }
         }
     });
+}
+
+fn show_attributes(
+    ui: &mut egui::Ui,
+    id: egui::Id,
+    types: &resident::Types,
+    attributes: &[Option<f32>],
+) {
+    for (id, value) in attributes.iter().enumerate() {
+        if let Some(value) = value
+            && let Some(def) = types.types.get(id)
+        {
+            ui.label(format!("{}: {value}", def.name));
+        }
+    }
 }

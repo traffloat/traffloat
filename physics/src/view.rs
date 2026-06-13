@@ -14,6 +14,7 @@ use bevy::reflect::Reflect;
 use bevy::time;
 use bevy_mod_config::Config;
 use enum_map::EnumMap;
+use strum::IntoEnumIterator;
 use traffloat_proto::proto;
 
 use crate::util::Throttle;
@@ -35,10 +36,13 @@ impl Plugin for Plug {
             app::Update,
             SendUpdatesSystemSet::Init.before(SendUpdatesSystemSet::Incr),
         );
+        for set in SendUpdatesSystemSet::iter() {
+            app.configure_sets(app::Update, set.before(traffloat_proto::UpdateHandlerSystemSet));
+        }
     }
 }
 
-#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumIter)]
 pub enum SendUpdatesSystemSet {
     Init,
     Incr,
@@ -90,8 +94,7 @@ pub enum SubscriptionConfig {
 }
 
 /// How much information a viewer receives about a specific viewable.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, enum_map::Enum, Config, Reflect)]
-#[config(expose)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, enum_map::Enum, strum::EnumIter, Reflect)]
 pub enum SubscriptionLevel {
     #[default]
     Basic,
@@ -128,7 +131,14 @@ impl Viewable {
     ) -> impl Iterator<Item = SentUpdate> {
         self.subscribers.iter().filter(|(_, viewers)| !viewers.is_empty()).flat_map(
             move |(level, viewers)| {
-                update(level).into_iter().map(|body| SentUpdate { viewers: viewers.clone(), body })
+                update(level).into_iter().map(|body| {
+                    tracing::trace!(
+                        "broadcast message {} to viewers of {:?}",
+                        AsRef::<str>::as_ref(&body),
+                        self.id
+                    );
+                    SentUpdate { viewers: viewers.clone(), body }
+                })
             },
         )
     }
@@ -141,7 +151,43 @@ impl Viewable {
         (!self.new_subscribers.is_empty())
             .then(|| {
                 let viewers: EntityHashSet = self.new_subscribers.iter().copied().collect();
-                update().into_iter().map(move |body| SentUpdate { viewers: viewers.clone(), body })
+                update().into_iter().map(move |body| {
+                    tracing::trace!(
+                        "broadcast message {} to incremental viewers of {:?}",
+                        AsRef::<str>::as_ref(&body),
+                        self.id
+                    );
+                    SentUpdate { viewers: viewers.clone(), body }
+                })
+            })
+            .into_iter()
+            .flatten()
+    }
+
+    #[must_use = "pass the result to MessageWrite::write_batch"]
+    pub fn broadcast_new_by_level<Iter: IntoIterator<Item = proto::Update>>(
+        &self,
+        update: impl Fn(SubscriptionLevel) -> Iter,
+    ) -> impl Iterator<Item = SentUpdate> {
+        // TODO FIXME: new_subscribers does not contain subscription level changes right now.
+        (!self.new_subscribers.is_empty())
+            .then(|| {
+                SubscriptionLevel::iter().flat_map(move |level| {
+                    let viewers: EntityHashSet = self
+                        .new_subscribers
+                        .iter()
+                        .copied()
+                        .filter(|viewer| self.subscribers[level].contains(viewer))
+                        .collect();
+                    update(level).into_iter().map(move |body| {
+                        tracing::trace!(
+                            "broadcast message {} to incremental viewers of {:?}",
+                            AsRef::<str>::as_ref(&body),
+                            self.id
+                        );
+                        SentUpdate { viewers: viewers.clone(), body }
+                    })
+                })
             })
             .into_iter()
             .flatten()

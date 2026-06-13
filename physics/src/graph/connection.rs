@@ -18,7 +18,7 @@ use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
-use crate::graph::{Conduit, Corridor, Facility, conduit, facility};
+use crate::graph::{Conduit, Corridor, Facility, ViewInitSystemSets, conduit, facility};
 use crate::util::{QueryExt, WorldExt};
 use crate::{fluid, view};
 
@@ -36,11 +36,16 @@ impl Plugin for Plug {
         app.register_type::<ToPipe>();
         app.register_type::<ListOnPipe>();
 
-        app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
+        app.add_systems(
+            app::Update,
+            init_viewer_system
+                .in_set(view::SendUpdatesSystemSet::Init)
+                .in_set(ViewInitSystemSets::Connection),
+        );
         app.add_systems(
             app::Update,
             broadcast_building_changes_system
-                .in_set(super::ViewSystemSets::Connection)
+                .in_set(super::ViewIncrSystemSets::Connection)
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
     }

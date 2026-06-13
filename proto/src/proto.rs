@@ -48,7 +48,14 @@ pub enum AlphaOrBeta {
 
 /// Messages from the world to a specific viewer.
 #[derive(
-    Debug, Clone, Serialize, Deserialize, Reflect, strum::IntoStaticStr, derive_more::From,
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    Reflect,
+    strum::IntoStaticStr,
+    strum::AsRefStr,
+    derive_more::From,
 )]
 pub enum Update {
     SetFluidTypes(SetFluidTypes),
@@ -93,6 +100,15 @@ pub struct SetResidentAttrTypes {
 pub struct ResidentAttrType {
     pub name:       String,
     pub subscribed: bool,
+    #[reflect(ignore, default)]
+    pub niches:     ResidentAttrNiche,
+}
+
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+    pub struct ResidentAttrNiche: u16 {
+        const SIZE = 1 << 0;
+    }
 }
 
 /// Subscribed to a new building.

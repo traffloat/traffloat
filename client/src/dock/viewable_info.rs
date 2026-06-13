@@ -169,3 +169,15 @@ fn show_fluid(
         }
     });
 }
+
+fn show_link(ui: &mut egui::Ui, commands: &mut Commands, entity: Entity) {
+    if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
+        commands.queue(viewable_info::OpenCommand::from_click(entity, ui.ctx()));
+    }
+}
+
+fn show_link_small(ui: &mut egui::Ui, commands: &mut Commands, entity: Entity) {
+    if ui.small_button(icons::ICON_LINK).on_hover_text("View").clicked() {
+        commands.queue(viewable_info::OpenCommand::from_click(entity, ui.ctx()));
+    }
+}

@@ -1,13 +1,14 @@
 use std::f32::consts::PI;
 
 use bevy::ecs::entity::Entity;
-use bevy::ecs::system::EntityCommand;
+use bevy::ecs::system::{Command, EntityCommand};
 use bevy::ecs::world::World;
+use enum_map::enum_map;
 
 use crate::graph::facility::{self, Blueprint, blueprint};
 use crate::graph::{self, building, conduit, connection, corridor, edge};
 use crate::util::{Alpha, AlphaBeta, Beta, Which};
-use crate::{WorldObject, fluid, reactor, resident};
+use crate::{WorldObject, fluid, reactor, resident, view};
 
 const STANDARD_WALL_THICKNESS: f32 = 0.5;
 
@@ -18,7 +19,8 @@ pub fn generate(world: &mut World, _: Config) {
     let fluids = gen_fluid_types(world);
     let reactors = gen_reactor_types(world, &fluids);
     let facilities = gen_facility_types(world, &reactors);
-    let std = StandardTypes { fluids, reactors, facilities };
+    let resident_attrs = gen_resident_attr_types(world);
+    let std = StandardTypes { fluids, reactors, facilities, resident_attrs };
 
     let core = gen_core(world, &std);
     let garden = gen_garden(world, &std);
@@ -38,9 +40,10 @@ pub fn generate(world: &mut World, _: Config) {
 }
 
 struct StandardTypes {
-    fluids:     StandardFluidTypes,
-    reactors:   StandardReactorTypes,
-    facilities: StandardFacilityTypes,
+    fluids:         StandardFluidTypes,
+    reactors:       StandardReactorTypes,
+    facilities:     StandardFacilityTypes,
+    resident_attrs: StandardResidentAttrTypes,
 }
 
 struct StandardFluidTypes {
@@ -214,6 +217,35 @@ fn gen_facility_types(
         .id();
 
     StandardFacilityTypes { garden, small_tank }
+}
+
+struct StandardResidentAttrTypes {
+    health: resident::attr::TypeId,
+    volume: resident::attr::TypeId,
+}
+
+fn gen_resident_attr_types(world: &mut World) -> StandardResidentAttrTypes {
+    let health = resident::attr::AddTypeCommand::new(resident::attr::TypeDef {
+        name:          "Health".into(),
+        default_value: 100.0,
+        visibility:    enum_map! {
+            view::SubscriptionConfig::Basic => false,
+            view::SubscriptionConfig::Full => true,
+        },
+    })
+    .with_niche(resident::attr::Niche::Health)
+    .apply(world);
+    let volume = resident::attr::AddTypeCommand::new(resident::attr::TypeDef {
+        name:          "Height".into(),
+        default_value: 1.7,
+        visibility:    enum_map! {
+            view::SubscriptionConfig::Basic => true,
+            view::SubscriptionConfig::Full => true,
+        },
+    })
+    .with_niche(resident::attr::Niche::Health)
+    .apply(world);
+    StandardResidentAttrTypes { health, volume }
 }
 
 fn gen_core(world: &mut World, std: &StandardTypes) -> CoreGen {

@@ -1,4 +1,4 @@
-use bevy::app::{App, AppExit, PluginGroup};
+use bevy::app::{self, App, AppExit, PluginGroup};
 use bevy::asset::AssetPlugin;
 use bevy::ecs::resource::Resource;
 use bevy::log::tracing_subscriber::fmt::format::FmtSpan;
@@ -61,6 +61,8 @@ pub fn run(options: Options) -> AppExit {
     app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::default());
     app.add_plugins(traffloat_physics::Plug);
     app.add_plugins((util::shapes::Plug, dock::Plug, scene::Plug));
+    app.add_systems(app::PreUpdate, || tracing::trace!("pre update"));
+    app.add_systems(app::PostUpdate, || tracing::trace!("post update"));
     app.run()
 }
 

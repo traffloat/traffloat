@@ -10,7 +10,7 @@ use bevy::ecs::query::With;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, SystemParam, SystemState};
 use bevy::ecs::world::EntityWorldMut;
-use bevy::math::{Vec2, Vec3Swizzles};
+use bevy::math::{Vec2, Vec3, Vec3Swizzles};
 use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
@@ -22,8 +22,8 @@ use traffloat_proto::proto;
 
 use crate::scene::picking::ObservePicking;
 use crate::scene::{
-    GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
-    building, corridor, facility,
+    GenericViewable, HandlerClass, IdRegistry, ProtoId, TrackedId, UpdateHandler, ViewableKind,
+    Zorder, building, corridor, facility,
 };
 use crate::util::shapes::Shapes;
 
@@ -41,7 +41,8 @@ impl Plugin for Plug {
 
 #[derive(Resource, Default, Reflect)]
 pub struct Types {
-    pub types: Vec<proto::ResidentAttrType>,
+    pub types:     Vec<proto::ResidentAttrType>,
+    pub size_type: Option<usize>,
 }
 
 #[derive(SystemParam)]
@@ -54,7 +55,11 @@ impl UpdateHandler for SetResidentAttrTypesParams<'_> {
 
     fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Meta }
 
-    fn handle(&mut self, update: &Self::Update) { self.types.types.clone_from(&update.types); }
+    fn handle(&mut self, update: &Self::Update) {
+        self.types.types.clone_from(&update.types);
+        self.types.size_type =
+            update.types.iter().position(|ty| ty.niches.contains(proto::ResidentAttrNiche::SIZE));
+    }
 }
 
 #[derive(SystemParam)]
@@ -76,6 +81,7 @@ impl UpdateHandler for NewResidentParams<'_, '_> {
         let entity = self
             .commands
             .spawn((
+                ProtoId(update.id),
                 Name::new("Client resident"),
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Resident },
                 Mesh2d(self.shapes.square()),
@@ -240,7 +246,7 @@ pub struct Info {
     pub attributes: Vec<Option<f32>>,
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum Location {
     Building(Entity),
     Corridor(Entity),
@@ -263,11 +269,18 @@ impl DynamicPosition {
 
 fn update_dynamic_position_system(
     time: Res<Time<time::Virtual>>,
-    query: Query<(&mut Transform, &DynamicPosition)>,
+    types: Res<Types>,
+    resident_query: Query<(&mut Transform, &Info, &DynamicPosition)>,
 ) {
-    for (mut transform, dynamic_position) in query {
+    for (mut transform, info, dynamic_position) in resident_query {
         let pos = dynamic_position.extrapolate(time.elapsed());
         transform.translation = pos.extend(Zorder::Resident.z());
+
+        if let Some(size_type) = types.size_type
+            && let Some(&Some(size)) = info.attributes.get(size_type)
+        {
+            transform.scale = Vec3::new(size, size, 1.0);
+        }
     }
 }
 

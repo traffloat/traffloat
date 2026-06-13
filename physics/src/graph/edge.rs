@@ -54,7 +54,7 @@ impl Plugin for Plug {
             app::Update,
             (broadcast_edge_change_system::<Alpha>, broadcast_edge_change_system::<Beta>)
                 .in_set(view::SendUpdatesSystemSet::Incr)
-                .in_set(super::ViewSystemSets::Edge),
+                .in_set(super::ViewIncrSystemSets::Edge),
         );
     }
 }

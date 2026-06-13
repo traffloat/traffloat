@@ -16,7 +16,7 @@ use bevy_mod_config::{AppExt, Config, ReadConfig};
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 use traffloat_macro_util::fan_out;
-use traffloat_physics::view;
+use traffloat_physics::{util, view};
 use traffloat_proto::proto;
 
 use crate::ConfigManager;
@@ -47,8 +47,12 @@ impl Plugin for Plug {
         app.add_plugins(resident::Plug);
         app.add_systems(app::Update, react_config_system);
 
+        util::configure_enum_system_set::<HandlerClass>(app, app::Update);
         for (prev, next) in HandlerClass::iter().tuple_windows() {
-            app.configure_sets(app::Update, prev.before(next).in_set(AllHandlersSystemSet));
+            app.configure_sets(
+                app::Update,
+                prev.in_set(AllHandlersSystemSet).in_set(traffloat_proto::UpdateHandlerSystemSet),
+            );
             app.add_systems(app::Update, ApplyDeferred.before(next).after(prev));
         }
         for class in HandlerClass::iter() {

@@ -15,12 +15,15 @@ use traffloat_proto::proto;
 use crate::util::{AllSystemSets, QueryExt};
 use crate::{graph, view};
 
-mod attr;
+pub mod attr;
+pub use attr::Attributes;
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        app.add_plugins(attr::Plug);
+
         app.register_type::<Resident>();
         app.register_type::<InteractionSlots>();
         app.register_type::<InteractingWith>();
@@ -34,7 +37,7 @@ impl Plugin for Plug {
         app.add_systems(
             app::Update,
             incr_viewer_system
-                .after(AllSystemSets::<graph::ViewSystemSets>::default())
+                .after(AllSystemSets::<graph::ViewIncrSystemSets>::default())
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
     }
@@ -135,10 +138,14 @@ impl EntityCommand for SpawnCommand {
     fn apply(self, mut entity: EntityWorldMut) {
         let id = entity.resource_mut::<NextResidentId>().next();
 
+        let attrs: Vec<_> =
+            entity.resource::<attr::Types>().types().iter().map(|ty| ty.default_value).collect();
+
         entity.insert((
-            Name::new(format!("Resident {id}")),
-            Resident { name: id.to_string() },
+            Name::new(format!("Resident #{id}")),
+            Resident { name: format!("#{id}") },
             Location::Building { entity: self.building, interior_pos: Vec3::ZERO },
+            Attributes { values: attrs.into_boxed_slice() },
         ));
 
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));

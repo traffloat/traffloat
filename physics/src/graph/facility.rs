@@ -11,7 +11,7 @@ use bevy::reflect::Reflect;
 use itertools::Either;
 use traffloat_proto::proto;
 
-use crate::graph::{Building, building};
+use crate::graph::{Building, ViewInitSystemSets, building};
 use crate::util::{QueryExt, WorldExt};
 use crate::{fluid, reactor, view};
 
@@ -28,11 +28,16 @@ impl Plugin for Plug {
         app.register_type::<FacilityTypeInstances>();
         app.register_type::<FacilityType>();
 
-        app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
+        app.add_systems(
+            app::Update,
+            init_viewer_system
+                .in_set(view::SendUpdatesSystemSet::Init)
+                .in_set(ViewInitSystemSets::Facility),
+        );
         app.add_systems(
             app::Update,
             (incr_viewer_system)
-                .in_set(super::ViewSystemSets::Facility)
+                .in_set(super::ViewIncrSystemSets::Facility)
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
     }
