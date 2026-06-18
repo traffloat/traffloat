@@ -2,6 +2,7 @@ use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets};
 use bevy::camera::{Camera, Camera2d, ClearColor, ImageRenderTarget, RenderTarget, Viewport};
 use bevy::color::Color;
+use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
@@ -56,6 +57,7 @@ impl Tab {
         let camera = params
             .commands
             .spawn((
+                WorldCamera,
                 Camera2d,
                 RenderTarget::Image(ImageRenderTarget {
                     handle:       image_handle.clone(),
@@ -72,7 +74,7 @@ impl dock::Tab for Tab {
     type TitleSystemParam<'w, 's> = ();
 
     fn title(&self, (): Self::TitleSystemParam<'_, '_>) -> String {
-        format!("Viewport: {}", &self.title)
+        format!("Viewport: {}", self.title)
     }
 
     type UiSystemParam<'w, 's> = UiSystemParam<'w, 's>;
@@ -178,6 +180,11 @@ pub struct UiSystemParam<'w, 's> {
     ui_state:     ResMut<'w, UiState>,
     input:        input::Param<'w, 's>,
 }
+
+/// Marks a camera entity as a scene-rendering camera,
+/// in contrast to the egui camera.
+#[derive(Component)]
+pub struct WorldCamera;
 
 #[derive(Debug, Resource, Default)]
 pub struct UiState {

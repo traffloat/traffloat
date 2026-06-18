@@ -1,7 +1,7 @@
 use std::num::NonZeroU32;
 
 use bevy::color::LinearRgba;
-use bevy::math::Vec3;
+use bevy::math::{Rect, Vec3};
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
@@ -33,11 +33,11 @@ impl From<Color> for LinearRgba {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct FluidStorageFull {
+pub struct FluidStorageDetail {
     pub volume:      f32,
-    pub pressure:    f32,
-    pub temperature: f32,
-    pub types:       Vec<f32>,
+    pub pressure:    Option<f32>,
+    pub temperature: Option<f32>,
+    pub types:       Option<Vec<f32>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
@@ -62,18 +62,15 @@ pub enum Update {
     SetResidentAttrTypes(SetResidentAttrTypes),
     NewBuilding(NewBuilding),
     UpdateBuilding(UpdateBuilding),
-    UpdateBuildingFull(UpdateBuildingFull),
     UpdateBuildingFluidConnections(UpdateBuildingFluidConnections),
     NewCorridor(NewCorridor),
     UpdateCorridor(UpdateCorridor),
-    UpdateCorridorFull(UpdateCorridorFull),
     UpdateCorridorEndpoint(UpdateCorridorEndpoint),
     NewFacility(NewFacility),
     UpdateFacilityTaint(UpdateFacilityTaint),
     UpdateFacilityFluid(UpdateFacilityFluid),
     NewConduit(NewConduit),
     UpdateFluidConduit(UpdateFluidConduit),
-    UpdateFluidConduitFull(UpdateFluidConduitFull),
     NewResident(NewResident),
     UpdateResidentLocation(UpdateResidentLocation),
     UpdateResidentAttributesFull(UpdateResidentAttributesFull),
@@ -81,6 +78,7 @@ pub enum Update {
     RemoveViewable(RemoveViewable),
 }
 
+/// Defines all fluid types.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct SetFluidTypes {
     pub types: Vec<FluidType>,
@@ -91,6 +89,7 @@ pub struct FluidType {
     pub name: String,
 }
 
+/// Defines all resident attribute types.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct SetResidentAttrTypes {
     pub types: Vec<ResidentAttrType>,
@@ -99,13 +98,24 @@ pub struct SetResidentAttrTypes {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct ResidentAttrType {
     pub name:       String,
-    pub subscribed: bool,
+    /// A bitmask indicating which subscription levels this attribute type would be transmitted for.
+    #[reflect(ignore, default)]
+    pub subscribed: SubscribedBy,
     #[reflect(ignore, default)]
     pub niches:     ResidentAttrNiche,
 }
 
 bitflags::bitflags! {
-    #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+    pub struct SubscribedBy: u8 {
+        const OPTICAL = 1 << 0;
+        const DETAIL = 1 << 1;
+        const DEBUG = 1 << 2;
+    }
+}
+
+bitflags::bitflags! {
+    #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
     pub struct ResidentAttrNiche: u16 {
         const SIZE = 1 << 0;
     }
@@ -126,15 +136,8 @@ pub struct NewBuilding {
 pub struct UpdateBuilding {
     pub id:    Id,
     pub color: Color,
-}
 
-/// Updated full information about a building.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct UpdateBuildingFull {
-    pub id:    Id,
-    pub color: Color,
-
-    pub ambient_fluid: FluidStorageFull,
+    pub ambient_fluid: Option<FluidStorageDetail>,
 }
 
 /// Subscribed to a new corridor.
@@ -153,15 +156,8 @@ pub struct NewCorridor {
 pub struct UpdateCorridor {
     pub id:    Id,
     pub color: Color,
-}
 
-/// Updated full information about a corridor.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct UpdateCorridorFull {
-    pub id:    Id,
-    pub color: Color,
-
-    pub ambient_fluid: FluidStorageFull,
+    pub ambient_fluid: Option<FluidStorageDetail>,
 }
 
 /// Set or unset the endpoint building of a corridor.
@@ -213,7 +209,7 @@ pub struct UpdateFacilityTaint {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct UpdateFacilityFluid {
     pub id:    Id,
-    pub fluid: FluidStorageFull,
+    pub fluid: FluidStorageDetail,
 }
 
 /// Sets the fluid connections within a building.
@@ -261,15 +257,8 @@ pub enum ConduitType {
 pub struct UpdateFluidConduit {
     pub id:    Id,
     pub color: Color,
-}
 
-/// Updated full information about a fluid pipe.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct UpdateFluidConduitFull {
-    pub id:    Id,
-    pub color: Color,
-
-    pub fluid: FluidStorageFull,
+    pub fluid: Option<FluidStorageDetail>,
 }
 
 /// Subscribed to a new resident.
@@ -289,6 +278,12 @@ pub struct UpdateResidentLocation {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct UpdateResidentAttributesFull {
     pub id:    Id,
+    /// The viewer's current subscription level.
+    /// Contains exactly one bit.
+    #[reflect(ignore, default)]
+    pub sub:   SubscribedBy,
+    /// Attribute values in the order of [`SetResidentAttrTypes`]
+    /// for those types that `sub`
     pub attrs: Vec<f32>,
 }
 
@@ -311,8 +306,31 @@ pub struct RemoveViewable {
     pub id: Id,
 }
 
-/// Approved messages from a specific viewer to the world.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+/// Messages from a specific viewer to the world.
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    Reflect,
+    strum::IntoStaticStr,
+    strum::AsRefStr,
+    derive_more::From,
+)]
 pub enum Request {
-    Handshake,
+    SetSubscription(SetSubscription),
+    SetViewFocus(SetViewFocus),
+}
+
+/// Sets the viewer subscription config.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetSubscription {
+    pub viewports: Vec<Rect>,
+    pub debug:     bool,
+}
+
+/// Sets the viewer subscription config.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetViewFocus {
+    pub focus: Vec<Id>,
 }

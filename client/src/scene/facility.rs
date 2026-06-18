@@ -64,7 +64,7 @@ pub struct FacilityBuilding(pub Entity);
 #[derive(Component, Reflect, Default)]
 pub struct Info {
     pub volume:       f32,
-    pub stored_fluid: Option<proto::FluidStorageFull>,
+    pub stored_fluid: Option<proto::FluidStorageDetail>,
 }
 
 #[derive(Component, Reflect)]

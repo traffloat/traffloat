@@ -1,3 +1,5 @@
+use std::iter;
+
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
@@ -97,11 +99,22 @@ impl EntityCommand for SpawnCommand {
         let volume = typedef.volume;
         let name = self.name.clone().unwrap_or_else(|| typedef.display_name.clone());
 
+        // This is deliberately different from the building culling rect.
+        // Buildings need to be subscribed whenever any connections are spawned,
+        // On the other hand, facilities only need to be subscribed
+        // when the building itself is directly visible.
+        let building_rect = entity
+            .world()
+            .log_get::<Building>(self.building)
+            .map(|b| view::CullingRect(b.base_rect()))
+            .unwrap_or_default();
+
         entity.insert((
             Name::new("Facility"),
             FacilityType(self.ty),
             OfBuilding(self.building),
             Facility { name, volume },
+            building_rect,
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
 
@@ -189,31 +202,31 @@ fn incr_viewer_system(
     }
 
     for facility in facility_query {
-        if let Some(fluid_storage) = facility.storage {
+        if let Some((fluid_storage, sensor)) = facility.storage {
             let color = proto::Color(fluid_storage.rgba);
             messages.write_batch(facility.viewable.broadcast_update(|level| {
-                match level {
-                    view::SubscriptionLevel::Basic => Either::Left(
-                        [proto::Update::UpdateFacilityTaint(proto::UpdateFacilityTaint {
+                let taint_update = proto::Update::UpdateFacilityTaint(proto::UpdateFacilityTaint {
+                    id:    facility.viewable.id,
+                    taint: color,
+                });
+                let fluid_update = match level {
+                    view::SubscriptionLevel::Optical => None,
+                    view::SubscriptionLevel::Detail => Some(
+                        proto::UpdateFacilityFluid {
                             id:    facility.viewable.id,
-                            taint: color,
-                        })]
-                        .into_iter(),
+                            fluid: fluid_storage.to_proto_normal(sensor),
+                        }
+                        .into(),
                     ),
-                    view::SubscriptionLevel::Full => Either::Right(
-                        [
-                            proto::Update::UpdateFacilityTaint(proto::UpdateFacilityTaint {
-                                id:    facility.viewable.id,
-                                taint: color,
-                            }),
-                            proto::Update::UpdateFacilityFluid(proto::UpdateFacilityFluid {
-                                id:    facility.viewable.id,
-                                fluid: fluid_storage.to_proto(),
-                            }),
-                        ]
-                        .into_iter(),
+                    view::SubscriptionLevel::Debug => Some(
+                        proto::UpdateFacilityFluid {
+                            id:    facility.viewable.id,
+                            fluid: fluid_storage.to_proto_debug(),
+                        }
+                        .into(),
                     ),
-                }
+                };
+                [Some(taint_update), fluid_update].into_iter().flatten()
             }));
         }
     }
@@ -222,7 +235,7 @@ fn incr_viewer_system(
 #[derive(QueryData)]
 struct IncrData {
     viewable: &'static view::Viewable,
-    storage:  Option<&'static fluid::Storage>,
+    storage:  Option<(&'static fluid::Storage, &'static fluid::Sensor)>,
 }
 
 type IncrFilter = With<Facility>;

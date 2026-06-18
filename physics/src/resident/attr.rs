@@ -1,4 +1,4 @@
-use std::mem;
+use std::{iter, mem};
 
 use bevy::app;
 use bevy::app::{App, Plugin};
@@ -8,7 +8,7 @@ use bevy::ecs::message::MessageWriter;
 use bevy::ecs::query::Changed;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{Command, Commands, Query, Res};
+use bevy::ecs::system::{Command, Commands, Query, Res, SystemParam};
 use bevy::ecs::world::World;
 use bevy::reflect::Reflect;
 use enum_map::EnumMap;
@@ -22,6 +22,7 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Types>();
         app.register_type::<Attributes>();
+        app.register_type::<LastSentConfig>();
 
         app.init_resource::<Types>();
 
@@ -31,23 +32,26 @@ impl Plugin for Plug {
 
 #[derive(Resource, Reflect, Default)]
 pub struct Types {
-    types: Vec<TypeDef>,
+    defs: Vec<TypeDef>,
 
     #[reflect(ignore, default)]
     pub niches: EnumMap<Niche, Option<TypeId>>,
+
+    generation: TypesGeneration,
 }
 
 impl Types {
     fn push(&mut self, def: TypeDef) -> TypeId {
-        let id = TypeId(u32::try_from(self.types.len()).expect("too many types"));
-        self.types.push(def);
+        let id = TypeId(u32::try_from(self.defs.len()).expect("too many types"));
+        self.defs.push(def);
+        self.generation.0 = self.generation.0.strict_add(1);
         id
     }
 
-    pub fn types(&self) -> &[TypeDef] { &self.types }
+    pub fn types(&self) -> &[TypeDef] { &self.defs }
 
     pub fn get(&self, ty: TypeId) -> &TypeDef {
-        self.types
+        self.defs
             .get(usize::try_from(ty.0).expect("u32 <= usize on all supported targets"))
             .expect("invalid type ID")
     }
@@ -62,18 +66,11 @@ pub struct TypeDef {
     pub name:          String,
     pub default_value: f32,
     #[reflect(ignore, default)]
-    pub visibility:    EnumMap<view::SubscriptionConfig, bool>,
+    pub visibility:    EnumMap<view::SubscriptionLevel, bool>,
 }
 
 impl TypeDef {
-    fn subscribed_by(&self, sub: view::SubscriptionConfig) -> bool { self.visibility[sub] }
-
-    fn subscribed_by_level(&self, sub: view::SubscriptionLevel) -> bool {
-        self.visibility[match sub {
-            view::SubscriptionLevel::Basic => view::SubscriptionConfig::Basic,
-            view::SubscriptionLevel::Full => view::SubscriptionConfig::Full,
-        }]
-    }
+    fn subscribed_by(&self, sub: view::SubscriptionLevel) -> bool { self.visibility[sub] }
 }
 
 /// Indicates that the attribute has special semantics.
@@ -84,6 +81,9 @@ pub enum Niche {
     Health,
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Reflect)]
+struct TypesGeneration(u32);
+
 #[derive(Component, Reflect)]
 #[require(LastSentAttributes)]
 pub struct Attributes {
@@ -93,7 +93,10 @@ pub struct Attributes {
 
 impl Attributes {
     pub fn iter(&self) -> impl Iterator<Item = (TypeId, f32)> + '_ {
-        self.values.iter().enumerate().map(|(ty, &value)| (TypeId(ty as u32), value))
+        self.values
+            .iter()
+            .enumerate()
+            .map(|(ty, &value)| (TypeId(u32::try_from(ty).expect("checked during push")), value))
     }
 }
 
@@ -141,52 +144,19 @@ impl Command<TypeId> for AddTypeCommand {
 #[derive(Component, Default)]
 struct LastSentAttributes(Option<Box<[f32]>>);
 
-/// Component on viewers, indicating the subscription config the last time they received `SetResidentAttrType`.
-#[derive(Component, Default)]
-struct LastSentConfig(view::SubscriptionConfig);
-
 fn incr_viewer_system(
     mut throttle: view::BroadcastThrottle,
+    broadcast_type_params: BroadcastAttrTypeChangesParams,
     resident_query: Query<(&Attributes, &mut LastSentAttributes, &view::Viewable)>,
-    viewer_query: Query<
-        (Entity, &view::Viewer, Option<&mut LastSentConfig>),
-        Changed<view::Viewer>,
-    >,
     types: Res<Types>,
     mut writer: MessageWriter<view::SentUpdate>,
     mut commands: Commands,
 ) {
+    writer.write_batch(broadcast_attr_type_changes(broadcast_type_params, &mut commands));
+
     if !throttle.should_run() {
         return;
     }
-
-    let mut subs = EnumMap::<view::SubscriptionConfig, EntityHashSet>::default();
-    for (entity, viewer, last_config) in viewer_query {
-        if last_config.as_deref().map(|c| &c.0) != Some(&viewer.config) {
-            subs[viewer.config].insert(entity);
-            commands.entity(entity).insert(LastSentConfig(viewer.config));
-        }
-    }
-    writer.write_batch(subs.into_iter().filter(|(_, viewers)| !viewers.is_empty()).map(
-        |(sub, viewers)| {
-            let mut sent_types: Vec<_> = types
-                .types
-                .iter()
-                .map(|def| proto::ResidentAttrType {
-                    name:       def.name.clone(),
-                    subscribed: def.subscribed_by(sub),
-                    niches:     proto::ResidentAttrNiche::empty(),
-                })
-                .collect();
-            if let Some(volume_ty) = types.niches[Niche::Volume] {
-                sent_types[volume_ty.0 as usize].niches |= proto::ResidentAttrNiche::SIZE;
-            }
-            view::SentUpdate {
-                viewers,
-                body: proto::SetResidentAttrTypes { types: sent_types }.into(),
-            }
-        },
-    ));
 
     for (attributes, mut last_sent, viewable) in resident_query {
         match last_sent.0 {
@@ -196,9 +166,10 @@ fn incr_viewer_system(
                     Some(
                         proto::UpdateResidentAttributesFull {
                             id:    viewable.id,
+                            sub:   level.to_proto_subscribed_by(),
                             attrs: attributes
                                 .iter()
-                                .filter(|&(ty, _)| types.get(ty).subscribed_by_level(level))
+                                .filter(|&(ty, _)| types.get(ty).subscribed_by(level))
                                 .map(|(_, value)| value)
                                 .collect(),
                         }
@@ -216,7 +187,7 @@ fn incr_viewer_system(
                         .filter(
                             #[expect(clippy::float_cmp, reason = "best-effort resend reduction")]
                             |&(&last, (ty, value))| {
-                                types.get(ty).subscribed_by_level(level) && last != value
+                                types.get(ty).subscribed_by(level) && last != value
                             },
                         )
                         .map(|(last, (ty, value))| (ty.0, value))
@@ -230,13 +201,14 @@ fn incr_viewer_system(
                 // but we still need to resend to new viewers and viewers who have changed
                 // subscription level.
 
-                writer.write_batch(viewable.broadcast_new_by_level(|level| {
+                writer.write_batch(viewable.broadcast_new_or_changed(|_, new| {
                     Some(
                         proto::UpdateResidentAttributesFull {
                             id:    viewable.id,
+                            sub:   new.to_proto_subscribed_by(),
                             attrs: attributes
                                 .iter()
-                                .filter(|&(ty, _)| types.get(ty).subscribed_by_level(level))
+                                .filter(|&(ty, _)| types.get(ty).subscribed_by(new))
                                 .map(|(_, value)| value)
                                 .collect(),
                         }
@@ -246,4 +218,49 @@ fn incr_viewer_system(
             }
         }
     }
+}
+
+/// Component on viewers, indicating the subscription config the last time they received `SetResidentAttrType`.
+#[derive(Debug, Clone, Copy, Component, Default, Reflect)]
+struct LastSentConfig(TypesGeneration);
+
+#[derive(SystemParam)]
+struct BroadcastAttrTypeChangesParams<'w, 's> {
+    viewer_query: Query<'w, 's, (Entity, Option<&'static LastSentConfig>)>,
+    types:        Res<'w, Types>,
+}
+
+fn broadcast_attr_type_changes(
+    params: BroadcastAttrTypeChangesParams,
+    commands: &mut Commands,
+) -> impl Iterator<Item = view::SentUpdate> {
+    let viewers: EntityHashSet = params
+        .viewer_query
+        .into_iter()
+        .filter(|(entity, last)| last.map(|c| c.0) != Some(params.types.generation))
+        .map(|(entity, _)| entity)
+        .collect();
+    for &viewer in &viewers {
+        commands.entity(viewer).insert(LastSentConfig(params.types.generation));
+    }
+
+    let mut types: Vec<_> = params
+        .types
+        .defs
+        .iter()
+        .map(|def| proto::ResidentAttrType {
+            name:       def.name.clone(),
+            subscribed: def
+                .visibility
+                .iter()
+                .filter(|&(_, &v)| v)
+                .map(|(k, _)| k.to_proto_subscribed_by())
+                .collect(),
+            niches:     proto::ResidentAttrNiche::empty(),
+        })
+        .collect();
+    if let Some(volume_ty) = params.types.niches[Niche::Volume] {
+        types[volume_ty.0 as usize].niches |= proto::ResidentAttrNiche::SIZE;
+    }
+    iter::once(view::SentUpdate { viewers, body: proto::SetResidentAttrTypes { types }.into() })
 }

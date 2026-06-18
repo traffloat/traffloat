@@ -194,8 +194,11 @@ fn show_residents<'q>(
     }
 
     let in_building = params.resident_query.iter().filter_map(move |(resident, viewable, info)| {
-        (info.location == resident::Location::Building(building))
-            .then(|| (resident, viewable, LocRef::Building))
+        (info.location == resident::Location::Building(building)).then_some((
+            resident,
+            viewable,
+            LocRef::Building,
+        ))
     });
     let in_facility = params.resident_query.iter().filter_map(move |(resident, viewable, info)| {
         if let resident::Location::Facility(facility) = info.location

@@ -31,7 +31,7 @@ impl dock::Tab for Tab {
             params.commands.queue(move |world: &mut World| {
                 generate::generate(world, config);
 
-                scene::setup_singleplayer(world);
+                scene::singleplayer::setup(world);
 
                 world
                     .run_system_once(

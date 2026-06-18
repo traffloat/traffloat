@@ -59,6 +59,7 @@
 //! - [`graph::Conduit`]
 //! - Fluid conduits:
 //!   - [`fluid::Storage`]
+//!   - [`fluid::Sensor`]
 //!
 //! Child of:
 //! - Corridor

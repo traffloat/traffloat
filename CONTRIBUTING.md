@@ -42,7 +42,7 @@ you may symlink it locally and add it to your `.git/info/exclude`.
 Traffloat is a sophisticated game with many interacting components.
 Any change may affect game balance in unexpected ways.
 
-To propose a new feature, create a pull request updating the corresponding documents in `docs/design`
+To propose a new feature, create a pull request updating the corresponding documents in [`docs/design`](docs/design/)
 to comprehensively describe all possible interactions that the feature may have with other systems.
 
 ## Finding something to work on

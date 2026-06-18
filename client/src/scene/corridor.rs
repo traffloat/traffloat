@@ -175,35 +175,7 @@ impl UpdateHandler for UpdateCorridorParams<'_, '_> {
         let material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
         material.color = update.color.into();
 
-        info.ambient_fluid = None;
-    }
-}
-
-#[derive(SystemParam)]
-pub(super) struct UpdateCorridorFullParams<'w, 's> {
-    ids:            ResMut<'w, IdRegistry>,
-    materials:      ResMut<'w, Assets<ColorMaterial>>,
-    corridor_query: Query<'w, 's, (&'static MeshMaterial2d<ColorMaterial>, &'static mut Info)>,
-}
-
-impl UpdateHandler for UpdateCorridorFullParams<'_, '_> {
-    type Update = proto::UpdateCorridorFull;
-
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
-
-    fn handle(&mut self, update: &proto::UpdateCorridorFull) {
-        let Some(entity) = self.ids.get_corridor(update.id) else {
-            tracing::error!("Received update for unknown corridor id {:?}", update.id);
-            return;
-        };
-        let Ok((handle, mut info)) = self.corridor_query.get_mut(entity) else {
-            // Happens when update is received immediately after update
-            return;
-        };
-        let material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
-        material.color = update.color.into();
-
-        info.ambient_fluid = Some(update.ambient_fluid.clone());
+        info.ambient_fluid.clone_from(&update.ambient_fluid);
     }
 }
 
@@ -301,7 +273,7 @@ impl UpdateHandler for UpdateCorridorEndpointParams<'_, '_> {
 pub struct Info {
     pub endpoint_positions: AlphaBeta<Vec2>,
     pub radius:             f32,
-    pub ambient_fluid:      Option<proto::FluidStorageFull>,
+    pub ambient_fluid:      Option<proto::FluidStorageDetail>,
 }
 
 /// References building from corridor.
@@ -400,7 +372,6 @@ impl ConduitOutlineMaterial {
 }
 
 #[derive(Config)]
-#[expect(clippy::struct_field_names, reason = "pure coincidence")]
 pub struct Conf {
     #[config(default = Color::WHITE)]
     pub wall_color:            Color,

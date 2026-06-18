@@ -3,7 +3,7 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
-use bevy::ecs::query::With;
+use bevy::ecs::query::{With, Without};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
@@ -12,6 +12,7 @@ use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
+use crate::graph::Building;
 use crate::util::{AllSystemSets, QueryExt};
 use crate::{graph, view};
 
@@ -33,6 +34,10 @@ impl Plugin for Plug {
         app.init_resource::<NextResidentId>();
         app.init_resource::<Conf>();
 
+        app.add_systems(
+            app::Update,
+            update_culling_rect_system.in_set(view::SendUpdatesSystemSet::Cull),
+        );
         app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
         app.add_systems(
             app::Update,
@@ -74,7 +79,7 @@ pub enum Location {
         /// `distance_from_alpha` should be approximately between 0 and the corridor's length.
         distance_from_alpha: f32,
     },
-    // vehicle
+    // TODO vehicle
 }
 
 /// Defines how residents can interact with a facility.
@@ -179,7 +184,7 @@ fn incr_viewer_system(
     }
 
     for (location, viewable) in resident_query {
-        messages.write_batch(viewable.broadcast_update(|level| {
+        messages.write_batch(viewable.broadcast_update(|_| {
             make_proto_location(location, &viewable_query).map(|location| {
                 proto::Update::UpdateResidentLocation(proto::UpdateResidentLocation {
                     id: viewable.id,
@@ -209,4 +214,20 @@ fn make_proto_location(
             proto::ResidentLocation::Facility { facility: viewable_query.log_get(entity)?.id }
         }
     })
+}
+
+fn update_culling_rect_system(
+    resident_query: Query<(&Location, &mut view::CullingRect)>,
+    culling_rect_query: Query<&view::CullingRect, Without<Location>>,
+) {
+    for (location, mut culling_rect) in resident_query {
+        let parent_entity = match *location {
+            Location::Building { entity, .. }
+            | Location::Corridor { entity, .. }
+            | Location::Facility { entity, .. } => entity,
+        };
+        if let Some(&parent_rect) = culling_rect_query.log_get(parent_entity) {
+            *culling_rect = parent_rect;
+        }
+    }
 }

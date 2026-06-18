@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::ecs::entity::Entity;
+use bevy::ecs::name::Name;
 use bevy::ecs::system::{Command, EntityCommand};
 use bevy::ecs::world::World;
 use enum_map::enum_map;
@@ -179,6 +180,7 @@ fn gen_facility_types(
     let garden = world
         .spawn((
             WorldObject,
+            Name::new("FacilityTypeDef Garden"),
             graph::FacilityTypeDef {
                 display_name: "Garden".into(),
                 volume:       300.0,
@@ -201,6 +203,7 @@ fn gen_facility_types(
     let small_tank = world
         .spawn((
             WorldObject,
+            Name::new("FacilityTypeDef SmallTank"),
             graph::FacilityTypeDef {
                 display_name: "Small tank".into(),
                 volume:       120.0,
@@ -229,8 +232,8 @@ fn gen_resident_attr_types(world: &mut World) -> StandardResidentAttrTypes {
         name:          "Health".into(),
         default_value: 100.0,
         visibility:    enum_map! {
-            view::SubscriptionConfig::Basic => false,
-            view::SubscriptionConfig::Full => true,
+            view::SubscriptionLevel::Optical => false,
+            view::SubscriptionLevel::Detail | view::SubscriptionLevel::Debug => true,
         },
     })
     .with_niche(resident::attr::Niche::Health)
@@ -239,8 +242,9 @@ fn gen_resident_attr_types(world: &mut World) -> StandardResidentAttrTypes {
         name:          "Height".into(),
         default_value: 1.7,
         visibility:    enum_map! {
-            view::SubscriptionConfig::Basic => true,
-            view::SubscriptionConfig::Full => true,
+            view::SubscriptionLevel::Optical |
+            view::SubscriptionLevel::Detail|
+            view::SubscriptionLevel::Debug => true,
         },
     })
     .with_niche(resident::attr::Niche::Health)

@@ -6153,6 +6153,7 @@ dependencies = [
  "serde",
  "strum",
  "tracing",
+ "traffloat-macro-util",
  "traffloat-proto",
 ]
 

@@ -59,7 +59,7 @@ struct NeedRearrangeTransform(bool);
 pub struct Info {
     pub ty:           proto::ConduitType,
     pub radius:       f32,
-    pub stored_fluid: Option<proto::FluidStorageFull>,
+    pub stored_fluid: Option<proto::FluidStorageDetail>,
 }
 
 #[derive(SystemParam)]
@@ -127,36 +127,11 @@ impl UpdateHandler for UpdateFluidConduitParams<'_, '_> {
     fn handle(&mut self, update: &Self::Update) {
         let Some(conduit_entity) = self.ids.get_conduit(update.id) else { return };
 
-        let Ok((handle, mut info)) = self.conduit_query.get_mut(conduit_entity) else {
-            return;
-        };
-        let material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
-        material.color = update.color.into();
-
-        info.stored_fluid = None;
-    }
-}
-
-#[derive(SystemParam)]
-pub(super) struct UpdateFluidConduitFullParams<'w, 's> {
-    ids:           Res<'w, IdRegistry>,
-    materials:     ResMut<'w, Assets<ColorMaterial>>,
-    conduit_query: Query<'w, 's, (&'static MeshMaterial2d<ColorMaterial>, &'static mut Info)>,
-}
-
-impl UpdateHandler for UpdateFluidConduitFullParams<'_, '_> {
-    type Update = proto::UpdateFluidConduitFull;
-
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
-
-    fn handle(&mut self, update: &Self::Update) {
-        let Some(conduit_entity) = self.ids.get_conduit(update.id) else { return };
-
         let Ok((handle, mut info)) = self.conduit_query.get_mut(conduit_entity) else { return };
         let material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
         material.color = update.color.into();
 
-        info.stored_fluid = Some(update.fluid.clone());
+        info.stored_fluid.clone_from(&update.fluid);
     }
 }
 

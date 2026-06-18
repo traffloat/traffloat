@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
 use crate::graph::{Corridor, ViewInitSystemSets, corridor};
-use crate::util::QueryExt;
+use crate::util::{QueryExt, WorldExt};
 use crate::{fluid, view};
 
 pub struct Plug;
@@ -77,9 +77,10 @@ pub enum TypedSpawn {
 
 impl EntityCommand for SpawnCommand {
     fn apply(self, mut entity: EntityWorldMut) {
-        let Some(corridor_length) =
-            entity.world().get::<Corridor>(self.corridor).map(|corridor| corridor.length)
-        else {
+        let (Some(corridor_length), Some(&corridor_rect)) = (
+            entity.world().log_get::<Corridor>(self.corridor).map(|corridor| corridor.length),
+            entity.world().log_get::<view::CullingRect>(self.corridor),
+        ) else {
             return;
         };
 
@@ -93,6 +94,7 @@ impl EntityCommand for SpawnCommand {
                 },
             },
             OfCorridor(self.corridor),
+            corridor_rect,
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
 
@@ -135,7 +137,10 @@ fn init_viewer_system(
 
 fn incr_viewer_system(
     mut throttle: view::BroadcastThrottle,
-    conduit_query: Query<(&view::Viewable, Option<&fluid::Storage>), With<Conduit>>,
+    conduit_query: Query<
+        (&view::Viewable, Option<(&fluid::Storage, &fluid::Sensor)>),
+        With<Conduit>,
+    >,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
     if !throttle.should_run() {
@@ -143,20 +148,20 @@ fn incr_viewer_system(
     }
 
     for (viewable, fluid_storage) in conduit_query {
-        if let Some(fluid_storage) = fluid_storage {
+        if let Some((fluid_storage, sensor)) = fluid_storage {
             let color = proto::Color(fluid_storage.rgba);
             messages.write_batch(viewable.broadcast_update(|level| {
+                let mut update = proto::UpdateFluidConduit { id: viewable.id, color, fluid: None };
                 match level {
-                    view::SubscriptionLevel::Basic => {
-                        [proto::UpdateFluidConduit { id: viewable.id, color }.into()]
+                    view::SubscriptionLevel::Optical => {}
+                    view::SubscriptionLevel::Detail => {
+                        update.fluid = Some(fluid_storage.to_proto_normal(sensor));
                     }
-                    view::SubscriptionLevel::Full => [proto::UpdateFluidConduitFull {
-                        id: viewable.id,
-                        color,
-                        fluid: fluid_storage.to_proto(),
+                    view::SubscriptionLevel::Debug => {
+                        update.fluid = Some(fluid_storage.to_proto_debug());
                     }
-                    .into()],
                 }
+                [update.into()]
             }));
         }
     }

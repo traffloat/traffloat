@@ -115,32 +115,7 @@ impl UpdateHandler for UpdateBuildingParams<'_, '_> {
         let material = try_log!(self.materials.get_mut(&handle.0), expect "building entity should reference a valid material" or return);
         material.color = update.color.into();
 
-        info.ambient_fluid = None;
-    }
-}
-
-#[derive(SystemParam)]
-pub(super) struct UpdateBuildingFullParams<'w, 's> {
-    ids:            ResMut<'w, IdRegistry>,
-    materials:      ResMut<'w, Assets<ColorMaterial>>,
-    building_query: Query<'w, 's, (&'static MeshMaterial2d<ColorMaterial>, &'static mut Info)>,
-}
-
-impl UpdateHandler for UpdateBuildingFullParams<'_, '_> {
-    type Update = proto::UpdateBuildingFull;
-
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
-
-    fn handle(&mut self, update: &proto::UpdateBuildingFull) {
-        let Some(entity) = self.ids.get_building(update.id) else { return };
-        let Ok((handle, mut info)) = self.building_query.get_mut(entity) else {
-            // Happens when update is received immediately after update
-            return;
-        };
-        let material = try_log!(self.materials.get_mut(&handle.0), expect "building entity should reference a valid material" or return);
-        material.color = update.color.into();
-
-        info.ambient_fluid = Some(update.ambient_fluid.clone());
+        info.ambient_fluid.clone_from(&update.ambient_fluid);
     }
 }
 
@@ -166,7 +141,7 @@ impl UpdateHandler for UpdateBuildingFluidConnectionsParams<'_, '_> {
 pub struct Info {
     pub position:      Vec2,
     pub radius:        f32,
-    pub ambient_fluid: Option<proto::FluidStorageFull>,
+    pub ambient_fluid: Option<proto::FluidStorageDetail>,
     pub connections:   Vec<proto::BuildingFluidConnection>,
 }
 

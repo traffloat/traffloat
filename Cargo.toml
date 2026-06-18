@@ -58,10 +58,12 @@ struct_excessive_bools = "allow"
 # derive(Reflect) bug
 used_underscore_binding = "allow"
 
+# Often triggered by coincidence on SystemParam structs with only queries
+struct_field_names = "allow"
+
 # Allowed during dev, checked during precommit
 dbg_macro = "allow"
 unused_self = "allow"
-
 
 [workspace.lints.rustdoc]
 # We use `# /* */` to render syntax-highlighted code blocks without compiling.

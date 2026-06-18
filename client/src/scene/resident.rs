@@ -185,7 +185,7 @@ impl UpdateHandler for UpdateResidentAttributesFullParams<'_, '_> {
 
         let mut attr_value_iter = update.attrs.iter();
         for (ty, slot) in self.types.types.iter().zip(&mut info.attributes) {
-            if ty.subscribed {
+            if ty.subscribed.contains(update.sub) {
                 let Some(&value) = attr_value_iter.next() else {
                     tracing::warn!(
                         "Received fewer resident attributes in full update than last received \

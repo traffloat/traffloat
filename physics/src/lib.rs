@@ -11,6 +11,7 @@ pub mod fluid;
 pub mod generate;
 pub mod graph;
 pub mod reactor;
+pub mod request;
 pub mod resident;
 pub mod view;
 
@@ -26,6 +27,7 @@ impl Plugin for Plug {
         app.add_plugins(fluid::Plug);
         app.add_plugins(resident::Plug);
         app.add_plugins(reactor::Plug);
+        app.add_plugins(request::Plug);
     }
 }
 

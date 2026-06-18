@@ -84,6 +84,10 @@ pub struct OfCorridor<Ab: Which>(#[relationship] pub Entity, Ab);
 #[relationship_target(relationship = OfCorridor<Ab>, linked_spawn)]
 pub struct CorridorEdge<Ab: Which>(#[relationship] Entity, Ab);
 
+impl<Ab: Which> CorridorEdge<Ab> {
+    pub fn edge(&self) -> Entity { self.0 }
+}
+
 pub struct SpawnCommand<Ab: Which> {
     pub building: Entity,
     pub corridor: Entity,
@@ -122,23 +126,38 @@ fn insert_fluid_edge(world: &mut World, edge: Entity, building: Entity, corridor
 }
 
 fn broadcast_edge_change_system<Ab: Which>(
-    edge_query: Query<(&OfBuilding<Ab>, &OfCorridor<Ab>, &Edge), Changed<Edge>>,
-    viewable_query: Query<&view::Viewable>,
+    edge_query: Query<(&OfBuilding<Ab>, &OfCorridor<Ab>, &Edge)>,
+    opposite_edge_query: Query<&OfBuilding<Ab::Other>>,
+    corridor_query: Query<(&view::Viewable, Option<&CorridorEdge<Ab::Other>>)>,
+    building_query: Query<&view::Viewable>,
     mut writer: MessageWriter<view::SentUpdate>,
 ) {
     for (building, corridor, edge) in edge_query {
-        let Some(corridor_viewable) = viewable_query.log_get(corridor.0) else { continue };
-        let Some(building_viewable) = viewable_query.log_get(building.0) else { continue };
-        writer.write_batch(corridor_viewable.broadcast_update(|_| {
-            [proto::Update::UpdateCorridorEndpoint(proto::UpdateCorridorEndpoint {
-                corridor: corridor_viewable.id,
-                which:    Ab::default().proto(),
-                value:    Some(proto::CorridorEndpoint {
-                    building: building_viewable.id,
-                    open:     edge.open,
-                }),
-            })]
-        }));
+        // TODO avoid resending
+        let Some((corridor_viewable, opposite_edge)) = corridor_query.log_get(corridor.0) else {
+            continue;
+        };
+        let Some(building_viewable) = building_query.log_get(building.0) else { continue };
+        let opposite_building_viewable = opposite_edge
+            .and_then(|opposite| opposite_edge_query.log_get(opposite.0))
+            .and_then(|opposite_building| building_query.log_get(opposite_building.0));
+        writer.write_batch(view::Viewable::broadcast_update_if_all_optical_and_any_detail(
+            [building_viewable, corridor_viewable].into_iter().chain(opposite_building_viewable),
+            |level| match level {
+                view::SubscriptionLevel::Optical => None,
+                view::SubscriptionLevel::Detail | view::SubscriptionLevel::Debug => Some(
+                    proto::UpdateCorridorEndpoint {
+                        corridor: corridor_viewable.id,
+                        which:    Ab::default().proto(),
+                        value:    Some(proto::CorridorEndpoint {
+                            building: building_viewable.id,
+                            open:     edge.open,
+                        }),
+                    }
+                    .into(),
+                ),
+            },
+        ));
     }
 }
 
@@ -155,7 +174,7 @@ impl EntityCommand for DespawnCommand {
                 else {
                     return;
                 };
-                let update = proto::Update::UpdateCorridorEndpoint(proto::UpdateCorridorEndpoint {
+                let update = proto::Update::from(proto::UpdateCorridorEndpoint {
                     corridor: corridor_viewable.id,
                     which:    which.proto(),
                     value:    None,

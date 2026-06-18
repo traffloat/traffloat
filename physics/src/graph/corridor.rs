@@ -2,20 +2,22 @@ use std::f32::consts::PI;
 
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
+use bevy::ecs::entity::{Entity, EntityHashSet};
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::With;
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{EntityCommand, Query};
-use bevy::ecs::world::EntityWorldMut;
+use bevy::ecs::system::{EntityCommand, Query, SystemState};
+use bevy::ecs::world::{EntityWorldMut, World};
+use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
-use crate::graph::conduit::ListOnCorridor;
-use crate::graph::{Conduit, ViewInitSystemSets};
-use crate::util::{AlphaBeta, EntityWorldMutExt, WorldExt};
+use crate::graph::conduit::{self, ListOnCorridor};
+use crate::graph::{Building, Conduit, ViewInitSystemSets, building, edge};
+use crate::util::{Alpha, AlphaBeta, Beta, EntityWorldMutExt, Which, WorldExt};
 use crate::{Vector, fluid, view};
 
 pub struct Plug;
@@ -94,7 +96,60 @@ impl EntityCommand for SpawnCommand {
             }
             .apply(entity);
         });
+
+        recompute_culling_rect(entity);
     }
+}
+
+fn recompute_culling_rect(mut entity: EntityWorldMut) {
+    fn get_endpoint_rect<Ab: Which>(
+        entity: &EntityWorldMut,
+        corridor: &Corridor,
+        which: Ab,
+    ) -> (Rect, Option<Entity>) {
+        let pos = which.select(corridor.endpoint_positions);
+        let half_size = corridor.radius + corridor.wall_thickness;
+        let mut rect = Rect::from_center_half_size(pos, Vec2::splat(half_size));
+
+        let building = if let Some(edge_entity) = entity.get::<edge::CorridorEdge<Ab>>()
+            && let Some(building_entity) =
+                entity.world().log_get::<edge::OfBuilding<Ab>>(edge_entity.edge())
+            && let Some(building) = entity.world().log_get::<Building>(building_entity.0)
+        {
+            let building_half_size = building.radius + building.wall_thickness;
+            let building_rect = building.base_rect();
+            rect = rect.union(building_rect);
+            Some(building_entity.0)
+        } else {
+            None
+        };
+
+        (rect, building)
+    }
+
+    let Some(corridor) = entity.log_get::<Corridor>() else { return };
+    let (rect_alpha, building_alpha) = get_endpoint_rect(&entity, corridor, Alpha);
+    let (rect_beta, building_beta) = get_endpoint_rect(&entity, corridor, Beta);
+    let rect = rect_alpha.union(rect_beta);
+    entity.insert(view::CullingRect(rect));
+
+    for building in [building_alpha, building_beta].into_iter().flatten() {
+        entity.world_scope(|world| {
+            let mut state = SystemState::<building::RecomputeCullingRectParams>::new(world);
+            let params = state.get_mut(world);
+            building::recompute_culling_rect(params, building);
+        });
+    }
+
+    let conduits: EntityHashSet =
+        entity.get::<conduit::ListOnCorridor>().iter().flat_map(|list| list.iter()).collect();
+    entity.world_scope(|world| {
+        for conduit in conduits {
+            if let Some(mut culling_rect) = world.log_get_mut::<view::CullingRect>(conduit) {
+                culling_rect.0 = rect;
+            }
+        }
+    });
 }
 
 pub struct DespawnCommand;
@@ -153,28 +208,30 @@ fn init_viewer_system(
 
 fn incr_viewer_system(
     mut throttle: view::BroadcastThrottle,
-    corridor_query: Query<(&view::Viewable, &fluid::Storage), With<Corridor>>,
+    corridor_query: Query<(&view::Viewable, &fluid::Storage, &fluid::Sensor), With<Corridor>>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
     if !throttle.should_run() {
         return;
     }
 
-    for (viewable, storage) in corridor_query.iter() {
-        messages.write_batch(viewable.broadcast_update(|level| match level {
-            view::SubscriptionLevel::Basic => {
-                [proto::Update::UpdateCorridor(proto::UpdateCorridor {
-                    id:    viewable.id,
-                    color: proto::Color(storage.rgba),
-                })]
+    for (viewable, storage, sensor) in corridor_query.iter() {
+        messages.write_batch(viewable.broadcast_update(|level| {
+            let mut update = proto::UpdateCorridor {
+                id:            viewable.id,
+                color:         proto::Color(storage.rgba),
+                ambient_fluid: None,
+            };
+            match level {
+                view::SubscriptionLevel::Optical => {}
+                view::SubscriptionLevel::Detail => {
+                    update.ambient_fluid = Some(storage.to_proto_normal(sensor));
+                }
+                view::SubscriptionLevel::Debug => {
+                    update.ambient_fluid = Some(storage.to_proto_debug());
+                }
             }
-            view::SubscriptionLevel::Full => {
-                [proto::Update::UpdateCorridorFull(proto::UpdateCorridorFull {
-                    id:            viewable.id,
-                    color:         proto::Color(storage.rgba),
-                    ambient_fluid: storage.to_proto(),
-                })]
-            }
+            [update.into()]
         }));
     }
 }

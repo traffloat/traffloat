@@ -12,7 +12,7 @@ const NUM_TYPES: usize = 16;
 
 fn default_types() -> Vec<fluid::TypeDef> {
     iter::repeat_with(|| fluid::TypeDef {
-        name:                 "".into(),
+        name:                 String::new(),
         molar_heat_capacity:  1.0,
         advective_fluidity:   1.0,
         diffusive_fluidity:   1.0,
@@ -268,9 +268,7 @@ fn expect_float(actual: f32, expect: f32) {
 #[track_caller]
 fn expect_float_near(actual: f32, expect: f32, threshold: f32) {
     assert!(expect.is_finite());
-    if (actual - expect).abs() > threshold {
-        panic!("got {actual:?}, expected {expect:?} within {threshold}");
-    }
+    assert!((actual - expect).abs() <= threshold, "got {actual:?}, expected {expect:?} within {threshold}");
 }
 
 #[track_caller]

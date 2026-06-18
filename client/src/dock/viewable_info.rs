@@ -152,22 +152,28 @@ impl Command for OpenCommand {
 fn show_fluid(
     ui: &mut egui::Ui,
     id: egui::Id,
-    ambient_fluid: &proto::FluidStorageFull,
+    ambient_fluid: &proto::FluidStorageDetail,
     types: &FluidTypes,
 ) {
     ui.label(format!("Volume: {:.2}", ambient_fluid.volume));
-    ui.label(format!("Pressure: {:.2}", ambient_fluid.pressure));
-    ui.label(format!("Temperature: {:.2} K", ambient_fluid.temperature));
+    if let Some(pressure) = ambient_fluid.pressure {
+        ui.label(format!("Pressure: {pressure:.2}"));
+    }
+    if let Some(temperature) = ambient_fluid.temperature {
+        ui.label(format!("Temperature: {temperature:.2} K"));
+    }
 
-    egui::CollapsingHeader::new("Composition").id_salt(new_id!(id)).show(ui, |ui| {
-        for (id, fraction) in ambient_fluid.types.iter().enumerate() {
-            ui.label(format!(
-                "{}: {:.2} mol",
-                types.0.get(id).map_or("???", |ty| &ty.name),
-                fraction * 100.0
-            ));
-        }
-    });
+    if let Some(data) = &ambient_fluid.types {
+        egui::CollapsingHeader::new("Composition").id_salt(new_id!(id)).show(ui, |ui| {
+            for (id, fraction) in data.iter().enumerate() {
+                ui.label(format!(
+                    "{}: {:.2} mol",
+                    types.0.get(id).map_or("???", |ty| &ty.name),
+                    fraction * 100.0
+                ));
+            }
+        });
+    }
 }
 
 fn show_link(ui: &mut egui::Ui, commands: &mut Commands, entity: Entity) {
