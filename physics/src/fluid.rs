@@ -44,7 +44,10 @@ impl Plugin for Plug {
         app.init_resource::<Types>();
 
         app.add_systems(app::FixedUpdate, transfer::transfer_system.in_set(TransferSystemSet));
-        app.add_systems(app::Update, sync_types_to_viewers_system);
+        app.add_systems(
+            app::Update,
+            sync_types_to_viewers_system.in_set(view::SendUpdatesSystemSet::Meta),
+        );
     }
 }
 

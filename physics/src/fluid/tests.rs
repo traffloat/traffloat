@@ -268,7 +268,10 @@ fn expect_float(actual: f32, expect: f32) {
 #[track_caller]
 fn expect_float_near(actual: f32, expect: f32, threshold: f32) {
     assert!(expect.is_finite());
-    assert!((actual - expect).abs() <= threshold, "got {actual:?}, expected {expect:?} within {threshold}");
+    assert!(
+        (actual - expect).abs() <= threshold,
+        "got {actual:?}, expected {expect:?} within {threshold}"
+    );
 }
 
 #[track_caller]

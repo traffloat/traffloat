@@ -45,6 +45,7 @@ impl Plugin for Plug {
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumIter)]
 pub enum SendUpdatesSystemSet {
+    Meta,
     Cull,
     Pair,
     Init,

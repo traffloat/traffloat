@@ -20,8 +20,8 @@ pub fn generate(world: &mut World, _: Config) {
     let fluids = gen_fluid_types(world);
     let reactors = gen_reactor_types(world, &fluids);
     let facilities = gen_facility_types(world, &reactors);
-    let resident_attrs = gen_resident_attr_types(world);
-    let std = StandardTypes { fluids, reactors, facilities, resident_attrs };
+    gen_resident_attr_types(world);
+    let std = StandardTypes { fluids, reactors, facilities };
 
     let core = gen_core(world, &std);
     let garden = gen_garden(world, &std);
@@ -41,10 +41,9 @@ pub fn generate(world: &mut World, _: Config) {
 }
 
 struct StandardTypes {
-    fluids:         StandardFluidTypes,
-    reactors:       StandardReactorTypes,
-    facilities:     StandardFacilityTypes,
-    resident_attrs: StandardResidentAttrTypes,
+    fluids:     StandardFluidTypes,
+    reactors:   StandardReactorTypes,
+    facilities: StandardFacilityTypes,
 }
 
 struct StandardFluidTypes {
@@ -222,34 +221,37 @@ fn gen_facility_types(
     StandardFacilityTypes { garden, small_tank }
 }
 
-struct StandardResidentAttrTypes {
-    health: resident::attr::TypeId,
-    volume: resident::attr::TypeId,
-}
-
-fn gen_resident_attr_types(world: &mut World) -> StandardResidentAttrTypes {
-    let health = resident::attr::AddTypeCommand::new(resident::attr::TypeDef {
-        name:          "Health".into(),
+fn gen_resident_attr_types(world: &mut World) {
+    resident::attr::AddTypeCommand::new(resident::attr::TypeDef {
+        name:          "HP".into(),
         default_value: 100.0,
         visibility:    enum_map! {
             view::SubscriptionLevel::Optical => false,
             view::SubscriptionLevel::Detail | view::SubscriptionLevel::Debug => true,
         },
     })
-    .with_niche(resident::attr::Niche::Health)
+    .with_niche(resident::attr::Niche::Hitpoints)
     .apply(world);
-    let volume = resident::attr::AddTypeCommand::new(resident::attr::TypeDef {
-        name:          "Height".into(),
-        default_value: 1.7,
+    resident::attr::AddTypeCommand::new(resident::attr::TypeDef {
+        name:          "Weight".into(),
+        default_value: 1.5, // we will just assume volume and weight are 1:1
         visibility:    enum_map! {
             view::SubscriptionLevel::Optical |
             view::SubscriptionLevel::Detail|
             view::SubscriptionLevel::Debug => true,
         },
     })
-    .with_niche(resident::attr::Niche::Health)
+    .with_niche(resident::attr::Niche::Volume)
     .apply(world);
-    StandardResidentAttrTypes { health, volume }
+    resident::attr::AddTypeCommand::new(resident::attr::TypeDef {
+        name:          "Air".into(),
+        default_value: 1.0,
+        visibility:    enum_map! {
+            view::SubscriptionLevel::Optical | view::SubscriptionLevel::Detail => false,
+            view::SubscriptionLevel::Debug => true,
+        },
+    })
+    .apply(world);
 }
 
 fn gen_core(world: &mut World, std: &StandardTypes) -> CoreGen {

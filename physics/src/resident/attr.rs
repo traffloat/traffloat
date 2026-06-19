@@ -26,7 +26,22 @@ impl Plugin for Plug {
 
         app.init_resource::<Types>();
 
-        app.add_systems(app::Update, incr_viewer_system.in_set(view::SendUpdatesSystemSet::Incr));
+        app.add_systems(
+            app::Update,
+            broadcast_attr_type_changes_system.in_set(view::SendUpdatesSystemSet::Meta),
+        );
+        app.add_systems(
+            app::Update,
+            init_viewer_system
+                .in_set(view::SendUpdatesSystemSet::Init)
+                .after(super::init_viewer_system),
+        );
+        app.add_systems(
+            app::Update,
+            incr_viewer_system
+                .in_set(view::SendUpdatesSystemSet::Incr)
+                .after(super::incr_viewer_system),
+        );
     }
 }
 
@@ -76,9 +91,12 @@ impl TypeDef {
 /// Indicates that the attribute has special semantics.
 #[derive(Reflect, enum_map::Enum)]
 pub enum Niche {
-    /// Represents the size
+    /// The attribute value should be treated literally as the volume ocucpied.
     Volume,
-    Health,
+    /// When the attribute value is zero or negative,
+    /// death mechanism for the resident is triggered.
+    Hitpoints,
+    Air,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Reflect)]
@@ -144,16 +162,42 @@ impl Command<TypeId> for AddTypeCommand {
 #[derive(Component, Default)]
 struct LastSentAttributes(Option<Box<[f32]>>);
 
+fn init_viewer_system(
+    mut writer: MessageWriter<view::SentUpdate>,
+    resident_query: Query<(&LastSentAttributes, &view::Viewable)>,
+    types: Res<Types>,
+) {
+    for (last_sent, viewable) in resident_query {
+        writer.write_batch(viewable.broadcast_new_or_changed(|_, new| {
+            // if last_sent is none, the data will be sent in `incr_viewer_system` anyway,
+            // so we don't need to send in this system
+            last_sent.0.as_ref().map(|attrs| {
+                proto::UpdateResidentAttributesFull {
+                    id:    viewable.id,
+                    sub:   new.to_proto_subscribed_by(),
+                    attrs: attrs
+                        .iter()
+                        .enumerate()
+                        .map(|(ty, &value)| {
+                            (TypeId(u32::try_from(ty).expect("checked during push")), value)
+                        })
+                        .filter(|&(ty, _)| types.get(ty).subscribed_by(new))
+                        .map(|(_, value)| value)
+                        .collect(),
+                }
+                .into()
+            })
+        }));
+    }
+}
+
 fn incr_viewer_system(
     mut throttle: view::BroadcastThrottle,
     broadcast_type_params: BroadcastAttrTypeChangesParams,
     resident_query: Query<(&Attributes, &mut LastSentAttributes, &view::Viewable)>,
     types: Res<Types>,
     mut writer: MessageWriter<view::SentUpdate>,
-    mut commands: Commands,
 ) {
-    writer.write_batch(broadcast_attr_type_changes(broadcast_type_params, &mut commands));
-
     if !throttle.should_run() {
         return;
     }
@@ -161,7 +205,7 @@ fn incr_viewer_system(
     for (attributes, mut last_sent, viewable) in resident_query {
         match last_sent.0 {
             None => {
-                // this resident was never broadcast to anyone before
+                // attributes of this resident was never broadcast to anyone before
                 writer.write_batch(viewable.broadcast_update(|level| {
                     Some(
                         proto::UpdateResidentAttributesFull {
@@ -197,24 +241,7 @@ fn incr_viewer_system(
                 last_sent.0 = Some(attributes.values.clone());
             }
             Some(ref last_values) => {
-                // this resident was broadcast before, and values are unchanged,
-                // but we still need to resend to new viewers and viewers who have changed
-                // subscription level.
-
-                writer.write_batch(viewable.broadcast_new_or_changed(|_, new| {
-                    Some(
-                        proto::UpdateResidentAttributesFull {
-                            id:    viewable.id,
-                            sub:   new.to_proto_subscribed_by(),
-                            attrs: attributes
-                                .iter()
-                                .filter(|&(ty, _)| types.get(ty).subscribed_by(new))
-                                .map(|(_, value)| value)
-                                .collect(),
-                        }
-                        .into(),
-                    )
-                }));
+                // this resident was broadcast before, and values are unchanged.
             }
         }
     }
@@ -228,6 +255,14 @@ struct LastSentConfig(TypesGeneration);
 struct BroadcastAttrTypeChangesParams<'w, 's> {
     viewer_query: Query<'w, 's, (Entity, Option<&'static LastSentConfig>)>,
     types:        Res<'w, Types>,
+}
+
+fn broadcast_attr_type_changes_system(
+    params: BroadcastAttrTypeChangesParams,
+    mut commands: Commands,
+    mut writer: MessageWriter<view::SentUpdate>,
+) {
+    writer.write_batch(broadcast_attr_type_changes(params, &mut commands));
 }
 
 fn broadcast_attr_type_changes(
