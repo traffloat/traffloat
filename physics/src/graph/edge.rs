@@ -23,7 +23,7 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
-use bevy::ecs::query::Changed;
+use bevy::ecs::query::{Changed, QueryFilter};
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
 use bevy::ecs::world::{EntityWorldMut, World};
@@ -52,7 +52,13 @@ impl Plugin for Plug {
 
         app.add_systems(
             app::Update,
-            (broadcast_edge_change_system::<Alpha>, broadcast_edge_change_system::<Beta>)
+            (
+                broadcast_edge_change_system::<Alpha, BroadcastToNewViewers>,
+                broadcast_edge_change_system::<Beta, BroadcastToNewViewers>,
+                broadcast_edge_change_system::<Alpha, BroadcastDataChange>,
+                broadcast_edge_change_system::<Beta, BroadcastDataChange>,
+            )
+                .chain()
                 .in_set(view::SendUpdatesSystemSet::Incr)
                 .in_set(super::ViewIncrSystemSets::Edge),
         );
@@ -125,15 +131,33 @@ fn insert_fluid_edge(world: &mut World, edge: Entity, building: Entity, corridor
         .apply(world.entity_mut(edge));
 }
 
-fn broadcast_edge_change_system<Ab: Which>(
-    edge_query: Query<(&OfBuilding<Ab>, &OfCorridor<Ab>, &Edge)>,
+trait BroadcastChange {
+    type Filter: QueryFilter;
+    const NEW_SUB_ONLY: bool;
+}
+
+enum BroadcastToNewViewers {}
+
+impl BroadcastChange for BroadcastToNewViewers {
+    type Filter = ();
+    const NEW_SUB_ONLY: bool = true;
+}
+
+enum BroadcastDataChange {}
+
+impl BroadcastChange for BroadcastDataChange {
+    type Filter = Changed<Edge>;
+    const NEW_SUB_ONLY: bool = false;
+}
+
+fn broadcast_edge_change_system<Ab: Which, Chg: BroadcastChange>(
+    edge_query: Query<(&OfBuilding<Ab>, &OfCorridor<Ab>, &Edge), Chg::Filter>,
     opposite_edge_query: Query<&OfBuilding<Ab::Other>>,
     corridor_query: Query<(&view::Viewable, Option<&CorridorEdge<Ab::Other>>)>,
     building_query: Query<&view::Viewable>,
     mut writer: MessageWriter<view::SentUpdate>,
 ) {
     for (building, corridor, edge) in edge_query {
-        // TODO avoid resending
         let Some((corridor_viewable, opposite_edge)) = corridor_query.log_get(corridor.0) else {
             continue;
         };
@@ -157,6 +181,7 @@ fn broadcast_edge_change_system<Ab: Which>(
                     .into(),
                 ),
             },
+            Chg::NEW_SUB_ONLY,
         ));
     }
 }

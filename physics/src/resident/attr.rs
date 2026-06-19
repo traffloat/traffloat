@@ -96,7 +96,6 @@ pub enum Niche {
     /// When the attribute value is zero or negative,
     /// death mechanism for the resident is triggered.
     Hitpoints,
-    Air,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Reflect)]

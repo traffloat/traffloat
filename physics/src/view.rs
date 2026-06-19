@@ -176,11 +176,13 @@ impl Viewable {
     pub fn broadcast_update_if_all_optical_and_any_detail<'d, Iter>(
         viewables: impl IntoIterator<Item = &'d Viewable> + Clone,
         mut update: impl FnMut(SubscriptionLevel) -> Iter + Copy,
+        new_subscribers_only: bool,
     ) -> impl Iterator<Item = SentUpdate>
     where
         Iter: IntoIterator<Item = proto::Update>,
     {
-        let make_level_viewers = |level| {
+        let viewables = &viewables;
+        let make_level_viewers = move |level| {
             let mut viewers = viewables
                 .clone()
                 .into_iter()
@@ -193,6 +195,15 @@ impl Viewable {
             for viewable in viewables.clone() {
                 viewers
                     .retain(|viewer| viewable.subscribers.values().any(|set| set.contains(viewer)));
+            }
+
+            if new_subscribers_only {
+                viewers.retain(|viewer| {
+                    viewables
+                        .clone()
+                        .into_iter()
+                        .any(|viewable| viewable.new_subscribers.entities().contains(viewer))
+                });
             }
 
             viewers
@@ -283,6 +294,10 @@ impl SortedSubscriptionChanges {
     fn new(mut changes: Vec<(SubscriptionChange, Entity)>) -> Self {
         changes.sort_by_key(|&(ch, _)| ch);
         Self(changes)
+    }
+
+    fn entities(&self) -> impl Iterator<Item = Entity> + '_ {
+        self.0.iter().map(|&(_, entity)| entity)
     }
 
     fn iter_by_change(&self) -> impl Iterator<Item = (SubscriptionChange, EntityHashSet)> + '_ {
