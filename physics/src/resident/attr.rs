@@ -278,6 +278,8 @@ fn broadcast_attr_type_changes(
         commands.entity(viewer).insert(LastSentConfig(params.types.generation));
     }
 
+    // TODO benchmark this function, confirm if it would be more vectorizable
+    // if index list is precomputed before iteration
     let mut types: Vec<_> = params
         .types
         .defs

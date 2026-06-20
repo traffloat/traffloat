@@ -297,7 +297,7 @@ pub struct UpdateResidentAttributesPartial {
 pub enum ResidentLocation {
     Building { building: Id, interior_pos: Vec3, speed: Vec3 },
     Corridor { corridor: Id, linear_pos: f32, speed: f32 },
-    Facility { facility: Id },
+    Facility { facility: Id, slot_name: String },
 }
 
 /// Unsubscribed from a viewable.

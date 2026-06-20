@@ -13,7 +13,7 @@ use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
 use crate::graph::Building;
-use crate::util::{AllSystemSets, QueryExt};
+use crate::util::{AllSystemSets, QueryExt, SliceGet};
 use crate::{graph, view};
 
 pub mod attr;
@@ -91,6 +91,8 @@ pub struct InteractionSlots {
 
 #[derive(Reflect)]
 pub struct InteractionSlot {
+    /// Display name of this interaction slot to describe the role of residents using this slot.
+    pub name:     String,
     /// Maximum number of residents that can fit in this slot.
     pub capacity: u32,
     /// Current number of residents in this slot.
@@ -135,8 +137,10 @@ impl Default for Conf {
     fn default() -> Self { Self { standard_walking_speed: 1.0 } }
 }
 
-pub struct SpawnCommand {
-    pub building: Entity,
+pub enum SpawnCommand {
+    Building { building: Entity, interior_pos: Vec3 },
+    Corridor { corridor: Entity, distance_from_alpha: f32 },
+    Facility { facility: Entity, slot_index: usize },
 }
 
 impl EntityCommand for SpawnCommand {
@@ -149,25 +153,39 @@ impl EntityCommand for SpawnCommand {
         entity.insert((
             Name::new(format!("Resident #{id}")),
             Resident { name: format!("#{id}") },
-            Location::Building { entity: self.building, interior_pos: Vec3::ZERO },
             Attributes { values: attrs.into_boxed_slice() },
         ));
+
+        match self {
+            Self::Building { building, interior_pos } => {
+                entity.insert(Location::Building { entity: building, interior_pos });
+            }
+            Self::Corridor { corridor, distance_from_alpha } => {
+                entity.insert(Location::Corridor { entity: corridor, distance_from_alpha });
+            }
+            Self::Facility { facility, slot_index } => {
+                entity.insert((
+                    Location::Facility { entity: facility },
+                    InteractingWith { facility, slot_index },
+                ));
+            }
+        }
 
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
     }
 }
 
 fn init_viewer_system(
-    resident_query: Query<(&Resident, &Location, &view::Viewable)>,
-    viewable_query: Query<&view::Viewable>,
+    resident_query: Query<(&Resident, &Location, Option<&InteractingWith>, &view::Viewable)>,
+    viewable_query: Query<(&view::Viewable, Option<&InteractionSlots>)>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (resident, location, viewable) in resident_query {
+    for (resident, location, interact, viewable) in resident_query {
         messages.write_batch(viewable.broadcast_new(|| {
             Some(proto::Update::NewResident(proto::NewResident {
                 id:       viewable.id,
                 name:     resident.name.clone(),
-                location: make_proto_location(location, &viewable_query)?,
+                location: make_proto_location(location, interact, &viewable_query)?,
             }))
         }));
     }
@@ -175,17 +193,17 @@ fn init_viewer_system(
 
 fn incr_viewer_system(
     mut throttle: view::BroadcastThrottle,
-    resident_query: Query<(&Location, &view::Viewable), With<Resident>>,
-    viewable_query: Query<&view::Viewable>,
+    resident_query: Query<(&Location, Option<&InteractingWith>, &view::Viewable), With<Resident>>,
+    viewable_query: Query<(&view::Viewable, Option<&InteractionSlots>)>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
     if !throttle.should_run() {
         return;
     }
 
-    for (location, viewable) in resident_query {
+    for (location, interact, viewable) in resident_query {
         messages.write_batch(viewable.broadcast_update(|_| {
-            make_proto_location(location, &viewable_query).map(|location| {
+            make_proto_location(location, interact, &viewable_query).map(|location| {
                 proto::Update::UpdateResidentLocation(proto::UpdateResidentLocation {
                     id: viewable.id,
                     location,
@@ -197,21 +215,35 @@ fn incr_viewer_system(
 
 fn make_proto_location(
     location: &Location,
-    viewable_query: &Query<&view::Viewable>,
+    interact: Option<&InteractingWith>,
+    viewable_query: &Query<(&view::Viewable, Option<&InteractionSlots>)>,
 ) -> Option<proto::ResidentLocation> {
     Some(match *location {
         Location::Building { entity, interior_pos } => proto::ResidentLocation::Building {
-            building: viewable_query.log_get(entity)?.id,
+            building: viewable_query.log_get(entity)?.0.id,
             interior_pos,
             speed: Vec3::ZERO, // TODO
         },
         Location::Corridor { entity, distance_from_alpha } => proto::ResidentLocation::Corridor {
-            corridor:   viewable_query.log_get(entity)?.id,
+            corridor:   viewable_query.log_get(entity)?.0.id,
             linear_pos: distance_from_alpha,
             speed:      0.0, // TODO
         },
         Location::Facility { entity } => {
-            proto::ResidentLocation::Facility { facility: viewable_query.log_get(entity)?.id }
+            let interact = try_log!(
+                interact,
+                expect "resident in facility should have InteractingWith component" or return None
+            );
+            let (facility, slots) = viewable_query.log_get(entity)?;
+            let slots = try_log!(
+                slots,
+                expect "referenced facility should have InteractionSlots component" or return None
+            );
+            let slot = slots.slots.log_get(interact.slot_index)?;
+            proto::ResidentLocation::Facility {
+                facility:  facility.id,
+                slot_name: slot.name.clone(),
+            }
         }
     })
 }

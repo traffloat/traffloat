@@ -15,7 +15,7 @@ use traffloat_proto::proto;
 
 use crate::graph::{Building, ViewInitSystemSets, building};
 use crate::util::{QueryExt, WorldExt};
-use crate::{fluid, reactor, view};
+use crate::{fluid, reactor, resident, view};
 
 pub mod blueprint;
 pub use blueprint::Blueprint;
@@ -125,11 +125,15 @@ impl EntityCommand for SpawnCommand {
         let Some(def) = entity.world().log_get::<FacilityTypeDef>(self.ty) else { return };
         let exec_fluid = insert_fluid(&def.blueprint);
         let exec_reactor = insert_reactor(&def.blueprint, &self.blueprint_params);
+        let exec_interaction_slots = insert_interaction_slots(&def.blueprint);
 
         if let Some(f) = exec_fluid {
             f(&mut entity);
         }
         if let Some(f) = exec_reactor {
+            f(&mut entity);
+        }
+        if let Some(f) = exec_interaction_slots {
             f(&mut entity);
         }
     }
@@ -157,6 +161,26 @@ fn insert_reactor(
     };
     Some(move |entity: &mut EntityWorldMut| {
         entity.insert(reactor);
+    })
+}
+
+fn insert_interaction_slots(bp: &Blueprint) -> Option<impl FnOnce(&mut EntityWorldMut) + use<>> {
+    if bp.interaction_slots.is_empty() {
+        return None;
+    }
+    let slots = resident::InteractionSlots {
+        slots: bp
+            .interaction_slots
+            .iter()
+            .map(|slot| resident::InteractionSlot {
+                name:     slot.name.clone(),
+                capacity: slot.capacity,
+                usage:    0,
+            })
+            .collect(),
+    };
+    Some(move |entity: &mut EntityWorldMut| {
+        entity.insert(slots);
     })
 }
 

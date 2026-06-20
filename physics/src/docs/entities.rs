@@ -16,6 +16,7 @@
 //! - By facility type:
 //!   - [`fluid::Storage`]
 //!   - [`reactor::Facility`]
+//! - [`resident::InteractionSlots`]
 //!
 //! Child of:
 //! - Building.
@@ -73,6 +74,12 @@
 //! - [`fluid::Edge`]
 //! - [`fluid::EdgeAlpha`]
 //! - [`fluid::EdgeBeta`]
+//!
+//! # Resident
+//! Components:
+//! - [`resident::Resident`]
+//! - [`resident::Location`]
+//! - [`resident::InteractingWith`], if interacting with a facility
 //!
 //! # Viewer
 //! Components:

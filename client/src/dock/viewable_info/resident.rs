@@ -67,11 +67,11 @@ fn show_location(
                 ui.label(&viewable.name);
             }
         }
-        resident::Location::Facility(facility) => {
+        resident::Location::Facility { facility, ref slot_name } => {
             if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
                 commands.queue(viewable_info::OpenCommand::from_click(facility, ui.ctx()));
             }
-            ui.label("Interacting with facility:");
+            ui.label(format!("{slot_name} in facility:"));
             if let Some(viewable) = viewable_query.log_get(facility) {
                 ui.label(&viewable.name);
             }

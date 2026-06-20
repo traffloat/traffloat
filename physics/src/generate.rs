@@ -4,6 +4,7 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::name::Name;
 use bevy::ecs::system::{Command, EntityCommand};
 use bevy::ecs::world::World;
+use bevy::math::Vec3;
 use enum_map::enum_map;
 
 use crate::graph::facility::{self, Blueprint, blueprint};
@@ -37,7 +38,8 @@ pub fn generate(world: &mut World, _: Config) {
         },
     );
 
-    spawn_resident_in_building(world, garden.building);
+    spawn_resident_in_building(world, core.building);
+    spawn_resident_in_facility_slot(world, garden.facility, 0);
 }
 
 struct StandardTypes {
@@ -193,6 +195,10 @@ fn gen_facility_types(
                             .into(),
                         },
                     }),
+                    interaction_slots: vec![blueprint::InteractionSlot {
+                        name:     "Gardener".into(),
+                        capacity: 1,
+                    }],
                     ..Default::default()
                 },
             },
@@ -421,7 +427,14 @@ fn connect_facility_pipe(world: &mut World, facility: Entity, pipe: Entity) {
 fn spawn_resident_in_building(world: &mut World, building: Entity) {
     let mut resident = world.spawn((WorldObject,));
     resident.reborrow_scope(|resident| {
-        resident::SpawnCommand { building }.apply(resident);
+        resident::SpawnCommand::Building { building, interior_pos: Vec3::ZERO }.apply(resident);
+    });
+}
+
+fn spawn_resident_in_facility_slot(world: &mut World, facility: Entity, slot_index: usize) {
+    let mut resident = world.spawn((WorldObject,));
+    resident.reborrow_scope(|resident| {
+        resident::SpawnCommand::Facility { facility, slot_index }.apply(resident);
     });
 }
 

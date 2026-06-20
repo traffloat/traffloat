@@ -155,10 +155,14 @@ impl LocationResolver<'_, '_> {
                 let position = endpoints.alpha + atob * linear_pos;
                 (Location::Corridor(entity), position, atob * speed)
             }
-            proto::ResidentLocation::Facility { facility } => {
+            proto::ResidentLocation::Facility { facility, ref slot_name } => {
                 let entity = self.ids.get_facility(facility)?;
                 let transform = self.facility_query.log_get(entity)?;
-                (Location::Facility(entity), transform.translation().xy(), Vec2::ZERO)
+                (
+                    Location::Facility { facility: entity, slot_name: slot_name.clone() },
+                    transform.translation().xy(),
+                    Vec2::ZERO,
+                )
             }
         };
         Some((location, DynamicPosition { epoch_position, epoch_time: self.time.elapsed(), speed }))
@@ -246,11 +250,11 @@ pub struct Info {
     pub attributes: Vec<Option<f32>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
+#[derive(Debug, Clone, PartialEq, Eq, Reflect)]
 pub enum Location {
     Building(Entity),
     Corridor(Entity),
-    Facility(Entity),
+    Facility { facility: Entity, slot_name: String },
 }
 
 #[derive(Component, Default, Reflect)]

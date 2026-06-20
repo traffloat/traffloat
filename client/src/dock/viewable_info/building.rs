@@ -190,7 +190,7 @@ fn show_residents<'q>(
 ) -> impl Iterator<Item = impl FnOnce(&mut egui::Ui, &mut Commands)> + 'q {
     enum LocRef<'a> {
         Building,
-        Facility(Entity, &'a GenericViewable),
+        Facility(Entity, &'a GenericViewable, &'a str),
     }
 
     let in_building = params.resident_query.iter().filter_map(move |(resident, viewable, info)| {
@@ -201,11 +201,11 @@ fn show_residents<'q>(
         ))
     });
     let in_facility = params.resident_query.iter().filter_map(move |(resident, viewable, info)| {
-        if let resident::Location::Facility(facility) = info.location
+        if let resident::Location::Facility { facility, ref slot_name } = info.location
             && let Some((facility_viewable, fb)) = params.facility_query.log_get(facility)
             && fb.0 == building
         {
-            Some((resident, viewable, LocRef::Facility(facility, facility_viewable)))
+            Some((resident, viewable, LocRef::Facility(facility, facility_viewable, slot_name)))
         } else {
             None
         }
@@ -219,10 +219,11 @@ fn show_residents<'q>(
                     LocRef::Building => {
                         ui.label(&viewable.name);
                     }
-                    LocRef::Facility(facility, facility_viewable) => {
+                    LocRef::Facility(facility, facility_viewable, slot_name) => {
                         ui.label(&viewable.name);
 
-                        ui.label("working in");
+                        ui.label(slot_name);
+                        ui.label("in");
                         show_link_small(ui, commands, facility);
                         ui.label(&facility_viewable.name);
                     }

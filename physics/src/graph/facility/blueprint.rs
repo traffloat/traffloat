@@ -17,8 +17,14 @@ use crate::reactor;
 // both fluid storage and reactor in the same blueprint.
 #[derive(Debug, Clone, Default)]
 pub struct Blueprint {
-    pub fluid_storage: Option<FluidStorage>,
-    pub reactor:       Option<Reactor>,
+    pub fluid_storage:     Option<FluidStorage>,
+    pub reactor:           Option<Reactor>,
+    pub interaction_slots: Vec<InteractionSlot>,
+}
+
+#[derive(Debug, Default)]
+pub struct Params {
+    pub reactor: Option<ReactorParams>,
 }
 
 /// Constrains changes to a [`crate::fluid::Storage`].
@@ -73,12 +79,13 @@ pub enum FluidStoragePortType {
     AdjacentPipe,
 }
 
-#[derive(Debug, Default)]
-pub struct Params {
-    pub reactor: Option<ReactorParams>,
-}
-
 #[derive(Debug)]
 pub struct ReactorParams {
     pub fluid_storages: Vec<Option<Entity>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct InteractionSlot {
+    pub name:     String,
+    pub capacity: u32,
 }
