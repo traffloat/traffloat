@@ -2,13 +2,12 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
-use egui_material_icons::icons;
 use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
 use traffloat_proto::proto::AlphaOrBeta;
 
+use crate::dock;
 use crate::dock::viewable_info::corridor::display_gate;
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
-use crate::dock::{self, viewable_info};
 use crate::scene::facility::{BuildingFacilities, FacilityBuilding};
 use crate::scene::{FluidTypes, GenericViewable, building, corridor, resident};
 use crate::util::new_id;

@@ -2,11 +2,12 @@ use std::ops;
 
 use bevy::math::VectorSpace;
 use bevy::reflect::{self, FromReflect, GetTypeRegistration, Reflect};
+use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
 use crate::util::{MergeSortedItem, merge_sorted};
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Reflect)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Reflect)]
 pub struct AlphaBeta<T> {
     pub alpha: T,
     pub beta:  T,

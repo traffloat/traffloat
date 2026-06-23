@@ -14,8 +14,12 @@ use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
 use crate::graph::{Corridor, ViewInitSystemSets, corridor};
+use crate::persist::AppExt;
 use crate::util::{QueryExt, WorldExt};
 use crate::{fluid, view};
+
+mod persist;
+pub use persist::Persist;
 
 pub struct Plug;
 
@@ -25,6 +29,7 @@ impl Plugin for Plug {
         app.register_type::<OfCorridor>();
         app.register_type::<ListOnCorridor>();
 
+        app.register_persistable(Persist);
         app.add_systems(
             app::Update,
             init_viewer_system

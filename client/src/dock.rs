@@ -5,8 +5,8 @@ use bevy::app::{self, App, Plugin};
 use bevy::camera::visibility::RenderLayers;
 use bevy::camera::{Camera, Camera2d};
 use bevy::ecs::resource::Resource;
-use bevy::ecs::schedule::{self, Schedulable, ScheduleConfigs};
-use bevy::ecs::system::{Commands, ParamSet, ResMut, SystemParam};
+use bevy::ecs::schedule::{self, IntoScheduleConfigs, Schedulable, ScheduleConfigs};
+use bevy::ecs::system::{Command, Commands, ParamSet, Res, ResMut, RunSystemOnce, SystemParam};
 use bevy::ecs::world::World;
 use bevy_egui::{EguiContexts, EguiGlobalSettings, EguiPrimaryContextPass, PrimaryEguiContext};
 use egui::WidgetText;
@@ -14,13 +14,17 @@ use egui_dock::tab_viewer::OnCloseResponse;
 use egui_dock::{DockArea, DockState, NodeIndex, SurfaceIndex, TabIndex};
 
 pub mod camera;
+mod menu;
 mod new_level;
 mod open_mode;
+mod save;
 mod settings;
 mod startup;
 pub mod viewable_info;
 pub use open_mode::*;
+use traffloat_macro_util::fan_out;
 
+use crate::scene::LevelState;
 use crate::util::new_id;
 
 static NEXT_TAB_ID: AtomicU32 = AtomicU32::new(0);
@@ -29,15 +33,19 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.add_plugins((camera::Plug, startup::Plug));
+        app.add_plugins((camera::Plug, startup::Plug, save::Plug));
         app.init_resource::<State>();
+        app.init_resource::<Toasts>();
         app.add_systems(app::Startup, setup_system);
-        app.add_systems(EguiPrimaryContextPass, render_system);
+        app.add_systems(EguiPrimaryContextPass, (render_system, render_toasts_system).chain());
     }
 }
 
 #[derive(Resource)]
 pub struct State(DockState<TabState>);
+
+#[derive(Resource, Default)]
+pub struct Toasts(egui_notify::Toasts);
 
 pub struct TabState {
     id:       u32,
@@ -138,32 +146,17 @@ struct TabViewer<'w, 's> {
 
 macro_rules! define_tabs {
     (
-        $(
-            $(#[$meta:meta])*
-            $variant:ident ($tab_type:ty)
-        )*
-    ) => {
-        traffloat_macro_util::triangle! {
-            define_tabs (p0);
-            @expanded;
+        [$w:lifetime, $s:lifetime]
+        $paramset_tuple:ty;
+        {
             $(
-                $(#[$meta])*
-                $variant ($tab_type),
+                $variant:ident ($tab_type:ty) $path:tt,
             )*
         }
-    };
-    (
-        @expanded;
-        $(
-            $ps_path:tt
-            #[$meta:meta]
-            $variant:ident ($tab_type:ty),
-        )*
     ) => {
         #[derive(strum::EnumIs)]
         pub enum TabEnum {
             $(
-                #[$meta]
                 $variant($tab_type),
             )*
         }
@@ -188,34 +181,30 @@ macro_rules! define_tabs {
             fn before_render(&mut self, contexts: &mut EguiContexts, viewer: &mut TabViewer) {
                 match self {
                     $(
-                        TabEnum::$variant(t) => do_ps_path!(viewer.params.ps.p1(), $ps_path; |p| t.before_render(contexts, p.p0())),
+                        TabEnum::$variant(t) => {
+                            define_tabs_handle_let!(viewer.params.ps.p1(), param, $path);
+                            t.before_render(contexts, param.p0())
+                        },
                     )*
                 }
             }
         }
 
         #[derive(SystemParam)]
-        struct TabViewerParams<'w, 's> {
-            ps: ParamSet<'w, 's, (CommonParams<'w, 's>, recurse_param_set!(
-                'w, 's,
-                $(
-                    (
-                        <$tab_type as Tab>::BeforeRenderSystemParam<'w, 's>,
-                        <$tab_type as Tab>::TitleSystemParam<'w, 's>,
-                        <$tab_type as Tab>::UiSystemParam<'w, 's>,
-                        <$tab_type as Tab>::OnCloseSystemParam<'w, 's>,
-                    ),
-                )*
-            ))>,
+        struct TabViewerParams<$w, $s> {
+            ps: ParamSet<$w, $s, (menu::Params<$w, $s>, $paramset_tuple)>,
         }
 
-        impl<'w, 's> egui_dock::TabViewer for TabViewer<'w, 's> {
+        impl<$w, $s> egui_dock::TabViewer for TabViewer<$w, $s> {
             type Tab = TabState;
 
             fn title(&mut self, tab: &mut TabState) -> WidgetText {
                 match tab.tab {
                     $(
-                        TabEnum::$variant(ref mut t) => do_ps_path!(self.params.ps.p1(), $ps_path; |p| t.title(p.p1())) ,
+                        TabEnum::$variant(ref mut t) => {
+                            define_tabs_handle_let!(self.params.ps.p1(), param, $path);
+                            t.title(param.p1())
+                        }
                     )*
                 }.into()
             }
@@ -227,7 +216,10 @@ macro_rules! define_tabs {
                 let dock = Context { order, id: new_id!(tab.id), location, focused: Some(location) == self.focused_tab };
                 match tab.tab {
                     $(
-                        TabEnum::$variant(ref mut t) => do_ps_path!(self.params.ps.p1(), $ps_path; |p| t.ui(p.p2(), ui, dock)),
+                        TabEnum::$variant(ref mut t) => {
+                            define_tabs_handle_let!(self.params.ps.p1(), param, $path);
+                            t.ui(param.p2(), ui, dock)
+                        }
                     )*
                 }
             }
@@ -243,51 +235,62 @@ macro_rules! define_tabs {
             fn on_close(&mut self, tab: &mut TabState) -> OnCloseResponse {
                 match tab.tab {
                     $(
-                        TabEnum::$variant(ref mut t) => do_ps_path!(self.params.ps.p1(), $ps_path; |p| t.on_close(p.p3())),
+                        TabEnum::$variant(ref mut t) => {
+                            define_tabs_handle_let!(self.params.ps.p1(), param, $path);
+                            t.on_close(param.p3())
+                        }
                     )*
                 }
-            }
-
-            fn add_popup(&mut self, ui: &mut egui::Ui, _: SurfaceIndex, _: NodeIndex) {
-                self.params.ps.p0().add_popup(ui);
             }
         }
     }
 }
 
-macro_rules! do_ps_path {
-    ($ps:expr, $p0:tt; |$var:ident| $closure:expr) => {{
-        let mut ps = $ps;
-        do_ps_path!(@recurse ps, $p0; |$var| $closure)
-    }};
-    (@recurse $ps:expr, (); |$var:ident| $closure:expr) => {{
-        let mut $var = $ps.p1();
-        $closure
-    }};
-    (@recurse $ps:expr, ($p0:ident $($rest:ident)*); |$var:ident| $closure:expr) => {{
-        let $var = $ps.$p0();
-        do_ps_path!($var, ($($rest)*); |$var| $closure)
-    }};
-}
-
-macro_rules! recurse_param_set {
-    ($w:lifetime, $s: lifetime,) => { () };
-    ($w:lifetime, $s: lifetime, $args:tt, $($rest:tt)*) => {
-        ParamSet<'w, 's, (recurse_param_set!($w, $s, $($rest)*), ParamSet<'w, 's, $args>)>
+macro_rules! define_tabs_handle_let {
+    ($ps:expr, $var:ident, ($($path:ident)*)) => {
+        let $var = &mut $ps;
+        $(
+            let mut $var = $var.$path();
+        )*
     }
 }
 
-define_tabs! {
-    /// Startup menu
-    Startup(startup::Tab)
-    /// Level creation menu
-    NewLevel(new_level::Tab)
-    /// Settings
-    Settings(settings::Tab)
-    /// Camera viewport
-    Camera(camera::Tab)
-    /// Info page for a viewable entity.
-    ViewableInfo(viewable_info::Tab)
+macro_rules! define_tabs_item {
+    (
+        [$w:lifetime, $s:lifetime]
+        $message:ident ($tab_type:ty)
+    ) => {
+        ParamSet<$w, $s, (
+            <$tab_type as Tab>::BeforeRenderSystemParam<'w, 's>,
+            <$tab_type as Tab>::TitleSystemParam<'w, 's>,
+            <$tab_type as Tab>::UiSystemParam<'w, 's>,
+            <$tab_type as Tab>::OnCloseSystemParam<'w, 's>,
+        )>
+    };
+}
+
+macro_rules! define_tabs_tuple {
+    (
+        [$w:lifetime, $s:lifetime]
+        $($params:ty,)*
+    ) => {
+        ParamSet<$w, $s, (
+            $($params,)*
+        )>
+    }
+}
+
+fan_out! {
+    ['w, 's]
+    define_tabs, define_tabs_tuple, define_tabs_item;
+    8, 2;
+    Startup(startup::Tab),
+    NewLevel(new_level::Tab),
+    OpenSave(save::OpenTab),
+    Settings(settings::Tab),
+    Camera(camera::Tab),
+    ViewableInfo(viewable_info::Tab),
+    SaveAs(save::SaveAsTab),
 }
 
 fn setup_system(mut egui_global_settings: ResMut<EguiGlobalSettings>, mut commands: Commands) {
@@ -300,10 +303,18 @@ fn setup_system(mut egui_global_settings: ResMut<EguiGlobalSettings>, mut comman
     )); // egui camera
 }
 
-fn render_system(mut contexts: EguiContexts, mut state: ResMut<State>, params: TabViewerParams) {
+fn render_system(
+    mut contexts: EguiContexts,
+    mut state: ResMut<State>,
+    mut params: TabViewerParams,
+) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
 
     egui_material_icons::initialize(ctx);
+
+    egui::TopBottomPanel::top(new_id!()).show(ctx, |ui| {
+        ui.horizontal(|ui| params.ps.p0().show_menu_buttons(ui));
+    });
 
     let focused_node = state.0.focused_leaf();
     let focused_tab = focused_node.and_then(|(surface, node)| {
@@ -334,8 +345,7 @@ fn render_system(mut contexts: EguiContexts, mut state: ResMut<State>, params: T
 
     egui::CentralPanel::default().show(ctx, |ui| {
         DockArea::new(&mut state.0)
-            .show_add_buttons(true)
-            .show_add_popup(true)
+            .show_add_buttons(false)
             .style(egui_dock::Style::from_egui(ui.style().as_ref()))
             .show_inside(ui, &mut viewer);
         viewer.params.ps.p0().global_dock_shortcuts(ui.ctx());
@@ -343,35 +353,31 @@ fn render_system(mut contexts: EguiContexts, mut state: ResMut<State>, params: T
 }
 
 #[derive(SystemParam)]
-struct CommonParams<'w, 's> {
-    commands: Commands<'w, 's>,
+struct MenuParams<'w, 's> {
+    commands:    Commands<'w, 's>,
+    src:         Res<'w, save::LoadSource>,
+    level_state: Res<'w, bevy::state::state::State<LevelState>>,
 }
 
-impl CommonParams<'_, '_> {
-    fn add_popup(&mut self, ui: &mut egui::Ui) {
-        if ui.button("Settings").clicked() {
-            self.open_settings();
-            ui.close();
-        }
-    }
+pub struct DockCommand<F: FnOnce(&mut State)>(pub F);
 
-    fn global_dock_shortcuts(&mut self, ctx: &egui::Context) {
-        ctx.input_mut(|input| {
-            if input.consume_shortcut(&SHORTCUT_SETTINGS) {
-                self.open_settings();
-            }
-        });
-    }
-
-    fn open_settings(&mut self) {
-        self.commands.queue(|world: &mut World| {
-            world.resource_mut::<State>().focus_or_create(
-                || settings::Tab.into(),
-                ReplaceTab(|state| state.tab.is_settings()).or_always(NewWindow),
-            );
-        });
+impl<F: FnOnce(&mut State) + Send + 'static> Command for DockCommand<F> {
+    fn apply(self, world: &mut World) {
+        let mut state = world.resource_mut::<State>();
+        (self.0)(&mut state);
     }
 }
 
-const SHORTCUT_SETTINGS: egui::KeyboardShortcut =
-    egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::Comma);
+fn render_toasts_system(mut contexts: EguiContexts, mut toasts: ResMut<Toasts>) {
+    let Ok(ctx) = contexts.ctx_mut() else { return };
+    toasts.0.show(ctx);
+}
+
+pub fn init_camera_view(world: &mut World) {
+    world
+        .run_system_once(|mut new_camera: camera::NewTabParams, mut dock: ResMut<State>| {
+            let tab = camera::Tab::new(true, "main".into(), &mut new_camera);
+            dock.reset_all(tab.into());
+        })
+        .unwrap();
+}

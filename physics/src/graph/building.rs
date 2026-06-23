@@ -14,15 +14,21 @@ use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
-use crate::graph::{Corridor, Facility, ViewInitSystemSets, corridor, edge, facility};
+use crate::graph::{Facility, ViewInitSystemSets, edge, facility};
+use crate::persist::AppExt;
 use crate::util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt};
 use crate::{Vector, fluid, view};
+
+mod persist;
+pub use persist::Persist;
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Building>();
+
+        app.register_persistable(Persist);
 
         app.add_systems(
             app::Update,

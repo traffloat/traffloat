@@ -48,6 +48,7 @@ pub mod corridor;
 pub use corridor::Corridor;
 
 pub mod edge;
+pub use edge::{BuildingEdges, CorridorEdge, Edge};
 
 pub mod conduit;
 pub use conduit::{Conduit, ConduitType};

@@ -1,10 +1,10 @@
 use bevy::app::{App, Plugin};
-use bevy::ecs::system::{Commands, ResMut, RunSystemOnce, SystemParam};
+use bevy::ecs::system::{Commands, SystemParam};
 use bevy::ecs::world::World;
 use egui_dock::tab_viewer::OnCloseResponse;
 use traffloat_physics::generate;
 
-use crate::dock::{self, camera};
+use crate::dock::{self};
 use crate::scene;
 
 pub struct Plug;
@@ -32,15 +32,7 @@ impl dock::Tab for Tab {
                 generate::generate(world, config);
 
                 scene::singleplayer::setup(world);
-
-                world
-                    .run_system_once(
-                        |mut new_camera: camera::NewTabParams, mut dock: ResMut<dock::State>| {
-                            let tab = camera::Tab::new(true, "main".into(), &mut new_camera);
-                            dock.reset_all(tab.into());
-                        },
-                    )
-                    .unwrap();
+                dock::init_camera_view(world);
             });
         }
     }

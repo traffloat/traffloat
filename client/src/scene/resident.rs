@@ -96,7 +96,9 @@ impl UpdateHandler for NewResidentParams<'_, '_> {
                 let Some((location, dynamic_position)) = entity.world_scope(|world| {
                     let mut state = SystemState::<LocationResolver>::new(world);
                     let resolver = state.get_mut(world);
-                    resolver.resolve(&proto_location)
+                    let resolve_result = resolver.resolve(&proto_location);
+                    state.apply(world);
+                    resolve_result
                 }) else {
                     return;
                 };

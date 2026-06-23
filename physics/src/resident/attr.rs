@@ -5,16 +5,20 @@ use bevy::app::{App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::{Entity, EntityHashSet};
 use bevy::ecs::message::MessageWriter;
-use bevy::ecs::query::Changed;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Command, Commands, Query, Res, SystemParam};
 use bevy::ecs::world::World;
 use bevy::reflect::Reflect;
 use enum_map::EnumMap;
+use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
-use crate::view;
+use crate::persist::AppExt;
+use crate::{CleanupAppExt, view};
+
+mod persist;
+pub use persist::Persist;
 
 pub struct Plug;
 
@@ -23,6 +27,8 @@ impl Plugin for Plug {
         app.register_type::<Types>();
         app.register_type::<Attributes>();
         app.register_type::<LastSentConfig>();
+
+        app.register_persistable(Persist);
 
         app.init_resource::<Types>();
 
@@ -42,6 +48,7 @@ impl Plugin for Plug {
                 .in_set(view::SendUpdatesSystemSet::Incr)
                 .after(super::incr_viewer_system),
         );
+        app.add_cleanup_hook(Types::cleanup_hook);
     }
 }
 
@@ -63,20 +70,40 @@ impl Types {
         id
     }
 
-    pub fn types(&self) -> &[TypeDef] { &self.defs }
-
     pub fn get(&self, ty: TypeId) -> &TypeDef {
         self.defs
             .get(usize::try_from(ty.0).expect("u32 <= usize on all supported targets"))
             .expect("invalid type ID")
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (TypeId, &TypeDef)> {
+        self.defs
+            .iter()
+            .enumerate()
+            .map(|(i, def)| (TypeId(u32::try_from(i).expect("too many attribute types")), def))
+    }
+
+    pub fn len(&self) -> usize { self.defs.len() }
+
+    pub fn is_empty(&self) -> bool { self.defs.is_empty() }
+
+    pub fn cleanup_hook(world: &mut World) {
+        let mut types = world.resource_mut::<Types>();
+        types.defs.clear();
+        for niche in types.niches.values_mut() {
+            *niche = None;
+        }
+        types.generation.0 = 0;
+    }
 }
 
 /// Identifies an attribute type, indexes [`Types::types`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Reflect,
+)]
 pub struct TypeId(pub u32);
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct TypeDef {
     pub name:          String,
     pub default_value: f32,
@@ -89,7 +116,7 @@ impl TypeDef {
 }
 
 /// Indicates that the attribute has special semantics.
-#[derive(Reflect, enum_map::Enum)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect, enum_map::Enum)]
 pub enum Niche {
     /// The attribute value should be treated literally as the volume ocucpied.
     Volume,

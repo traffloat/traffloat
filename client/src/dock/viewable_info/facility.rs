@@ -1,11 +1,10 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
-use egui_material_icons::icons;
 use traffloat_physics::util::QueryExt;
 
+use crate::dock;
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
-use crate::dock::{self, viewable_info};
 use crate::scene::building::FluidConnectionPeer;
 use crate::scene::conduit::ConduitCorridor;
 use crate::scene::{FluidTypes, GenericViewable, IdRegistry, ProtoId, building, facility};

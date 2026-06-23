@@ -12,12 +12,14 @@ use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
-use crate::graph::Building;
+use crate::persist::AppExt;
 use crate::util::{AllSystemSets, QueryExt, SliceGet};
 use crate::{graph, view};
 
 pub mod attr;
-pub use attr::Attributes;
+pub use attr::{Attributes, Persist as PersistAttrTypes};
+mod persist;
+pub use persist::Persist;
 
 pub struct Plug;
 
@@ -31,6 +33,7 @@ impl Plugin for Plug {
         app.register_type::<InteractingResidents>();
         app.register_type::<NextResidentId>();
 
+        app.register_persistable(Persist);
         app.init_resource::<NextResidentId>();
         app.init_resource::<Conf>();
 
@@ -103,7 +106,7 @@ pub struct InteractionSlot {
 ///
 /// Component on residents, only when they are interacting with a facility.
 /// Removed when the interaction stops.
-#[derive(Component, Reflect)]
+#[derive(Debug, Component, Reflect)]
 #[relationship(relationship_target = InteractingResidents)]
 pub struct InteractingWith {
     #[relationship]
@@ -137,7 +140,12 @@ impl Default for Conf {
     fn default() -> Self { Self { standard_walking_speed: 1.0 } }
 }
 
-pub enum SpawnCommand {
+pub struct SpawnCommand {
+    pub name: Option<String>,
+    pub at:   SpawnAt,
+}
+
+pub enum SpawnAt {
     Building { building: Entity, interior_pos: Vec3 },
     Corridor { corridor: Entity, distance_from_alpha: f32 },
     Facility { facility: Entity, slot_index: usize },
@@ -145,25 +153,28 @@ pub enum SpawnCommand {
 
 impl EntityCommand for SpawnCommand {
     fn apply(self, mut entity: EntityWorldMut) {
-        let id = entity.resource_mut::<NextResidentId>().next();
+        let name = self.name.unwrap_or_else(|| {
+            let id = entity.resource_mut::<NextResidentId>().next();
+            format!("#{id}")
+        });
 
         let attrs: Vec<_> =
-            entity.resource::<attr::Types>().types().iter().map(|ty| ty.default_value).collect();
+            entity.resource::<attr::Types>().iter().map(|(_ty, def)| def.default_value).collect();
 
         entity.insert((
-            Name::new(format!("Resident #{id}")),
-            Resident { name: format!("#{id}") },
+            Name::new(format!("Resident {name}")),
+            Resident { name },
             Attributes { values: attrs.into_boxed_slice() },
         ));
 
-        match self {
-            Self::Building { building, interior_pos } => {
+        match self.at {
+            SpawnAt::Building { building, interior_pos } => {
                 entity.insert(Location::Building { entity: building, interior_pos });
             }
-            Self::Corridor { corridor, distance_from_alpha } => {
+            SpawnAt::Corridor { corridor, distance_from_alpha } => {
                 entity.insert(Location::Corridor { entity: corridor, distance_from_alpha });
             }
-            Self::Facility { facility, slot_index } => {
+            SpawnAt::Facility { facility, slot_index } => {
                 entity.insert((
                     Location::Facility { entity: facility },
                     InteractingWith { facility, slot_index },

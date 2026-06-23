@@ -10,15 +10,19 @@ use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query, SystemState};
-use bevy::ecs::world::{EntityWorldMut, World};
+use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
 use crate::graph::conduit::{self, ListOnCorridor};
 use crate::graph::{Building, Conduit, ViewInitSystemSets, building, edge};
+use crate::persist::AppExt;
 use crate::util::{Alpha, AlphaBeta, Beta, EntityWorldMutExt, Which, WorldExt};
 use crate::{Vector, fluid, view};
+
+mod persist;
+pub use persist::Persist;
 
 pub struct Plug;
 
@@ -27,6 +31,7 @@ impl Plugin for Plug {
         app.register_type::<NextCorridorId>();
         app.register_type::<Corridor>();
 
+        app.register_persistable(Persist);
         app.init_resource::<NextCorridorId>();
         app.add_systems(
             app::Update,
@@ -59,7 +64,6 @@ struct NextCorridorId(u64);
 pub struct SpawnCommand {
     pub name:               Option<String>,
     pub endpoint_positions: AlphaBeta<Vector>,
-    pub length:             f32,
     pub radius:             f32,
     pub wall_thickness:     f32,
 }
@@ -75,11 +79,12 @@ impl EntityCommand for SpawnCommand {
             })
         });
         let ambient_area = self.radius * self.radius * PI;
+        let length = self.endpoint_positions.net_diff().length();
         entity.insert((
             Name::new(format!("Corridor {name}")),
             Corridor {
                 name,
-                length: self.length,
+                length,
                 radius: self.radius,
                 wall_thickness: self.wall_thickness,
                 ambient_area,
@@ -91,7 +96,7 @@ impl EntityCommand for SpawnCommand {
         // ambient conduit
         entity.reborrow_scope(|entity| {
             fluid::AddStorageCommand {
-                volume:         ambient_area * self.length,
+                volume:         ambient_area * length,
                 optical_length: self.radius,
             }
             .apply(entity);
@@ -138,6 +143,7 @@ fn recompute_culling_rect(mut entity: EntityWorldMut) {
             let mut state = SystemState::<building::RecomputeCullingRectParams>::new(world);
             let params = state.get_mut(world);
             building::recompute_culling_rect(params, building);
+            state.apply(world);
         });
     }
 

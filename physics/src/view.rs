@@ -6,16 +6,16 @@ use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::{Entity, EntityHashMap, EntityHashSet};
 use bevy::ecs::message::{Message, MessageWriter};
-use bevy::ecs::query::{QueryData, QueryFilter};
 use bevy::ecs::resource::Resource;
-use bevy::ecs::schedule::{IntoScheduleConfigs, ScheduleConfigs, SystemSet};
-use bevy::ecs::system::{EntityCommand, Query, ScheduleSystem, SystemParam};
+use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
+use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use bevy::time;
 use enum_map::EnumMap;
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use traffloat_proto::proto;
 
@@ -117,7 +117,18 @@ pub enum SubscriptionConfig {
 
 /// How much information a viewer receives about a specific viewable.
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enum_map::Enum, strum::EnumIter, Reflect,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    enum_map::Enum,
+    strum::EnumIter,
+    Serialize,
+    Deserialize,
+    Reflect,
 )]
 pub enum SubscriptionLevel {
     Optical,

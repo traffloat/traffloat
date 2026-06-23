@@ -4,20 +4,31 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{Local, Query, Res, SystemParam};
+use bevy::ecs::world::World;
 use bevy::math::FloatExt;
 use bevy::reflect::Reflect;
 use enum_dispatch::enum_dispatch;
+use serde::{Deserialize, Serialize};
 
-use crate::fluid;
+use crate::persist::AppExt;
 use crate::util::{QueryExt, SliceGet};
+use crate::{CleanupAppExt, fluid};
+
+mod persist;
+pub use persist::Persist;
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        app.register_type::<Facility>();
+
+        app.register_persistable(Persist);
+
         app.init_resource::<Types>();
         app.init_resource::<Conf>();
         app.add_systems(app::FixedUpdate, execute_system.in_set(ExecuteSystemSet));
+        app.add_cleanup_hook(Types::cleanup_hook);
     }
 }
 
@@ -86,7 +97,7 @@ fn execute_once(reactor: &Facility, def: &TypeDef, params: &mut ExecuteSystemPar
 }
 
 /// Component on facilities.
-#[derive(Component)]
+#[derive(Debug, Component, Reflect)]
 pub struct Facility {
     pub id:             TypeId,
     /// The maximum efficiency as configured by the player.
@@ -94,11 +105,14 @@ pub struct Facility {
     pub ports:          Ports,
 }
 
+#[derive(Debug, Reflect)]
 pub struct Ports {
     pub fluid_storages: Vec<Option<Entity>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Reflect,
+)]
 pub struct TypeId(pub u32);
 
 #[derive(Resource, Default, Reflect)]
@@ -117,10 +131,19 @@ impl Types {
         self.types.push(def);
         TypeId(id)
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (TypeId, &TypeDef)> {
+        self.types
+            .iter()
+            .enumerate()
+            .map(|(i, def)| (TypeId(u32::try_from(i).expect("too many reactor types")), def))
+    }
+
+    fn cleanup_hook(world: &mut World) { world.resource_mut::<Types>().types.clear(); }
 }
 
 /// A component on facilities.
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct TypeDef {
     pub inputs:    Vec<Input>,
     pub outputs:   Vec<Output>,
@@ -128,7 +151,7 @@ pub struct TypeDef {
 }
 
 /// A reference to an entry in [`Ports::fluid_storages`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Reflect)]
 pub struct FluidStorageRef(pub u32);
 
 #[enum_dispatch]
@@ -170,7 +193,7 @@ impl EfficiencyModifierResult {
     pub fn to_scalar(&self) -> f32 { self.multiplier.min(self.maximum) }
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 #[enum_dispatch(EfficiencyModifier)]
 #[enum_dispatch(ReactionExecutor)]
 pub enum Input {
@@ -183,7 +206,7 @@ pub enum Input {
     Heat(HeatInput),
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct FluidInput {
     /// The storage entity to take fluid from.
     pub storage:        FluidStorageRef,
@@ -240,7 +263,7 @@ impl ReactionExecutor for FluidInput {
     }
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct HeatInput {
     /// The storage entity to take heat from.
     pub storage:        FluidStorageRef,
@@ -292,14 +315,14 @@ impl ReactionExecutor for HeatInput {
     }
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 #[enum_dispatch(ReactionExecutor)]
 pub enum Output {
     Fluid(FluidOutput),
     Temperature(TemperatureOutput),
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct FluidOutput {
     /// The storage entity to put fluid into.
     pub storage:  FluidStorageRef,
@@ -325,7 +348,7 @@ impl ReactionExecutor for FluidOutput {
     }
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct TemperatureOutput {
     /// The storage entity to put heat into.
     pub storage:  FluidStorageRef,
@@ -348,7 +371,7 @@ impl ReactionExecutor for TemperatureOutput {
     }
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 #[enum_dispatch(EfficiencyModifier)]
 pub enum Catalyst {
     Fluid(FluidCatalyst),
@@ -356,7 +379,7 @@ pub enum Catalyst {
     Temperature(TemperatureCatalyst),
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct FluidCatalyst {
     /// The storage entity to check.
     pub storage:        FluidStorageRef,
@@ -388,7 +411,7 @@ impl EfficiencyModifier for FluidCatalyst {
     }
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct PressureCatalyst {
     /// The fluid storage entity to check.
     pub storage:            FluidStorageRef,
@@ -417,7 +440,7 @@ impl EfficiencyModifier for PressureCatalyst {
     }
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct TemperatureCatalyst {
     /// The fluid storage entity to check.
     pub storage:        FluidStorageRef,
@@ -446,7 +469,7 @@ impl EfficiencyModifier for TemperatureCatalyst {
     }
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct Threshold {
     /// The interpolation curve to use between the min and max input.
     pub curve:         Curve,
@@ -501,7 +524,7 @@ impl Threshold {
     }
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub enum ThresholdModifierType {
     /// This threshold multiplies the efficiency by the output of the curve.
     Multiplier,
@@ -509,7 +532,7 @@ pub enum ThresholdModifierType {
     Maximum,
 }
 
-#[derive(Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub enum Curve {
     /// Linear slope within input range, constant beyond.
     Linear {

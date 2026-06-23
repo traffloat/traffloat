@@ -1,9 +1,8 @@
 use bevy::app::{App, Plugin};
 use bevy::ecs::system::Commands;
-use bevy::ecs::world::World;
 use egui_dock::tab_viewer::OnCloseResponse;
 
-use crate::dock::{self, TabPlacement, new_level};
+use crate::dock::{self, DockCommand, TabPlacement, new_level, save};
 
 pub struct Plug;
 
@@ -27,13 +26,22 @@ impl dock::Tab for Tab {
         ui.vertical_centered(|ui| {
             ui.heading("Traffloat");
             if ui.button("New game").clicked() {
-                commands.queue(|world: &mut World| {
-                    world.resource_mut::<dock::State>().focus_or_create(
+                commands.queue(DockCommand(|dock| {
+                    dock.focus_or_create(
                         || new_level::Tab.into(),
                         dock::ReplaceTab(|state| state.tab.is_new_level())
                             .or_always(dock::NewWindow),
                     );
-                });
+                }));
+            }
+            if ui.button("Load game").clicked() {
+                commands.queue(DockCommand(|dock| {
+                    dock.focus_or_create(
+                        || save::OpenTab::default().into(),
+                        dock::ReplaceTab(|state| state.tab.is_open_save())
+                            .or_always(dock::NewWindow),
+                    );
+                }));
             }
         });
     }

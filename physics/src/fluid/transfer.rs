@@ -1,23 +1,14 @@
-use std::{iter, ops};
+use std::iter;
 
-use bevy::app::{self, App, Plugin};
-use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::message::MessageWriter;
-use bevy::ecs::query::{QueryData, With};
-use bevy::ecs::resource::Resource;
-use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
-use bevy::ecs::system::{Command, Commands, EntityCommand, Local, Query, Res, SystemParam};
-use bevy::ecs::world::{EntityWorldMut, World};
-use bevy::reflect::Reflect;
-use traffloat_proto::proto;
+use bevy::ecs::query::QueryData;
+use bevy::ecs::system::{Local, Query, Res, SystemParam};
 
 use super::{
     AlphaOfEdgeList, BetaOfEdgeList, Conf, DIFFUSION_COEFFICIENT, Edge, EdgeAlpha, EdgeBeta,
     Energy, Moles, PRESSURE_COEFFICIENT, Storage, TypeId, Types,
 };
 use crate::util::{AlphaBeta, QueryExt};
-use crate::view;
 
 #[derive(QueryData)]
 #[query_data(mutable)]

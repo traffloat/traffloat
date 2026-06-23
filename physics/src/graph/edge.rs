@@ -31,8 +31,12 @@ use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
 use crate::graph::{Building, Corridor};
+use crate::persist::AppExt;
 use crate::util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt};
 use crate::{fluid, view};
+
+mod persist;
+pub use persist::Persist;
 
 pub struct Plug;
 
@@ -49,6 +53,8 @@ impl Plugin for Plug {
 
         register_ab::<Alpha>(app);
         register_ab::<Beta>(app);
+
+        app.register_persistable(Persist);
 
         app.add_systems(
             app::Update,

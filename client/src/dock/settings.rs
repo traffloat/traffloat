@@ -1,4 +1,7 @@
-use crate::dock;
+use bevy::ecs::system::Commands;
+use egui_material_icons::icons;
+
+use crate::dock::{self, DockCommand, TabPlacement, menu};
 
 pub struct Tab;
 
@@ -14,4 +17,30 @@ impl dock::Tab for Tab {
     type OnCloseSystemParam<'w, 's> = ();
 
     type BeforeRenderSystemParam<'w, 's> = ();
+}
+
+#[derive(Default)]
+pub struct MenuAction;
+
+impl menu::Action for MenuAction {
+    fn shortcut(&self) -> egui::KeyboardShortcut {
+        egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::Comma)
+    }
+
+    fn icon(&self) -> &'static str { icons::ICON_SETTINGS }
+
+    fn text_label(&self) -> String { "Settings".into() }
+
+    type Params<'w, 's> = Commands<'w, 's>;
+
+    fn precondition(&self, _: &Commands) -> bool { true }
+
+    fn execute(&self, commands: &mut Commands) {
+        commands.queue(DockCommand(|dock| {
+            dock.focus_or_create(
+                || Tab.into(),
+                dock::ReplaceTab(|state| state.tab.is_settings()).or_always(dock::NewWindow),
+            );
+        }));
+    }
 }

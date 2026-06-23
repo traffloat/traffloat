@@ -1,19 +1,28 @@
 use bevy::app::{App, Plugin};
-use bevy::ecs::component::Component;
 use bevy::math::Vec2;
 
+/// Used by logic that depends on whether the graph layout is 2D or 3D.
 pub type Vector = Vec2;
 
 #[macro_use]
 pub mod util;
 
+// Framework modules
+pub mod persist;
+pub mod request;
+pub mod view;
+
+mod cleanup;
+pub use crate::cleanup::{CleanupAppExt, CleanupHooks, WorldObject};
+
+// Domain-specific modules
 pub mod fluid;
-pub mod generate;
 pub mod graph;
 pub mod reactor;
-pub mod request;
 pub mod resident;
-pub mod view;
+
+// Domain-aware modules
+pub mod generate;
 
 #[cfg(any(rust_analyzer, doc))]
 pub mod docs;
@@ -22,6 +31,10 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
+        app.init_resource::<CleanupHooks>();
+        app.add_cleanup_hook(WorldObject::cleanup_hook);
+
+        app.add_plugins(persist::Plug);
         app.add_plugins(view::Plug);
         app.add_plugins(graph::Plug);
         app.add_plugins(fluid::Plug);
@@ -30,10 +43,3 @@ impl Plugin for Plug {
         app.add_plugins(request::Plug);
     }
 }
-
-/// Marker component for a root entity in the physics simulation.
-///
-/// All physics entities that do not have a `linked_spawn` relationship must have this component
-/// to facilitate proper teardown when the physics world is unloaded.
-#[derive(Component)]
-pub struct WorldObject;

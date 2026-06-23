@@ -7,14 +7,11 @@ use bevy::camera::Camera;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::{Message, MessageReader, MessageWriter};
-use bevy::ecs::name::Name;
 use bevy::ecs::query::With;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{ApplyDeferred, IntoScheduleConfigs, ScheduleConfigs, SystemSet};
-use bevy::ecs::system::{
-    Commands, ParamSet, Query, Res, ResMut, ScheduleSystem, Single, SystemParam,
-};
-use bevy::ecs::world::{EntityWorldMut, World};
+use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, ScheduleSystem, SystemParam};
+use bevy::ecs::world::EntityWorldMut;
 use bevy::math::Rect;
 use bevy::reflect::Reflect;
 use bevy::state::app::AppExtStates;
@@ -24,8 +21,8 @@ use bevy_mod_config::{AppExt, Config, ReadConfig};
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 use traffloat_macro_util::fan_out;
+use traffloat_physics::util;
 use traffloat_physics::util::QueryExt;
-use traffloat_physics::{request, util};
 use traffloat_proto::proto;
 
 use crate::dock::camera::WorldCamera;
@@ -79,7 +76,7 @@ impl Plugin for Plug {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States, strum::EnumIs)]
 pub enum LevelState {
     #[default]
     Menu,

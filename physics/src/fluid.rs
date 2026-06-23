@@ -1,22 +1,25 @@
-use std::{iter, ops};
+use std::ops;
 
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
-use bevy::ecs::query::{QueryData, With};
+use bevy::ecs::query::With;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
-use bevy::ecs::system::{Command, Commands, EntityCommand, Local, Query, Res};
+use bevy::ecs::system::{Command, Commands, EntityCommand, Query, Res};
 use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::reflect::Reflect;
+use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
-use crate::util::{AlphaBeta, QueryExt};
-use crate::view;
+use crate::persist::AppExt;
+use crate::{CleanupAppExt, view};
 
-#[cfg(test)]
-mod tests;
+pub mod persist;
+
+mod persist_type;
+pub use persist_type::Persist as PersistTypes;
 mod transfer;
 
 /// A constant equivalent to the ideal gas constant, used for pressure calculation.
@@ -40,6 +43,8 @@ impl Plugin for Plug {
         app.register_type::<Sensor>();
         app.register_type::<ViewerSynced>();
 
+        app.register_persistable(PersistTypes);
+
         app.init_resource::<Conf>();
         app.init_resource::<Types>();
 
@@ -48,6 +53,7 @@ impl Plugin for Plug {
             app::Update,
             sync_types_to_viewers_system.in_set(view::SendUpdatesSystemSet::Meta),
         );
+        app.add_cleanup_hook(Types::cleanup_hook);
     }
 }
 
@@ -72,6 +78,8 @@ impl Default for Conf {
     Default,
     PartialEq,
     PartialOrd,
+    Serialize,
+    Deserialize,
     derive_more::Add,
     derive_more::AddAssign,
     derive_more::Sub,
@@ -95,6 +103,8 @@ impl ops::Mul<f32> for Moles {
     Default,
     PartialEq,
     PartialOrd,
+    Serialize,
+    Deserialize,
     derive_more::Add,
     derive_more::AddAssign,
     derive_more::Sub,
@@ -110,7 +120,12 @@ impl ops::Mul<f32> for Energy {
 }
 
 /// Identifies a fluid type, indexes [`Types::types`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Reflect)]
+///
+/// Unlike [`Entity`], this is a stable identifier that is exactly restored
+/// across network sync and persistence.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Reflect,
+)]
 pub struct TypeId(pub u32);
 
 #[derive(Resource, Reflect, Default)]
@@ -129,6 +144,15 @@ impl Types {
         self.types.push(type_def);
         TypeId(id)
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (TypeId, &TypeDef)> {
+        self.types
+            .iter()
+            .enumerate()
+            .map(|(i, t)| (TypeId(u32::try_from(i).expect("too many fluid types")), t))
+    }
+
+    fn cleanup_hook(world: &mut World) { world.resource_mut::<Types>().types.clear(); }
 }
 
 pub struct AddTypeCommand {
@@ -156,7 +180,7 @@ impl Command for AddTypeCommand {
     }
 }
 
-#[derive(Debug, Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct TypeDef {
     pub name:                 String,
     /// Heat energy per mole.
@@ -483,3 +507,6 @@ fn sync_types_to_viewers_system(
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

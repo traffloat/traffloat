@@ -19,8 +19,12 @@ use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
 use crate::graph::{Conduit, Corridor, Facility, ViewInitSystemSets, conduit, facility};
+use crate::persist::AppExt;
 use crate::util::{QueryExt, WorldExt};
 use crate::{fluid, view};
+
+mod persist;
+pub use persist::Persist;
 
 pub struct Plug;
 
@@ -36,6 +40,7 @@ impl Plugin for Plug {
         app.register_type::<ToPipe>();
         app.register_type::<ListOnPipe>();
 
+        app.register_persistable(Persist);
         app.add_systems(
             app::Update,
             init_viewer_system

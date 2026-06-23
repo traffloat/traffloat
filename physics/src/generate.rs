@@ -366,7 +366,6 @@ fn spawn_corridor(
             name: None,
             endpoint_positions,
             radius,
-            length: endpoint_positions.net_diff().length(),
             wall_thickness: STANDARD_WALL_THICKNESS,
         }
         .apply(corridor);
@@ -427,14 +426,22 @@ fn connect_facility_pipe(world: &mut World, facility: Entity, pipe: Entity) {
 fn spawn_resident_in_building(world: &mut World, building: Entity) {
     let mut resident = world.spawn((WorldObject,));
     resident.reborrow_scope(|resident| {
-        resident::SpawnCommand::Building { building, interior_pos: Vec3::ZERO }.apply(resident);
+        resident::SpawnCommand {
+            name: None,
+            at:   resident::SpawnAt::Building { building, interior_pos: Vec3::ZERO },
+        }
+        .apply(resident);
     });
 }
 
 fn spawn_resident_in_facility_slot(world: &mut World, facility: Entity, slot_index: usize) {
     let mut resident = world.spawn((WorldObject,));
     resident.reborrow_scope(|resident| {
-        resident::SpawnCommand::Facility { facility, slot_index }.apply(resident);
+        resident::SpawnCommand {
+            name: None,
+            at:   resident::SpawnAt::Facility { facility, slot_index },
+        }
+        .apply(resident);
     });
 }
 

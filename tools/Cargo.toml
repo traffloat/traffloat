@@ -1,0 +1,19 @@
+[package]
+name = "traffloat-tools"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[dependencies]
+ciborium = "0.2.2"
+clap = { version = "4.6.1", features = ["cargo", "derive", "env", "unstable-markdown"] }
+indexmap = { version = "2.14.0", features = ["serde"] }
+rootcause = "0.13.0"
+serde_json = "1.0.150"
+zstd = "0.13.3"
+
+[lints]
+workspace = true

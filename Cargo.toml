@@ -3,7 +3,7 @@ members = [
     "macro-util",
     "proto",
     "physics",
-    "client",
+    "client", "tools",
 ]
 resolver = "3"
 
@@ -60,6 +60,10 @@ used_underscore_binding = "allow"
 
 # Often triggered by coincidence on SystemParam structs with only queries
 struct_field_names = "allow"
+enum_variant_names = "allow"
+
+# Used in Persistable::output for internal errors logged separately
+result_unit_err = "allow"
 
 # Allowed during dev, checked during precommit
 dbg_macro = "allow"

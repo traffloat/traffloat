@@ -1,5 +1,3 @@
-use std::iter;
-
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
@@ -10,15 +8,21 @@ use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
-use itertools::Either;
+use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
 use crate::graph::{Building, ViewInitSystemSets, building};
+use crate::persist::AppExt;
 use crate::util::{QueryExt, WorldExt};
-use crate::{fluid, reactor, resident, view};
+use crate::{fluid, view};
 
 pub mod blueprint;
 pub use blueprint::Blueprint;
+
+mod persist;
+pub use persist::Persist;
+mod persist_types;
+pub use persist_types::Persist as PersistTypes;
 
 pub struct Plug;
 
@@ -29,6 +33,10 @@ impl Plugin for Plug {
         app.register_type::<OfBuilding>();
         app.register_type::<FacilityTypeInstances>();
         app.register_type::<FacilityType>();
+        app.register_type::<FacilityTypeDef>();
+
+        app.register_persistable(Persist);
+        app.register_persistable(PersistTypes);
 
         app.add_systems(
             app::Update,
@@ -72,13 +80,14 @@ pub struct FacilityTypeInstances(Vec<Entity>);
 pub struct FacilityType(pub Entity);
 
 /// Describes a facility type. Component on facility types.
-#[derive(Component)]
+#[derive(Debug, Clone, Serialize, Deserialize, Component, Reflect)]
 pub struct FacilityTypeDef {
     pub display_name: String,
     pub volume:       f32,
     pub sprite_id:    String,
 
     /// Blueprint for constructing this facility type.
+    #[reflect(ignore, default)]
     pub blueprint: Blueprint,
 }
 
@@ -123,65 +132,8 @@ impl EntityCommand for SpawnCommand {
         });
 
         let Some(def) = entity.world().log_get::<FacilityTypeDef>(self.ty) else { return };
-        let exec_fluid = insert_fluid(&def.blueprint);
-        let exec_reactor = insert_reactor(&def.blueprint, &self.blueprint_params);
-        let exec_interaction_slots = insert_interaction_slots(&def.blueprint);
-
-        if let Some(f) = exec_fluid {
-            f(&mut entity);
-        }
-        if let Some(f) = exec_reactor {
-            f(&mut entity);
-        }
-        if let Some(f) = exec_interaction_slots {
-            f(&mut entity);
-        }
+        def.blueprint.populate(&self.blueprint_params)(&mut entity);
     }
-}
-
-fn insert_fluid(bp: &Blueprint) -> Option<impl FnOnce(&mut EntityWorldMut) + use<>> {
-    let def = bp.fluid_storage.as_ref()?;
-    let command =
-        fluid::AddStorageCommand { volume: def.volume, optical_length: def.optical_length };
-    Some(move |entity: &mut EntityWorldMut| {
-        entity.reborrow_scope(|entity| command.apply(entity));
-    })
-}
-
-fn insert_reactor(
-    bp: &Blueprint,
-    params: &blueprint::Params,
-) -> Option<impl FnOnce(&mut EntityWorldMut) + use<>> {
-    let def = bp.reactor.as_ref()?;
-    let params = try_log!(params.reactor.as_ref(), expect "reactor blueprint expects reactor params" or return None);
-    let reactor = reactor::Facility {
-        id:             def.ty,
-        efficiency_cap: 1.0,
-        ports:          reactor::Ports { fluid_storages: params.fluid_storages.clone() },
-    };
-    Some(move |entity: &mut EntityWorldMut| {
-        entity.insert(reactor);
-    })
-}
-
-fn insert_interaction_slots(bp: &Blueprint) -> Option<impl FnOnce(&mut EntityWorldMut) + use<>> {
-    if bp.interaction_slots.is_empty() {
-        return None;
-    }
-    let slots = resident::InteractionSlots {
-        slots: bp
-            .interaction_slots
-            .iter()
-            .map(|slot| resident::InteractionSlot {
-                name:     slot.name.clone(),
-                capacity: slot.capacity,
-                usage:    0,
-            })
-            .collect(),
-    };
-    Some(move |entity: &mut EntityWorldMut| {
-        entity.insert(slots);
-    })
 }
 
 fn init_viewer_system(

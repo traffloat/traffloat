@@ -10,9 +10,6 @@ use std::f32::consts::{FRAC_1_SQRT_2, SQRT_2};
 use bevy::math::Vec3;
 use bevy::transform::components::Transform;
 
-#[cfg(test)]
-mod tests;
-
 /// Compute the placement of n squares within a circle of radius 1 centered at origin.
 ///
 /// `n` must be a positive number.
@@ -69,3 +66,6 @@ fn make_transform(x: usize, y: usize, cols: usize, rows: usize, side: f32) -> Tr
 fn midpt_1d(total: usize, index: usize) -> f32 {
     (2.0 * (index as f32) + 1.0) / (total as f32) - 1.0
 }
+
+#[cfg(test)]
+mod tests;

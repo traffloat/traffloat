@@ -66,6 +66,9 @@
 //! - Corridor
 //!
 //! # Facility Type
+//! Components:
+//! - [`graph::FacilityTypeDef`]
+//!
 //! Parent of:
 //! - Facility
 //!
