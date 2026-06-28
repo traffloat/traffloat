@@ -8,7 +8,9 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{self, IntoScheduleConfigs, Schedulable, ScheduleConfigs};
 use bevy::ecs::system::{Command, Commands, ParamSet, Res, ResMut, RunSystemOnce, SystemParam};
 use bevy::ecs::world::World;
-use bevy_egui::{EguiContexts, EguiGlobalSettings, EguiPreUpdateSet, EguiPrimaryContextPass, PrimaryEguiContext};
+use bevy_egui::{
+    EguiContexts, EguiGlobalSettings, EguiPreUpdateSet, EguiPrimaryContextPass, PrimaryEguiContext,
+};
 use egui::WidgetText;
 use egui_dock::tab_viewer::OnCloseResponse;
 use egui_dock::{DockArea, DockState, TabPath};
@@ -37,7 +39,12 @@ impl Plugin for Plug {
         app.init_resource::<State>();
         app.init_resource::<Toasts>();
         app.add_systems(app::Startup, setup_system);
-        app.add_systems(app::PreUpdate, init_egui_system.after(EguiPreUpdateSet::InitContexts).before(EguiPreUpdateSet::BeginPass));
+        app.add_systems(
+            app::PreUpdate,
+            init_egui_system
+                .after(EguiPreUpdateSet::InitContexts)
+                .before(EguiPreUpdateSet::BeginPass),
+        );
         app.add_systems(EguiPrimaryContextPass, (render_system, render_toasts_system).chain());
     }
 }
@@ -46,7 +53,7 @@ impl Plugin for Plug {
 pub struct State(DockState<TabState>);
 
 #[derive(Resource, Default)]
-pub struct Toasts(egui_notify::Toasts);
+pub struct Toasts(pub egui_notify::Toasts);
 
 pub struct TabState {
     id:       u32,

@@ -199,10 +199,11 @@ impl<P: Persistable> PersistableDyn for P {
 
     #[tracing::instrument(skip_all, fields(ty = self.id().into().as_ref()))]
     fn output(&self, world: &mut World, ctx: &mut OutputContext) -> Result<Vec<u8>, ()> {
-        let output = run_stateless_closure_explicit::<<P as Persistable>::OutputParams<'_, '_>, _, _>(
-            world,
-            |mut param| Persistable::output(self, &mut param, ctx),
-        )?;
+        let output = run_stateless_closure_explicit::<
+            <P as Persistable>::OutputParams<'_, '_>,
+            _,
+            _,
+        >(world, |mut param| Persistable::output(self, &mut param, ctx))?;
         let mut buf = Vec::new();
         match ciborium::into_writer(&output, &mut buf) {
             Ok(()) => {

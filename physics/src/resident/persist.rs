@@ -12,7 +12,7 @@ use crate::graph::{building, corridor, facility};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
 use crate::resident::Resident;
 use crate::util::EntityWorldMutExt;
-use crate::{WorldObject, persist, resident};
+use crate::{WorldObject, persist, resident, view};
 
 #[derive(Clone)]
 pub struct Persist;
@@ -43,7 +43,7 @@ impl Persistable for Persist {
             .map(|data| {
                 Ok(Entry {
                     id:       ctx.alloc(data.entity),
-                    name:     data.resident.name.clone(),
+                    name:     data.named.name.clone(),
                     attrs:    data.attrs.values.clone().into(),
                     location: match *data.location {
                         resident::Location::Building { entity, interior_pos } => {
@@ -152,6 +152,7 @@ struct OutputQueryData {
     resident:    &'static Resident,
     location:    &'static resident::Location,
     attrs:       &'static resident::Attributes,
+    named:       &'static view::Named,
     interaction: Option<&'static resident::InteractingWith>,
 }
 

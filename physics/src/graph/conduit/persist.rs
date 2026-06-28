@@ -10,7 +10,7 @@ use snafu::Snafu;
 use crate::graph::{Conduit, ConduitType, conduit, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
 use crate::util::EntityWorldMutExt;
-use crate::{WorldObject, fluid, persist};
+use crate::{WorldObject, fluid, persist, view};
 
 #[derive(Clone)]
 pub struct Persist;
@@ -37,7 +37,7 @@ impl Persistable for Persist {
                 Ok(Entry {
                     id:       ctx.alloc(data.entity),
                     corridor: ctx.get_id(data.corridor.0)?,
-                    name:     data.conduit.name.clone(),
+                    name:     data.named.name.clone(),
                     radius:   data.conduit.radius,
                     ty:       data.conduit.ty,
                     fluid:    data.fluid.map(fluid::persist::StorageEntry::from_component),
@@ -94,6 +94,7 @@ struct OutputQueryData {
     entity:   Entity,
     corridor: &'static conduit::OfCorridor,
     conduit:  &'static Conduit,
+    named:    &'static view::Named,
     fluid:    Option<&'static fluid::Storage>,
 }
 

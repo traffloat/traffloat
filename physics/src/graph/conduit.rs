@@ -47,7 +47,6 @@ impl Plugin for Plug {
 
 #[derive(Component, Reflect)]
 pub struct Conduit {
-    pub name:   String,
     pub radius: f32,
     pub ty:     ConduitType,
 }
@@ -93,13 +92,13 @@ impl EntityCommand for SpawnCommand {
         entity.insert((
             Name::new("Conduit"),
             Conduit {
-                name:   self.name,
                 radius: self.radius,
                 ty:     match self.typed {
                     TypedSpawn::FluidPipe => ConduitType::FluidPipe,
                 },
             },
             OfCorridor(self.corridor),
+            view::Named { name: self.name },
             corridor_rect,
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
@@ -120,17 +119,27 @@ impl EntityCommand for SpawnCommand {
     }
 }
 
+pub struct DespawnCommand;
+
+impl EntityCommand for DespawnCommand {
+    type Out = ();
+    fn apply(self, mut entity: EntityWorldMut) {
+        view::before_viewable_despawn(&mut entity);
+        entity.despawn();
+    }
+}
+
 fn init_viewer_system(
-    conduit_query: Query<(&Conduit, &view::Viewable, &OfCorridor)>,
+    conduit_query: Query<(&Conduit, &view::Named, &view::Viewable, &OfCorridor)>,
     corridor_query: Query<&view::Viewable, With<Corridor>>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (conduit, viewable, &OfCorridor(corridor_entity)) in conduit_query {
+    for (conduit, named, viewable, &OfCorridor(corridor_entity)) in conduit_query {
         messages.write_batch(viewable.broadcast_new(|| {
             let corridor_viewable = corridor_query.log_get(corridor_entity)?;
             Some(proto::Update::NewConduit(proto::NewConduit {
                 id:       viewable.id,
-                name:     conduit.name.clone(),
+                name:     named.name.clone(),
                 corridor: corridor_viewable.id,
                 radius:   conduit.radius,
                 ty:       match conduit.ty {

@@ -60,7 +60,10 @@ where
     let param = match state.get_mut(world) {
         Ok(param) => param,
         Err(err) => {
-            panic!("Failed to prepare system parameter {} in world: {err}", std::any::type_name::<P>())
+            panic!(
+                "Failed to prepare system parameter {} in world: {err}",
+                std::any::type_name::<P>()
+            )
         }
     };
     let result = f(param);

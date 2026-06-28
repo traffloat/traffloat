@@ -1,4 +1,5 @@
 use bevy::ecs::entity::Entity;
+use bevy::ecs::message::MessageWriter;
 use bevy::ecs::system::{Command, Commands, ParamSet, Query, SystemParam};
 use bevy::ecs::world::World;
 use egui_material_icons::icons;
@@ -6,7 +7,7 @@ use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
 
 use crate::dock::{self, TabPlacement, viewable_info};
-use crate::scene::{self, FluidTypes, GenericViewable, ViewableKind};
+use crate::scene::{self, FluidTypes, GenericViewable, ProtoId, ViewableKind};
 use crate::util::new_id;
 
 mod building;
@@ -17,6 +18,7 @@ mod resident;
 
 pub struct Tab {
     pub entity: Entity,
+    ui_state:   UiState,
 }
 
 impl dock::Tab for Tab {
@@ -43,7 +45,7 @@ impl dock::Tab for Tab {
     ) {
         let mut generic = param.ps.p0();
 
-        let Ok(viewable) = generic.viewable_query.get(self.entity) else {
+        let Ok((viewable, &ProtoId(id))) = generic.viewable_query.get(self.entity) else {
             ui.label("Object has been unloaded");
             return;
         };
@@ -66,9 +68,38 @@ impl dock::Tab for Tab {
                 },
                 ViewableKind::Resident => "Resident:",
             });
-            ui.heading(&viewable.name);
-            if ui.button(icons::ICON_EDIT).on_hover_text("Rename").clicked() {
-                // TODO edit text
+            match self.ui_state.name_edit {
+                None => {
+                    ui.heading(&viewable.name);
+                    if ui.button(icons::ICON_EDIT).on_hover_text("Rename").clicked() {
+                        self.ui_state.name_edit = Some(viewable.name.clone());
+                    }
+                }
+                Some(ref mut name) => {
+                    let resp = egui::TextEdit::singleline(name)
+                        .font(egui::TextStyle::Heading)
+                        .show(ui)
+                        .response;
+                    let submit =
+                        resp.lost_focus() && resp.ctx.input(|i| i.key_pressed(egui::Key::Enter));
+                    let mut cancel = resp.lost_focus();
+
+                    let is_valid = !name.is_empty() && name != &viewable.name;
+                    ui.add_enabled_ui(is_valid, |ui| {
+                        if ui.button(icons::ICON_CHECK).on_hover_text("Confirm rename").clicked()
+                            || submit
+                        {
+                            generic.request_writer.write(scene::OutboundRequest {
+                                body: proto::RenameViewable { id, name: name.clone() }.into(),
+                            });
+                            cancel = true;
+                        }
+                    });
+
+                    if cancel {
+                        self.ui_state.name_edit = None;
+                    }
+                }
             }
         });
 
@@ -121,7 +152,13 @@ pub struct UiSystemParam<'w, 's> {
 struct GenericUiSystemParams<'w, 's> {
     commands:       Commands<'w, 's>,
     conduit_query:  Query<'w, 's, &'static scene::conduit::Info>,
-    viewable_query: Query<'w, 's, &'static GenericViewable>,
+    viewable_query: Query<'w, 's, (&'static GenericViewable, &'static ProtoId)>,
+    request_writer: MessageWriter<'w, scene::OutboundRequest>,
+}
+
+#[derive(Default)]
+struct UiState {
+    name_edit: Option<String>,
 }
 
 pub struct OpenCommand {
@@ -140,7 +177,7 @@ impl Command for OpenCommand {
     type Out = ();
     fn apply(self, world: &mut World) {
         world.resource_mut::<dock::State>().focus_or_create(
-            || viewable_info::Tab { entity: self.entity }.into(),
+            || viewable_info::Tab { entity: self.entity, ui_state: UiState::default() }.into(),
             dock::ReplaceTab(|state| state.tab.is_viewable_info())
                 .only_if(!self.force_new)
                 .or(dock::Split { split: egui_dock::Split::Right, ratio: 0.7 }

@@ -47,7 +47,6 @@ impl Plugin for Plug {
 
 #[derive(Component, Reflect)]
 pub struct Building {
-    pub name:           String,
     pub position:       Vector,
     pub radius:         f32,
     pub wall_thickness: f32,
@@ -74,15 +73,15 @@ impl EntityCommand for SpawnCommand {
         let ambient_volume = sphere_volume(self.radius);
 
         let building = Building {
-            name: self.name,
             position: self.position,
             radius: self.radius,
             wall_thickness: self.wall_thickness,
             ambient_volume,
         };
         entity.insert((
-            Name::new(format!("Building {}", building.name)),
+            Name::new(format!("Building {}", self.name)),
             view::CullingRect(building.base_rect()),
+            view::Named { name: self.name },
             building,
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
@@ -162,7 +161,7 @@ pub struct DespawnCommand;
 impl EntityCommand for DespawnCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
-        view::on_viewable_despawn(&mut entity);
+        view::before_viewable_despawn(&mut entity);
         entity.despawn();
     }
 }
@@ -197,14 +196,14 @@ impl EntityCommand for RecomputeAmbientVolume {
 fn sphere_volume(radius: f32) -> f32 { radius.powi(3) * PI * 4.0 / 3.0 }
 
 fn init_viewer_system(
-    building_query: Query<(&Building, &view::Viewable)>,
+    building_query: Query<(&Building, &view::Named, &view::Viewable)>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (building, viewable) in building_query {
+    for (building, named, viewable) in building_query {
         messages.write_batch(viewable.broadcast_new(|| {
             [proto::Update::NewBuilding(proto::NewBuilding {
                 id:             viewable.id,
-                name:           building.name.clone(),
+                name:           named.name.clone(),
                 position:       building.position,
                 radius:         building.radius,
                 wall_thickness: building.wall_thickness,

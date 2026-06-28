@@ -128,4 +128,5 @@ fan_out! {
     8, 2;
     SetSubscription(view::SetSubscriptionHandler<'w, 's>),
     SetViewFocus(view::SetViewFocusHandler<'w, 's>),
+    RenameViewable(view::RenameViewableHandler<'w, 's>),
 }

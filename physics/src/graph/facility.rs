@@ -55,7 +55,6 @@ impl Plugin for Plug {
 
 #[derive(Component, Reflect)]
 pub struct Facility {
-    pub name:   String,
     pub volume: f32,
 }
 
@@ -120,10 +119,11 @@ impl EntityCommand for SpawnCommand {
             .unwrap_or_default();
 
         entity.insert((
-            Name::new("Facility"),
+            Name::new(format!("Facility {name}")),
             FacilityType(self.ty),
             OfBuilding(self.building),
-            Facility { name, volume },
+            Facility { volume },
+            view::Named { name },
             building_rect,
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
@@ -137,9 +137,20 @@ impl EntityCommand for SpawnCommand {
     }
 }
 
+pub struct DespawnCommand;
+
+impl EntityCommand for DespawnCommand {
+    type Out = ();
+    fn apply(self, mut entity: EntityWorldMut) {
+        view::before_viewable_despawn(&mut entity);
+        entity.despawn();
+    }
+}
+
 fn init_viewer_system(
     facility_query: Query<(
         &Facility,
+        &view::Named,
         &view::Viewable,
         &FacilityType,
         &OfBuilding,
@@ -149,8 +160,14 @@ fn init_viewer_system(
     type_query: Query<&FacilityTypeDef>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (facility, viewable, &FacilityType(ty), &OfBuilding(building_entity), fluid_storage) in
-        facility_query
+    for (
+        facility,
+        named,
+        viewable,
+        &FacilityType(ty),
+        &OfBuilding(building_entity),
+        fluid_storage,
+    ) in facility_query
     {
         messages.write_batch(viewable.broadcast_new(|| {
             let building_viewable = building_query.log_get(building_entity)?;
@@ -158,7 +175,7 @@ fn init_viewer_system(
             Some(proto::Update::NewFacility(proto::NewFacility {
                 id:       viewable.id,
                 building: building_viewable.id,
-                name:     facility.name.clone(),
+                name:     named.name.clone(),
                 volume:   facility.volume,
                 display:  proto::FacilityDisplay {
                     sprite_id: typedef.sprite_id.clone(),

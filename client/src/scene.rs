@@ -18,6 +18,7 @@ use bevy::state::app::AppExtStates;
 use bevy::state::state::States;
 use bevy::transform::components::GlobalTransform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
+use egui_notify::Toast;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 use traffloat_macro_util::fan_out;
@@ -320,6 +321,7 @@ fan_out! {
     8, 2;
     SetFluidTypes(SetFluidTypesParams<'w>),
     SetResidentAttrTypes(resident::SetResidentAttrTypesParams<'w>),
+    ShowGenericToast(ShowGenericToastParams<'w>),
     NewBuilding(building::NewBuildingParams<'w, 's>),
     UpdateBuilding(building::UpdateBuildingParams<'w, 's>),
     UpdateBuildingFluidConnections(building::UpdateBuildingFluidConnectionsParams<'w, 's>),
@@ -335,6 +337,7 @@ fan_out! {
     UpdateResidentLocation(resident::UpdateResidentLocationParams<'w, 's>),
     UpdateResidentAttributesFull(resident::UpdateResidentAttributesFullParams<'w, 's>),
     UpdateResidentAttributesPartial(resident::UpdateResidentAttributesPartialParams<'w, 's>),
+    UpdateViewableName(UpdateViewableNameParams<'w, 's>),
     RemoveViewable(RemoveViewableParams<'w, 's>),
 }
 
@@ -354,6 +357,52 @@ impl UpdateHandler for SetFluidTypesParams<'_> {
 }
 
 #[derive(SystemParam)]
+struct ShowGenericToastParams<'w> {
+    toasts: ResMut<'w, dock::Toasts>,
+}
+
+impl UpdateHandler for ShowGenericToastParams<'_> {
+    type Update = proto::ShowGenericToast;
+
+    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &proto::ShowGenericToast) {
+        self.toasts.0.add(match update.ty {
+            proto::ToastType::Info => Toast::info(update.message.clone()),
+            proto::ToastType::Error => Toast::error(update.message.clone()),
+        });
+    }
+}
+
+#[derive(SystemParam)]
+struct UpdateViewableNameParams<'w, 's> {
+    ids:   ResMut<'w, IdRegistry>,
+    query: Query<'w, 's, &'static mut GenericViewable>,
+}
+
+impl UpdateHandler for UpdateViewableNameParams<'_, '_> {
+    type Update = proto::UpdateViewableName;
+
+    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &proto::UpdateViewableName) {
+        let Some(tracked) = self.ids.map.get(&update.id) else {
+            tracing::error!("Received name update for unknown viewable id {:?}", update.id);
+            return;
+        };
+        let entity = match tracked {
+            TrackedId::Building(entity)
+            | TrackedId::Corridor(entity)
+            | TrackedId::Facility(entity)
+            | TrackedId::Conduit(entity)
+            | TrackedId::Resident(entity) => *entity,
+        };
+        let Some(mut viewable) = self.query.log_get_mut(entity) else { return };
+        viewable.name.clone_from(&update.name);
+    }
+}
+
+#[derive(SystemParam)]
 struct RemoveViewableParams<'w, 's> {
     commands: Commands<'w, 's>,
     ids:      ResMut<'w, IdRegistry>,
@@ -366,7 +415,7 @@ impl UpdateHandler for RemoveViewableParams<'_, '_> {
 
     fn handle(&mut self, fixture: &proto::RemoveViewable) {
         let Some(tracked) = self.ids.map.remove(&fixture.id) else {
-            tracing::error!("Received remove for unknown fixture id {:?}", fixture.id);
+            tracing::error!("Received remove for unknown viewable id {:?}", fixture.id);
             return;
         };
         match tracked {

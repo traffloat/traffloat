@@ -10,7 +10,7 @@ use snafu::Snafu;
 use crate::graph::{Building, building};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
 use crate::util::EntityWorldMutExt;
-use crate::{Vector, WorldObject, fluid, persist};
+use crate::{Vector, WorldObject, fluid, persist, view};
 
 #[derive(Clone)]
 pub struct Persist;
@@ -33,7 +33,7 @@ impl Persistable for Persist {
             .iter()
             .map(|data| Entry {
                 id:             ctx.alloc(data.entity),
-                name:           data.building.name.clone(),
+                name:           data.named.name.clone(),
                 position:       data.building.position,
                 radius:         data.building.radius,
                 wall_thickness: data.building.wall_thickness,
@@ -82,6 +82,7 @@ pub struct OutputParams<'w, 's> {
 struct OutputQueryData {
     entity:   Entity,
     building: &'static Building,
+    named:    &'static view::Named,
     fluid:    &'static fluid::Storage,
 }
 

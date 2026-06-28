@@ -11,7 +11,7 @@ use crate::graph::facility::{self, PersistTypes, blueprint};
 use crate::graph::{Facility, building};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
 use crate::util::EntityWorldMutExt;
-use crate::{WorldObject, fluid, persist, reactor};
+use crate::{WorldObject, fluid, persist, reactor, view};
 
 #[derive(Clone)]
 pub struct Persist;
@@ -41,7 +41,7 @@ impl Persistable for Persist {
             .map(|data| {
                 Ok(Entry {
                     id:               ctx.alloc(data.entity),
-                    name:             data.facility.name.clone(),
+                    name:             data.named.name.clone(),
                     building:         ctx.get_id(data.building.0)?,
                     ty:               ctx.get_id(data.ty.0)?,
                     blueprint_params: BlueprintParams::extract(&data, ctx)?,
@@ -98,6 +98,7 @@ pub struct OutputParams<'w, 's> {
 struct OutputQueryData {
     entity:   Entity,
     facility: &'static Facility,
+    named:    &'static view::Named,
     building: &'static facility::OfBuilding,
     ty:       &'static facility::FacilityType,
     reactor:  Option<&'static reactor::Facility>,

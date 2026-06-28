@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::num::NonZeroU32;
 use std::time::Duration;
 use std::{iter, mem};
@@ -6,9 +7,10 @@ use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::{Entity, EntityHashMap, EntityHashSet};
 use bevy::ecs::message::{Message, MessageWriter};
+use bevy::ecs::query::{Has, With};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
-use bevy::ecs::system::{EntityCommand, Query, SystemParam};
+use bevy::ecs::system::{EntityCommand, Query, Res, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
@@ -19,17 +21,20 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use traffloat_proto::proto;
 
-use crate::request;
 use crate::util::{self, QueryExt, Throttle};
+use crate::{CleanupAppExt, request};
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Viewer>();
+        app.register_type::<Named>();
         app.register_type::<NextProtoId>();
+        app.register_type::<IdIndex>();
 
         app.init_resource::<NextProtoId>();
+        app.init_resource::<IdIndex>();
         app.add_message::<SentUpdate>();
         util::configure_enum_system_set::<SendUpdatesSystemSet>(app, app::Update);
         for set in SendUpdatesSystemSet::iter() {
@@ -40,6 +45,7 @@ impl Plugin for Plug {
             app::Update,
             reconcile_subscription_system.in_set(SendUpdatesSystemSet::Pair),
         );
+        app.add_cleanup_hook(|world| world.resource_mut::<IdIndex>().index.clear());
     }
 }
 
@@ -57,6 +63,11 @@ struct NextProtoId(proto::Id);
 
 impl Default for NextProtoId {
     fn default() -> Self { NextProtoId(proto::Id(const { NonZeroU32::new(1).unwrap() })) }
+}
+
+#[derive(Resource, Reflect, Default)]
+struct IdIndex {
+    index: HashMap<proto::Id, Entity>,
 }
 
 #[derive(Component, Reflect, Default)]
@@ -292,6 +303,12 @@ impl Viewable {
     }
 }
 
+/// Optional component on viewables that can be renamed.
+#[derive(Component, Reflect)]
+pub struct Named {
+    pub name: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct SubscriptionChange {
     old: Option<SubscriptionLevel>,
@@ -363,6 +380,9 @@ impl EntityCommand for AddViewableCommand {
             id,
             new_subscribers: SortedSubscriptionChanges::default(),
         });
+
+        let entity_id = entity.id();
+        entity.resource_mut::<IdIndex>().index.insert(id, entity_id);
     }
 }
 
@@ -426,7 +446,9 @@ fn reconcile_subscription_system(mut params: ReconcileSubscriptionParams) {
     }
 }
 
-pub fn on_viewable_despawn(entity: &mut EntityWorldMut) {
+/// Call before despawning a viewable entity previously added with [`AddViewableCommand`].
+/// Must be called before calling despawn.
+pub fn before_viewable_despawn(entity: &mut EntityWorldMut) {
     let Some(viewable) = entity.get::<Viewable>() else { return };
     let viewers: EntityHashSet =
         viewable.subscribers.iter().flat_map(|(_, s)| s).copied().collect();
@@ -439,6 +461,8 @@ pub fn on_viewable_despawn(entity: &mut EntityWorldMut) {
             });
         });
     }
+
+    entity.resource_mut::<IdIndex>().index.remove(&id);
 }
 
 #[derive(Message)]
@@ -488,4 +512,68 @@ impl request::Handler for SetViewFocusHandler<'_, '_> {
         let Some(mut viewer) = self.viewer_query.log_get_mut(viewer) else { return };
         viewer.focus_requests.clone_from(&request.focus);
     }
+}
+
+#[derive(SystemParam)]
+pub(crate) struct RenameViewableHandler<'w, 's> {
+    viewable_query: Query<'w, 's, (Option<&'static mut Named>, &'static Viewable)>,
+    index:          Res<'w, IdIndex>,
+    update_writer:  MessageWriter<'w, SentUpdate>,
+}
+
+impl request::Handler for RenameViewableHandler<'_, '_> {
+    type Request = proto::RenameViewable;
+
+    fn classify(request: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
+
+    fn handle(&mut self, viewer: Entity, request: &Self::Request) {
+        let viewable_entity = self
+            .index
+            .index
+            .get(&request.id)
+            .and_then(|&viewable_entity| self.viewable_query.log_get_mut(viewable_entity));
+        match viewable_entity {
+            None => {
+                send_error_toast(
+                    &mut self.update_writer,
+                    viewer,
+                    format!("Viewable with id {} not found", request.id.0),
+                );
+            }
+            Some((None, _)) => {
+                send_error_toast(
+                    &mut self.update_writer,
+                    viewer,
+                    format!("Viewable with id {} is not renameable", request.id.0),
+                );
+            }
+            Some((Some(mut named), viewable)) => {
+                if request.name.is_empty() {
+                    send_error_toast(&mut self.update_writer, viewer, "Name cannot be empty");
+                    return;
+                }
+
+                named.name.clone_from(&request.name);
+                self.update_writer.write_batch(viewable.broadcast_update(|_| {
+                    [proto::UpdateViewableName { id: request.id, name: request.name.clone() }
+                        .into()]
+                }));
+            }
+        }
+    }
+}
+
+pub fn send_error_toast(
+    update_writer: &mut MessageWriter<SentUpdate>,
+    viewer: Entity,
+    message: impl Into<String>,
+) {
+    update_writer.write(SentUpdate {
+        viewers: iter::once(viewer).collect(),
+        body:    proto::ShowGenericToast {
+            message: message.into(),
+            ty:      proto::ToastType::Error,
+        }
+        .into(),
+    });
 }

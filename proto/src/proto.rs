@@ -60,6 +60,7 @@ pub enum AlphaOrBeta {
 pub enum Update {
     SetFluidTypes(SetFluidTypes),
     SetResidentAttrTypes(SetResidentAttrTypes),
+    ShowGenericToast(ShowGenericToast),
     NewBuilding(NewBuilding),
     UpdateBuilding(UpdateBuilding),
     UpdateBuildingFluidConnections(UpdateBuildingFluidConnections),
@@ -75,6 +76,7 @@ pub enum Update {
     UpdateResidentLocation(UpdateResidentLocation),
     UpdateResidentAttributesFull(UpdateResidentAttributesFull),
     UpdateResidentAttributesPartial(UpdateResidentAttributesPartial),
+    UpdateViewableName(UpdateViewableName),
     RemoveViewable(RemoveViewable),
 }
 
@@ -119,6 +121,20 @@ bitflags::bitflags! {
     pub struct ResidentAttrNiche: u16 {
         const SIZE = 1 << 0;
     }
+}
+
+/// Shows a generic toast message to the viewer.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct ShowGenericToast {
+    pub message: String,
+    pub ty:      ToastType,
+}
+
+/// Display style for toast messages.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub enum ToastType {
+    Info,
+    Error,
 }
 
 /// Subscribed to a new building.
@@ -300,6 +316,12 @@ pub enum ResidentLocation {
     Facility { facility: Id, slot_name: String },
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateViewableName {
+    pub id:   Id,
+    pub name: String,
+}
+
 /// Unsubscribed from a viewable.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct RemoveViewable {
@@ -320,11 +342,13 @@ pub struct RemoveViewable {
 pub enum Request {
     SetSubscription(SetSubscription),
     SetViewFocus(SetViewFocus),
+    RenameViewable(RenameViewable),
 }
 
 /// Sets the viewer subscription config.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct SetSubscription {
+    /// The rectangles bounding the region that the viewer is currently viewing.
     pub viewports: Vec<Rect>,
     pub debug:     bool,
 }
@@ -333,4 +357,13 @@ pub struct SetSubscription {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct SetViewFocus {
     pub focus: Vec<Id>,
+}
+
+/// Renames a viewable.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct RenameViewable {
+    pub id:   Id,
+    /// The new name of the viewable.
+    /// Must not be empty.
+    pub name: String,
 }

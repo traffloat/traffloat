@@ -52,7 +52,6 @@ impl Plugin for Plug {
 
 #[derive(Component, Reflect)]
 pub struct Corridor {
-    pub name:               String,
     pub length:             f32,
     pub radius:             f32,
     pub wall_thickness:     f32,
@@ -85,8 +84,8 @@ impl EntityCommand for SpawnCommand {
         let length = self.endpoint_positions.net_diff().length();
         entity.insert((
             Name::new(format!("Corridor {name}")),
+            view::Named { name },
             Corridor {
-                name,
                 length,
                 radius: self.radius,
                 wall_thickness: self.wall_thickness,
@@ -165,7 +164,7 @@ pub struct DespawnCommand;
 impl EntityCommand for DespawnCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
-        view::on_viewable_despawn(&mut entity);
+        view::before_viewable_despawn(&mut entity);
         entity.despawn();
     }
 }
@@ -199,14 +198,14 @@ impl EntityCommand for RecomputeAmbientVolume {
 }
 
 fn init_viewer_system(
-    corridor_query: Query<(&Corridor, &view::Viewable)>,
+    corridor_query: Query<(&Corridor, &view::Named, &view::Viewable)>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (corridor, viewable) in corridor_query {
+    for (corridor, named, viewable) in corridor_query {
         messages.write_batch(viewable.broadcast_new(|| {
             [proto::Update::NewCorridor(proto::NewCorridor {
                 id:             viewable.id,
-                name:           corridor.name.clone(),
+                name:           named.name.clone(),
                 alpha_position: corridor.endpoint_positions.alpha,
                 beta_position:  corridor.endpoint_positions.beta,
                 radius:         corridor.radius,

@@ -52,9 +52,7 @@ impl Plugin for Plug {
 }
 
 #[derive(Component, Reflect)]
-pub struct Resident {
-    pub name: String,
-}
+pub struct Resident;
 
 #[derive(Component, Reflect)]
 pub enum Location {
@@ -164,7 +162,8 @@ impl EntityCommand for SpawnCommand {
 
         entity.insert((
             Name::new(format!("Resident {name}")),
-            Resident { name },
+            Resident,
+            view::Named { name },
             Attributes { values: attrs.into_boxed_slice() },
         ));
 
@@ -187,16 +186,32 @@ impl EntityCommand for SpawnCommand {
     }
 }
 
+pub struct DespawnCommand;
+
+impl EntityCommand for DespawnCommand {
+    type Out = ();
+    fn apply(self, mut entity: EntityWorldMut) {
+        view::before_viewable_despawn(&mut entity);
+        entity.despawn();
+    }
+}
+
 fn init_viewer_system(
-    resident_query: Query<(&Resident, &Location, Option<&InteractingWith>, &view::Viewable)>,
+    resident_query: Query<(
+        &Resident,
+        &Location,
+        Option<&InteractingWith>,
+        &view::Named,
+        &view::Viewable,
+    )>,
     viewable_query: Query<(&view::Viewable, Option<&InteractionSlots>)>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (resident, location, interact, viewable) in resident_query {
+    for (resident, location, interact, named, viewable) in resident_query {
         messages.write_batch(viewable.broadcast_new(|| {
             Some(proto::Update::NewResident(proto::NewResident {
                 id:       viewable.id,
-                name:     resident.name.clone(),
+                name:     named.name.clone(),
                 location: make_proto_location(location, interact, &viewable_query)?,
             }))
         }));
