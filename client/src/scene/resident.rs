@@ -8,7 +8,7 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::With;
 use bevy::ecs::resource::Resource;
-use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, SystemParam, SystemState};
+use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Vec2, Vec3, Vec3Swizzles};
 use bevy::picking::Pickable;
@@ -17,7 +17,7 @@ use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
 use bevy::time::{self, Time};
 use bevy::transform::components::{GlobalTransform, Transform};
 use bevy_mesh::Mesh2d;
-use traffloat_physics::util::QueryExt;
+use traffloat_physics::util::{QueryExt, run_stateless_closure};
 use traffloat_proto::proto;
 
 use crate::scene::picking::ObservePicking;
@@ -94,11 +94,9 @@ impl UpdateHandler for NewResidentParams<'_, '_> {
             ))
             .queue(move |mut entity: EntityWorldMut| {
                 let Some((location, dynamic_position)) = entity.world_scope(|world| {
-                    let mut state = SystemState::<LocationResolver>::new(world);
-                    let resolver = state.get_mut(world);
-                    let resolve_result = resolver.resolve(&proto_location);
-                    state.apply(world);
-                    resolve_result
+                    run_stateless_closure(world, move |resolver: LocationResolver<'_, '_>| {
+                        resolver.resolve(&proto_location)
+                    })
                 }) else {
                     return;
                 };

@@ -12,14 +12,14 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-bevy_mesh = { version = "0.18.1", default-features = false }
-bevy_mod_config = { version = "0.6.1", features = ["egui"] }
+bevy_mesh = { version = "0.19.0", default-features = false }
+bevy_mod_config = { version = "0.7.1", features = ["egui"] }
 clap = { version = "4.6.1", features = ["cargo", "derive", "env", "unstable-markdown"] }
 dirs = "6.0.0"
-egui = "0.33.1"
-egui-notify = "0.21.0"
-egui_dock = "0.18.0"
-egui_material_icons = "0.5.0" # { version = "0.6.0", default-features = false, features = ["filled"] }
+egui = "0.34.1"
+egui-notify = "0.22.0"
+egui_dock = "0.19.1"
+egui_material_icons = { version = "0.6.0", default-features = false, features = ["filled"] }
 either = "1.16.0"
 enum-map = "2.7.3"
 itertools = "0.14.0"
@@ -40,7 +40,7 @@ traffloat-physics = { workspace = true }
 traffloat-proto = { workspace = true }
 
 [dependencies.bevy-inspector-egui]
-version = "0.36.0"
+version = "0.37.0"
 default-features = false
 optional = true
 features = ["documentation", "egui_clipboard", "bevy_render"]
@@ -50,7 +50,7 @@ workspace = true
 features = ["2d"]
 
 [dependencies.bevy_egui]
-version = "0.39.1"
+version = "0.40.1"
 default-features = false
 features = ["default_fonts", "manage_clipboard", "open_url", "render", "serde"]
 

@@ -172,7 +172,7 @@ impl UpdateHandler for UpdateCorridorParams<'_, '_> {
             // Happens when update is received immediately after update
             return;
         };
-        let material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
+        let mut material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
         material.color = update.color.into();
 
         info.ambient_fluid.clone_from(&update.ambient_fluid);
@@ -386,7 +386,7 @@ fn update_conduit_outline_color_system(
     outline_material: Res<ConduitOutlineMaterial>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let material = materials
+    let mut material = materials
         .get_mut(outline_material.0.as_ref().expect("initialized during startup"))
         .expect("referenced by strong handle");
     material.color = conf.read().conduit_outline_color;

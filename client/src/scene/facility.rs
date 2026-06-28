@@ -182,7 +182,7 @@ impl UpdateHandler for UpdateFacilityTaintParams<'_, '_> {
             tracing::error!("Facility {entity:?} did not have a taint when created");
             return;
         };
-        let Some(material) = self
+        let Some(mut material) = self
             .taint_query
             .log_get(taint_entity.0)
             .map(|material| self.materials.get_mut(&material.0).expect("strong material handle"))

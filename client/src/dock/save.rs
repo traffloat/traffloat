@@ -5,7 +5,7 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{Command, Commands, Res, ResMut, SystemParam};
 use bevy::ecs::world::World;
 use bevy::state::state::State as BevyState;
-use egui_material_icons::icons;
+use egui_material_icons::{MaterialIcon, icons};
 use traffloat_physics::persist;
 
 use crate::dock::{self, TabPlacement, menu};
@@ -179,6 +179,7 @@ pub struct LoadCommand {
 }
 
 impl Command for LoadCommand {
+    type Out = ();
     #[tracing::instrument(skip_all, fields(name = self.name))]
     fn apply(self, world: &mut World) {
         tracing::info!("Reading save {}", self.name);
@@ -213,6 +214,7 @@ pub struct SaveCommand {
 }
 
 impl Command for SaveCommand {
+    type Out = ();
     fn apply(self, world: &mut World) {
         if let Ok(data) = persist::output(world) {
             let mut storage = world.resource_mut::<Storage>();
@@ -241,7 +243,7 @@ impl menu::Action for MenuActionSave {
         egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::S)
     }
 
-    fn icon(&self) -> &'static str { icons::ICON_SAVE }
+    fn icon(&self) -> MaterialIcon { icons::ICON_SAVE }
 
     fn text_label(&self) -> String { "Save".into() }
 
@@ -268,7 +270,7 @@ impl menu::Action for MenuActionSaveAs {
         egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::SHIFT, egui::Key::S)
     }
 
-    fn icon(&self) -> &'static str { icons::ICON_SAVE_AS }
+    fn icon(&self) -> MaterialIcon { icons::ICON_SAVE_AS }
 
     fn text_label(&self) -> String { "Save as".into() }
 

@@ -9,7 +9,7 @@ use bevy::ecs::query::With;
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{EntityCommand, Query, SystemState};
+use bevy::ecs::system::{EntityCommand, Query};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
@@ -18,7 +18,9 @@ use traffloat_proto::proto;
 use crate::graph::conduit::{self, ListOnCorridor};
 use crate::graph::{Building, Conduit, ViewInitSystemSets, building, edge};
 use crate::persist::AppExt;
-use crate::util::{Alpha, AlphaBeta, Beta, EntityWorldMutExt, Which, WorldExt};
+use crate::util::{
+    Alpha, AlphaBeta, Beta, EntityWorldMutExt, Which, WorldExt, run_stateless_closure,
+};
 use crate::{Vector, fluid, view};
 
 mod persist;
@@ -69,6 +71,7 @@ pub struct SpawnCommand {
 }
 
 impl EntityCommand for SpawnCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let name = self.name.unwrap_or_else(|| {
             entity.world_scope(|world| {
@@ -140,10 +143,9 @@ fn recompute_culling_rect(mut entity: EntityWorldMut) {
 
     for building in [building_alpha, building_beta].into_iter().flatten() {
         entity.world_scope(|world| {
-            let mut state = SystemState::<building::RecomputeCullingRectParams>::new(world);
-            let params = state.get_mut(world);
-            building::recompute_culling_rect(params, building);
-            state.apply(world);
+            run_stateless_closure(world, move |params: building::RecomputeCullingRectParams| {
+                building::recompute_culling_rect(params, building);
+            });
         });
     }
 
@@ -161,6 +163,7 @@ fn recompute_culling_rect(mut entity: EntityWorldMut) {
 pub struct DespawnCommand;
 
 impl EntityCommand for DespawnCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         view::on_viewable_despawn(&mut entity);
         entity.despawn();
@@ -170,6 +173,7 @@ impl EntityCommand for DespawnCommand {
 pub struct RecomputeAmbientVolume;
 
 impl EntityCommand for RecomputeAmbientVolume {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let used_by_conduits: f32 = if let Some(conduit_list) = entity.get::<ListOnCorridor>() {
             let conduits: Vec<_> = conduit_list.iter().collect();

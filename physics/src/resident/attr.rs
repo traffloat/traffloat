@@ -159,28 +159,26 @@ impl AddTypeCommand {
     }
 }
 
-impl Command<TypeId> for AddTypeCommand {
-    fn apply(self, world: &mut World) -> TypeId {
+impl Command for AddTypeCommand {
+    type Out = ();
+
+    fn apply(self, world: &mut World) {
         let default_value = self.def.default_value;
 
-        let ty = {
+        {
             let mut types = world.resource_mut::<Types>();
             let ty = types.push(self.def);
 
             for niche in self.niches {
                 types.niches[niche] = Some(ty);
             }
-
-            ty
-        };
+        }
 
         for mut attributes in world.query::<&mut Attributes>().query_mut(world) {
             let new_box: Box<[f32]> =
                 mem::take(&mut attributes.values).into_iter().chain([default_value]).collect();
             attributes.values = new_box;
         }
-
-        ty
     }
 }
 

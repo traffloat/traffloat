@@ -1,4 +1,5 @@
 use bevy::ecs::system::{ParamSet, SystemParam};
+use egui_material_icons::MaterialIcon;
 use traffloat_macro_util::fan_out;
 
 use crate::dock::{save, settings};
@@ -6,7 +7,7 @@ use crate::dock::{save, settings};
 pub trait Action: Default {
     fn shortcut(&self) -> egui::KeyboardShortcut;
 
-    fn icon(&self) -> &'static str;
+    fn icon(&self) -> MaterialIcon;
 
     fn text_label(&self) -> String;
 

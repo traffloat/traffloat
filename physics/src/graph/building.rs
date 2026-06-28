@@ -69,6 +69,7 @@ pub struct SpawnCommand {
 }
 
 impl EntityCommand for SpawnCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let ambient_volume = sphere_volume(self.radius);
 
@@ -159,6 +160,7 @@ struct RecomputeCullingRectCorridorData {
 pub struct DespawnCommand;
 
 impl EntityCommand for DespawnCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         view::on_viewable_despawn(&mut entity);
         entity.despawn();
@@ -168,6 +170,7 @@ impl EntityCommand for DespawnCommand {
 pub struct RecomputeAmbientVolume;
 
 impl EntityCommand for RecomputeAmbientVolume {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let used_by_facilities: f32 =
             if let Some(facility_list) = entity.get::<facility::ListOnBuilding>() {

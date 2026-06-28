@@ -104,7 +104,7 @@ impl dock::Tab for Tab {
         });
         camera.order = -isize::try_from(dock.order).expect("tab order is within isize bounds") - 1;
 
-        let image = param.images.get_mut(&self.image_handle).expect("strong handle");
+        let mut image = param.images.get_mut(&self.image_handle).expect("strong handle");
         #[expect(clippy::cast_sign_loss, reason = "rect dimensions should be nonnegative")]
         #[expect(
             clippy::cast_possible_truncation,
@@ -234,6 +234,7 @@ pub struct FocusCommand {
 }
 
 impl Command for FocusCommand {
+    type Out = ();
     fn apply(self, world: &mut World) {
         let Some(camera) = self.which.or_else(|| {
             world.resource::<dock::State>().tabs().find_map(|tab| match tab {

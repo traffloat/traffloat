@@ -160,6 +160,7 @@ pub struct AddTypeCommand {
 }
 
 impl Command for AddTypeCommand {
+    type Out = ();
     fn apply(self, world: &mut World) {
         let mut types = world.resource_mut::<Types>();
         types.push(self.type_def);
@@ -355,6 +356,7 @@ pub struct AddStorageCommand {
 }
 
 impl EntityCommand for AddStorageCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let num_types = entity.world().resource::<Types>().types.len();
         entity.insert(Storage::vacuum(num_types, self.volume, self.optical_length));
@@ -366,6 +368,7 @@ pub struct SetTemperatureCommand {
 }
 
 impl EntityCommand for SetTemperatureCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let storage = try_log!(entity.get::<Storage>(), expect "SetTemperatureCommand must be applied on fluid storage entities" or return);
         let types = entity.world().resource::<Types>();
@@ -445,6 +448,7 @@ pub struct AddEdgeCommand {
 }
 
 impl EntityCommand for AddEdgeCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let num_types = entity.world().resource::<Types>().types.len();
         entity.insert((

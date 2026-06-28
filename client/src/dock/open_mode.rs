@@ -1,8 +1,6 @@
-use egui_dock::{DockState, NodeIndex, SurfaceIndex, TabIndex};
+use egui_dock::{DockState, NodeIndex, NodePath, SurfaceIndex, TabIndex, TabPath};
 
 use crate::dock::TabState;
-
-pub type TabPath = (SurfaceIndex, NodeIndex, TabIndex);
 
 pub trait TabPlacement: Sized {
     fn place<F: FnOnce() -> TabState>(
@@ -89,24 +87,13 @@ where
         state: &mut DockState<TabState>,
         make_tab: F,
     ) -> Result<TabPath, F> {
-        for (si, surface) in state.iter_surfaces_mut().enumerate() {
-            let si = SurfaceIndex(si);
-            for (ni, node) in surface.iter_nodes_mut().enumerate() {
-                let ni = NodeIndex(ni);
-                if let Some(leaf) = node.get_leaf_mut() {
-                    for (ti, tab) in leaf.tabs.iter_mut().enumerate() {
-                        let ti = TabIndex(ti);
-
-                        if (self.0)(tab) {
-                            *tab = make_tab();
-                            return Ok((si, ni, ti));
-                        }
-                    }
-                }
+        match state.iter_all_tabs_mut().find(|(_, tab)| (self.0)(tab)) {
+            Some((path, tab)) => {
+                *tab = make_tab();
+                Ok(path)
             }
+            None => Err(make_tab),
         }
-
-        Err(make_tab)
     }
 }
 
@@ -121,18 +108,10 @@ where
         state: &mut DockState<TabState>,
         tab_fn: F,
     ) -> Result<TabPath, F> {
-        for (si, surface) in state.iter_surfaces_mut().enumerate() {
-            let si = SurfaceIndex(si);
-            for (ni, node) in surface.iter_nodes_mut().enumerate() {
-                let ni = NodeIndex(ni);
-                if let Some(leaf) = node.get_leaf_mut() {
-                    for (ti, tab) in leaf.tabs.iter().enumerate() {
-                        if (self.0)(tab) {
-                            leaf.tabs.insert(ti + 1, tab_fn());
-                            return Ok((si, ni, TabIndex(ti + 1)));
-                        }
-                    }
-                }
+        for (path, leaf) in state.iter_leaves_mut() {
+            if let Some(index) = leaf.tabs.iter().position(|tab| (self.0)(tab)) {
+                leaf.tabs.insert(index + 1, tab_fn());
+                return Ok(TabPath::from((path, TabIndex(index + 1))));
             }
         }
 
@@ -151,13 +130,9 @@ impl AlwaysTabPlacement for Split {
         state: &mut DockState<TabState>,
         tab: F,
     ) -> TabPath {
-        let [_, new_node] = state.split(
-            (SurfaceIndex::main(), NodeIndex::root()),
-            self.split,
-            self.ratio,
-            egui_dock::Node::leaf(tab()),
-        );
-        (SurfaceIndex::main(), new_node, TabIndex(0))
+        let [_, new_node] =
+            state.split(NodePath::MAIN_ROOT, self.split, self.ratio, egui_dock::Node::leaf(tab()));
+        TabPath::new(SurfaceIndex::main(), new_node, TabIndex(0))
     }
 }
 
@@ -179,26 +154,16 @@ impl<R: Fn(&TabState) -> bool> TabPlacement for SplitLeaf<R> {
         state: &mut DockState<TabState>,
         new_tab: F,
     ) -> Result<TabPath, F> {
-        let mut path = None;
-        for (si, surface) in state.iter_surfaces_mut().enumerate() {
-            let si = SurfaceIndex(si);
-            for (ni, node) in surface.iter_nodes_mut().enumerate() {
-                let ni = NodeIndex(ni);
-                if let Some(leaf) = node.get_leaf_mut() {
-                    for (ti, tab) in leaf.tabs.iter().enumerate() {
-                        let ti = TabIndex(ti);
-                        if (self.leaf_fn)(tab) {
-                            path = Some((si, ni));
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-        let Some(path) = path else { return Err(new_tab) };
+        let Some(path) = state
+            .iter_all_tabs()
+            .find(|(_, tab)| (self.leaf_fn)(tab))
+            .map(|(path, _)| path.node_path())
+        else {
+            return Err(new_tab);
+        };
         let [_, new_node] =
             state.split(path, self.split, self.ratio, egui_dock::Node::leaf(new_tab()));
-        Ok((path.0, new_node, TabIndex(0)))
+        Ok(TabPath::new(path.surface, new_node, TabIndex(0)))
     }
 }
 
@@ -211,6 +176,6 @@ impl AlwaysTabPlacement for NewWindow {
         tab: F,
     ) -> TabPath {
         let window = state.add_window([tab()].into());
-        (window, NodeIndex::root(), TabIndex(0))
+        TabPath::new(window, NodeIndex::root(), TabIndex(0))
     }
 }

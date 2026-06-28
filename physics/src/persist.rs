@@ -6,7 +6,7 @@ use std::io;
 use bevy::app::{App, Plugin};
 use bevy::ecs::entity::{Entity, EntityHashMap};
 use bevy::ecs::resource::Resource;
-use bevy::ecs::system::{SystemParam, SystemState};
+use bevy::ecs::system::SystemParam;
 use bevy::ecs::world::World;
 use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
 use crate::cleanup::execute_cleanup_hooks;
+use crate::util::run_stateless_closure_explicit;
 
 pub struct Plug;
 
@@ -26,9 +27,9 @@ pub trait AppExt {
 
     fn register_persistable<P: Persistable>(&mut self, persistable: P) {
         let mut types = self.as_app_mut().world_mut().resource_mut::<PersistableTypes>();
-        if types.types.insert(persistable.id().into().into(), Box::new(persistable)).is_some() {
-            panic!("Duplicate persistable type registered: {:?}", persistable.id().into().into());
-        }
+        let id = persistable.id().into();
+        let old = types.types.insert(id.clone().into_owned(), Box::new(persistable));
+        assert!(old.is_none(), "Duplicate persistable type registered: {:?}", id.as_ref());
         types.sorted = false;
     }
 }
@@ -198,12 +199,10 @@ impl<P: Persistable> PersistableDyn for P {
 
     #[tracing::instrument(skip_all, fields(ty = self.id().into().as_ref()))]
     fn output(&self, world: &mut World, ctx: &mut OutputContext) -> Result<Vec<u8>, ()> {
-        let output = {
-            let mut state = SystemState::<<P as Persistable>::OutputParams<'_, '_>>::new(world);
-            let result = Persistable::output(self, &mut state.get_mut(world), ctx);
-            state.apply(world);
-            result?
-        };
+        let output = run_stateless_closure_explicit::<<P as Persistable>::OutputParams<'_, '_>, _, _>(
+            world,
+            |mut param| Persistable::output(self, &mut param, ctx),
+        )?;
         let mut buf = Vec::new();
         match ciborium::into_writer(&output, &mut buf) {
             Ok(()) => {

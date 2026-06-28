@@ -13,7 +13,7 @@ workspace = true
 
 [dependencies]
 bevy = { workspace = true, features = ["serialize"] }
-bevy_mod_config = "0.6.2"
+bevy_mod_config = "0.7.0"
 ciborium = "0.2.2"
 derivative = "2.2.0"
 derive_more = { version = "2.1.1", default-features = false, features = ["add", "add_assign"] }

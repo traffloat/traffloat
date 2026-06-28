@@ -128,7 +128,7 @@ impl UpdateHandler for UpdateFluidConduitParams<'_, '_> {
         let Some(conduit_entity) = self.ids.get_conduit(update.id) else { return };
 
         let Ok((handle, mut info)) = self.conduit_query.get_mut(conduit_entity) else { return };
-        let material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
+        let mut material = try_log!(self.materials.get_mut(&handle.0), expect "corridor entity should reference a valid material" or return);
         material.color = update.color.into();
 
         info.stored_fluid.clone_from(&update.fluid);
@@ -163,7 +163,7 @@ fn rearrange_conduit_tf_system(
     for (mut need, &corridor_tf, conduits, corridor_info, outline) in corridor_query {
         if need.0 {
             let Some(outline_mesh) = outline_query.log_get(outline.0) else { continue };
-            let outline_mesh = meshes
+            let mut outline_mesh = meshes
                 .get_mut(&outline_mesh.0)
                 .expect("getting asset by strong handle should succeed");
             let Some(VertexAttributeValues::Float32x3(mesh_positions)) =

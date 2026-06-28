@@ -1,5 +1,5 @@
 use bevy::ecs::system::Commands;
-use egui_material_icons::icons;
+use egui_material_icons::{MaterialIcon, icons};
 
 use crate::dock::{self, DockCommand, TabPlacement, menu};
 
@@ -27,7 +27,7 @@ impl menu::Action for MenuAction {
         egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::Comma)
     }
 
-    fn icon(&self) -> &'static str { icons::ICON_SETTINGS }
+    fn icon(&self) -> MaterialIcon { icons::ICON_SETTINGS }
 
     fn text_label(&self) -> String { "Settings".into() }
 

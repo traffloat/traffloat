@@ -349,6 +349,7 @@ impl Default for CullingRect {
 pub struct AddViewableCommand;
 
 impl EntityCommand for AddViewableCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let id = entity.world_scope(|world| {
             let mut next = world.resource_mut::<NextProtoId>();

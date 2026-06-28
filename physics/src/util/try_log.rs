@@ -4,7 +4,7 @@ use std::fmt;
 use bevy::ecs::change_detection::Mut;
 use bevy::ecs::component::{Component, Mutable};
 use bevy::ecs::entity::Entity;
-use bevy::ecs::query::{QueryData, QueryFilter};
+use bevy::ecs::query::{IterQueryData, QueryData, QueryFilter};
 use bevy::ecs::system::Query;
 use bevy::ecs::world::{EntityRef, EntityWorldMut, World};
 
@@ -72,7 +72,7 @@ where
 
 impl<'s, D, F> QueryExt for Query<'_, 's, D, F>
 where
-    D: QueryData,
+    D: IterQueryData,
     F: QueryFilter,
 {
     #[track_caller]

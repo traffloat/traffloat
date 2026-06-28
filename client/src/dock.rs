@@ -8,10 +8,10 @@ use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{self, IntoScheduleConfigs, Schedulable, ScheduleConfigs};
 use bevy::ecs::system::{Command, Commands, ParamSet, Res, ResMut, RunSystemOnce, SystemParam};
 use bevy::ecs::world::World;
-use bevy_egui::{EguiContexts, EguiGlobalSettings, EguiPrimaryContextPass, PrimaryEguiContext};
+use bevy_egui::{EguiContexts, EguiGlobalSettings, EguiPreUpdateSet, EguiPrimaryContextPass, PrimaryEguiContext};
 use egui::WidgetText;
 use egui_dock::tab_viewer::OnCloseResponse;
-use egui_dock::{DockArea, DockState, NodeIndex, SurfaceIndex, TabIndex};
+use egui_dock::{DockArea, DockState, TabPath};
 
 pub mod camera;
 mod menu;
@@ -37,6 +37,7 @@ impl Plugin for Plug {
         app.init_resource::<State>();
         app.init_resource::<Toasts>();
         app.add_systems(app::Startup, setup_system);
+        app.add_systems(app::PreUpdate, init_egui_system.after(EguiPreUpdateSet::InitContexts).before(EguiPreUpdateSet::BeginPass));
         app.add_systems(EguiPrimaryContextPass, (render_system, render_toasts_system).chain());
     }
 }
@@ -50,7 +51,7 @@ pub struct Toasts(egui_notify::Toasts);
 pub struct TabState {
     id:       u32,
     pub tab:  TabEnum,
-    location: Option<(SurfaceIndex, NodeIndex, TabIndex)>,
+    location: Option<TabPath>,
 }
 
 impl<T: Into<TabEnum>> From<T> for TabState {
@@ -74,17 +75,17 @@ impl State {
         placement: impl AlwaysTabPlacement,
     ) -> &mut TabEnum {
         let path = placement.always_place(&mut self.0, || TabState::from(tab_fn()));
-        self.0.set_focused_node_and_surface((path.0, path.1));
-        self.0.set_active_tab(path);
-        let tabs =
-            self.0[path.0][path.1].tabs_mut().expect("AlwaysPlacement ensures path must exist");
-        &mut tabs[path.2.0].tab
+        self.0.set_focused_node_and_surface(path.node_path());
+        self.0.set_active_tab(path).expect("AlwaysPlacement ensures path must exist");
+        let leaf =
+            self.0.leaf_mut(path.node_path()).expect("AlwaysPlacement ensures path must exist");
+        &mut leaf.tabs[path.tab.0].tab
     }
 
     pub fn focus_tab(&mut self, tab_fn: impl Fn(&TabEnum) -> bool) -> bool {
         if let Some(path) = self.0.find_tab_from(|tab| tab_fn(&tab.tab)) {
-            self.0.set_focused_node_and_surface((path.0, path.1));
-            self.0.set_active_tab(path);
+            self.0.set_focused_node_and_surface(path.node_path());
+            self.0.set_active_tab(path).expect("find_tab_from result must exist");
             true
         } else {
             false
@@ -134,14 +135,14 @@ pub trait Tab {
 pub struct Context {
     pub order:    usize,
     pub id:       egui::Id,
-    pub location: (SurfaceIndex, NodeIndex, TabIndex),
+    pub location: TabPath,
     pub focused:  bool,
 }
 
 struct TabViewer<'w, 's> {
     params:      TabViewerParams<'w, 's>,
     next_order:  usize,
-    focused_tab: Option<(SurfaceIndex, NodeIndex, TabIndex)>,
+    focused_tab: Option<TabPath>,
 }
 
 macro_rules! define_tabs {
@@ -303,47 +304,47 @@ fn setup_system(mut egui_global_settings: ResMut<EguiGlobalSettings>, mut comman
     )); // egui camera
 }
 
+fn init_egui_system(mut contexts: EguiContexts) {
+    let Ok(ctx) = contexts.ctx_mut() else { return };
+    egui_material_icons::initialize(ctx);
+}
+
 fn render_system(
     mut contexts: EguiContexts,
     mut state: ResMut<State>,
     mut params: TabViewerParams,
 ) {
     let Ok(ctx) = contexts.ctx_mut() else { return };
+    let ui = &mut egui::Ui::new(
+        ctx.clone(),
+        new_id!(),
+        egui::UiBuilder::new().layer_id(egui::LayerId::background()).max_rect(ctx.viewport_rect()),
+    );
 
-    egui_material_icons::initialize(ctx);
-
-    egui::TopBottomPanel::top(new_id!()).show(ctx, |ui| {
+    egui::Panel::top(new_id!()).show_inside(ui, |ui| {
         ui.horizontal(|ui| params.ps.p0().show_menu_buttons(ui));
     });
 
     let focused_node = state.0.focused_leaf();
-    let focused_tab = focused_node.and_then(|(surface, node)| {
-        state.0[surface][node].get_leaf().map(|leaf| (surface, node, leaf.active))
-    });
+    let focused_tab = focused_node
+        .and_then(|path| state.0[path].get_leaf().map(|leaf| TabPath::from((path, leaf.active))));
     if focused_tab.is_none() {
         let main_camera =
             state.0.find_tab_from(|tab| matches!(tab.tab, TabEnum::Camera(ref t) if t.is_main));
         if let Some(path) = main_camera {
-            state.0.set_focused_node_and_surface((path.0, path.1));
-            state.0.set_active_tab(path);
+            state.0.set_focused_node_and_surface(path.node_path());
+            state.0.set_active_tab(path).expect("find_tab_from result must exist");
         }
     }
     let mut viewer = TabViewer { params, next_order: 0, focused_tab };
-    for (surface_index, surface) in state.0.iter_surfaces_mut().enumerate() {
-        for (node_index, node) in surface.iter_nodes_mut().enumerate() {
-            if let egui_dock::Node::Leaf(leaf) = node {
-                for (tab_index, tab) in leaf.tabs.iter_mut().enumerate() {
-                    tab.location =
-                        Some((surface_index.into(), node_index.into(), tab_index.into()));
-                    tab.tab.before_render(&mut contexts, &mut viewer);
-                }
-            }
-        }
+    for (path, tab) in state.0.iter_all_tabs_mut() {
+        tab.location = Some(path);
+        tab.tab.before_render(&mut contexts, &mut viewer);
     }
 
     let Ok(ctx) = contexts.ctx_mut() else { return };
 
-    egui::CentralPanel::default().show(ctx, |ui| {
+    egui::CentralPanel::default().show_inside(ui, |ui| {
         DockArea::new(&mut state.0)
             .show_add_buttons(false)
             .style(egui_dock::Style::from_egui(ui.style().as_ref()))
@@ -362,6 +363,8 @@ struct MenuParams<'w, 's> {
 pub struct DockCommand<F: FnOnce(&mut State)>(pub F);
 
 impl<F: FnOnce(&mut State) + Send + 'static> Command for DockCommand<F> {
+    type Out = ();
+
     fn apply(self, world: &mut World) {
         let mut state = world.resource_mut::<State>();
         (self.0)(&mut state);

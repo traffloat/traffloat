@@ -2,6 +2,8 @@ use std::marker::PhantomData;
 
 use bevy::app::App;
 use bevy::ecs::schedule::{IntoScheduleConfigs, ScheduleLabel, SystemSet};
+use bevy::ecs::system::{SystemParam, SystemParamFunction, SystemState};
+use bevy::ecs::world::World;
 use derivative::Derivative;
 use itertools::Itertools;
 
@@ -34,3 +36,34 @@ where
 #[derive(SystemSet, Derivative)]
 #[derivative(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct AllSystemSets<T>(PhantomData<T>);
+
+pub fn run_stateless_closure<F, R, Marker>(world: &mut World, mut f: F) -> R
+where
+    F: SystemParamFunction<Marker, In = (), Out = R>,
+    F::Param: 'static,
+{
+    run_stateless_closure_explicit::<F::Param, _, R>(world, |param| f.run((), param))
+}
+
+/// Similar to [`run_stateless_closure`], with less type inference.
+///
+/// Allows non-`'static` closures with exactly one parameter,
+/// which may not satisfy `for<'w, 's> <P<'w, 's> as SystemParam>::Item<'w, 's> = P`.
+/// Instead, the `SystemParam` type must be explicitly specified as a type parameter to
+/// `run_stateless_closure_explicit`, but the type may be elided in the closure signature itself.
+pub fn run_stateless_closure_explicit<P, F, R>(world: &mut World, f: F) -> R
+where
+    P: SystemParam + 'static,
+    F: for<'w, 's> FnOnce(P::Item<'w, 's>) -> R,
+{
+    let mut state = SystemState::<P>::new(world);
+    let param = match state.get_mut(world) {
+        Ok(param) => param,
+        Err(err) => {
+            panic!("Failed to prepare system parameter {} in world: {err}", std::any::type_name::<P>())
+        }
+    };
+    let result = f(param);
+    state.apply(world);
+    result
+}

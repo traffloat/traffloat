@@ -81,6 +81,7 @@ pub enum TypedSpawn {
 }
 
 impl EntityCommand for SpawnCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let (Some(corridor_length), Some(&corridor_rect)) = (
             entity.world().log_get::<Corridor>(self.corridor).map(|corridor| corridor.length),

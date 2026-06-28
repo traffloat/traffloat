@@ -137,6 +137,7 @@ impl OpenCommand {
 }
 
 impl Command for OpenCommand {
+    type Out = ();
     fn apply(self, world: &mut World) {
         world.resource_mut::<dock::State>().focus_or_create(
             || viewable_info::Tab { entity: self.entity }.into(),

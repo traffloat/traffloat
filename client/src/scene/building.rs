@@ -112,7 +112,7 @@ impl UpdateHandler for UpdateBuildingParams<'_, '_> {
             // Happens when update is received immediately after update
             return;
         };
-        let material = try_log!(self.materials.get_mut(&handle.0), expect "building entity should reference a valid material" or return);
+        let mut material = try_log!(self.materials.get_mut(&handle.0), expect "building entity should reference a valid material" or return);
         material.color = update.color.into();
 
         info.ambient_fluid.clone_from(&update.ambient_fluid);
@@ -182,11 +182,11 @@ pub enum FluidConnectionPeer {
     Pipe(Entity),
 }
 
-#[derive(Component, Resource, Reflect)]
+#[derive(Component, Reflect)]
 #[relationship(relationship_target = HasWallEntity)]
 struct WallEntityOf(Entity);
 
-#[derive(Component, Resource, Reflect)]
+#[derive(Component, Reflect)]
 #[relationship_target(relationship = WallEntityOf)]
 struct HasWallEntity(Entity);
 

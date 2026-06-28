@@ -152,6 +152,7 @@ pub enum SpawnAt {
 }
 
 impl EntityCommand for SpawnCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let name = self.name.unwrap_or_else(|| {
             let id = entity.resource_mut::<NextResidentId>().next();

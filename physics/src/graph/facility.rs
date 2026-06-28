@@ -103,6 +103,7 @@ pub struct SpawnCommand {
 }
 
 impl EntityCommand for SpawnCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let Some(typedef) = entity.world().log_get::<FacilityTypeDef>(self.ty) else { return };
         let volume = typedef.volume;

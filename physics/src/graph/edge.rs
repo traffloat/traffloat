@@ -108,6 +108,8 @@ pub struct SpawnCommand<Ab: Which> {
 }
 
 impl<Ab: Which> EntityCommand for SpawnCommand<Ab> {
+    type Out = ();
+
     fn apply(self, mut entity: EntityWorldMut) {
         entity.insert((
             Name::new(format!("Edge {:?} -> {:?}", self.building, self.corridor)),
@@ -195,6 +197,7 @@ fn broadcast_edge_change_system<Ab: Which, Chg: BroadcastChange>(
 pub struct DespawnCommand;
 
 impl EntityCommand for DespawnCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         fn cleanup<Ab: Which>(which: Ab, entity: &mut EntityWorldMut) {
             let Some(&OfBuilding::<Ab>(building_entity, ..)) = entity.get() else { return };

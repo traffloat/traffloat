@@ -142,6 +142,7 @@ pub enum SpawnPeer {
 }
 
 impl EntityCommand for SpawnCommand {
+    type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let Some(&Facility { volume: main_volume, .. }) =
             entity.world().log_get::<Facility>(self.main)

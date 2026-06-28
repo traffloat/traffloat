@@ -5,8 +5,10 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::With;
 use bevy::ecs::resource::Resource;
-use bevy::ecs::system::{Commands, Query, SystemState};
+use bevy::ecs::system::{Commands, Query};
 use bevy::ecs::world::World;
+
+use crate::util::run_stateless_closure;
 
 /// Marker component for a root entity in the physics simulation.
 ///
@@ -17,12 +19,14 @@ pub struct WorldObject;
 
 impl WorldObject {
     pub(super) fn cleanup_hook(world: &mut World) {
-        let mut state = SystemState::<(Commands, Query<Entity, With<WorldObject>>)>::new(world);
-        let (mut commands, query) = state.get_mut(world);
-        for entity in query {
-            commands.entity(entity).despawn();
-        }
-        state.apply(world);
+        run_stateless_closure(
+            world,
+            |mut commands: Commands, query: Query<Entity, With<WorldObject>>| {
+                for entity in query {
+                    commands.entity(entity).despawn();
+                }
+            },
+        );
     }
 }
 
