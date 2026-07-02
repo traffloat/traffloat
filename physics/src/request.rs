@@ -6,6 +6,7 @@ use bevy::ecs::system::{ParamSet, SystemParam};
 use traffloat_macro_util::fan_out;
 use traffloat_proto::proto;
 
+use crate::graph::facility;
 use crate::view;
 
 pub struct Plug;
@@ -129,4 +130,5 @@ fan_out! {
     SetSubscription(view::SetSubscriptionHandler<'w, 's>),
     SetViewFocus(view::SetViewFocusHandler<'w, 's>),
     RenameViewable(view::RenameViewableHandler<'w, 's>),
+    SetReactorEfficiencyCap(facility::SetReactorEfficiencyCapHandler<'w, 's>),
 }

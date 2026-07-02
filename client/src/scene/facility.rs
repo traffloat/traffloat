@@ -65,6 +65,14 @@ pub struct FacilityBuilding(pub Entity);
 pub struct Info {
     pub volume:       f32,
     pub stored_fluid: Option<proto::FluidStorageDetail>,
+    pub reactor:      Option<ReactorInfo>,
+}
+
+#[derive(Component, Reflect)]
+pub struct ReactorInfo {
+    pub fluid_ports:    Vec<proto::FacilityReactorFluidPort>,
+    pub efficiency:     f32,
+    pub efficiency_cap: f32,
 }
 
 #[derive(Component, Reflect)]
@@ -210,6 +218,29 @@ impl UpdateHandler for UpdateFacilityFluidParams<'_, '_> {
             return;
         };
         info.stored_fluid = Some(update.fluid.clone());
+    }
+}
+#[derive(SystemParam)]
+pub struct UpdateFacilityReactorParams<'w, 's> {
+    ids:            ResMut<'w, IdRegistry>,
+    facility_query: Query<'w, 's, &'static mut Info>,
+}
+
+impl UpdateHandler for UpdateFacilityReactorParams<'_, '_> {
+    type Update = proto::UpdateFacilityReactor;
+
+    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+
+    fn handle(&mut self, update: &Self::Update) {
+        let Some(entity) = self.ids.get_facility(update.id) else { return };
+        let Some(mut info) = self.facility_query.log_get_mut(entity) else {
+            return;
+        };
+        info.reactor = Some(ReactorInfo {
+            fluid_ports:    update.fluid_ports.clone(),
+            efficiency:     update.efficiency,
+            efficiency_cap: update.efficiency_cap,
+        });
     }
 }
 

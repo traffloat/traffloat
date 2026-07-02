@@ -215,8 +215,8 @@ impl EntityCommand for DespawnCommand {
 /// This struct deliberately implements [`Command`] instead of [`EntityCommand`]
 /// because of the possible ambiguity whether the applied entity is the facility or the resident.
 pub struct StartInteractCommand {
-    pub facility: Entity,
-    pub resident: Entity,
+    pub facility:   Entity,
+    pub resident:   Entity,
     pub slot_index: usize,
 }
 
@@ -248,7 +248,9 @@ impl Command for StartInteractCommand {
                 true
             });
         if success {
-            world.entity_mut(self.resident).insert(InteractingWith { facility: self.facility, slot_index: self.slot_index });
+            world
+                .entity_mut(self.resident)
+                .insert(InteractingWith { facility: self.facility, slot_index: self.slot_index });
         }
     }
 }

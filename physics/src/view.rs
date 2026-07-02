@@ -7,7 +7,6 @@ use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::{Entity, EntityHashMap, EntityHashSet};
 use bevy::ecs::message::{Message, MessageWriter};
-use bevy::ecs::query::{Has, With};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{EntityCommand, Query, Res, SystemParam};
@@ -66,8 +65,8 @@ impl Default for NextProtoId {
 }
 
 #[derive(Resource, Reflect, Default)]
-struct IdIndex {
-    index: HashMap<proto::Id, Entity>,
+pub(crate) struct IdIndex {
+    pub(crate) index: HashMap<proto::Id, Entity>,
 }
 
 #[derive(Component, Reflect, Default)]

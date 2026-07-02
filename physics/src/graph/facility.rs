@@ -3,18 +3,19 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
-use bevy::ecs::query::{QueryData, With};
+use bevy::ecs::query::{Has, QueryData, With};
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{EntityCommand, Query};
+use bevy::ecs::system::{EntityCommand, Query, Res, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
-use crate::graph::{Building, ViewInitSystemSets, building};
+use crate::graph::{Building, Conduit, ViewInitSystemSets, building};
 use crate::persist::AppExt;
 use crate::util::{QueryExt, WorldExt};
-use crate::{fluid, view};
+use crate::view::{IdIndex, SentUpdate};
+use crate::{fluid, reactor, request, view};
 
 pub mod blueprint;
 pub use blueprint::Blueprint;
@@ -188,7 +189,8 @@ fn init_viewer_system(
 
 fn incr_viewer_system(
     mut throttle: view::BroadcastThrottle,
-    facility_query: Query<IncrData, IncrFilter>,
+    facility_query: Query<IncrData, With<Facility>>,
+    port_peer_query: Query<IncrPortPeerQueryData>,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
     if !throttle.should_run() {
@@ -223,13 +225,114 @@ fn incr_viewer_system(
                 [Some(taint_update), fluid_update].into_iter().flatten()
             }));
         }
+        if let Some((reactor, status)) = facility.reactor {
+            let make_update = || {
+                proto::Update::from(proto::UpdateFacilityReactor {
+                    id:             facility.viewable.id,
+                    fluid_ports:    fluid_ports_to_proto(
+                        &port_peer_query,
+                        facility.entity,
+                        &reactor.ports.fluid_storages,
+                    ),
+                    efficiency:     status.efficiency,
+                    efficiency_cap: reactor.efficiency_cap,
+                })
+            };
+            messages.write_batch(facility.viewable.broadcast_update(|level| match level {
+                view::SubscriptionLevel::Optical => None,
+                view::SubscriptionLevel::Detail | view::SubscriptionLevel::Debug => {
+                    Some(make_update())
+                }
+            }));
+        }
     }
+}
+
+fn fluid_ports_to_proto(
+    port_peer_query: &Query<IncrPortPeerQueryData>,
+    facility_entity: Entity,
+    ports: &[Option<Entity>],
+) -> Vec<proto::FacilityReactorFluidPort> {
+    ports
+        .iter()
+        .enumerate()
+        .map(|(port_index, entity)| {
+            match entity.and_then(|entity| port_peer_query.log_get(entity)) {
+                None => proto::FacilityReactorFluidPort::None,
+                Some(peer) => {
+                    if peer.facility {
+                        proto::FacilityReactorFluidPort::Facility { id: peer.viewable.id }
+                    } else if peer.building {
+                        proto::FacilityReactorFluidPort::Ambient
+                    } else if peer.conduit {
+                        proto::FacilityReactorFluidPort::Conduit { id: peer.viewable.id }
+                    } else {
+                        tracing::warn!(
+                            "Facility {facility_entity:?} reactor port {port_index} peer entity \
+                             {entity:?} has invalid archetype",
+                        );
+                        proto::FacilityReactorFluidPort::None
+                    }
+                }
+            }
+        })
+        .collect()
 }
 
 #[derive(QueryData)]
 struct IncrData {
+    entity:   Entity,
     viewable: &'static view::Viewable,
     storage:  Option<(&'static fluid::Storage, &'static fluid::Sensor)>,
+    reactor:  Option<(&'static reactor::Facility, &'static reactor::FacilityStatus)>,
 }
 
-type IncrFilter = With<Facility>;
+#[derive(QueryData)]
+struct IncrPortPeerQueryData {
+    viewable: &'static view::Viewable,
+    facility: Has<Facility>,
+    building: Has<Building>,
+    conduit:  Has<Conduit>,
+}
+
+#[derive(SystemParam)]
+pub(crate) struct SetReactorEfficiencyCapHandler<'w, 's> {
+    facility_query: Query<'w, 's, &'static mut reactor::Facility>,
+    index:          Res<'w, IdIndex>,
+    update_writer:  MessageWriter<'w, SentUpdate>,
+}
+
+impl request::Handler for SetReactorEfficiencyCapHandler<'_, '_> {
+    type Request = proto::SetReactorEfficiencyCap;
+
+    fn classify(request: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
+
+    fn handle(&mut self, viewer: Entity, request: &Self::Request) {
+        let entity = self
+            .index
+            .index
+            .get(&request.id)
+            .and_then(|&entity| self.facility_query.log_get_mut(entity));
+        match entity {
+            None => {
+                view::send_error_toast(
+                    &mut self.update_writer,
+                    viewer,
+                    format!("Reactor facility with id {} not found", request.id.0),
+                );
+            }
+            Some(mut facility) => {
+                if !(0.0..=1.0).contains(&request.value) {
+                    view::send_error_toast(
+                        &mut self.update_writer,
+                        viewer,
+                        "Efficiency cap must be between 0 and 1",
+                    );
+                    return;
+                }
+
+                facility.efficiency_cap = request.value;
+            }
+        }
+    }
+}

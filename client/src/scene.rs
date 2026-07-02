@@ -331,6 +331,7 @@ fan_out! {
     NewFacility(facility::NewFacilityParams<'w, 's>),
     UpdateFacilityTaint(facility::UpdateFacilityTaintParams<'w, 's>),
     UpdateFacilityFluid(facility::UpdateFacilityFluidParams<'w, 's>),
+    UpdateFacilityReactor(facility::UpdateFacilityReactorParams<'w, 's>),
     NewConduit(conduit::NewConduitParams<'w, 's>),
     UpdateFluidConduit(conduit::UpdateFluidConduitParams<'w, 's>),
     NewResident(resident::NewResidentParams<'w, 's>),

@@ -70,6 +70,7 @@ pub enum Update {
     NewFacility(NewFacility),
     UpdateFacilityTaint(UpdateFacilityTaint),
     UpdateFacilityFluid(UpdateFacilityFluid),
+    UpdateFacilityReactor(UpdateFacilityReactor),
     NewConduit(NewConduit),
     UpdateFluidConduit(UpdateFluidConduit),
     NewResident(NewResident),
@@ -228,6 +229,31 @@ pub struct UpdateFacilityFluid {
     pub fluid: FluidStorageDetail,
 }
 
+/// Updated reactor information of a facility with a reactor.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateFacilityReactor {
+    pub id:             Id,
+    pub fluid_ports:    Vec<FacilityReactorFluidPort>,
+    pub efficiency:     f32,
+    pub efficiency_cap: f32,
+}
+
+/// Where a port is connected to.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub enum FacilityReactorFluidPort {
+    None,
+    /// Ambient fluid of the parent building.
+    Ambient,
+    /// Another facility.
+    Facility {
+        id: Id,
+    },
+    /// A fluid conduit in an adjacent corridor.
+    Conduit {
+        id: Id,
+    },
+}
+
 /// Sets the fluid connections within a building.
 ///
 /// This does not include building-corridor edges.
@@ -343,6 +369,7 @@ pub enum Request {
     SetSubscription(SetSubscription),
     SetViewFocus(SetViewFocus),
     RenameViewable(RenameViewable),
+    SetReactorEfficiencyCap(SetReactorEfficiencyCap),
 }
 
 /// Sets the viewer subscription config.
@@ -366,4 +393,12 @@ pub struct RenameViewable {
     /// The new name of the viewable.
     /// Must not be empty.
     pub name: String,
+}
+
+/// Sets the maximum efficiency of a reactor facility.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetReactorEfficiencyCap {
+    pub id:    Id,
+    /// The new maximum efficiency value. Must be between 0 and 1 inclusive.
+    pub value: f32,
 }

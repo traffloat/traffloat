@@ -1,13 +1,18 @@
 use bevy::ecs::entity::Entity;
+use bevy::ecs::message::MessageWriter;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
+use egui_material_icons::icons;
 use traffloat_physics::util::QueryExt;
+use traffloat_proto::proto;
 
 use crate::dock;
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
 use crate::scene::building::FluidConnectionPeer;
 use crate::scene::conduit::ConduitCorridor;
-use crate::scene::{FluidTypes, GenericViewable, IdRegistry, ProtoId, building, facility};
+use crate::scene::{
+    FluidTypes, GenericViewable, IdRegistry, OutboundRequest, ProtoId, building, facility,
+};
 use crate::util::new_id;
 
 #[derive(SystemParam)]
@@ -17,6 +22,7 @@ pub struct UiSystemParam<'w, 's> {
     fluid_types:             Res<'w, FluidTypes>,
     commands:                Commands<'w, 's>,
     show_connections_params: ShowConnectionsParams<'w, 's>,
+    request_writer:          MessageWriter<'w, OutboundRequest>,
 }
 
 #[derive(QueryData)]
@@ -55,6 +61,54 @@ impl UiSystemParam<'_, '_> {
         if let Some(ambient_fluid) = &facility_data.info.stored_fluid {
             egui::CollapsingHeader::new("Stored fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
                 show_fluid(ui, dock.id, ambient_fluid, &self.fluid_types);
+            });
+        }
+
+        if let Some(reactor) = &facility_data.info.reactor {
+            egui::CollapsingHeader::new("Reactor").id_salt(new_id!(dock.id)).show(ui, |ui| {
+                let mut efficiency_copy = reactor.efficiency * 100.0;
+                ui.add(
+                    egui::Slider::new(&mut efficiency_copy, 0.0..=100.0)
+                        .suffix("%")
+                        .text("Efficiency"),
+                );
+                ui.horizontal(|ui| {
+                    let memory_id = new_id!(dock.id);
+
+                    let submit = {
+                        let memory = ui.memory(|memory| memory.data.get_temp::<f32>(memory_id));
+                        let mut efficiency_percent = reactor.efficiency_cap * 100.0;
+                        let resp = ui.add(
+                            egui::Slider::new(&mut efficiency_percent, 0.0..=100.0)
+                                .suffix('%')
+                                .text("Efficiency cap"),
+                        );
+                        let can_submit = memory.is_some() || resp.changed();
+                        can_submit.then_some(efficiency_percent / 100.0)
+                    };
+                    ui.add_enabled_ui(submit.is_some(), |ui| {
+                        if let Some(value) = submit {
+                            ui.memory_mut(|memory| {
+                                memory.data.insert_temp::<f32>(memory_id, value)
+                            });
+                        }
+                        if ui.button("Submit").clicked()
+                            && let Some(value) = submit
+                        {
+                            ui.memory_mut(|memory| memory.data.remove_temp::<f32>(memory_id));
+                            self.request_writer.write(OutboundRequest {
+                                body: proto::SetReactorEfficiencyCap {
+                                    id: facility_data.id.0,
+                                    value,
+                                }
+                                .into(),
+                            });
+                        }
+                        if ui.button(icons::ICON_CANCEL).clicked() {
+                            ui.memory_mut(|memory| memory.data.remove_temp::<f32>(memory_id));
+                        }
+                    });
+                });
             });
         }
     }

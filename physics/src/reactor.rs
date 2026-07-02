@@ -49,13 +49,16 @@ pub struct ExecuteSystemSet;
 #[derive(SystemParam)]
 struct ExecuteSystemParams<'w, 's> {
     fluid_storage: Query<'w, 's, &'static mut fluid::Storage>,
-    resident: Query<'w, 's, (&'static mut resident::Attributes, &'static resident::InteractingWith)>,
+    resident:
+        Query<'w, 's, (&'static mut resident::Attributes, &'static resident::InteractingWith)>,
 }
 
 #[derive(QueryData)]
+#[query_data(mutable)]
 struct ExecuteFacilityData {
     entity:            Entity,
     facility:          &'static Facility,
+    facility_status:   &'static mut FacilityStatus,
     interaction_slots: Option<&'static resident::InteractingResidents>,
 }
 
@@ -76,14 +79,14 @@ fn execute_system(
         return;
     }
 
-    for reactor in reactor_query {
+    for mut reactor in reactor_query {
         let def = types.get(reactor.facility.id);
-        execute_once(&reactor, def, &mut params);
+        execute_once(&mut reactor, def, &mut params);
     }
 }
 
 fn execute_once(
-    reactor: &ExecuteFacilityDataItem,
+    reactor: &mut ExecuteFacilityDataItem,
     def: &TypeDef,
     params: &mut ExecuteSystemParams,
 ) {
@@ -107,16 +110,27 @@ fn execute_once(
         for output in &def.outputs {
             output.execute(efficiency, params, reactor);
         }
+        reactor.facility_status.efficiency = efficiency;
+    } else {
+        reactor.facility_status.efficiency = 0.0;
     }
 }
 
 /// Component on facilities.
 #[derive(Debug, Component, Reflect)]
+#[require(FacilityStatus)]
 pub struct Facility {
     pub id:             TypeId,
     /// The maximum efficiency as configured by the player.
     pub efficiency_cap: f32,
     pub ports:          Ports,
+}
+
+/// Component on facilities.
+#[derive(Debug, Default, Component, Reflect)]
+pub struct FacilityStatus {
+    /// The facility efficiency in the last timestep.
+    pub efficiency: f32,
 }
 
 #[derive(Debug, Reflect)]
@@ -560,7 +574,7 @@ impl EfficiencyModifier for TemperatureCatalyst {
 /// Attribute of residents interacting with the reactor.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct ResidentAttrCatalyst {
-    /// The fluid storage entity to check.
+    /// The interaction slot index of the residents that can catalyst the reactor.
     pub slot_index: usize,
     /// The relevant attribute.
     pub attr:       resident::attr::TypeId,
@@ -704,6 +718,8 @@ pub enum Curve {
 pub enum Aggregator {
     Sum,
     Product,
+    Max { initial: f32 },
+    Min { initial: f32 },
 }
 
 impl Aggregator {
@@ -711,6 +727,7 @@ impl Aggregator {
         match self {
             Aggregator::Sum => 0.0,
             Aggregator::Product => 1.0,
+            Aggregator::Max { initial } | Aggregator::Min { initial } => *initial,
         }
     }
 
@@ -718,6 +735,8 @@ impl Aggregator {
         match self {
             Aggregator::Sum => *acc += value,
             Aggregator::Product => *acc *= value,
+            Aggregator::Max { .. } => *acc = (*acc).max(value),
+            Aggregator::Min { .. } => *acc = (*acc).min(value),
         }
     }
 }
