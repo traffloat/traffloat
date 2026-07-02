@@ -142,6 +142,16 @@ impl Attributes {
             .enumerate()
             .map(|(ty, &value)| (TypeId(u32::try_from(ty).expect("checked during push")), value))
     }
+
+    pub fn get(&self, ty: TypeId) -> f32 {
+        let index = usize::try_from(ty.0).expect("u32 <= usize on all supported targets");
+        *self.values.get(index).expect("invalid type ID")
+    }
+
+    pub fn get_mut(&mut self, ty: TypeId) -> &mut f32 {
+        let index = usize::try_from(ty.0).expect("u32 <= usize on all supported targets");
+        self.values.get_mut(index).expect("invalid type ID")
+    }
 }
 
 pub struct AddTypeCommand {

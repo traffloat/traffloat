@@ -1,6 +1,8 @@
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
+use bevy::ecs::query::QueryData;
+use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{Local, Query, Res, SystemParam};
@@ -12,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::persist::AppExt;
 use crate::util::{QueryExt, SliceGet};
-use crate::{CleanupAppExt, fluid};
+use crate::{CleanupAppExt, fluid, resident};
 
 mod persist;
 pub use persist::Persist;
@@ -47,6 +49,14 @@ pub struct ExecuteSystemSet;
 #[derive(SystemParam)]
 struct ExecuteSystemParams<'w, 's> {
     fluid_storage: Query<'w, 's, &'static mut fluid::Storage>,
+    resident: Query<'w, 's, (&'static mut resident::Attributes, &'static resident::InteractingWith)>,
+}
+
+#[derive(QueryData)]
+struct ExecuteFacilityData {
+    entity:            Entity,
+    facility:          &'static Facility,
+    interaction_slots: Option<&'static resident::InteractingResidents>,
 }
 
 // In the future we may optimize this module to use dynamic components and systems
@@ -56,7 +66,7 @@ struct ExecuteSystemParams<'w, 's> {
 fn execute_system(
     conf: Res<Conf>,
     mut next_step: Local<u32>,
-    reactor_query: Query<&Facility>,
+    reactor_query: Query<ExecuteFacilityData>,
     types: Res<Types>,
     mut params: ExecuteSystemParams,
 ) {
@@ -67,14 +77,18 @@ fn execute_system(
     }
 
     for reactor in reactor_query {
-        let def = types.get(reactor.id);
-        execute_once(reactor, def, &mut params);
+        let def = types.get(reactor.facility.id);
+        execute_once(&reactor, def, &mut params);
     }
 }
 
-fn execute_once(reactor: &Facility, def: &TypeDef, params: &mut ExecuteSystemParams) {
+fn execute_once(
+    reactor: &ExecuteFacilityDataItem,
+    def: &TypeDef,
+    params: &mut ExecuteSystemParams,
+) {
     let mut efficiency =
-        EfficiencyModifierResult { maximum: reactor.efficiency_cap, multiplier: 1.0 };
+        EfficiencyModifierResult { maximum: reactor.facility.efficiency_cap, multiplier: 1.0 };
 
     for catalyst in &def.catalysts {
         efficiency.merge(catalyst.compute_efficiency(params, reactor));
@@ -159,13 +173,18 @@ trait EfficiencyModifier {
     fn compute_efficiency(
         &self,
         params: &ExecuteSystemParams,
-        reactor: &Facility,
+        reactor: &ExecuteFacilityDataItem,
     ) -> EfficiencyModifierResult;
 }
 
 #[enum_dispatch]
 trait ReactionExecutor {
-    fn execute(&self, efficiency: f32, params: &mut ExecuteSystemParams, reactor: &Facility);
+    fn execute(
+        &self,
+        efficiency: f32,
+        params: &mut ExecuteSystemParams,
+        reactor: &ExecuteFacilityDataItem,
+    );
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -222,9 +241,10 @@ impl EfficiencyModifier for FluidInput {
     fn compute_efficiency(
         &self,
         params: &ExecuteSystemParams,
-        reactor: &Facility,
+        reactor: &ExecuteFacilityDataItem,
     ) -> EfficiencyModifierResult {
-        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
+        let Some(&Some(storage_entity)) =
+            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
         else {
             tracing::warn!(
                 "reactor port {:?} is used as an input and must not be nil",
@@ -245,8 +265,14 @@ impl EfficiencyModifier for FluidInput {
 }
 
 impl ReactionExecutor for FluidInput {
-    fn execute(&self, efficiency: f32, params: &mut ExecuteSystemParams, reactor: &Facility) {
-        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
+    fn execute(
+        &self,
+        efficiency: f32,
+        params: &mut ExecuteSystemParams,
+        reactor: &ExecuteFacilityDataItem,
+    ) {
+        let Some(&Some(storage_entity)) =
+            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
         else {
             tracing::warn!(
                 "reactor port {:?} is used as an input and must not be nil",
@@ -277,9 +303,10 @@ impl EfficiencyModifier for HeatInput {
     fn compute_efficiency(
         &self,
         params: &ExecuteSystemParams,
-        reactor: &Facility,
+        reactor: &ExecuteFacilityDataItem,
     ) -> EfficiencyModifierResult {
-        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
+        let Some(&Some(storage_entity)) =
+            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
         else {
             tracing::warn!(
                 "reactor port {:?} is used as an input and must not be nil",
@@ -299,8 +326,14 @@ impl EfficiencyModifier for HeatInput {
 }
 
 impl ReactionExecutor for HeatInput {
-    fn execute(&self, efficiency: f32, params: &mut ExecuteSystemParams, reactor: &Facility) {
-        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
+    fn execute(
+        &self,
+        efficiency: f32,
+        params: &mut ExecuteSystemParams,
+        reactor: &ExecuteFacilityDataItem,
+    ) {
+        let Some(&Some(storage_entity)) =
+            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
         else {
             tracing::warn!(
                 "reactor port {:?} is used as an input and must not be nil",
@@ -320,6 +353,7 @@ impl ReactionExecutor for HeatInput {
 pub enum Output {
     Fluid(FluidOutput),
     Temperature(TemperatureOutput),
+    ResidentAttr(ResidentAttrOutput),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
@@ -333,8 +367,14 @@ pub struct FluidOutput {
 }
 
 impl ReactionExecutor for FluidOutput {
-    fn execute(&self, efficiency: f32, params: &mut ExecuteSystemParams, reactor: &Facility) {
-        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
+    fn execute(
+        &self,
+        efficiency: f32,
+        params: &mut ExecuteSystemParams,
+        reactor: &ExecuteFacilityDataItem,
+    ) {
+        let Some(&Some(storage_entity)) =
+            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
         else {
             tracing::warn!(
                 "reactor port {:?} is used as an output and must not be nil",
@@ -357,8 +397,14 @@ pub struct TemperatureOutput {
 }
 
 impl ReactionExecutor for TemperatureOutput {
-    fn execute(&self, efficiency: f32, params: &mut ExecuteSystemParams, reactor: &Facility) {
-        let Some(&Some(storage_entity)) = reactor.ports.fluid_storages.get(self.storage.0 as usize)
+    fn execute(
+        &self,
+        efficiency: f32,
+        params: &mut ExecuteSystemParams,
+        reactor: &ExecuteFacilityDataItem,
+    ) {
+        let Some(&Some(storage_entity)) =
+            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
         else {
             tracing::warn!(
                 "reactor port {:?} is used as an output and must not be nil",
@@ -371,14 +417,51 @@ impl ReactionExecutor for TemperatureOutput {
     }
 }
 
+/// Modifies an attribute of residents in a slot.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct ResidentAttrOutput {
+    /// The resident interaction slot to apply the output to.
+    ///
+    /// The output is applied to all residents in the slot,
+    /// regardless of the number of residents in the slot.
+    pub slot_index: usize,
+    /// The type of attribute to modify.
+    pub attr:       resident::attr::TypeId,
+    /// The linear change to apply to the attribute value of each resident per timestep.
+    pub delta:      f32,
+}
+
+impl ReactionExecutor for ResidentAttrOutput {
+    fn execute(
+        &self,
+        efficiency: f32,
+        params: &mut ExecuteSystemParams,
+        reactor: &ExecuteFacilityDataItem,
+    ) {
+        if let Some(residents) = reactor.interaction_slots {
+            for resident in residents.iter() {
+                if let Some((mut attrs, with)) = params.resident.log_get_mut(resident) {
+                    debug_assert_eq!(with.facility, reactor.entity);
+                    if with.slot_index == self.slot_index {
+                        let attr = attrs.get_mut(self.attr);
+                        *attr += self.delta * efficiency;
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 #[enum_dispatch(EfficiencyModifier)]
 pub enum Catalyst {
     Fluid(FluidCatalyst),
     Pressure(PressureCatalyst),
     Temperature(TemperatureCatalyst),
+    ResidentAttr(ResidentAttrCatalyst),
 }
 
+/// Concentration of a fluid in a connected fluid storage.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct FluidCatalyst {
     /// The storage entity to check.
@@ -393,9 +476,10 @@ impl EfficiencyModifier for FluidCatalyst {
     fn compute_efficiency(
         &self,
         params: &ExecuteSystemParams,
-        reactor: &Facility,
+        reactor: &ExecuteFacilityDataItem,
     ) -> EfficiencyModifierResult {
-        let Some(&maybe_storage) = reactor.ports.fluid_storages.log_get(self.storage.0 as usize)
+        let Some(&maybe_storage) =
+            reactor.facility.ports.fluid_storages.log_get(self.storage.0 as usize)
         else {
             return EfficiencyModifierResult::default();
         };
@@ -411,6 +495,7 @@ impl EfficiencyModifier for FluidCatalyst {
     }
 }
 
+/// Pressure in a connected fluid storage.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct PressureCatalyst {
     /// The fluid storage entity to check.
@@ -423,9 +508,10 @@ impl EfficiencyModifier for PressureCatalyst {
     fn compute_efficiency(
         &self,
         params: &ExecuteSystemParams,
-        reactor: &Facility,
+        reactor: &ExecuteFacilityDataItem,
     ) -> EfficiencyModifierResult {
-        let Some(&maybe_storage) = reactor.ports.fluid_storages.log_get(self.storage.0 as usize)
+        let Some(&maybe_storage) =
+            reactor.facility.ports.fluid_storages.log_get(self.storage.0 as usize)
         else {
             return EfficiencyModifierResult::default();
         };
@@ -440,6 +526,7 @@ impl EfficiencyModifier for PressureCatalyst {
     }
 }
 
+/// Temperature in a connected fluid storage.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct TemperatureCatalyst {
     /// The fluid storage entity to check.
@@ -452,9 +539,10 @@ impl EfficiencyModifier for TemperatureCatalyst {
     fn compute_efficiency(
         &self,
         params: &ExecuteSystemParams,
-        reactor: &Facility,
+        reactor: &ExecuteFacilityDataItem,
     ) -> EfficiencyModifierResult {
-        let Some(&maybe_storage) = reactor.ports.fluid_storages.log_get(self.storage.0 as usize)
+        let Some(&maybe_storage) =
+            reactor.facility.ports.fluid_storages.log_get(self.storage.0 as usize)
         else {
             return EfficiencyModifierResult::default();
         };
@@ -466,6 +554,41 @@ impl EfficiencyModifier for TemperatureCatalyst {
             return EfficiencyModifierResult::default();
         };
         self.temp_threshold.lerp(storage.temperature)
+    }
+}
+
+/// Attribute of residents interacting with the reactor.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct ResidentAttrCatalyst {
+    /// The fluid storage entity to check.
+    pub slot_index: usize,
+    /// The relevant attribute.
+    pub attr:       resident::attr::TypeId,
+    /// How multiple interacting residents are aggregated into a single value.
+    pub aggregator: Aggregator,
+    /// How aggregated attribute value affects the efficiency of the reactor.
+    pub threshold:  Threshold,
+}
+
+impl EfficiencyModifier for ResidentAttrCatalyst {
+    fn compute_efficiency(
+        &self,
+        params: &ExecuteSystemParams,
+        reactor: &ExecuteFacilityDataItem,
+    ) -> EfficiencyModifierResult {
+        let mut result = self.aggregator.initial();
+        if let Some(residents) = reactor.interaction_slots {
+            for resident in residents.iter() {
+                if let Some((attrs, with)) = params.resident.log_get(resident) {
+                    debug_assert_eq!(with.facility, reactor.entity);
+                    if with.slot_index == self.slot_index {
+                        let attr = attrs.get(self.attr);
+                        self.aggregator.reduce(&mut result, attr);
+                    }
+                }
+            }
+        }
+        self.threshold.lerp(result)
     }
 }
 
@@ -574,4 +697,27 @@ pub enum Curve {
         /// The Y-coordinate as input goes to &pm;&infin;.
         minimal_multiplier: f32,
     },
+}
+
+/// A fold function to reduce zero or multiple float parameters into one.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub enum Aggregator {
+    Sum,
+    Product,
+}
+
+impl Aggregator {
+    pub fn initial(&self) -> f32 {
+        match self {
+            Aggregator::Sum => 0.0,
+            Aggregator::Product => 1.0,
+        }
+    }
+
+    pub fn reduce(&self, acc: &mut f32, value: f32) {
+        match self {
+            Aggregator::Sum => *acc += value,
+            Aggregator::Product => *acc *= value,
+        }
+    }
 }

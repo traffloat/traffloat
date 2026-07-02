@@ -6,14 +6,15 @@ use bevy::ecs::name::Name;
 use bevy::ecs::query::{With, Without};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{EntityCommand, Query};
-use bevy::ecs::world::EntityWorldMut;
+use bevy::ecs::system::{Command, EntityCommand, Query};
+use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
+use crate::graph::facility;
 use crate::persist::AppExt;
-use crate::util::{AllSystemSets, QueryExt, SliceGet};
+use crate::util::{AllSystemSets, QueryExt, SliceGet, run_stateless_closure};
 use crate::{graph, view};
 
 pub mod attr;
@@ -193,6 +194,62 @@ impl EntityCommand for DespawnCommand {
     fn apply(self, mut entity: EntityWorldMut) {
         view::before_viewable_despawn(&mut entity);
         entity.despawn();
+    }
+}
+
+/// Sets a resident to start interacting with a facility.
+///
+/// # Errors
+/// The command fails silently if any of the following conditions are not satisfied:
+/// - The resident [`Location`] is currently [`Location::Building`] owning the facility.
+/// - The interaction slot exists in the facility (violation leads to error log).
+/// - The interaction slot has excess capacity.
+///
+/// In particular, the last condition may be violated as a result of race conditions.
+/// The caller must not assume that the command would succeed.
+/// If subsequent actions are required after the interaction starts,
+/// they should check the resident's [`Location`] first,
+/// or ideally adopt an idempotent eventual-consistency approach.
+///
+/// # Note
+/// This struct deliberately implements [`Command`] instead of [`EntityCommand`]
+/// because of the possible ambiguity whether the applied entity is the facility or the resident.
+pub struct StartInteractCommand {
+    pub facility: Entity,
+    pub resident: Entity,
+    pub slot_index: usize,
+}
+
+impl Command for StartInteractCommand {
+    type Out = ();
+
+    fn apply(self, world: &mut World) {
+        let success = run_stateless_closure(world, move |
+            mut resident_query: Query<&mut Location>,
+            mut facility_query: Query<(&mut InteractionSlots, &facility::OfBuilding)>,
+            | {
+                let Some((mut slots, parent_building)) = facility_query.log_get_mut(self.facility) else { return false };
+                let Some(mut location) = resident_query.log_get_mut(self.resident) else { return false };
+                let Location::Building { entity: resident_building, .. } = *location else { return false };
+                if resident_building != parent_building.0 {
+                    return false;
+                }
+
+                let Some(slot) = slots.slots.get_mut(self.slot_index) else {
+                    tracing::error!("Facility {:?} does not have interaction slot index {}", self.facility, self.slot_index);
+                    return false;
+                };
+                if slot.usage >= slot.capacity {
+                    return false;
+                }
+
+                slot.usage += 1;
+                *location = Location::Facility { entity: self.facility };
+                true
+            });
+        if success {
+            world.entity_mut(self.resident).insert(InteractingWith { facility: self.facility, slot_index: self.slot_index });
+        }
     }
 }
 
