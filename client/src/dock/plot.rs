@@ -90,7 +90,8 @@ impl dock::Tab for Tab {
                             .get(index)
                             .or_else(|| buf.iter().next_back())
                             .expect("checked !buf.data.is_empty()");
-                        let x = (t - (buf.data.len() as f64)) * self.probe_period.as_secs_f64();
+                        let x =
+                            (t - (buf.data.len() as f64) + 1.0) * self.probe_period.as_secs_f64();
                         (x, f64::from(y))
                     },
                     0.0..=((buf.data.len() - 1) as f64),
@@ -155,10 +156,12 @@ impl Buffer {
                 new.extend_from_slice(&self.data[..self.offset]);
             }
             self.data = new;
+            self.offset = 0;
         } else if new_size > self.data.len() {
             let mut new = Vec::with_capacity(new_size);
             new.extend(self.iter());
             self.data = new;
+            self.offset = 0;
         }
     }
 
