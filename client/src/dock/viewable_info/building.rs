@@ -61,7 +61,7 @@ impl UiSystemParam<'_, '_> {
         {
             ui.heading("Facilities");
             for facility in facilities.iter() {
-                show_facility(ui, dock.id, &mut self.commands, &self.facility_query, facility);
+                show_facility(ui, &mut self.commands, &self.facility_query, facility);
             }
         }
 
@@ -70,26 +70,28 @@ impl UiSystemParam<'_, '_> {
         {
             ui.heading("Connections");
             for corridor in data.corridors_alpha.iter().flat_map(|c| c.iter()) {
-                show_connection(
-                    ui,
-                    dock.id,
-                    &mut self.commands,
-                    &self.building_query,
-                    &self.corridor_query,
-                    corridor,
-                    Alpha,
-                );
+                ui.push_id(new_id!(corridor), |ui| {
+                    show_connection(
+                        ui,
+                        &mut self.commands,
+                        &self.building_query,
+                        &self.corridor_query,
+                        corridor,
+                        Alpha,
+                    );
+                });
             }
             for corridor in data.corridors_beta.iter().flat_map(|c| c.iter()) {
-                show_connection(
-                    ui,
-                    dock.id,
-                    &mut self.commands,
-                    &self.building_query,
-                    &self.corridor_query,
-                    corridor,
-                    Beta,
-                );
+                ui.push_id(new_id!(corridor), |ui| {
+                    show_connection(
+                        ui,
+                        &mut self.commands,
+                        &self.building_query,
+                        &self.corridor_query,
+                        corridor,
+                        Beta,
+                    );
+                });
             }
         }
 
@@ -103,15 +105,16 @@ impl UiSystemParam<'_, '_> {
 
         if let Some(ambient_fluid) = &data.info.ambient_fluid {
             egui::CollapsingHeader::new("Ambient fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
-                show_fluid(
-                    ui,
-                    dock.id,
-                    &mut self.commands,
-                    ambient_fluid,
-                    &self.fluid_types,
-                    |label| format!("Building {} {label}", data.generic.name),
-                    |metric| plot::Target::BuildingAmbient { building: entity, metric },
-                );
+                ui.push_id(new_id!(dock.id), |ui| {
+                    show_fluid(
+                        ui,
+                        &mut self.commands,
+                        ambient_fluid,
+                        &self.fluid_types,
+                        |label| format!("Building {} {label}", data.generic.name),
+                        |metric| plot::Target::BuildingAmbient { building: entity, metric },
+                    );
+                });
             });
         }
     }
@@ -119,7 +122,6 @@ impl UiSystemParam<'_, '_> {
 
 fn show_connection<Ab: Which>(
     ui: &mut egui::Ui,
-    id: egui::Id,
     commands: &mut Commands,
     building_query: &Query<BuildingData>,
     corridor_query: &Query<CorridorData>,
@@ -155,7 +157,7 @@ fn show_connection<Ab: Which>(
         }
     });
 
-    ui.indent(new_id!(id), |ui| {
+    ui.indent(new_id!(), |ui| {
         ui.horizontal(|ui| {
             ui.label("through corridor");
             show_link_small(ui, commands, corridor);
@@ -171,7 +173,6 @@ fn show_connection<Ab: Which>(
 
 fn show_facility(
     ui: &mut egui::Ui,
-    id: egui::Id,
     commands: &mut Commands,
     facility_query: &Query<FacilityData>,
     facility_entity: Entity,

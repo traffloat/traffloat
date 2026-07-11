@@ -196,7 +196,6 @@ impl Command for OpenCommand {
 
 fn show_fluid(
     ui: &mut egui::Ui,
-    id: egui::Id,
     commands: &mut Commands,
     ambient_fluid: &proto::FluidStorageDetail,
     types: &FluidTypes,
@@ -207,44 +206,47 @@ fn show_fluid(
     if let Some(pressure) = ambient_fluid.pressure {
         ui.horizontal(|ui| {
             ui.label(format!("Pressure: {pressure:.2}"));
-            show_graph_button(
-                ui,
-                id,
-                commands,
-                || make_name("Pressure"),
-                make_plot_target(plot::FluidMetric::Pressure),
-            );
+            ui.push_id(new_id!(), |ui| {
+                show_graph_button(
+                    ui,
+                    commands,
+                    || make_name("Pressure"),
+                    make_plot_target(plot::FluidMetric::Pressure),
+                );
+            });
         });
     }
     if let Some(temperature) = ambient_fluid.temperature {
         ui.horizontal(|ui| {
             ui.label(format!("Temperature: {temperature:.2} K"));
-            show_graph_button(
-                ui,
-                id,
-                commands,
-                || make_name("Temperature"),
-                make_plot_target(plot::FluidMetric::Temperature),
-            );
+            ui.push_id(new_id!(), |ui| {
+                show_graph_button(
+                    ui,
+                    commands,
+                    || make_name("Temperature"),
+                    make_plot_target(plot::FluidMetric::Temperature),
+                );
+            });
         });
     }
 
     if let Some(data) = &ambient_fluid.types {
-        egui::CollapsingHeader::new("Composition").id_salt(new_id!(id)).show(ui, |ui| {
+        egui::CollapsingHeader::new("Composition").id_salt(new_id!()).show(ui, |ui| {
             for (ty, &moles) in data.iter().enumerate() {
-                ui.horizontal(|ui| {
-                    ui.label(format!(
-                        "{}: {moles:.2} mol ({} mol/m\u{b3})",
-                        types.0.get(ty).map_or("???", |ty| &ty.name),
-                        moles / ambient_fluid.volume,
-                    ));
-                    show_graph_button(
-                        ui,
-                        new_id!(id, ty),
-                        commands,
-                        || make_name("Temperature"),
-                        make_plot_target(plot::FluidMetric::Temperature),
-                    );
+                ui.push_id(new_id!(ty), |ui| {
+                    ui.horizontal(|ui| {
+                        let ty_name = types.0.get(ty).map_or("???", |ty| &ty.name);
+                        ui.label(format!(
+                            "{ty_name}: {moles:.2} mol ({} mol/m\u{b3})",
+                            moles / ambient_fluid.volume,
+                        ));
+                        show_graph_button(
+                            ui,
+                            commands,
+                            || make_name(&format!("{ty_name} concentration")),
+                            make_plot_target(plot::FluidMetric::MolarConc { ty }),
+                        );
+                    });
                 });
             }
         });
@@ -253,7 +255,6 @@ fn show_fluid(
 
 fn show_graph_button(
     ui: &mut egui::Ui,
-    _id: egui::Id,
     commands: &mut Commands,
     make_name: impl Fn() -> String,
     target: plot::Target,

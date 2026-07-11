@@ -241,7 +241,9 @@ macro_rules! define_tabs {
                     $(
                         TabEnum::$variant(ref mut t) => {
                             define_tabs_handle_let!(self.params.ps.p1(), param, $path);
-                            t.ui(param.p2(), ui, dock)
+                            ui.push_id(new_id!(tab.id), |ui| {
+                                t.ui(param.p2(), ui, dock)
+                            });
                         }
                     )*
                 }

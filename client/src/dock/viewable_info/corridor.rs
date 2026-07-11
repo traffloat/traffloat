@@ -43,28 +43,33 @@ impl UiSystemParam<'_, '_> {
 
         ui.heading("Conduits");
         for conduit in data.conduits.into_iter().flat_map(RelationshipTarget::iter) {
-            show_conduit(ui, dock.id, &self.conduit_query, &mut self.commands, conduit);
+            show_conduit(ui, &self.conduit_query, &mut self.commands, conduit);
         }
 
         ui.heading("Connections");
         if let Some(alpha) = data.alpha {
-            show_connection(ui, dock.id, &self.building_query, &mut self.commands, alpha);
+            ui.push_id(new_id!(), |ui| {
+                show_connection(ui, &self.building_query, &mut self.commands, alpha);
+            });
         }
         if let Some(beta) = data.beta {
-            show_connection(ui, dock.id, &self.building_query, &mut self.commands, beta);
+            ui.push_id(new_id!(), |ui| {
+                show_connection(ui, &self.building_query, &mut self.commands, beta);
+            });
         }
 
         if let Some(ambient_fluid) = &data.info.ambient_fluid {
             egui::CollapsingHeader::new("Ambient fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
-                show_fluid(
-                    ui,
-                    dock.id,
-                    &mut self.commands,
-                    ambient_fluid,
-                    &self.fluid_types,
-                    |label| format!("Corridor {} {label}", data.generic.name),
-                    |metric| plot::Target::CorridorAmbient { corridor: entity, metric },
-                );
+                ui.push_id(new_id!(), |ui| {
+                    show_fluid(
+                        ui,
+                        &mut self.commands,
+                        ambient_fluid,
+                        &self.fluid_types,
+                        |label| format!("Corridor {} {label}", data.generic.name),
+                        |metric| plot::Target::CorridorAmbient { corridor: entity, metric },
+                    );
+                });
             });
         }
     }
@@ -72,7 +77,6 @@ impl UiSystemParam<'_, '_> {
 
 fn show_conduit(
     ui: &mut egui::Ui,
-    id: egui::Id,
     conduit_query: &Query<&GenericViewable>,
     commands: &mut Commands,
     entity: Entity,
@@ -87,7 +91,6 @@ fn show_conduit(
 
 fn show_connection(
     ui: &mut egui::Ui,
-    id: egui::Id,
     building_query: &Query<&GenericViewable>,
     commands: &mut Commands,
     data: EndpointDataItem<impl Which>,
@@ -99,7 +102,7 @@ fn show_connection(
         ui.label(&building_info.name);
     });
 
-    ui.indent(new_id!(id), |ui| {
+    ui.indent(new_id!(), |ui| {
         let detail = &data.detail.0;
         display_gate(ui, detail.open, "Gate");
     });

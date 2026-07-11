@@ -47,43 +47,47 @@ impl UiSystemParam<'_, '_> {
         };
 
         ui.heading("Located in");
-        show_building(ui, dock.id, building_viewable, &mut self.commands, facility_data.building.0);
+        show_building(ui, building_viewable, &mut self.commands, facility_data.building.0);
 
-        let mut connections =
-            show_connections(building_info, &facility_data, &self.show_connections_params, dock.id)
-                .peekable();
-        if connections.peek().is_some() {
-            ui.heading("Connections");
-            for connection in connections {
-                connection(ui, &mut self.commands);
+        ui.push_id(new_id!(), |ui| {
+            let mut connections =
+                show_connections(building_info, &facility_data, &self.show_connections_params)
+                    .peekable();
+            if connections.peek().is_some() {
+                ui.heading("Connections");
+                for connection in connections {
+                    connection(ui, &mut self.commands);
+                }
             }
-        }
+        });
 
         if let Some(ambient_fluid) = &facility_data.info.stored_fluid {
-            egui::CollapsingHeader::new("Stored fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
-                show_fluid(
-                    ui,
-                    dock.id,
-                    &mut self.commands,
-                    ambient_fluid,
-                    &self.fluid_types,
-                    |label| format!("Facility {} {label}", facility_data.generic.name),
-                    |metric| plot::Target::FacilityStorage { facility: entity, metric },
-                );
+            egui::CollapsingHeader::new("Stored fluid").id_salt(new_id!()).show(ui, |ui| {
+                ui.push_id(new_id!(), |ui| {
+                    show_fluid(
+                        ui,
+                        &mut self.commands,
+                        ambient_fluid,
+                        &self.fluid_types,
+                        |label| format!("Facility {} {label}", facility_data.generic.name),
+                        |metric| plot::Target::FacilityStorage { facility: entity, metric },
+                    );
+                });
             });
         }
 
         if let Some(reactor) = &facility_data.info.reactor {
-            egui::CollapsingHeader::new("Reactor").id_salt(new_id!(dock.id)).show(ui, |ui| {
+            egui::CollapsingHeader::new("Reactor").id_salt(new_id!()).show(ui, |ui| {
                 let mut efficiency_copy = reactor.efficiency * 100.0;
                 ui.horizontal(|ui| {
-                    show_graph_button(
-                        ui,
-                        new_id!(dock.id),
-                        &mut self.commands,
-                        || format!("Facility {} efficiency", facility_data.generic.name),
-                        plot::Target::ReactorEfficiency { facility: entity },
-                    );
+                    ui.push_id(new_id!(), |ui| {
+                        show_graph_button(
+                            ui,
+                            &mut self.commands,
+                            || format!("Facility {} efficiency", facility_data.generic.name),
+                            plot::Target::ReactorEfficiency { facility: entity },
+                        );
+                    });
                     ui.add(
                         egui::Slider::new(&mut efficiency_copy, 0.0..=100.0)
                             .suffix("%")
@@ -91,25 +95,25 @@ impl UiSystemParam<'_, '_> {
                     );
                 });
                 ui.horizontal(|ui| {
-                    let memory_id = new_id!(dock.id);
+                    let memory_id = new_id!(ui.id());
 
                     let submit = {
                         let memory = ui.memory(|memory| memory.data.get_temp::<f32>(memory_id));
-                        let mut efficiency_percent = reactor.efficiency_cap * 100.0;
+                        let mut cap_percent = memory.unwrap_or(reactor.efficiency_cap) * 100.0;
                         let resp = ui.add(
-                            egui::Slider::new(&mut efficiency_percent, 0.0..=100.0)
+                            egui::Slider::new(&mut cap_percent, 0.0..=100.0)
                                 .suffix('%')
                                 .text("Efficiency cap"),
                         );
                         let can_submit = memory.is_some() || resp.changed();
-                        can_submit.then_some(efficiency_percent / 100.0)
+                        can_submit.then_some(cap_percent / 100.0)
                     };
+
+                    if let Some(value) = submit {
+                        ui.memory_mut(|memory| memory.data.insert_temp::<f32>(memory_id, value));
+                    }
+
                     ui.add_enabled_ui(submit.is_some(), |ui| {
-                        if let Some(value) = submit {
-                            ui.memory_mut(|memory| {
-                                memory.data.insert_temp::<f32>(memory_id, value)
-                            });
-                        }
                         if ui.button("Submit").clicked()
                             && let Some(value) = submit
                         {
@@ -134,7 +138,6 @@ impl UiSystemParam<'_, '_> {
 
 fn show_building(
     ui: &mut egui::Ui,
-    id: egui::Id,
     building_viewable: &GenericViewable,
     commands: &mut Commands,
     building_entity: Entity,
@@ -156,14 +159,11 @@ fn show_connections(
     building_info: &building::Info,
     facility_data: &FacilityDataItem,
     params: &ShowConnectionsParams,
-    id: egui::Id,
 ) -> impl Iterator<Item = impl FnOnce(&mut egui::Ui, &mut Commands)> {
     building_info
         .facility_fluid_connections(facility_data.id.0, &params.id_registry)
         .enumerate()
         .map(move |(id_salt, (conn, peer))| {
-            let id = new_id!(id, id_salt);
-
             move |ui: &mut egui::Ui, commands: &mut Commands| {
                 ui.horizontal(|ui| match peer {
                     FluidConnectionPeer::Facility(peer) => {
@@ -196,7 +196,7 @@ fn show_connections(
                     }
                 });
 
-                ui.indent(new_id!(id), |ui| {
+                ui.indent(new_id!(id_salt), |ui| {
                     ui.horizontal(|ui| {
                         ui.label("Openness:");
                         let mut proportion = conn.current_area / conn.max_area * 100.0;

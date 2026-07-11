@@ -34,16 +34,10 @@ impl UiSystemParam<'_, '_> {
         };
 
         ui.heading("Located in");
-        show_corridor(
-            ui,
-            dock.id,
-            &self.corridor_query,
-            &mut self.commands,
-            conduit_data.corridor.0,
-        );
+        show_corridor(ui, &self.corridor_query, &mut self.commands, conduit_data.corridor.0);
 
         let mut connections =
-            show_connections(&self.show_connections_params, &conduit_data, dock.id).peekable();
+            show_connections(&self.show_connections_params, &conduit_data).peekable();
         if connections.peek().is_some() {
             ui.heading("Connections");
             for connection in connections {
@@ -53,15 +47,16 @@ impl UiSystemParam<'_, '_> {
 
         if let Some(ambient_fluid) = &conduit_data.info.stored_fluid {
             egui::CollapsingHeader::new("Stored fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
-                show_fluid(
-                    ui,
-                    dock.id,
-                    &mut self.commands,
-                    ambient_fluid,
-                    &self.fluid_types,
-                    |label| format!("Conduit {} {label}", conduit_data.generic.name),
-                    |metric| plot::Target::PipeStorage { conduit: entity, metric },
-                );
+                ui.push_id(new_id!(), |ui| {
+                    show_fluid(
+                        ui,
+                        &mut self.commands,
+                        ambient_fluid,
+                        &self.fluid_types,
+                        |label| format!("Conduit {} {label}", conduit_data.generic.name),
+                        |metric| plot::Target::PipeStorage { conduit: entity, metric },
+                    );
+                });
             });
         }
     }
@@ -69,7 +64,6 @@ impl UiSystemParam<'_, '_> {
 
 fn show_corridor(
     ui: &mut egui::Ui,
-    id: egui::Id,
     corridor_query: &Query<&GenericViewable>,
     commands: &mut Commands,
     corridor_entity: Entity,
@@ -101,7 +95,6 @@ struct ShowConnectionsParams<'w, 's> {
 fn show_connections(
     params: &ShowConnectionsParams,
     conduit_data: &ConduitDataItem,
-    id: egui::Id,
 ) -> impl Iterator<Item = impl FnOnce(&mut egui::Ui, &mut Commands)> {
     params
         .corridor_query
@@ -126,16 +119,16 @@ fn show_connections(
                 .enumerate()
                 .map(move |(id_salt, (conn, facility))| {
                     move |ui: &mut egui::Ui, commands: &mut Commands| {
-                        let id = new_id!(id, id_salt);
-                        show_connection_ui(
-                            ui,
-                            commands,
-                            facility,
-                            building,
-                            conn,
-                            &params.viewable_query,
-                            id,
-                        );
+                        ui.push_id(new_id!(id_salt), |ui| {
+                            show_connection_ui(
+                                ui,
+                                commands,
+                                facility,
+                                building,
+                                conn,
+                                &params.viewable_query,
+                            );
+                        });
                     }
                 })
         })
@@ -148,7 +141,6 @@ fn show_connection_ui(
     building: Entity,
     conn: &proto::BuildingFluidConnection,
     viewable_query: &Query<&GenericViewable>,
-    id: egui::Id,
 ) {
     ui.horizontal(|ui| {
         show_link(ui, commands, facility);
@@ -163,7 +155,7 @@ fn show_connection_ui(
         }
     });
 
-    ui.indent(new_id!(id), |ui| {
+    ui.indent(new_id!(), |ui| {
         ui.horizontal(|ui| {
             ui.label("Openness:");
             let mut proportion = conn.current_area / conn.max_area * 100.0;

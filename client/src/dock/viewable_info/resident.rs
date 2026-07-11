@@ -31,18 +31,11 @@ impl UiSystemParam<'_, '_> {
         };
 
         ui.heading("Location");
-        show_location(
-            ui,
-            dock.id,
-            &resident_data.info.location,
-            &mut self.commands,
-            &self.viewable_query,
-        );
+        show_location(ui, &resident_data.info.location, &mut self.commands, &self.viewable_query);
 
         ui.heading("Attributes");
         show_attributes(
             ui,
-            dock.id,
             &mut self.commands,
             entity,
             &resident_data.generic.name,
@@ -54,7 +47,6 @@ impl UiSystemParam<'_, '_> {
 
 fn show_location(
     ui: &mut egui::Ui,
-    id: egui::Id,
     location: &resident::Location,
     commands: &mut Commands,
     viewable_query: &Query<&'static GenericViewable>,
@@ -92,7 +84,6 @@ fn show_location(
 
 fn show_attributes(
     ui: &mut egui::Ui,
-    id: egui::Id,
     commands: &mut Commands,
     entity: Entity,
     resident_name: &str,
@@ -103,15 +94,16 @@ fn show_attributes(
         if let Some(value) = value
             && let Some(def) = types.types.get(ty)
         {
-            ui.horizontal(|ui| {
-                ui.label(format!("{}: {value}", def.name));
-                show_graph_button(
-                    ui,
-                    new_id!(id, ty),
-                    commands,
-                    || format!("Resident {resident_name} {}", def.name),
-                    plot::Target::ResidentAttr { resident: entity, ty },
-                );
+            ui.push_id(new_id!(ty), |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(format!("{}: {value}", def.name));
+                    show_graph_button(
+                        ui,
+                        commands,
+                        || format!("Resident {resident_name} {}", def.name),
+                        plot::Target::ResidentAttr { resident: entity, ty },
+                    );
+                });
             });
         }
     }
