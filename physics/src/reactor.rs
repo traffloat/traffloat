@@ -1,3 +1,5 @@
+//! Reactor refers to a [facility][facility] that processes [reactions](crate::reaction).
+
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
@@ -6,7 +8,7 @@ use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{Local, Query, Res, SystemParam};
-use bevy::ecs::world::World;
+use bevy::ecs::world::{Mut, World};
 use bevy::math::FloatExt;
 use bevy::reflect::Reflect;
 use enum_dispatch::enum_dispatch;
@@ -14,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::persist::AppExt;
 use crate::util::{QueryExt, SliceGet};
-use crate::{CleanupAppExt, fluid, resident};
+use crate::{CleanupAppExt, fluid, reaction, resident};
 
 mod persist;
 pub use persist::Persist;
@@ -81,39 +83,25 @@ fn execute_system(
 
     for mut reactor in reactor_query {
         let def = types.get(reactor.facility.id);
-        execute_once(&mut reactor, def, &mut params);
+        execute_rule(&mut reactor, def, &mut params);
     }
 }
 
-fn execute_once(
+fn execute_rule(
     reactor: &mut ExecuteFacilityDataItem,
     def: &TypeDef,
     params: &mut ExecuteSystemParams,
 ) {
-    let mut efficiency =
-        EfficiencyModifierResult { maximum: reactor.facility.efficiency_cap, multiplier: 1.0 };
-
-    for catalyst in &def.catalysts {
-        efficiency.merge(catalyst.compute_efficiency(params, reactor));
-    }
-
-    for input in &def.inputs {
-        efficiency.merge(input.compute_efficiency(params, reactor));
-    }
-
-    let efficiency = efficiency.to_scalar();
-    if efficiency > 0.0 {
-        for input in &def.inputs {
-            input.execute(efficiency, params, reactor);
-        }
-
-        for output in &def.outputs {
-            output.execute(efficiency, params, reactor);
-        }
-        reactor.facility_status.efficiency = efficiency;
-    } else {
-        reactor.facility_status.efficiency = 0.0;
-    }
+    let efficiency = execute_once(
+        params,
+        reactor,
+        &def.inputs,
+        &def.catalysts,
+        &def.outputs,
+        reactor.facility.efficiency_cap,
+        1.0,
+    );
+    reactor.facility_status.efficiency = efficiency;
 }
 
 /// Component on facilities.
@@ -131,11 +119,6 @@ pub struct Facility {
 pub struct FacilityStatus {
     /// The facility efficiency in the last timestep.
     pub efficiency: f32,
-}
-
-#[derive(Debug, Reflect)]
-pub struct Ports {
-    pub fluid_storages: Vec<Option<Entity>>,
 }
 
 #[derive(
@@ -178,565 +161,133 @@ pub struct TypeDef {
     pub catalysts: Vec<Catalyst>,
 }
 
+#[derive(Debug, Reflect)]
+pub struct Ports {
+    pub fluid_storages: Vec<Option<Entity>>,
+}
+
 /// A reference to an entry in [`Ports::fluid_storages`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Reflect)]
-pub struct FluidStorageRef(pub u32);
-
-#[enum_dispatch]
-trait EfficiencyModifier {
-    fn compute_efficiency(
-        &self,
-        params: &ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) -> EfficiencyModifierResult;
-}
-
-#[enum_dispatch]
-trait ReactionExecutor {
-    fn execute(
-        &self,
-        efficiency: f32,
-        params: &mut ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    );
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct EfficiencyModifierResult {
-    /// This modifier multiplies the efficiency by this value.
-    pub multiplier: f32,
-    /// This modifier restricts efficiency from exceeding this value.
-    pub maximum:    f32,
-}
-
-impl Default for EfficiencyModifierResult {
-    fn default() -> Self { Self::IDENTITY }
-}
-
-impl EfficiencyModifierResult {
-    pub const IDENTITY: Self = Self { multiplier: 1.0, maximum: 1.0 };
-    pub const INVALID: Self = Self { multiplier: 0.0, maximum: 0.0 };
-
-    pub fn merge(&mut self, other: EfficiencyModifierResult) {
-        self.multiplier *= other.multiplier;
-        self.maximum = self.maximum.min(other.maximum);
-    }
-
-    #[must_use]
-    pub fn to_scalar(&self) -> f32 { self.multiplier.min(self.maximum) }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-#[enum_dispatch(EfficiencyModifier)]
-#[enum_dispatch(ReactionExecutor)]
-pub enum Input {
-    /// Removes fluid from a storage.
-    Fluid(FluidInput),
-    /// Removes heat from a storage.
-    ///
-    /// For reactors that consume coldness instead,
-    /// they should use a catalyst and an output.
-    Heat(HeatInput),
+pub struct FluidPortSelector {
+    pub port: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct FluidInput {
-    /// The storage entity to take fluid from.
-    pub storage:        FluidStorageRef,
-    /// The type of fluid to take.
-    pub ty:             fluid::TypeId,
-    /// Maximum number of moles to take per timestep when reactor is at maximum efficiency.
-    pub max_rate:       fluid::Moles,
-    /// How fluid concentration affects the efficiency of the reactor.
-    pub conc_threshold: Threshold,
-}
-
-impl EfficiencyModifier for FluidInput {
-    fn compute_efficiency(
+impl<'pw, 'ps, 'dw, 'ds>
+    reaction::FluidStorageSelector<ExecuteSystemParams<'pw, 'ps>, ExecuteFacilityDataItem<'dw, 'ds>>
+    for FluidPortSelector
+{
+    fn select<R>(
         &self,
-        params: &ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) -> EfficiencyModifierResult {
-        let Some(&Some(storage_entity)) =
-            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
-        else {
-            tracing::warn!(
-                "reactor port {:?} is used as an input and must not be nil",
-                self.storage
-            );
-            return EfficiencyModifierResult::INVALID;
-        };
-        let Some(storage) = params.fluid_storage.log_get(storage_entity) else {
-            return EfficiencyModifierResult::INVALID;
-        };
-        let typed = storage.get_type(self.ty);
-        let mut out = self.conc_threshold.lerp(typed.molar_conc);
-        if typed.moles < self.max_rate {
-            out.maximum = out.maximum.min(typed.moles.0 / self.max_rate.0);
+        params: &ExecuteSystemParams<'pw, 'ps>,
+        data: &ExecuteFacilityDataItem<'dw, 'ds>,
+        then: impl FnOnce(&fluid::Storage) -> R,
+    ) -> Option<R> {
+        match data
+            .facility
+            .ports
+            .fluid_storages
+            .get(usize::try_from(self.port).expect("usize >= u32"))
+        {
+            Some(&Some(entity)) => params.fluid_storage.log_get(entity).map(then),
+            Some(None) => None,
+            None => {
+                tracing::warn!("Reference to undefined port {}", self.port);
+                None
+            }
         }
-        out
     }
-}
 
-impl ReactionExecutor for FluidInput {
-    fn execute(
+    fn select_mut<R>(
         &self,
-        efficiency: f32,
-        params: &mut ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) {
-        let Some(&Some(storage_entity)) =
-            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
-        else {
-            tracing::warn!(
-                "reactor port {:?} is used as an input and must not be nil",
-                self.storage
-            );
-            return;
-        };
-        let Some(mut storage) = params.fluid_storage.log_get_mut(storage_entity) else { return };
-        let typed = storage.get_type_mut(self.ty);
-        // The min branch is mathematically impossible since the efficiency would have reduced accordingly,
-        // but we still include it to avoid floating point errors leading to negative values,
-        // which could in turn result in a lot of unexpected behavior.
-        typed.moles -= fluid::Moles((efficiency * self.max_rate.0).min(typed.moles.0));
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct HeatInput {
-    /// The storage entity to take heat from.
-    pub storage:        FluidStorageRef,
-    /// Maximum amount of heat to take per timestep when reactor is at maximum efficiency.
-    pub max_rate:       fluid::Energy,
-    /// How temperature affects the efficiency of the reactor.
-    pub temp_threshold: Threshold,
-}
-
-impl EfficiencyModifier for HeatInput {
-    fn compute_efficiency(
-        &self,
-        params: &ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) -> EfficiencyModifierResult {
-        let Some(&Some(storage_entity)) =
-            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
-        else {
-            tracing::warn!(
-                "reactor port {:?} is used as an input and must not be nil",
-                self.storage
-            );
-            return EfficiencyModifierResult::INVALID;
-        };
-        let Some(storage) = params.fluid_storage.log_get(storage_entity) else {
-            return EfficiencyModifierResult::INVALID;
-        };
-        let mut out = self.temp_threshold.lerp(storage.temperature);
-        if storage.heat < self.max_rate {
-            out.maximum = out.maximum.min(storage.heat.0 / self.max_rate.0);
+        params: &mut ExecuteSystemParams<'pw, 'ps>,
+        data: &mut ExecuteFacilityDataItem<'dw, 'ds>,
+        then: impl FnOnce(&mut fluid::Storage) -> R,
+    ) -> Option<R> {
+        match data
+            .facility
+            .ports
+            .fluid_storages
+            .get(usize::try_from(self.port).expect("usize >= u32"))
+        {
+            Some(&Some(entity)) => {
+                params.fluid_storage.log_get_mut(entity).map(|mut storage| then(&mut storage))
+            }
+            Some(None) => None,
+            None => {
+                tracing::warn!("Reference to undefined port {}", self.port);
+                None
+            }
         }
-        out
-    }
-}
-
-impl ReactionExecutor for HeatInput {
-    fn execute(
-        &self,
-        efficiency: f32,
-        params: &mut ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) {
-        let Some(&Some(storage_entity)) =
-            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
-        else {
-            tracing::warn!(
-                "reactor port {:?} is used as an input and must not be nil",
-                self.storage
-            );
-            return;
-        };
-        let Some(mut storage) = params.fluid_storage.log_get_mut(storage_entity) else { return };
-        // The min branch is mathematically impossible, see comment in FluidInput::execute.
-        let heat_to_take = fluid::Energy((efficiency * self.max_rate.0).min(storage.heat.0));
-        storage.heat -= heat_to_take;
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-#[enum_dispatch(ReactionExecutor)]
-pub enum Output {
-    Fluid(FluidOutput),
-    Temperature(TemperatureOutput),
-    ResidentAttr(ResidentAttrOutput),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct FluidOutput {
-    /// The storage entity to put fluid into.
-    pub storage:  FluidStorageRef,
-    /// The type of fluid to produce.
-    pub ty:       fluid::TypeId,
-    /// Maximum number of moles to produce per timestep when reactor is at maximum efficiency.
-    pub max_rate: fluid::Moles,
-}
-
-impl ReactionExecutor for FluidOutput {
-    fn execute(
-        &self,
-        efficiency: f32,
-        params: &mut ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) {
-        let Some(&Some(storage_entity)) =
-            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
-        else {
-            tracing::warn!(
-                "reactor port {:?} is used as an output and must not be nil",
-                self.storage
-            );
-            return;
-        };
-        let Some(mut storage) = params.fluid_storage.log_get_mut(storage_entity) else { return };
-        let typed = storage.get_type_mut(self.ty);
-        typed.moles += fluid::Moles(efficiency * self.max_rate.0);
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct TemperatureOutput {
-    /// The storage entity to put heat into.
-    pub storage:  FluidStorageRef,
-    /// Maximum amount of heat to produce per timestep when reactor is at maximum efficiency.
-    pub max_rate: fluid::Energy,
-}
-
-impl ReactionExecutor for TemperatureOutput {
-    fn execute(
-        &self,
-        efficiency: f32,
-        params: &mut ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) {
-        let Some(&Some(storage_entity)) =
-            reactor.facility.ports.fluid_storages.get(self.storage.0 as usize)
-        else {
-            tracing::warn!(
-                "reactor port {:?} is used as an output and must not be nil",
-                self.storage
-            );
-            return;
-        };
-        let Some(mut storage) = params.fluid_storage.log_get_mut(storage_entity) else { return };
-        storage.heat += fluid::Energy(efficiency * self.max_rate.0);
-    }
-}
-
-/// Modifies an attribute of residents in a slot.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct ResidentAttrOutput {
-    /// The resident interaction slot to apply the output to.
-    ///
-    /// The output is applied to all residents in the slot,
-    /// regardless of the number of residents in the slot.
+pub struct ResidentSlotSelector {
     pub slot_index: usize,
-    /// The type of attribute to modify.
-    pub attr:       resident::attr::TypeId,
-    /// The linear change to apply to the attribute value of each resident per timestep.
-    pub delta:      f32,
 }
 
-impl ReactionExecutor for ResidentAttrOutput {
-    fn execute(
+impl<'pw, 'ps, 'dw, 'ds>
+    reaction::ResidentSelector<ExecuteSystemParams<'pw, 'ps>, ExecuteFacilityDataItem<'dw, 'ds>>
+    for ResidentSlotSelector
+{
+    fn for_each_attributes(
         &self,
-        efficiency: f32,
-        params: &mut ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
+        params: &ExecuteSystemParams<'pw, 'ps>,
+        data: &ExecuteFacilityDataItem<'dw, 'ds>,
+        mut then: impl FnMut(&resident::Attributes, Entity),
     ) {
-        if let Some(residents) = reactor.interaction_slots {
-            for resident in residents.iter() {
-                if let Some((mut attrs, with)) = params.resident.log_get_mut(resident) {
-                    debug_assert_eq!(with.facility, reactor.entity);
-                    if with.slot_index == self.slot_index {
-                        let attr = attrs.get_mut(self.attr);
-                        *attr += self.delta * efficiency;
-                    }
-                }
+        data.interaction_slots.iter().flat_map(|slots| slots.iter()).for_each(|entity| {
+            let Some((attrs, with)) = params.resident.log_get(entity) else { return };
+            debug_assert_eq!(with.facility, data.entity);
+            if with.slot_index == self.slot_index {
+                then(attrs, entity);
             }
-        }
+        });
     }
-}
 
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-#[enum_dispatch(EfficiencyModifier)]
-pub enum Catalyst {
-    Fluid(FluidCatalyst),
-    Pressure(PressureCatalyst),
-    Temperature(TemperatureCatalyst),
-    ResidentAttr(ResidentAttrCatalyst),
-}
-
-/// Concentration of a fluid in a connected fluid storage.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct FluidCatalyst {
-    /// The storage entity to check.
-    pub storage:        FluidStorageRef,
-    /// The type of fluid to take.
-    pub ty:             fluid::TypeId,
-    /// How fluid concentration affects the efficiency of the reactor.
-    pub conc_threshold: Threshold,
-}
-
-impl EfficiencyModifier for FluidCatalyst {
-    fn compute_efficiency(
+    fn for_each_attributes_mut(
         &self,
-        params: &ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) -> EfficiencyModifierResult {
-        let Some(&maybe_storage) =
-            reactor.facility.ports.fluid_storages.log_get(self.storage.0 as usize)
-        else {
-            return EfficiencyModifierResult::default();
-        };
-        let storage = if let Some(storage_entity) = maybe_storage
-            && let Some(storage) = params.fluid_storage.log_get(storage_entity)
-        {
-            storage
-        } else {
-            return EfficiencyModifierResult::default();
-        };
-        let typed = storage.get_type(self.ty);
-        self.conc_threshold.lerp(typed.molar_conc)
+        params: &mut ExecuteSystemParams<'pw, 'ps>,
+        data: &mut ExecuteFacilityDataItem<'dw, 'ds>,
+        mut then: impl FnMut(&mut resident::Attributes, Entity),
+    ) {
+        data.interaction_slots.iter().flat_map(|slots| slots.iter()).for_each(|entity| {
+            let Some((mut attrs, with)) = params.resident.log_get_mut(entity) else { return };
+            debug_assert_eq!(with.facility, data.entity);
+            if with.slot_index == self.slot_index {
+                then(&mut attrs, entity);
+            }
+        });
     }
 }
 
-/// Pressure in a connected fluid storage.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct PressureCatalyst {
-    /// The fluid storage entity to check.
-    pub storage:            FluidStorageRef,
-    /// How pressure affects the efficiency of the reactor.
-    pub pressure_threshold: Threshold,
-}
+reaction::define_ruleset! {
+    [P = ExecuteSystemParams, D = ExecuteFacilityDataItem]
+    fn execute_once;
 
-impl EfficiencyModifier for PressureCatalyst {
-    fn compute_efficiency(
-        &self,
-        params: &ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) -> EfficiencyModifierResult {
-        let Some(&maybe_storage) =
-            reactor.facility.ports.fluid_storages.log_get(self.storage.0 as usize)
-        else {
-            return EfficiencyModifierResult::default();
-        };
-        let storage = if let Some(storage_entity) = maybe_storage
-            && let Some(storage) = params.fluid_storage.log_get(storage_entity)
-        {
-            storage
-        } else {
-            return EfficiencyModifierResult::default();
-        };
-        self.pressure_threshold.lerp(storage.pressure)
-    }
-}
-
-/// Temperature in a connected fluid storage.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct TemperatureCatalyst {
-    /// The fluid storage entity to check.
-    pub storage:        FluidStorageRef,
-    /// How temperature affects the efficiency of the reactor.
-    pub temp_threshold: Threshold,
-}
-
-impl EfficiencyModifier for TemperatureCatalyst {
-    fn compute_efficiency(
-        &self,
-        params: &ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) -> EfficiencyModifierResult {
-        let Some(&maybe_storage) =
-            reactor.facility.ports.fluid_storages.log_get(self.storage.0 as usize)
-        else {
-            return EfficiencyModifierResult::default();
-        };
-        let storage = if let Some(storage_entity) = maybe_storage
-            && let Some(storage) = params.fluid_storage.log_get(storage_entity)
-        {
-            storage
-        } else {
-            return EfficiencyModifierResult::default();
-        };
-        self.temp_threshold.lerp(storage.temperature)
-    }
-}
-
-/// Attribute of residents interacting with the reactor.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct ResidentAttrCatalyst {
-    /// The interaction slot index of the residents that can catalyst the reactor.
-    pub slot_index: usize,
-    /// The relevant attribute.
-    pub attr:       resident::attr::TypeId,
-    /// How multiple interacting residents are aggregated into a single value.
-    pub aggregator: Aggregator,
-    /// How aggregated attribute value affects the efficiency of the reactor.
-    pub threshold:  Threshold,
-}
-
-impl EfficiencyModifier for ResidentAttrCatalyst {
-    fn compute_efficiency(
-        &self,
-        params: &ExecuteSystemParams,
-        reactor: &ExecuteFacilityDataItem,
-    ) -> EfficiencyModifierResult {
-        let mut result = self.aggregator.initial();
-        if let Some(residents) = reactor.interaction_slots {
-            for resident in residents.iter() {
-                if let Some((attrs, with)) = params.resident.log_get(resident) {
-                    debug_assert_eq!(with.facility, reactor.entity);
-                    if with.slot_index == self.slot_index {
-                        let attr = attrs.get(self.attr);
-                        self.aggregator.reduce(&mut result, attr);
-                    }
-                }
-            }
-        }
-        self.threshold.lerp(result)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct Threshold {
-    /// The interpolation curve to use between the min and max input.
-    pub curve:         Curve,
-    /// How this threshold modifies the efficiency of the reactor.
-    pub modifier_type: ThresholdModifierType,
-}
-
-impl Threshold {
-    #[must_use]
-    pub fn lerp(&self, input: f32) -> EfficiencyModifierResult {
-        let out = match self.curve {
-            Curve::Linear { min_input, max_input, min_multiplier, max_multiplier } => {
-                let clamped_input = input.clamp(min_input, max_input);
-                let t = (clamped_input - min_input) / (max_input - min_input);
-                min_multiplier + t * (max_multiplier - min_multiplier)
-            }
-            Curve::Triangle {
-                min_input,
-                mid_input,
-                max_input,
-                start_multiplier,
-                mid_multiplier,
-                end_multiplier,
-            } => {
-                if input <= mid_input {
-                    let t = (input - min_input).max(0.0) / (mid_input - min_input);
-                    start_multiplier.lerp(mid_multiplier, t)
-                } else {
-                    let t = (max_input - input).max(0.0) / (max_input - mid_input);
-                    end_multiplier.lerp(mid_multiplier, t)
-                }
-            }
-            Curve::Gaussian {
-                optimal_input,
-                input_scale,
-                optimal_multiplier,
-                minimal_multiplier,
-            } => {
-                minimal_multiplier
-                    + (optimal_multiplier - minimal_multiplier)
-                        * (-(2.0 * (input - optimal_input) / input_scale).powi(2)).exp()
-            }
-        };
-        match self.modifier_type {
-            ThresholdModifierType::Multiplier => {
-                EfficiencyModifierResult { multiplier: out, maximum: 1.0 }
-            }
-            ThresholdModifierType::Maximum => {
-                EfficiencyModifierResult { multiplier: 1.0, maximum: out }
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub enum ThresholdModifierType {
-    /// This threshold multiplies the efficiency by the output of the curve.
-    Multiplier,
-    /// This threshold restricts efficiency from exceeding the output of the curve.
-    Maximum,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub enum Curve {
-    /// Linear slope within input range, constant beyond.
-    Linear {
-        /// Start X-coordinate of the interpolation curve.
-        min_input:      f32,
-        /// End X-coordinate of the interpolation curve.
-        max_input:      f32,
-        /// Start Y-coordinate of the interpolation curve.
-        min_multiplier: f32,
-        /// End Y-coordinate of the interpolation curve.
-        max_multiplier: f32,
-    },
-    /// Two piecewise linear curves within input range, constant beyond.
-    Triangle {
-        /// Start X-coordinate of the first piece.
-        min_input:        f32,
-        /// X-coordinate where the first piece transitions to the second piece.
-        mid_input:        f32,
-        /// End X-coordinate of the second piece.
-        max_input:        f32,
-        /// Y-coordinate below and at `min_input`.
-        start_multiplier: f32,
-        /// Y-coordinate at `mid_input`.
-        mid_multiplier:   f32,
-        /// Y-coordinate above and at `max_input`.
-        end_multiplier:   f32,
-    },
-    /// Gaussian curve, exactly optimal efficiency at `optimal_input`,
-    /// symmetrically asymptoting towards minimal efficiency towards &pm;&infin;,
-    /// passing at lerp(minimal, optimal, 1.83%) at `optimal_input` &pm; `input_scale`.
-    Gaussian {
-        /// The X-coordinate of the extremum of the Gaussian curve.
-        optimal_input:      f32,
-        /// Scales the input range.
-        /// This is approximately 2.49 times of the standard deviation.
-        input_scale:        f32,
-        /// The Y-coordinate at the extremum of the Gaussian curve.
-        optimal_multiplier: f32,
-        /// The Y-coordinate as input goes to &pm;&infin;.
-        minimal_multiplier: f32,
-    },
-}
-
-/// A fold function to reduce zero or multiple float parameters into one.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub enum Aggregator {
-    Sum,
-    Product,
-    Max { initial: f32 },
-    Min { initial: f32 },
-}
-
-impl Aggregator {
-    pub fn initial(&self) -> f32 {
-        match self {
-            Aggregator::Sum => 0.0,
-            Aggregator::Product => 1.0,
-            Aggregator::Max { initial } | Aggregator::Min { initial } => *initial,
-        }
+    #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+    pub input Input {
+        /// Removes fluid from a storage.
+        Fluid(reaction::input::Fluid<FluidPortSelector>),
+        /// Removes heat from a storage.
+        ///
+        /// For reactors that consume coldness instead,
+        /// they should use a catalyst and an output.
+        Heat(reaction::input::Heat<FluidPortSelector>),
     }
 
-    pub fn reduce(&self, acc: &mut f32, value: f32) {
-        match self {
-            Aggregator::Sum => *acc += value,
-            Aggregator::Product => *acc *= value,
-            Aggregator::Max { .. } => *acc = (*acc).max(value),
-            Aggregator::Min { .. } => *acc = (*acc).min(value),
-        }
+    #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+    pub catalyst Catalyst {
+        Fluid(reaction::catalyst::Fluid<FluidPortSelector>),
+        Pressure(reaction::catalyst::Pressure<FluidPortSelector>),
+        Temperature(reaction::catalyst::Temperature<FluidPortSelector>),
+        ResidentAttr(reaction::catalyst::ResidentAttr<ResidentSlotSelector>),
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+    pub output Output {
+        Fluid(reaction::output::Fluid<FluidPortSelector>),
+        Temperature(reaction::output::Heat<FluidPortSelector>),
+        ResidentAttr(reaction::output::ResidentAttr<ResidentSlotSelector>),
     }
 }

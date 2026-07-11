@@ -57,6 +57,9 @@ impl Plugin for Plug {
     }
 }
 
+/// System set for transferring fluids.
+///
+/// Systems that interact with fluids should take place before this set.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TransferSystemSet;
 

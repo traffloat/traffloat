@@ -10,7 +10,7 @@ use enum_map::enum_map;
 use crate::graph::facility::{self, Blueprint, blueprint};
 use crate::graph::{self, building, conduit, connection, corridor, edge};
 use crate::util::{Alpha, AlphaBeta, Beta, Which};
-use crate::{WorldObject, fluid, reactor, resident, view};
+use crate::{WorldObject, fluid, reaction, reactor, resident, view};
 
 const STANDARD_WALL_THICKNESS: f32 = 0.5;
 
@@ -116,51 +116,51 @@ struct StandardReactorTypes {
 fn gen_reactor_types(world: &mut World, std_fluids: &StandardFluidTypes) -> StandardReactorTypes {
     let mut types = world.resource_mut::<reactor::Types>();
     let garden = types.push(reactor::TypeDef {
-        inputs:    [reactor::Input::Fluid(reactor::FluidInput {
-            storage:        reactor::FluidStorageRef(0),
+        inputs:    [reactor::Input::Fluid(reaction::input::Fluid {
+            selector:       reactor::FluidPortSelector { port: 0 },
             ty:             std_fluids.carbon_dioxide,
             max_rate:       fluid::Moles(0.1),
-            conc_threshold: reactor::Threshold {
-                curve:         reactor::Curve::Linear {
+            conc_threshold: reaction::Threshold {
+                curve:         reaction::Curve::Linear {
                     min_input:      0.0,
                     max_input:      0.1,
                     min_multiplier: 0.0,
                     max_multiplier: 1.0,
                 },
-                modifier_type: reactor::ThresholdModifierType::Maximum,
+                modifier_type: reaction::ThresholdModifierType::Maximum,
             },
         })]
         .into(),
-        outputs:   [reactor::Output::Fluid(reactor::FluidOutput {
-            storage:  reactor::FluidStorageRef(0),
+        outputs:   [reactor::Output::Fluid(reaction::output::Fluid {
+            selector: reactor::FluidPortSelector { port: 0 },
             ty:       std_fluids.oxygen,
             max_rate: fluid::Moles(0.1),
         })]
         .into(),
         catalysts: [
-            reactor::Catalyst::Fluid(reactor::FluidCatalyst {
-                storage:        reactor::FluidStorageRef(1),
+            reactor::Catalyst::Fluid(reaction::catalyst::Fluid {
+                selector:       reactor::FluidPortSelector { port: 1 },
                 ty:             std_fluids.water,
-                conc_threshold: reactor::Threshold {
-                    curve:         reactor::Curve::Linear {
+                conc_threshold: reaction::Threshold {
+                    curve:         reaction::Curve::Linear {
                         min_input:      0.0,
                         max_input:      0.5,
                         min_multiplier: 0.0,
                         max_multiplier: 1.0,
                     },
-                    modifier_type: reactor::ThresholdModifierType::Maximum,
+                    modifier_type: reaction::ThresholdModifierType::Maximum,
                 },
             }),
-            reactor::Catalyst::Temperature(reactor::TemperatureCatalyst {
-                storage:        reactor::FluidStorageRef(0),
-                temp_threshold: reactor::Threshold {
-                    curve:         reactor::Curve::Gaussian {
+            reactor::Catalyst::Temperature(reaction::catalyst::Temperature {
+                selector:       reactor::FluidPortSelector { port: 0 },
+                temp_threshold: reaction::Threshold {
+                    curve:         reaction::Curve::Gaussian {
                         optimal_input:      303.0,
                         input_scale:        15.0,
                         optimal_multiplier: 1.0,
                         minimal_multiplier: 0.0,
                     },
-                    modifier_type: reactor::ThresholdModifierType::Multiplier,
+                    modifier_type: reaction::ThresholdModifierType::Multiplier,
                 },
             }),
         ]

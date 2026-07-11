@@ -17,6 +17,7 @@ use crate::persist::AppExt;
 use crate::util::{AllSystemSets, QueryExt, SliceGet, run_stateless_closure};
 use crate::{graph, view};
 
+pub mod ambient;
 pub mod attr;
 pub use attr::{Attributes, Persist as PersistAttrTypes};
 mod persist;
