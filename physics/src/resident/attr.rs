@@ -97,7 +97,7 @@ impl Types {
     }
 }
 
-/// Identifies an attribute type, indexes [`Types::types`].
+/// Identifies an attribute type, equivalent to iteration order in [`Types`].
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Reflect,
 )]
@@ -169,27 +169,34 @@ impl AddTypeCommand {
     }
 }
 
-impl Command for AddTypeCommand {
-    type Out = ();
-
-    fn apply(self, world: &mut World) {
+impl AddTypeCommand {
+    pub fn run(self, world: &mut World) -> TypeId {
         let default_value = self.def.default_value;
 
+        let ty;
         {
             let mut types = world.resource_mut::<Types>();
-            let ty = types.push(self.def);
+            ty = types.push(self.def);
 
             for niche in self.niches {
                 types.niches[niche] = Some(ty);
             }
-        }
+        };
 
         for mut attributes in world.query::<&mut Attributes>().query_mut(world) {
             let new_box: Box<[f32]> =
                 mem::take(&mut attributes.values).into_iter().chain([default_value]).collect();
             attributes.values = new_box;
         }
+
+        ty
     }
+}
+
+impl Command for AddTypeCommand {
+    type Out = ();
+
+    fn apply(self, world: &mut World) { self.run(world); }
 }
 
 /// Component on residents, indicating the attributes last broadcast normally.

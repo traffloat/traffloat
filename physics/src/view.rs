@@ -431,7 +431,7 @@ fn reconcile_subscription_system(mut params: ReconcileSubscriptionParams) {
             }
         }
 
-        viewable.new_subscribers = SortedSubscriptionChanges(new_subscribers);
+        viewable.new_subscribers = SortedSubscriptionChanges::new(new_subscribers);
 
         if !prev_sub_levels.is_empty() {
             for (viewer, level) in &prev_sub_levels {

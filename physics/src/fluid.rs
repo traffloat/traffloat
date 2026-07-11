@@ -1,4 +1,5 @@
 use std::ops;
+use std::time::Duration;
 
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
@@ -11,10 +12,12 @@ use bevy::ecs::system::{Command, Commands, EntityCommand, Query, Res};
 use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
+use strum::IntoEnumIterator;
 use traffloat_proto::proto;
 
 use crate::persist::AppExt;
-use crate::{CleanupAppExt, view};
+use crate::util::duration_to_timesteps;
+use crate::{CleanupAppExt, util, view};
 
 pub mod persist;
 
@@ -54,9 +57,29 @@ impl Plugin for Plug {
             sync_types_to_viewers_system.in_set(view::SendUpdatesSystemSet::Meta),
         );
         app.add_cleanup_hook(Types::cleanup_hook);
+
+        util::configure_enum_system_set::<ModifySystemSets>(app, app::FixedUpdate);
+        for set in ModifySystemSets::iter() {
+            app.configure_sets(app::FixedUpdate, set.before(TransferSystemSet));
+        }
     }
 }
 
+/// System sets for modifying fluid state.
+///
+/// These systems actually don't have a specific order,
+/// but a deterministic order is preferred for reproducibility.
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumIter)]
+pub enum ModifySystemSets {
+    /// Simulate resident interaction with ambient fluid.
+    ResidentAmbient,
+    /// Simulate facility reactor execution.
+    Reactor,
+}
+
+/// System set for transferring fluids.
+///
+/// Systems that interact with fluids should take place before this set.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TransferSystemSet;
 
@@ -66,7 +89,9 @@ pub struct Conf {
 }
 
 impl Default for Conf {
-    fn default() -> Self { Self { transfer_timestep: 16 } }
+    fn default() -> Self {
+        Self { transfer_timestep: const { duration_to_timesteps(Duration::from_millis(250)) } }
+    }
 }
 
 /// Amount of fluid substance,
@@ -228,7 +253,7 @@ pub struct Storage {
     // derived quantities
     /// Force per unit area exerted by the mixture.
     pub pressure:    f32,
-    /// Absolute temperature.
+    /// Absolute temperature in kelvins.
     pub temperature: f32,
     /// Mass of fluid in this storage, used for force calculation in other modules.
     pub mass:        f32,

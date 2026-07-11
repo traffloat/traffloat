@@ -6,13 +6,14 @@ use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::{fluid, reactor, resident};
+use crate::resident::ambient;
+use crate::{fluid, resident};
 
 #[derive(Clone)]
 pub struct Persist;
 
 impl Persistable for Persist {
-    fn id(&self) -> impl Into<Cow<'static, str>> { "reactor:type" }
+    fn id(&self) -> impl Into<Cow<'static, str>> { "resident:interaction" }
 
     fn depends(&self) -> impl IntoIterator<Item = Depend> {
         [Depend::new(fluid::PersistTypes), Depend::new(resident::attr::Persist)]
@@ -26,7 +27,7 @@ impl Persistable for Persist {
         params: &mut OutputParams<'_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
-        Ok(params.types.iter().map(|(_ty, def)| Entry { def: def.clone() }).collect())
+        Ok(params.types.list.iter().map(|def| Entry { def: def.clone() }).collect())
     }
 
     type Input = Vec<Entry>;
@@ -38,9 +39,9 @@ impl Persistable for Persist {
         input: Self::Input,
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
-        let mut types = world.resource_mut::<reactor::Types>();
+        let mut types = world.resource_mut::<ambient::Interactions>();
         for entry in input {
-            types.push(entry.def);
+            types.list.push(entry.def);
         }
         Ok(())
     }
@@ -48,12 +49,12 @@ impl Persistable for Persist {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entry {
-    pub def: reactor::TypeDef,
+    pub def: ambient::Interaction,
 }
 
 #[derive(SystemParam)]
 pub struct OutputParams<'w> {
-    types: Res<'w, reactor::Types>,
+    types: Res<'w, ambient::Interactions>,
 }
 
 #[derive(Debug, Snafu)]

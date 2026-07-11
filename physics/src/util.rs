@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use std::time::Duration;
 
 use bevy::app::App;
 use bevy::ecs::schedule::{IntoScheduleConfigs, ScheduleLabel, SystemSet};
@@ -19,6 +20,24 @@ pub use merge_sort::{MergeSortedItem, merge_sorted};
 
 mod throttle;
 pub use throttle::Throttle;
+
+pub const BASE_TIMESTEP_HZ: u128 = 64;
+pub const BASE_TIMESTEP_MICROS: u128 = 1_000_000 / BASE_TIMESTEP_HZ;
+
+pub const fn duration_to_timesteps(duration: Duration) -> u32 {
+    let duration = duration.as_micros();
+    let timestep_micros = 1_000_000 / BASE_TIMESTEP_HZ;
+
+    assert!(
+        duration.is_multiple_of(timestep_micros),
+        "duration should be a multiple of timestep_micros"
+    );
+
+    #[expect(clippy::cast_possible_truncation, reason = "cannot use try_from in const")]
+    {
+        (duration / timestep_micros) as u32
+    }
+}
 
 pub fn configure_enum_system_set<T>(app: &mut App, schedule: impl ScheduleLabel + Clone)
 where

@@ -18,6 +18,7 @@ pub use crate::cleanup::{CleanupAppExt, CleanupHooks, WorldObject};
 // Domain-specific modules
 pub mod fluid;
 pub mod graph;
+pub mod reaction;
 pub mod reactor;
 pub mod resident;
 
