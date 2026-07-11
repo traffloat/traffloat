@@ -1,4 +1,7 @@
-//! Reactor refers to a [facility][facility] that processes [reactions](crate::reaction).
+//! Reactor refers to a [facility](crate::graph::facility)
+//! that processes [reactions](crate::reaction).
+
+use std::time::Duration;
 
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
@@ -8,14 +11,12 @@ use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use bevy::ecs::system::{Local, Query, Res, SystemParam};
-use bevy::ecs::world::{Mut, World};
-use bevy::math::FloatExt;
+use bevy::ecs::world::World;
 use bevy::reflect::Reflect;
-use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 
 use crate::persist::AppExt;
-use crate::util::{QueryExt, SliceGet};
+use crate::util::{QueryExt, duration_to_timesteps};
 use crate::{CleanupAppExt, fluid, reaction, resident};
 
 mod persist;
@@ -31,7 +32,10 @@ impl Plugin for Plug {
 
         app.init_resource::<Types>();
         app.init_resource::<Conf>();
-        app.add_systems(app::FixedUpdate, execute_system.in_set(ExecuteSystemSet));
+        app.add_systems(
+            app::FixedUpdate,
+            execute_system.in_set(ExecuteSystemSet).in_set(fluid::ModifySystemSets::Reactor),
+        );
         app.add_cleanup_hook(Types::cleanup_hook);
     }
 }
@@ -42,7 +46,9 @@ pub struct Conf {
 }
 
 impl Default for Conf {
-    fn default() -> Self { Self { execution_timestep: 16 } }
+    fn default() -> Self {
+        Self { execution_timestep: const { duration_to_timesteps(Duration::from_millis(250)) } }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]

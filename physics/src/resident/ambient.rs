@@ -1,39 +1,80 @@
-use std::iter;
-
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{Query, Res, SystemParam};
-use bevy::ecs::world::Mut;
+use bevy::ecs::system::{Query, ResMut, SystemParam};
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
 use crate::graph::facility;
+use crate::persist::AppExt;
 use crate::util::QueryExt;
 use crate::{fluid, reaction, resident};
+
+mod persist;
+pub use persist::Persist;
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.add_systems(app::FixedUpdate, interact_system.before(fluid::TransferSystemSet));
+        app.register_type::<Interactions>();
+
+        app.init_resource::<Interactions>();
+        app.register_persistable(Persist);
+
+        app.add_systems(
+            app::FixedUpdate,
+            interact_system.in_set(fluid::ModifySystemSets::ResidentAmbient),
+        );
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect, Resource)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect, Resource, Default)]
 pub struct Interactions {
     pub list: Vec<Interaction>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct Interaction {
+    pub name:             String,
     pub inputs:           Vec<Input>,
     pub catalysts:        Vec<Catalyst>,
     pub outputs:          Vec<Output>,
     pub time_step_period: u32,
     time_step_counter:    u32,
+}
+
+impl Interaction {
+    pub fn new(name: impl Into<String>, time_step_period: u32) -> Self {
+        Self {
+            name: name.into(),
+            inputs: Vec::new(),
+            catalysts: Vec::new(),
+            outputs: Vec::new(),
+            time_step_period,
+            time_step_counter: 0,
+        }
+    }
+
+    #[must_use]
+    pub fn with_input(mut self, input: Input) -> Self {
+        self.inputs.push(input);
+        self
+    }
+
+    #[must_use]
+    pub fn with_catalyst(mut self, catalyst: Catalyst) -> Self {
+        self.catalysts.push(catalyst);
+        self
+    }
+
+    #[must_use]
+    pub fn with_output(mut self, output: Output) -> Self {
+        self.outputs.push(output);
+        self
+    }
 }
 
 #[derive(QueryData)]
@@ -53,16 +94,22 @@ struct InteractParams<'w, 's> {
 fn interact_system(
     mut resident_query: Query<ResidentData>,
     mut params: InteractParams,
-    interactions: Res<Interactions>,
+    mut interactions: ResMut<Interactions>,
 ) {
     // TODO benchmark whether parallelizing this loop actually helps
 
     // TODO benchmark if loop resident/interaction or interaction/resident is better.
-    // The former favors memory throughput, while the latter favors vectorization.
+    // The former favors memory throughput, while the latter favors vectorization and branch
+    // prediction.
 
-    for interaction in &interactions.list {
-        for resident in &mut resident_query {
-            interact_once(interaction, resident, &mut params);
+    for interaction in &mut interactions.list {
+        interaction.time_step_counter += 1;
+        if interaction.time_step_counter == interaction.time_step_period {
+            interaction.time_step_counter = 0;
+
+            for resident in &mut resident_query {
+                interact_once(interaction, resident, &mut params);
+            }
         }
     }
 }
@@ -96,7 +143,7 @@ struct PreparedResidentData<'dw, 'ds> {
     storage_entity: Entity,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect, Default)]
 pub struct AmbientFluidSelector;
 
 impl<'pw, 'ps, 'dw, 'ds>
@@ -122,7 +169,7 @@ impl<'pw, 'ps, 'dw, 'ds>
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect, Default)]
 pub struct SelfResidentSelector;
 
 impl<'pw, 'ps, 'dw, 'ds>
@@ -162,6 +209,7 @@ reaction::define_ruleset! {
     pub catalyst Catalyst {
         Fluid(reaction::catalyst::Fluid<AmbientFluidSelector>),
         Temperature(reaction::catalyst::Temperature<AmbientFluidSelector>),
+        Pressure(reaction::catalyst::Pressure<AmbientFluidSelector>),
         ResidentAttr(reaction::catalyst::ResidentAttr<SelfResidentSelector>),
     }
 

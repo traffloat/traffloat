@@ -8,11 +8,8 @@
 //! <!-- - spontaneous fluid/cargo reactions -->
 
 use bevy::ecs::entity::Entity;
-use bevy::ecs::query::QueryData;
-use bevy::ecs::world::Mut;
 use bevy::math::FloatExt;
 use bevy::reflect::Reflect;
-use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 
 use crate::{fluid, resident};
@@ -252,14 +249,15 @@ macro_rules! define_ruleset {
             efficiency_cap: f32,
             efficiency_multiplier: f32,
         ) -> f32 {
-            use $crate::reaction;
             let mut efficiency = $crate::reaction::EfficiencyModifierResult { maximum: efficiency_cap, multiplier: efficiency_multiplier };
 
             for catalyst in catalysts {
-                efficiency.merge($crate::reaction::EfficiencyModifier::compute_efficiency(catalyst, params, data));
+                let modifier = $crate::reaction::EfficiencyModifier::compute_efficiency(catalyst, params, data);
+                efficiency.merge(modifier);
             }
             for input in inputs {
-                efficiency.merge($crate::reaction::EfficiencyModifier::compute_efficiency(input, params, data));
+                let modifier = $crate::reaction::EfficiencyModifier::compute_efficiency(input, params, data);
+                efficiency.merge(modifier);
             }
 
             let efficiency = efficiency.to_scalar();

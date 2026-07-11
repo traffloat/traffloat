@@ -1,13 +1,7 @@
-use bevy::ecs::entity::Entity;
-use bevy::ecs::world::Mut;
 use bevy::reflect::Reflect;
-use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 
-use crate::reaction::{
-    EfficiencyModifier, EfficiencyModifierResult, FluidStorageSelector, ReactionExecutor,
-    ResidentSelector, Threshold,
-};
+use crate::reaction::{FluidStorageSelector, ReactionExecutor, ResidentSelector};
 use crate::{fluid, resident};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
@@ -57,6 +51,10 @@ pub struct ResidentAttr<S> {
     pub attr:     resident::attr::TypeId,
     /// The linear change to apply to the attribute value of each resident per timestep.
     pub delta:    f32,
+    /// Minimum value to clamp the attribute to after applying the delta.
+    pub min:      Option<f32>,
+    /// Maximum value to clamp the attribute to after applying the delta.
+    pub max:      Option<f32>,
 }
 
 impl<S, P, D> ReactionExecutor<P, D> for ResidentAttr<S>
@@ -67,6 +65,12 @@ where
         self.selector.for_each_attributes_mut(params, data, |attrs, _| {
             let attr = attrs.get_mut(self.attr);
             *attr += self.delta * efficiency;
+            if let Some(min) = self.min {
+                *attr = attr.max(min);
+            }
+            if let Some(max) = self.max {
+                *attr = attr.min(max);
+            }
         });
     }
 }

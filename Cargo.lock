@@ -6368,7 +6368,6 @@ dependencies = [
  "enum_dispatch",
  "indexmap",
  "itertools 0.14.0",
- "paste",
  "serde",
  "snafu",
  "strum",

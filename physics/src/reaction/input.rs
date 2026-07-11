@@ -1,7 +1,4 @@
-use bevy::ecs::entity::Entity;
-use bevy::ecs::world::Mut;
 use bevy::reflect::Reflect;
-use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 
 use crate::fluid;
@@ -17,6 +14,8 @@ pub struct Fluid<S> {
     /// Maximum number of moles to take per timestep at maximum efficiency.
     pub max_rate:       fluid::Moles,
     /// How fluid concentration affects the efficiency of the reaction.
+    ///
+    /// X is the molar concentration.
     pub conc_threshold: Threshold,
 }
 
@@ -59,6 +58,8 @@ pub struct Heat<S> {
     /// Maximum amount of heat to take per timestep at maximum efficiency.
     pub max_rate:       fluid::Energy,
     /// How temperature affects the efficiency of the reaction.
+    ///
+    /// X is the temperature in kelvins.
     pub temp_threshold: Threshold,
 }
 

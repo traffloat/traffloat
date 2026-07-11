@@ -1,12 +1,9 @@
-use bevy::ecs::entity::Entity;
-use bevy::ecs::world::Mut;
 use bevy::reflect::Reflect;
-use enum_dispatch::enum_dispatch;
 use serde::{Deserialize, Serialize};
 
 use crate::reaction::{
     Aggregator, EfficiencyModifier, EfficiencyModifierResult, FluidStorageSelector,
-    ReactionExecutor, ResidentSelector, Threshold,
+    ResidentSelector, Threshold,
 };
 use crate::{fluid, resident};
 
@@ -17,6 +14,8 @@ pub struct Fluid<S> {
     /// The type of fluid to take.
     pub ty:             fluid::TypeId,
     /// How fluid concentration affects the efficiency of the reactor.
+    ///
+    /// X is the molar concentration.
     pub conc_threshold: Threshold,
 }
 
@@ -39,6 +38,8 @@ where
 pub struct Pressure<S> {
     pub selector:           S,
     /// How pressure affects the efficiency of the reactor.
+    ///
+    /// X is the pressure.
     pub pressure_threshold: Threshold,
 }
 
@@ -58,6 +59,8 @@ where
 pub struct Temperature<S> {
     pub selector:       S,
     /// How temperature affects the efficiency of the reactor.
+    ///
+    /// X is the temperature in kelvins.
     pub temp_threshold: Threshold,
 }
 
@@ -82,6 +85,8 @@ pub struct ResidentAttr<S> {
     /// How multiple interacting residents are aggregated into a single value.
     pub aggregator: Aggregator,
     /// How aggregated attribute value affects the efficiency of the reactor.
+    ///
+    /// X is the aggregated attribute value.
     pub threshold:  Threshold,
 }
 

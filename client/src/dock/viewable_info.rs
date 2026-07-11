@@ -203,11 +203,11 @@ fn show_fluid(
 
     if let Some(data) = &ambient_fluid.types {
         egui::CollapsingHeader::new("Composition").id_salt(new_id!(id)).show(ui, |ui| {
-            for (id, fraction) in data.iter().enumerate() {
+            for (id, &moles) in data.iter().enumerate() {
                 ui.label(format!(
-                    "{}: {:.2} mol",
+                    "{}: {moles:.2} mol ({} mol/m\u{b3})",
                     types.0.get(id).map_or("???", |ty| &ty.name),
-                    fraction * 100.0
+                    moles / ambient_fluid.volume,
                 ));
             }
         });

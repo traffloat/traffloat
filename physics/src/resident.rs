@@ -28,6 +28,7 @@ pub struct Plug;
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.add_plugins(attr::Plug);
+        app.add_plugins(ambient::Plug);
 
         app.register_type::<Resident>();
         app.register_type::<InteractionSlots>();
