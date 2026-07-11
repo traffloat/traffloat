@@ -4,8 +4,8 @@ use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_physics::util::{Alpha, Beta, QueryExt};
 use traffloat_proto::proto;
 
-use crate::dock;
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
+use crate::dock::{self, plot};
 use crate::scene::{FluidTypes, GenericViewable, IdRegistry, ProtoId, building, conduit, corridor};
 use crate::util::new_id;
 
@@ -20,6 +20,7 @@ pub struct UiSystemParam<'w, 's> {
 
 #[derive(QueryData)]
 struct ConduitData {
+    generic:  &'static GenericViewable,
     info:     &'static conduit::Info,
     corridor: &'static conduit::ConduitCorridor,
     id:       &'static ProtoId,
@@ -52,7 +53,15 @@ impl UiSystemParam<'_, '_> {
 
         if let Some(ambient_fluid) = &conduit_data.info.stored_fluid {
             egui::CollapsingHeader::new("Stored fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
-                show_fluid(ui, dock.id, ambient_fluid, &self.fluid_types);
+                show_fluid(
+                    ui,
+                    dock.id,
+                    &mut self.commands,
+                    ambient_fluid,
+                    &self.fluid_types,
+                    |label| format!("Conduit {} {label}", conduit_data.generic.name),
+                    |metric| plot::Target::PipeStorage { conduit: entity, metric },
+                );
             });
         }
     }

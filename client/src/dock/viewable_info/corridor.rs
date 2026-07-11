@@ -4,8 +4,8 @@ use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
 
-use crate::dock;
 use crate::dock::viewable_info::{show_fluid, show_link};
+use crate::dock::{self, plot};
 use crate::scene::conduit::CorridorConduits;
 use crate::scene::{FluidTypes, GenericViewable, corridor};
 use crate::util::new_id;
@@ -21,6 +21,7 @@ pub struct UiSystemParam<'w, 's> {
 
 #[derive(QueryData)]
 struct CorridorData {
+    generic:  &'static GenericViewable,
     info:     &'static corridor::Info,
     alpha:    Option<EndpointData<Alpha>>,
     beta:     Option<EndpointData<Beta>>,
@@ -55,7 +56,15 @@ impl UiSystemParam<'_, '_> {
 
         if let Some(ambient_fluid) = &data.info.ambient_fluid {
             egui::CollapsingHeader::new("Ambient fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
-                show_fluid(ui, dock.id, ambient_fluid, &self.fluid_types);
+                show_fluid(
+                    ui,
+                    dock.id,
+                    &mut self.commands,
+                    ambient_fluid,
+                    &self.fluid_types,
+                    |label| format!("Corridor {} {label}", data.generic.name),
+                    |metric| plot::Target::CorridorAmbient { corridor: entity, metric },
+                );
             });
         }
     }

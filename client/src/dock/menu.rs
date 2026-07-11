@@ -1,8 +1,15 @@
+use bevy::app::{App, Plugin};
 use bevy::ecs::system::{ParamSet, SystemParam};
 use egui_material_icons::MaterialIcon;
 use traffloat_macro_util::fan_out;
 
 use crate::dock::{save, settings};
+
+pub struct Plug;
+
+impl Plugin for Plug {
+    fn build(&self, _app: &mut App) {}
+}
 
 pub trait Action: Default {
     fn shortcut(&self) -> egui::KeyboardShortcut;

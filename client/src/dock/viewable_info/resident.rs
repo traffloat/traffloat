@@ -4,8 +4,10 @@ use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use egui_material_icons::icons;
 use traffloat_physics::util::QueryExt;
 
-use crate::dock::{self, viewable_info};
+use crate::dock::viewable_info::show_graph_button;
+use crate::dock::{self, plot, viewable_info};
 use crate::scene::{GenericViewable, resident};
+use crate::util::new_id;
 
 #[derive(SystemParam)]
 pub struct UiSystemParam<'w, 's> {
@@ -17,7 +19,8 @@ pub struct UiSystemParam<'w, 's> {
 
 #[derive(QueryData)]
 struct ResidentData {
-    info: &'static resident::Info,
+    generic: &'static GenericViewable,
+    info:    &'static resident::Info,
 }
 
 impl UiSystemParam<'_, '_> {
@@ -37,7 +40,15 @@ impl UiSystemParam<'_, '_> {
         );
 
         ui.heading("Attributes");
-        show_attributes(ui, dock.id, &self.types, &resident_data.info.attributes);
+        show_attributes(
+            ui,
+            dock.id,
+            &mut self.commands,
+            entity,
+            &resident_data.generic.name,
+            &self.types,
+            &resident_data.info.attributes,
+        );
     }
 }
 
@@ -82,14 +93,26 @@ fn show_location(
 fn show_attributes(
     ui: &mut egui::Ui,
     id: egui::Id,
+    commands: &mut Commands,
+    entity: Entity,
+    resident_name: &str,
     types: &resident::Types,
     attributes: &[Option<f32>],
 ) {
-    for (id, value) in attributes.iter().enumerate() {
+    for (ty, value) in attributes.iter().enumerate() {
         if let Some(value) = value
-            && let Some(def) = types.types.get(id)
+            && let Some(def) = types.types.get(ty)
         {
-            ui.label(format!("{}: {value}", def.name));
+            ui.horizontal(|ui| {
+                ui.label(format!("{}: {value}", def.name));
+                show_graph_button(
+                    ui,
+                    new_id!(id, ty),
+                    commands,
+                    || format!("Resident {resident_name} {}", def.name),
+                    plot::Target::ResidentAttr { resident: entity, ty },
+                );
+            });
         }
     }
 }

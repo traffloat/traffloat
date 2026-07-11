@@ -5,9 +5,9 @@ use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
 use traffloat_proto::proto::AlphaOrBeta;
 
-use crate::dock;
 use crate::dock::viewable_info::corridor::display_gate;
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
+use crate::dock::{self, plot};
 use crate::scene::facility::{BuildingFacilities, FacilityBuilding};
 use crate::scene::{FluidTypes, GenericViewable, building, corridor, resident};
 use crate::util::new_id;
@@ -103,7 +103,15 @@ impl UiSystemParam<'_, '_> {
 
         if let Some(ambient_fluid) = &data.info.ambient_fluid {
             egui::CollapsingHeader::new("Ambient fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
-                show_fluid(ui, dock.id, ambient_fluid, &self.fluid_types);
+                show_fluid(
+                    ui,
+                    dock.id,
+                    &mut self.commands,
+                    ambient_fluid,
+                    &self.fluid_types,
+                    |label| format!("Building {} {label}", data.generic.name),
+                    |metric| plot::Target::BuildingAmbient { building: entity, metric },
+                );
             });
         }
     }

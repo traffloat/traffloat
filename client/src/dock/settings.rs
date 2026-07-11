@@ -1,7 +1,14 @@
+use bevy::app::{App, Plugin};
 use bevy::ecs::system::Commands;
 use egui_material_icons::{MaterialIcon, icons};
 
 use crate::dock::{self, DockCommand, TabPlacement, menu};
+
+pub struct Plug;
+
+impl Plugin for Plug {
+    fn build(&self, _app: &mut App) {}
+}
 
 pub struct Tab;
 

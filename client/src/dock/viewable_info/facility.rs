@@ -6,8 +6,8 @@ use egui_material_icons::icons;
 use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
 
-use crate::dock;
-use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
+use crate::dock::viewable_info::{show_fluid, show_graph_button, show_link, show_link_small};
+use crate::dock::{self, plot};
 use crate::scene::building::FluidConnectionPeer;
 use crate::scene::conduit::ConduitCorridor;
 use crate::scene::{
@@ -28,6 +28,7 @@ pub struct UiSystemParam<'w, 's> {
 #[derive(QueryData)]
 struct FacilityData {
     id:       &'static ProtoId,
+    generic:  &'static GenericViewable,
     info:     &'static facility::Info,
     building: &'static facility::FacilityBuilding,
 }
@@ -60,18 +61,35 @@ impl UiSystemParam<'_, '_> {
 
         if let Some(ambient_fluid) = &facility_data.info.stored_fluid {
             egui::CollapsingHeader::new("Stored fluid").id_salt(new_id!(dock.id)).show(ui, |ui| {
-                show_fluid(ui, dock.id, ambient_fluid, &self.fluid_types);
+                show_fluid(
+                    ui,
+                    dock.id,
+                    &mut self.commands,
+                    ambient_fluid,
+                    &self.fluid_types,
+                    |label| format!("Facility {} {label}", facility_data.generic.name),
+                    |metric| plot::Target::FacilityStorage { facility: entity, metric },
+                );
             });
         }
 
         if let Some(reactor) = &facility_data.info.reactor {
             egui::CollapsingHeader::new("Reactor").id_salt(new_id!(dock.id)).show(ui, |ui| {
                 let mut efficiency_copy = reactor.efficiency * 100.0;
-                ui.add(
-                    egui::Slider::new(&mut efficiency_copy, 0.0..=100.0)
-                        .suffix("%")
-                        .text("Efficiency"),
-                );
+                ui.horizontal(|ui| {
+                    show_graph_button(
+                        ui,
+                        new_id!(dock.id),
+                        &mut self.commands,
+                        || format!("Facility {} efficiency", facility_data.generic.name),
+                        plot::Target::ReactorEfficiency { facility: entity },
+                    );
+                    ui.add(
+                        egui::Slider::new(&mut efficiency_copy, 0.0..=100.0)
+                            .suffix("%")
+                            .text("Efficiency"),
+                    );
+                });
                 ui.horizontal(|ui| {
                     let memory_id = new_id!(dock.id);
 

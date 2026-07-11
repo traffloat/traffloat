@@ -19,6 +19,7 @@ pub mod camera;
 mod menu;
 mod new_level;
 mod open_mode;
+pub mod plot;
 mod save;
 mod settings;
 mod startup;
@@ -35,7 +36,17 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.add_plugins((camera::Plug, startup::Plug, save::Plug));
+        app.add_plugins((
+            camera::Plug,
+            menu::Plug,
+            new_level::Plug,
+            open_mode::Plug,
+            plot::Plug,
+            save::Plug,
+            settings::Plug,
+            startup::Plug,
+            viewable_info::Plug,
+        ));
         app.init_resource::<State>();
         app.init_resource::<Toasts>();
         app.add_systems(app::Startup, setup_system);
@@ -206,6 +217,10 @@ macro_rules! define_tabs {
         impl<$w, $s> egui_dock::TabViewer for TabViewer<$w, $s> {
             type Tab = TabState;
 
+            fn id(&mut self, tab: &mut TabState) -> egui::Id {
+                new_id!(tab.id)
+            }
+
             fn title(&mut self, tab: &mut TabState) -> WidgetText {
                 match tab.tab {
                     $(
@@ -298,6 +313,7 @@ fan_out! {
     Settings(settings::Tab),
     Camera(camera::Tab),
     ViewableInfo(viewable_info::Tab),
+    Plot(plot::Tab),
     SaveAs(save::SaveAsTab),
 }
 

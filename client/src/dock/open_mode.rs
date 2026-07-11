@@ -1,6 +1,13 @@
+use bevy::app::{App, Plugin};
 use egui_dock::{DockState, NodeIndex, NodePath, SurfaceIndex, TabIndex, TabPath};
 
 use crate::dock::TabState;
+
+pub struct Plug;
+
+impl Plugin for Plug {
+    fn build(&self, _app: &mut App) {}
+}
 
 pub trait TabPlacement: Sized {
     fn place<F: FnOnce() -> TabState>(

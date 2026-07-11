@@ -1,3 +1,4 @@
+use bevy::app::{App, Plugin};
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::system::{Command, Commands, ParamSet, Query, SystemParam};
@@ -6,7 +7,7 @@ use egui_material_icons::icons;
 use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
 
-use crate::dock::{self, TabPlacement, viewable_info};
+use crate::dock::{self, DockCommand, TabPlacement, plot, viewable_info};
 use crate::scene::{self, FluidTypes, GenericViewable, ProtoId, ViewableKind};
 use crate::util::new_id;
 
@@ -15,6 +16,12 @@ mod conduit;
 mod corridor;
 mod facility;
 mod resident;
+
+pub struct Plug;
+
+impl Plugin for Plug {
+    fn build(&self, _app: &mut App) {}
+}
 
 pub struct Tab {
     pub entity: Entity,
@@ -190,27 +197,81 @@ impl Command for OpenCommand {
 fn show_fluid(
     ui: &mut egui::Ui,
     id: egui::Id,
+    commands: &mut Commands,
     ambient_fluid: &proto::FluidStorageDetail,
     types: &FluidTypes,
+    make_name: impl Fn(&str) -> String,
+    make_plot_target: impl Fn(plot::FluidMetric) -> plot::Target,
 ) {
     ui.label(format!("Volume: {:.2}", ambient_fluid.volume));
     if let Some(pressure) = ambient_fluid.pressure {
-        ui.label(format!("Pressure: {pressure:.2}"));
+        ui.horizontal(|ui| {
+            ui.label(format!("Pressure: {pressure:.2}"));
+            show_graph_button(
+                ui,
+                id,
+                commands,
+                || make_name("Pressure"),
+                make_plot_target(plot::FluidMetric::Pressure),
+            );
+        });
     }
     if let Some(temperature) = ambient_fluid.temperature {
-        ui.label(format!("Temperature: {temperature:.2} K"));
+        ui.horizontal(|ui| {
+            ui.label(format!("Temperature: {temperature:.2} K"));
+            show_graph_button(
+                ui,
+                id,
+                commands,
+                || make_name("Temperature"),
+                make_plot_target(plot::FluidMetric::Temperature),
+            );
+        });
     }
 
     if let Some(data) = &ambient_fluid.types {
         egui::CollapsingHeader::new("Composition").id_salt(new_id!(id)).show(ui, |ui| {
-            for (id, &moles) in data.iter().enumerate() {
-                ui.label(format!(
-                    "{}: {moles:.2} mol ({} mol/m\u{b3})",
-                    types.0.get(id).map_or("???", |ty| &ty.name),
-                    moles / ambient_fluid.volume,
-                ));
+            for (ty, &moles) in data.iter().enumerate() {
+                ui.horizontal(|ui| {
+                    ui.label(format!(
+                        "{}: {moles:.2} mol ({} mol/m\u{b3})",
+                        types.0.get(ty).map_or("???", |ty| &ty.name),
+                        moles / ambient_fluid.volume,
+                    ));
+                    show_graph_button(
+                        ui,
+                        new_id!(id, ty),
+                        commands,
+                        || make_name("Temperature"),
+                        make_plot_target(plot::FluidMetric::Temperature),
+                    );
+                });
             }
         });
+    }
+}
+
+fn show_graph_button(
+    ui: &mut egui::Ui,
+    _id: egui::Id,
+    commands: &mut Commands,
+    make_name: impl Fn() -> String,
+    target: plot::Target,
+) {
+    let resp = ui.button(icons::ICON_CHART_DATA).on_hover_text("Click to open chart for {label}");
+    if resp.clicked() {
+        let name = make_name();
+        commands.queue(DockCommand(move |dock| {
+            let tab = plot::Tab::new(name, target.clone());
+            dock.focus_or_create(
+                || dock::TabEnum::Plot(tab),
+                dock::ReplaceTab(move |tab| match &tab.tab {
+                    dock::TabEnum::Plot(tab) => tab.targets.contains(&target),
+                    _ => false,
+                })
+                .or_always(dock::NewWindow),
+            );
+        }));
     }
 }
 

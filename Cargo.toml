@@ -65,6 +65,9 @@ enum_variant_names = "allow"
 # Used in Persistable::output for internal errors logged separately
 result_unit_err = "allow"
 
+# Merging match arms do not always improve code readability.
+match_same_arms = "allow"
+
 # Allowed during dev, checked during precommit
 dbg_macro = "allow"
 unused_self = "allow"

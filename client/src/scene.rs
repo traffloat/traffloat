@@ -1,6 +1,7 @@
 //! A local mirror of the actual world based on incremental [proto](traffloat_proto) updates.
 
 use std::collections::HashMap;
+use std::iter;
 
 use bevy::app::{self, App, Plugin};
 use bevy::camera::Camera;
@@ -19,6 +20,7 @@ use bevy::state::state::States;
 use bevy::transform::components::GlobalTransform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use egui_notify::Toast;
+use either::Either;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 use traffloat_macro_util::fan_out;
@@ -26,8 +28,9 @@ use traffloat_physics::util;
 use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
 
+use crate::ConfigManager;
 use crate::dock::camera::WorldCamera;
-use crate::{ConfigManager, dock};
+use crate::dock::{self, plot};
 
 pub mod building;
 pub mod conduit;
@@ -172,9 +175,12 @@ fn update_focus_system(
 ) {
     let focused_ids = dock
         .tabs()
-        .filter_map(|tab| match tab {
-            dock::TabEnum::ViewableInfo(tab) => Some(tab.entity),
-            _ => None,
+        .flat_map(|tab| match tab {
+            dock::TabEnum::ViewableInfo(tab) => Either::Left(Either::Left(iter::once(tab.entity))),
+            dock::TabEnum::Plot(tab) => Either::Left(Either::Right(
+                tab.targets.iter().flat_map(plot::Target::focused_entities),
+            )),
+            _ => Either::Right(iter::empty()),
         })
         .filter_map(|entity| id_query.log_get(entity))
         .map(|comp| comp.0)

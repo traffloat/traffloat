@@ -12,6 +12,9 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+traffloat-proto = { workspace = true }
+traffloat-macro-util = { workspace = true }
+
 bevy = { workspace = true, features = ["serialize"] }
 bevy_mod_config = "0.7.0"
 ciborium = "0.2.2"
@@ -26,9 +29,6 @@ snafu = "0.9.1"
 strum = { version = "0.28.0", features = ["derive"] }
 tracing = "0.1.44"
 zstd = "0.13.3"
-
-traffloat-proto = { workspace = true }
-traffloat-macro-util = { workspace = true }
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports", "csv_output"] }

@@ -37,12 +37,7 @@ impl dock::Tab for Tab {
         }
     }
 
-    fn closeable(&self) -> bool { false }
-
     type OnCloseSystemParam<'w, 's> = ();
-    fn on_close(&mut self, (): Self::OnCloseSystemParam<'_, '_>) -> OnCloseResponse {
-        OnCloseResponse::Focus
-    }
 
     type BeforeRenderSystemParam<'w, 's> = ();
 }
