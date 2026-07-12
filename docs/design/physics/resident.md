@@ -101,11 +101,30 @@ The following defines some default setups:
 Resident behavior is controlled by a hierarchy of AIs.
 Each layer is a behavior tree makes high-level decisions for the next layer to execute.
 
-### 1. Task selection
+### 1. Long term status
+
+Selects the long-term assignments to a resident, even if it does not affect their immediate behavior.
+
+#### 1.1. Occupation
+
+The game computes a pool of "jobs" available for residents to work on
+based on the facilities and vehicles that require interaction.
+Each job has a priority and attribute affinities.
+A resident chooses the job with the highest combination of priority and attribute affinity score to work on.
+
+#### 1.2. Housing
+
+The housing AI ensures residents return home regularly as configured by player expectations,
+resulting in a work-life cycle involving daily commute.
+
+The housing AI also actively identifies high-intimacy (see below) residents
+and tries to house them together, optionally favoring fertile couples to increase the chance of natural birth.
+
+### 2. Task selection
 
 Selects the high-level task for the resident to work on.
 
-#### 1.1. Survivability
+#### 2.1. Survivability
 
 The base survivability AI overrides a resident to seek improvement of critical attributes:
 
@@ -114,7 +133,7 @@ The base survivability AI overrides a resident to seek improvement of critical a
 - When oxygen concentration is critically low,
   the resident tries to move to a different location with higher oxygen concentration.
 
-#### 1.2. Fatigue
+#### 2.2. Fatigue
 
 "Fatigue" is a core attribute representing the unwillingness of a resident to comply with player commands.
 Consistent work increases fatigue, which can be restored gradually over time or by interacting with specific facilities.
@@ -123,7 +142,7 @@ When fatigue is high, the resident would stop accepting player instructions.
 The fatigue AI would try to reduce resident fatigue
 by accessing facilities and fluids that reduce fatigue.
 
-#### 1.3. Crime
+#### 2.3. Crime
 
 "Morality" is a core attribute that determines whether a resident would commit crimes.
 Extreme physical attributes damage morality, which can only be restored through specific education.
@@ -148,24 +167,9 @@ combined with other affinities such as surveillance.
 
 Crime is resolved through security enforcement, as explained in the restraint section.
 
-#### 1.4. Occupation
+### 3. Task execution
 
-The game computes a pool of "jobs" available for residents to work on
-based on the facilities and vehicles that require interaction.
-Each job has a priority and attribute affinities.
-A resident chooses the job with the highest combination of priority and attribute affinity score to work on.
-
-#### 1.5. Housing
-
-The housing AI ensures residents return home regularly as configured by player expectations,
-resulting in a work-life cycle involving daily commute.
-
-The housing AI also actively identifies high-intimacy (see below) residents
-and tries to house them together, optionally favoring fertile couples to increase the chance of natural birth.
-
-### 2. Task execution
-
-#### 2.1. Restraint
+#### 3.1. Restraint
 
 Residents with "restraint" cargo in their inventory may restrain another resident
 if certain attribute conditions are satisfied (i.e. one can physically overpower the other).
@@ -179,7 +183,7 @@ and limiting the vehicles entering the detention area to only those that require
 The restrainer is controlled by the Patrol AI below,
 identifying the restrained resident based on affinities such as infamy and surveillance.
 
-#### 2.2. Patrol
+#### 3.2. Patrol
 
 Some jobs involve patrolling between multiple locations on a vehicle.
 The patrol AI is an umbrella of algorithms that execute these jobs.
@@ -193,11 +197,19 @@ Examples include:
   and transporting them to specific storage/treatment facilities.
 - Transportation: driving vehicles such as buses to transport residents/cargo along fixed routes.
 
-### 3. Pathfinding
+### 4. Pathfinding
 
 The previous layers of AI determine the target location for a resident to move to.
 The pathfinding AI computes the optimal path to the target location and moves the resident along the path,
 based on world topology and real-time traffic conditions such as vehicle timetables.
+
+#### 4.1. Commute
+
+Discover commute options that may be faster than walking, including driving and public transport.
+
+#### 4.2. Movement
+
+Move to a target, either by driving a vehicle or walking, subject to the decision of the Commute layer.
 
 ## Intimacy
 
