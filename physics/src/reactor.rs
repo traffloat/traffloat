@@ -98,7 +98,7 @@ fn execute_rule(
     def: &TypeDef,
     params: &mut ExecuteSystemParams,
 ) {
-    let efficiency = execute_once(
+    let efficiency = reaction::execute_once(
         params,
         reactor,
         &def.inputs,
@@ -269,7 +269,6 @@ impl<'pw, 'ps, 'dw, 'ds>
 
 reaction::define_ruleset! {
     [P = ExecuteSystemParams, D = ExecuteFacilityDataItem]
-    fn execute_once;
 
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
     pub input Input {

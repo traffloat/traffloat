@@ -123,10 +123,11 @@ fn interact_once(
         resident::Location::Building { entity, .. }
         | resident::Location::Corridor { entity, .. } => entity,
         resident::Location::Facility { entity } => params.facility_query.log_get(entity)?.0,
+        resident::Location::Vehicle { compartment } => compartment,
     };
     let mut data = PreparedResidentData { data: resident, storage_entity };
 
-    let _efficiency = execute_once(
+    let _efficiency = reaction::execute_once(
         params,
         &mut data,
         &interaction.inputs,
@@ -197,7 +198,6 @@ impl<'pw, 'ps, 'dw, 'ds>
 
 reaction::define_ruleset! {
     [P = InteractParams, D = PreparedResidentData]
-    fn execute_once;
 
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
     pub input Input {

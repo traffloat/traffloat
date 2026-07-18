@@ -37,6 +37,7 @@ pub mod conduit;
 pub mod corridor;
 pub mod facility;
 pub mod resident;
+pub mod vehicle;
 
 mod picking;
 pub mod singleplayer;
@@ -62,6 +63,7 @@ impl Plugin for Plug {
         app.add_plugins(facility::Plug);
         app.add_plugins(conduit::Plug);
         app.add_plugins(resident::Plug);
+        app.add_plugins(vehicle::Plug);
 
         app.add_systems(app::Update, update_viewport_config_system);
         app.add_systems(app::Update, update_focus_system);
@@ -121,6 +123,7 @@ impl IdRegistry {
     impl_id_registry_get!(get_facility, Facility, "facility");
     impl_id_registry_get!(get_conduit, Conduit, "conduit");
     impl_id_registry_get!(get_resident, Resident, "resident");
+    impl_id_registry_get!(get_vehicle, Vehicle, "vehicle");
 }
 
 #[derive(Reflect, strum::IntoStaticStr)]
@@ -130,6 +133,7 @@ enum TrackedId {
     Facility(Entity),
     Conduit(Entity),
     Resident(Entity),
+    Vehicle(Entity),
 }
 
 #[derive(Component, Reflect)]
@@ -200,6 +204,7 @@ pub enum Zorder {
     FacilityTaint,
     Facility,
     Conduit,
+    Vehicle,
     Resident,
 }
 
@@ -327,6 +332,7 @@ fan_out! {
     8, 2;
     SetFluidTypes(SetFluidTypesParams<'w>),
     SetResidentAttrTypes(resident::SetResidentAttrTypesParams<'w>),
+    SetVehicleTypes(vehicle::SetVehicleTypesParams<'w>),
     ShowGenericToast(ShowGenericToastParams<'w>),
     NewBuilding(building::NewBuildingParams<'w, 's>),
     UpdateBuilding(building::UpdateBuildingParams<'w, 's>),
@@ -344,6 +350,9 @@ fan_out! {
     UpdateResidentLocation(resident::UpdateResidentLocationParams<'w, 's>),
     UpdateResidentAttributesFull(resident::UpdateResidentAttributesFullParams<'w, 's>),
     UpdateResidentAttributesPartial(resident::UpdateResidentAttributesPartialParams<'w, 's>),
+    NewVehicle(vehicle::NewVehicleParams<'w, 's>),
+    UpdateVehicleLocation(vehicle::UpdateVehicleLocationParams<'w, 's>),
+    UpdateVehicleFluid(vehicle::UpdateVehicleFluidParams<'w, 's>),
     UpdateViewableName(UpdateViewableNameParams<'w, 's>),
     RemoveViewable(RemoveViewableParams<'w, 's>),
 }
@@ -402,7 +411,8 @@ impl UpdateHandler for UpdateViewableNameParams<'_, '_> {
             | TrackedId::Corridor(entity)
             | TrackedId::Facility(entity)
             | TrackedId::Conduit(entity)
-            | TrackedId::Resident(entity) => *entity,
+            | TrackedId::Resident(entity)
+            | TrackedId::Vehicle(entity) => *entity,
         };
         let Some(mut viewable) = self.query.log_get_mut(entity) else { return };
         viewable.name.clone_from(&update.name);
@@ -447,6 +457,12 @@ impl UpdateHandler for RemoveViewableParams<'_, '_> {
                     entity.despawn();
                 });
             }
+            TrackedId::Vehicle(entity) => {
+                self.commands.entity(entity).queue(|mut entity: EntityWorldMut| {
+                    vehicle::on_despawn(&mut entity);
+                    entity.despawn();
+                });
+            }
         }
     }
 }
@@ -464,6 +480,7 @@ pub enum ViewableKind {
     Facility,
     Conduit,
     Resident,
+    Vehicle,
 }
 
 #[derive(Resource, Default)]

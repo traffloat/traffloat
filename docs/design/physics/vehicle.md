@@ -14,7 +14,7 @@ Each type of vehicle has the following properties:
   - Length
   - Gauge size
 - Motion properties
-  - Power source
+  - Propulsion
   - Maximum speed
   - Maximum accelerating force
   - Maximum braking force
@@ -34,9 +34,9 @@ There are also separate rail types, which have the following properties:
 - Electrification
 - Maximum speed
 
-A vehicle type is compatible with a rail type if:
+A vehicle type is compatible with a rail type if all of the following hold:
 
-- The rail type is electrified, or the vehicle does not use rail power as its power source.
+- The rail type is electrified, or the vehicle does not use rail power as its propulsion.
 - The gauge size of the rail is equal to that of the vehicle.
 
 In the setting of this game, rails are actually a pair of cylindrical rods
@@ -55,9 +55,9 @@ allowing it to store volatile cargo without contaminating along its path.
 
 Each compartment also has a specified limit of residents that can fit in.
 
-## Power source
+## Propulsion
 
-Vehicles have three possible power sources:
+Vehicles have three possible propulsion methods:
 
 - Rail power: The vehicle consumes [electric power](power.md) from the rails,
   which are the power networks that the corridor can consume from.
@@ -165,7 +165,7 @@ Then the vehicle is eligible for transfer movement when it is within the braking
   where `w` is the standard walking speed, and `PXQ` is the interior angle between `P` and `Q` at `X`.
   - If `u = w`, the vehicle should prefer rule D instead since reservation only reduces efficiency.
 4. The vehicle moves inertially through the distance from `PX` to `XQ` at speed `u`.
-  During this period, the vehicle does not consume any fuel or power.
+  During this period, the vehicle does not require any propulsion.
 5. The vehicle enters `q` at speed `u`.
 6. After the entire vehicle length is inside `q`, the vehicle releases the reservations for segment and entry,
   and switches back to rule C for intra-rail movement.

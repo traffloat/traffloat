@@ -90,6 +90,9 @@ impl UpdateHandler for NewConduitParams<'_, '_> {
 
         let material = self.materials.add(match update.ty {
             proto::ConduitType::FluidPipe => ColorMaterial::from_color(Color::NONE),
+            proto::ConduitType::VehicleRail => {
+                ColorMaterial::from_color(Color::oklab(0.149, 0.714, 0.953))
+            }
         });
 
         let entity = self

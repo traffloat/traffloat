@@ -4,17 +4,17 @@ use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use egui_material_icons::icons;
 use traffloat_physics::util::QueryExt;
 
-use crate::dock::viewable_info::show_graph_button;
+use crate::dock::viewable_info::{show_graph_button, show_link};
 use crate::dock::{self, plot, viewable_info};
-use crate::scene::{GenericViewable, resident};
+use crate::scene::{GenericViewable, resident, vehicle};
 use crate::util::new_id;
 
 #[derive(SystemParam)]
 pub struct UiSystemParam<'w, 's> {
-    resident_query: Query<'w, 's, ResidentData>,
-    viewable_query: Query<'w, 's, &'static GenericViewable>,
-    commands:       Commands<'w, 's>,
-    types:          Res<'w, resident::Types>,
+    resident_query:  Query<'w, 's, ResidentData>,
+    location_params: ShowLocationParams<'w, 's>,
+    commands:        Commands<'w, 's>,
+    types:           Res<'w, resident::Types>,
 }
 
 #[derive(QueryData)]
@@ -31,7 +31,7 @@ impl UiSystemParam<'_, '_> {
         };
 
         ui.heading("Location");
-        show_location(ui, &resident_data.info.location, &mut self.commands, &self.viewable_query);
+        show_location(ui, &resident_data.info.location, &mut self.commands, &self.location_params);
 
         ui.heading("Attributes");
         show_attributes(
@@ -45,38 +45,59 @@ impl UiSystemParam<'_, '_> {
     }
 }
 
+#[derive(SystemParam)]
+struct ShowLocationParams<'w, 's> {
+    viewable_query: Query<'w, 's, &'static GenericViewable>,
+    vehicle_query:  Query<'w, 's, &'static vehicle::Info>,
+    vehicle_types:  Res<'w, vehicle::Types>,
+}
+
 fn show_location(
     ui: &mut egui::Ui,
     location: &resident::Location,
     commands: &mut Commands,
-    viewable_query: &Query<&'static GenericViewable>,
+    params: &ShowLocationParams,
 ) {
     ui.horizontal(|ui| match *location {
         resident::Location::Building(building) => {
-            if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
-                commands.queue(viewable_info::OpenCommand::from_click(building, ui.ctx()));
-            }
+            show_link(ui, commands, building);
             ui.label("Inside building:");
-            if let Some(viewable) = viewable_query.log_get(building) {
+            if let Some(viewable) = params.viewable_query.log_get(building) {
                 ui.label(&viewable.name);
             }
         }
         resident::Location::Corridor(corridor) => {
-            if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
-                commands.queue(viewable_info::OpenCommand::from_click(corridor, ui.ctx()));
-            }
+            show_link(ui, commands, corridor);
             ui.label("Inside corridor:");
-            if let Some(viewable) = viewable_query.log_get(corridor) {
+            if let Some(viewable) = params.viewable_query.log_get(corridor) {
                 ui.label(&viewable.name);
             }
         }
         resident::Location::Facility { facility, ref slot_name } => {
-            if ui.button(icons::ICON_LINK).on_hover_text("View").clicked() {
-                commands.queue(viewable_info::OpenCommand::from_click(facility, ui.ctx()));
-            }
+            show_link(ui, commands, facility);
             ui.label(format!("{slot_name} in facility:"));
-            if let Some(viewable) = viewable_query.log_get(facility) {
+            if let Some(viewable) = params.viewable_query.log_get(facility) {
                 ui.label(&viewable.name);
+            }
+        }
+        resident::Location::Vehicle { entity, compartment, operator_slot } => {
+            show_link(ui, commands, entity);
+            let vehicle_type = params
+                .vehicle_query
+                .log_get(entity)
+                .and_then(|info| params.vehicle_types.types.get(info.ty));
+            let operator_type = operator_slot
+                .zip(vehicle_type)
+                .and_then(|(slot, ty)| ty.proto.compartments.get(slot))
+                .map_or("passenger", |cpmt| cpmt.name.as_str());
+            ui.label(format!("As {operator_type} in vehicle"));
+            if let Some(viewable) = params.viewable_query.log_get(entity) {
+                ui.label(&viewable.name);
+            }
+            if let Some(ty) = vehicle_type
+                && let Some(cpmt) = ty.proto.compartments.get(compartment)
+            {
+                ui.label(&cpmt.name);
             }
         }
     });

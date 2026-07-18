@@ -1,7 +1,7 @@
 use std::num::NonZeroU32;
 
 use bevy::color::LinearRgba;
-use bevy::math::{Rect, Vec3};
+use bevy::math::{Rect, Vec2, Vec3};
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
@@ -60,6 +60,7 @@ pub enum AlphaOrBeta {
 pub enum Update {
     SetFluidTypes(SetFluidTypes),
     SetResidentAttrTypes(SetResidentAttrTypes),
+    SetVehicleTypes(SetVehicleTypes),
     ShowGenericToast(ShowGenericToast),
     NewBuilding(NewBuilding),
     UpdateBuilding(UpdateBuilding),
@@ -77,6 +78,9 @@ pub enum Update {
     UpdateResidentLocation(UpdateResidentLocation),
     UpdateResidentAttributesFull(UpdateResidentAttributesFull),
     UpdateResidentAttributesPartial(UpdateResidentAttributesPartial),
+    NewVehicle(NewVehicle),
+    UpdateVehicleLocation(UpdateVehicleLocation),
+    UpdateVehicleFluid(UpdateVehicleFluid),
     UpdateViewableName(UpdateViewableName),
     RemoveViewable(RemoveViewable),
 }
@@ -106,6 +110,30 @@ pub struct ResidentAttrType {
     pub subscribed: SubscribedBy,
     #[reflect(ignore, default)]
     pub niches:     ResidentAttrNiche,
+}
+
+/// Defines all vehicle types.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetVehicleTypes {
+    pub types: Vec<VehicleType>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct VehicleType {
+    pub name:         String,
+    /// Asset path.
+    ///
+    /// Currently loads from `assets/sprites/{sprite_id}.png` directly.
+    /// May be extended to support dynamically loaded assets in the future.
+    pub sprite_id:    String,
+    /// Scale rendered sprites by this factor.
+    pub sprite_scale: Vec2,
+    pub compartments: Vec<VehicleTypeCompartment>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct VehicleTypeCompartment {
+    pub name: String,
 }
 
 bitflags::bitflags! {
@@ -292,6 +320,7 @@ pub struct NewConduit {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Reflect)]
 pub enum ConduitType {
     FluidPipe,
+    VehicleRail,
 }
 
 /// Updated information about a fluid pipe.
@@ -311,6 +340,7 @@ pub struct NewResident {
     pub location: ResidentLocation,
 }
 
+/// Updated location of a resident.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct UpdateResidentLocation {
     pub id:       Id,
@@ -340,6 +370,37 @@ pub enum ResidentLocation {
     Building { building: Id, interior_pos: Vec3, speed: Vec3 },
     Corridor { corridor: Id, linear_pos: f32, speed: f32 },
     Facility { facility: Id, slot_name: String },
+    Vehicle { vehicle: Id, compartment: u32, operator_slot: Option<u32> },
+}
+
+/// Subscribed to a new vehicle.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct NewVehicle {
+    pub id:       Id,
+    pub ty:       u32,
+    pub name:     String,
+    pub location: VehicleLocation,
+}
+
+/// Updated location of a vehicle.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateVehicleLocation {
+    pub id:       Id,
+    pub location: VehicleLocation,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub enum VehicleLocation {
+    Building { building: Id, interior_pos: Vec3, speed: Vec3 },
+    Rail { conduit: Id, distance_from_alpha: f32, speed_from_alpha: f32 },
+}
+
+/// Updated fluid information of vehicle compartments.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct UpdateVehicleFluid {
+    pub id:           Id,
+    pub taint:        Color,
+    pub compartments: Option<Vec<FluidStorageDetail>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
