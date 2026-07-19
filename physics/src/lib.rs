@@ -33,9 +33,7 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CleanupHooks>();
-        app.add_cleanup_hook(WorldObject::cleanup_hook);
-
+        app.add_plugins(cleanup::Plug);
         app.add_plugins(persist::Plug);
         app.add_plugins(view::Plug);
         app.add_plugins(graph::Plug);

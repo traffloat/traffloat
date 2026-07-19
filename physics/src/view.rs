@@ -39,6 +39,8 @@ impl Plugin for Plug {
         for set in SendUpdatesSystemSet::iter() {
             app.configure_sets(app::Update, set.before(traffloat_proto::UpdateHandlerSystemSet));
         }
+        util::configure_enum_system_set::<InitSystemSets>(app, app::Update);
+        util::configure_enum_system_set::<IncrSystemSets>(app, app::Update);
 
         app.add_systems(
             app::Update,
@@ -55,6 +57,20 @@ pub enum SendUpdatesSystemSet {
     Pair,
     Init,
     Incr,
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumIter)]
+pub enum InitSystemSets {
+    Graph,
+    Vehicle,
+    Resident,
+}
+
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash, strum::EnumIter)]
+pub enum IncrSystemSets {
+    Graph,
+    Vehicle,
+    Resident,
 }
 
 #[derive(Resource, Reflect)]

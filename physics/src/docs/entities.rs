@@ -93,8 +93,11 @@
 //! # Vehicle
 //! Components:
 //! - [`vehicle::Vehicle`]
+//! - [`vehicle::Location`]
 //! - [`vehicle::OperatorList`]
 //! - [`view::Viewable`]
+//! - [`vehicle::propulsion::Desired`]
+//! - [`vehicle::propulsion::Status`]
 //!
 //! Parent of:
 //! - Vehicle compartment

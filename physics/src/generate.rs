@@ -17,7 +17,9 @@ use crate::{WorldObject, fluid, reaction, reactor, resident, view};
 
 const STANDARD_WALL_THICKNESS: f32 = 0.5;
 
-pub struct Config {}
+pub struct Config {
+    pub seed: u64,
+}
 
 /// Generate a basic physics world.
 pub fn generate(world: &mut World, _: Config) {

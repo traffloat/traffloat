@@ -1,6 +1,6 @@
 use std::mem;
 
-use bevy::app::App;
+use bevy::app::{App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::With;
@@ -9,6 +9,15 @@ use bevy::ecs::system::{Commands, Query};
 use bevy::ecs::world::World;
 
 use crate::util::run_stateless_closure;
+
+pub struct Plug;
+
+impl Plugin for Plug {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<CleanupHooks>();
+        app.add_cleanup_hook(WorldObject::cleanup_hook);
+    }
+}
 
 /// Marker component for a root entity in the physics simulation.
 ///

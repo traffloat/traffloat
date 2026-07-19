@@ -43,6 +43,8 @@ pub struct Motion {
     /// Maximum speed of the vehicle.
     pub max_speed:        f32,
     /// Maximum braking force of the vehicle.
+    ///
+    /// This value is always positive.
     pub max_braking:      f32,
     /// Drag coefficient of the vehicle.
     ///

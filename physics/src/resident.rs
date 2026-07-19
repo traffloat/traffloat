@@ -44,12 +44,17 @@ impl Plugin for Plug {
             app::Update,
             update_culling_rect_system.in_set(view::SendUpdatesSystemSet::Cull),
         );
-        app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
+        app.add_systems(
+            app::Update,
+            init_viewer_system
+                .in_set(view::SendUpdatesSystemSet::Init)
+                .in_set(view::InitSystemSets::Resident),
+        );
         app.add_systems(
             app::Update,
             incr_viewer_system
-                .after(AllSystemSets::<graph::ViewIncrSystemSets>::default())
-                .in_set(view::SendUpdatesSystemSet::Incr),
+                .in_set(view::SendUpdatesSystemSet::Incr)
+                .in_set(view::IncrSystemSets::Resident),
         );
     }
 }

@@ -28,7 +28,7 @@ impl dock::Tab for Tab {
             if ui.button("New game").clicked() {
                 commands.queue(DockCommand(|dock| {
                     dock.focus_or_create(
-                        || new_level::Tab.into(),
+                        || new_level::Tab::default().into(),
                         dock::ReplaceTab(|state| state.tab.is_new_level())
                             .or_always(dock::NewWindow),
                     );
