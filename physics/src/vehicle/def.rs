@@ -92,5 +92,10 @@ pub enum OperatorRole {
 /// e.g. `GaugeSize(3, 4)` and `GaugeSize(6, 8)` are not equivalent.
 /// This is subject to ruleset creators to ensure that
 /// they use a consistent convention for gauge size representation.
+///
+/// ```
+/// # use traffloat_physics::vehicle::def::GaugeSize;
+/// assert_ne!(GaugeSize(3, 4), GaugeSize(6, 8));
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
 pub struct GaugeSize(pub u16, pub u16);

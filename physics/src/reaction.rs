@@ -185,6 +185,8 @@ impl EfficiencyModifierResult {
 
 pub trait ReactionExecutor<P, D> {
     fn execute(&self, efficiency: f32, params: &mut P, data: &mut D);
+
+    fn execute_zero(&self, params: &mut P, data: &mut D) {}
 }
 
 pub trait FluidStorageSelector<P, D> {
@@ -250,6 +252,12 @@ where
         }
         efficiency
     } else {
+        for input in inputs {
+            ReactionExecutor::execute_zero(input, params, data);
+        }
+        for output in outputs {
+            ReactionExecutor::execute_zero(output, params, data);
+        }
         0.0
     }
 }
@@ -284,6 +292,12 @@ macro_rules! define_ruleset {
             $($input_variant($input_var_ty),)*
         }
 
+        $(
+            impl From<$input_var_ty> for $input {
+                fn from(from: $input_var_ty) -> Self { Self::$input_variant(from) }
+            }
+        )*
+
         $crate::reaction::define_ruleset!(@impl EfficiencyModifier<$P, $D> for $input { $($input_variant)* });
         $crate::reaction::define_ruleset!(@impl ReactionExecutor<$P, $D> for $input { $($input_variant)* });
 
@@ -292,12 +306,24 @@ macro_rules! define_ruleset {
             $($catalyst_variant($catalyst_var_ty),)*
         }
 
+        $(
+            impl From<$catalyst_var_ty> for $catalyst {
+                fn from(from: $catalyst_var_ty) -> Self { Self::$catalyst_variant(from) }
+            }
+        )*
+
         $crate::reaction::define_ruleset!(@impl EfficiencyModifier<$P, $D> for $catalyst { $($catalyst_variant)* });
 
         $(#[$output_meta])*
         $output_vis enum $output {
             $($output_variant($output_var_ty),)*
         }
+
+        $(
+            impl From<$output_var_ty> for $output {
+                fn from(from: $output_var_ty) -> Self { Self::$output_variant(from) }
+            }
+        )*
 
         $crate::reaction::define_ruleset!(@impl ReactionExecutor<$P, $D> for $output { $($output_variant)* });
     };
@@ -323,6 +349,16 @@ macro_rules! define_ruleset {
                     $(
                         Self::$variant(inner) => {
                             $crate::reaction::ReactionExecutor::execute(inner, efficiency, params, data)
+                        }
+                    )*
+                }
+            }
+
+            fn execute_zero(&self, params: &mut $P, data: &mut $D) {
+                match self {
+                    $(
+                        Self::$variant(inner) => {
+                            $crate::reaction::ReactionExecutor::execute_zero(inner, params, data)
                         }
                     )*
                 }

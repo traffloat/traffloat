@@ -61,6 +61,7 @@ features = ["default_fonts", "manage_clipboard", "open_url", "render", "serde"]
 [features]
 dev = [
     "bevy/dynamic_linking",
+    "bevy/debug",
     "bevy/trace",
     "bevy/track_location",
     "dep:bevy-inspector-egui",

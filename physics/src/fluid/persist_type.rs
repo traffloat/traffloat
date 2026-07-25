@@ -37,7 +37,7 @@ impl Persistable for Persist {
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
         for entry in input {
-            fluid::AddTypeCommand { type_def: entry.def }.apply(world);
+            fluid::AddTypeCommand { def: entry.def }.apply(world);
         }
         Ok(())
     }

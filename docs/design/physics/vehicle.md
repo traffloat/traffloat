@@ -114,7 +114,7 @@ where `v` must satisfy all of the following conditions:
 - `v` is less than the maximum speed of the rail.
 - There are no vehicles in the next `v^2 / (2 * b) + v * t + d` distance, where:
   - `b` is the maximum braking deceleration of the vehicle computed as force divided by mass
-  - `t` is the reaction time buffer of the vehicle (constant 1 second)
+  - `t` is the reaction time buffer of the vehicle (constant 0.5 second)
   - `d` is the safety distance buffer between vehicles (constant)
 
 The same mechanism is also used for deceleration.
@@ -130,7 +130,7 @@ a vehicle must reach less than or equal to standard walking speed to enter a bui
 This means that a vehicle traveling at speed `v` must start braking
 at `(v^2 - w^2) / (2 * b) + v * t` distance before reaching the end of the building,
 where `w` is the standard walking speed,
-and `t` is the buffer reaction time of the vehicle (constant 1 second).
+and `t` is the buffer reaction time of the vehicle (constant 0.5 second).
 
 ### Rule E: Inertial movement for rapid rail switching
 

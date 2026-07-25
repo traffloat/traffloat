@@ -77,7 +77,10 @@ pub struct SpawnCommand {
 
 pub enum TypedSpawn {
     FluidPipe,
-    VehicleRail(vehicle::Rail),
+    VehicleRail {
+        rail:         vehicle::Rail,
+        reserved_dir: Option<vehicle::rail::ReservedDirection>,
+    },
 }
 
 impl EntityCommand for SpawnCommand {
@@ -96,7 +99,7 @@ impl EntityCommand for SpawnCommand {
                 radius: self.radius,
                 ty:     match self.typed {
                     TypedSpawn::FluidPipe => ConduitType::FluidPipe,
-                    TypedSpawn::VehicleRail(_) => ConduitType::VehicleRail,
+                    TypedSpawn::VehicleRail { .. } => ConduitType::VehicleRail,
                 },
             },
             OfCorridor(self.corridor),
@@ -117,8 +120,8 @@ impl EntityCommand for SpawnCommand {
                 }
                 .apply(entity);
             }),
-            TypedSpawn::VehicleRail(rail) => entity.reborrow_scope(|entity| {
-                vehicle::AddRailCommand { rail }.apply(entity);
+            TypedSpawn::VehicleRail { rail, reserved_dir } => entity.reborrow_scope(|entity| {
+                vehicle::rail::SpawnCommand { rail, reserved_dir }.apply(entity);
             }),
         }
     }

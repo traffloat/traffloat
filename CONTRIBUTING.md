@@ -72,6 +72,8 @@ cargo test --all
   nor to import the re-exports from `bevy::prelude` if a direct import is possible.
 - Unit tests should be under a separate tests.rs file
   and included from the parent with `#[cfg(test)] mod tests;`.
+- Regular submodules should follow imports in a file and precede the first item.
+  However, `#[cfg(test) mod tests;` should be the last item in a file.
 - Use `distance_cmp` and `magnitude_cmp` for comparing vector norms.
   Do not use the exact or squared methods for comparisons alone.
 - Use `Vec::from([...])` or `[...].into()` instead of `vec![...]` for Vec literals.

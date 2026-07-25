@@ -40,7 +40,7 @@ pub struct FluidStorageDetail {
     pub types:       Option<Vec<f32>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Reflect)]
 pub enum AlphaOrBeta {
     Alpha,
     Beta,

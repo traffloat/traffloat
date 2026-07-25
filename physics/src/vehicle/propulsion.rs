@@ -3,6 +3,7 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::{QueryData, With};
 use bevy::ecs::relationship::RelationshipTarget;
+use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Query, Res, SystemParam};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
@@ -12,8 +13,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::util::QueryExt;
 use crate::vehicle::{
-    CompartmentList, CompartmentPassengerList, Location, OperatorList, OperatorOf, TypeDef, Types,
-    Vehicle,
+    CompartmentList, CompartmentPassengerList, Location, OperatorList, OperatorOf, SystemSets,
+    TypeDef, Types, Vehicle,
 };
 use crate::{fluid, graph, reaction, resident};
 
@@ -23,7 +24,7 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Desired>();
         app.register_type::<Status>();
-        app.add_systems(app::FixedUpdate, control_system);
+        app.add_systems(app::FixedUpdate, control_system.in_set(SystemSets::Propulsion));
     }
 }
 
@@ -50,8 +51,10 @@ pub enum Desired {
 #[derive(Component, Reflect, Default)]
 #[require(Desired)]
 pub struct Status {
-    pub efficiency: f32,
-    pub force:      f32,
+    pub propulsion_efficiency: f32,
+    pub propulsion_force:      f32,
+    pub drag_force:            f32,
+    pub brake_force:           f32,
 }
 
 #[derive(SystemParam)]
@@ -241,7 +244,13 @@ pub struct ForceOutput {
 
 impl reaction::ReactionExecutor<ExecuteParams<'_, '_>, ExecuteDataItem<'_, '_>> for ForceOutput {
     fn execute(&self, efficiency: f32, params: &mut ExecuteParams, data: &mut ExecuteDataItem) {
-        *data.status = Status { efficiency, force: self.max_force * efficiency };
+        data.status.propulsion_efficiency = efficiency;
+        data.status.propulsion_force = self.max_force * efficiency;
+    }
+
+    fn execute_zero(&self, params: &mut ExecuteParams<'_, '_>, data: &mut ExecuteDataItem<'_, '_>) {
+        data.status.propulsion_efficiency = 0.0;
+        data.status.propulsion_force = 0.0;
     }
 }
 
@@ -291,21 +300,22 @@ fn control_system(
     mut vehicle_query: Query<ControlData>,
     mut params: ControlParams,
 ) {
-    vehicle_query.iter_mut().for_each(|data| control_once(data, &mut params, time.delta_secs()));
-}
-
-fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) {
+    let dt = time.delta_secs();
     if dt <= 0.0 || dt.is_subnormal() {
         return;
     }
 
-    match (data.desired, *data.execute.location) {
-        (Desired::Stationary, Location::Building { ref mut speed, .. }) => {
+    vehicle_query.iter_mut().for_each(|data| control_once(data, &mut params, dt));
+}
+
+fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) {
+    match (data.desired, &mut *data.execute.location) {
+        (Desired::Stationary, &mut Location::Building { ref mut speed, .. }) => {
             *speed = Vec3::ZERO;
         }
         (
             &Desired::Building { interior_pos: desired_pos },
-            Location::Building { interior_pos: ref mut actual_pos, ref mut speed, .. },
+            &mut Location::Building { interior_pos: ref mut actual_pos, ref mut speed, .. },
         ) => {
             let (direction, dist) = (*actual_pos - desired_pos).normalize_and_length();
             let max_dist = params.config.standard_drifting_speed * dt;
@@ -319,10 +329,10 @@ fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) 
         }
         (
             Desired::Rail { .. } | Desired::Stationary,
-            Location::Rail {
+            &mut Location::Rail {
                 speed_from_alpha: ref mut actual_speed,
                 conduit,
-                distance_from_alpha: ref mut displacement,
+                distance_from_alpha: _,
             },
         ) => {
             let desired_speed = match *data.desired {
@@ -334,23 +344,48 @@ fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) 
             let def = params.types.get(data.vehicle.ty);
 
             // Apply drag to the actual speed first, we will compensate for this through propulsion later if we can.
-            apply_pressure(&params.execute, data.vehicle, actual_speed, conduit, def, dt);
-
-            // Apply braking if desired speed is not greater than actual speed in the same direction
-            apply_brake(desired_speed, actual_speed, data.vehicle, def, dt);
-
-            // If the desired speed is greater than the current speed in the same direction,
-            // apply propulsion to accelerate.
-            apply_propulsion(
-                &mut params.execute,
-                &mut data.execute,
+            apply_pressure(
+                &params.execute,
                 data.vehicle,
-                desired_speed,
+                &mut data.execute.status.drag_force,
                 actual_speed,
+                conduit,
                 def,
                 dt,
             );
 
+            // Apply braking if desired speed is not greater than actual speed in the same direction
+            apply_brake(
+                desired_speed,
+                &mut data.execute.status.brake_force,
+                actual_speed,
+                data.vehicle,
+                def,
+                dt,
+            );
+
+            // If the desired speed is greater than the current speed in the same direction,
+            // apply propulsion to accelerate.
+            let new_speed = apply_propulsion(
+                data.vehicle,
+                desired_speed,
+                *actual_speed,
+                def,
+                dt,
+                &mut params.execute,
+                &mut data.execute,
+            );
+            // borrow again because apply_propulsion needs to read Location
+            let Location::Rail {
+                speed_from_alpha: actual_speed,
+                distance_from_alpha: displacement,
+                ..
+            } = &mut *data.execute.location
+            else {
+                unreachable!("apply_propulsion should not change location type")
+            };
+
+            *actual_speed = new_speed;
             *displacement += *actual_speed * dt;
         }
         _ => {
@@ -369,14 +404,17 @@ fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) 
 fn apply_pressure(
     params: &ExecuteParams,
     vehicle: &Vehicle,
+    force: &mut f32,
     speed: &mut f32,
     conduit: Entity,
     def: &TypeDef,
     dt: f32,
 ) {
+    let Some(corridor) = params.conduit_query.log_get(conduit) else { return };
     let pressure =
-        params.fluid_storage_query.log_get(conduit).map_or(0.0, |storage| storage.pressure);
-    let drag_v_delta = def.motion.drag_coefficient * pressure * speed.powi(2) / vehicle.mass * dt;
+        params.fluid_storage_query.log_get(corridor.0).map_or(0.0, |storage| storage.pressure);
+    *force = def.motion.drag_coefficient * pressure * speed.powi(2);
+    let drag_v_delta = *force / vehicle.mass * dt;
     *speed = if *speed > 0.0 {
         (*speed - drag_v_delta).max(0.0)
     } else {
@@ -386,6 +424,7 @@ fn apply_pressure(
 
 fn apply_brake(
     desired_speed: f32,
+    force: &mut f32,
     actual_speed: &mut f32,
     vehicle: &Vehicle,
     def: &TypeDef,
@@ -403,30 +442,36 @@ fn apply_brake(
         let max_braking = def.motion.max_braking / vehicle.mass;
         let max_v_delta = max_braking * dt;
 
-        if actual_speed.abs() - max_v_delta > braking_target_abs {
+        if actual_speed.abs() - braking_target_abs > max_v_delta {
             *actual_speed -= max_v_delta * actual_speed.signum();
+            *force = def.motion.max_braking;
         } else {
             *actual_speed = braking_target_abs * actual_speed.signum();
+            *force =
+                def.motion.max_braking * (actual_speed.abs() - braking_target_abs) / max_v_delta;
         }
+    } else {
+        *force = 0.0;
     }
 }
 
 fn apply_propulsion(
-    params: &mut ExecuteParams,
-    data: &mut ExecuteDataItem,
     vehicle: &Vehicle,
     desired_speed: f32,
-    actual_speed: &mut f32,
+    actual_speed: f32,
     def: &TypeDef,
     dt: f32,
-) {
-    if *actual_speed * desired_speed > 0.0 && actual_speed.abs() > desired_speed.abs() {
+    params: &mut ExecuteParams,
+    data: &mut ExecuteDataItem,
+) -> f32 {
+    if actual_speed * desired_speed > 0.0 && actual_speed.abs() > desired_speed.abs() {
         // Only braking required, no more propulsion to exert.
-        *data.status = Status::default();
-        return;
+        data.status.propulsion_efficiency = 0.0;
+        data.status.propulsion_force = 0.0;
+        return actual_speed;
     }
 
-    let required_force = (desired_speed - *actual_speed).abs() * vehicle.mass / dt;
+    let required_force = (desired_speed - actual_speed).abs() * vehicle.mass / dt;
 
     let propulsion = &def.motion.propulsion;
     let max_output_force = propulsion
@@ -439,7 +484,7 @@ fn apply_propulsion(
         .sum::<f32>();
     let max_efficiency = (required_force / max_output_force).min(1.0);
 
-    reaction::execute_once(
+    let efficiency = reaction::execute_once(
         params,
         data,
         &propulsion.inputs,
@@ -449,6 +494,9 @@ fn apply_propulsion(
         1.0,
     );
 
-    let acceleration = data.status.force / vehicle.mass;
-    *actual_speed += acceleration * dt;
+    let acceleration = data.status.propulsion_force * desired_speed.signum() / vehicle.mass;
+    actual_speed + acceleration * dt
 }
+
+#[cfg(test)]
+mod tests;

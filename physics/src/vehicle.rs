@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::time::Duration;
 
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
@@ -7,8 +8,8 @@ use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::{QueryData, With, Without};
 use bevy::ecs::resource::Resource;
-use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{EntityCommand, Query};
+use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
+use bevy::ecs::system::{Commands, EntityCommand, Query, SystemParam};
 use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
@@ -23,12 +24,12 @@ mod persist_type;
 pub use persist_type::Persist as PersistTypes;
 pub mod propulsion;
 pub use propulsion::Propulsion;
-mod rail;
-pub use rail::*;
+pub mod rail;
+pub use rail::Rail;
 use traffloat_proto::proto::{self, AlphaOrBeta};
 
 use crate::graph::conduit;
-use crate::util::{QueryExt, Which, WorldExt};
+use crate::util::{self, QueryExt, Which, WorldExt, run_stateless_closure};
 use crate::{fluid, view};
 
 pub struct Plug;
@@ -69,7 +70,16 @@ impl Plugin for Plug {
                 .in_set(view::SendUpdatesSystemSet::Incr)
                 .in_set(view::IncrSystemSets::Vehicle),
         );
+
+        util::configure_enum_system_set::<SystemSets>(app, app::FixedUpdate);
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet, strum::EnumIter)]
+pub enum SystemSets {
+    Pathfinding,
+    Motion,
+    Propulsion,
 }
 
 /// Identifies a vehicle type, indexes [`Types::types`].
@@ -135,6 +145,40 @@ pub struct ListOnRail {
     deque: VecDeque<Entity>,
 }
 
+impl ListOnRail {
+    pub fn partition_point_by_location(
+        &self,
+        dist: f32,
+        mut loc_fn: impl FnMut(Entity) -> Option<Location>,
+    ) -> Option<usize> {
+        self.partition_point(dist, |e| match loc_fn(e)? {
+            Location::Building { .. } => None,
+            Location::Rail { distance_from_alpha, .. } => Some(distance_from_alpha),
+        })
+    }
+
+    pub fn partition_point(
+        &self,
+        dist: f32,
+        mut dist_fn: impl FnMut(Entity) -> Option<f32>,
+    ) -> Option<usize> {
+        let mut valid = true;
+        let pp = self.deque.partition_point(|&e| match dist_fn(e) {
+            Some(d) => d < dist,
+            None => {
+                valid = false;
+                false
+            }
+        });
+        valid.then_some(pp)
+    }
+
+    #[must_use]
+    pub fn get(&self, index: usize) -> Option<Entity> { self.deque.get(index).copied() }
+
+    pub fn iter(&self) -> impl Iterator<Item = Entity> + '_ { self.deque.iter().copied() }
+}
+
 /// Component on vehicles, referencing the compartment entities.
 #[derive(Component, Reflect)]
 #[relationship_target(relationship = CompartmentOf, linked_spawn)]
@@ -190,10 +234,23 @@ pub struct CompartmentVentOf(pub Entity);
 pub struct Conf {
     /// Distance per second within a building without propulsion.
     pub standard_drifting_speed: f32,
+    /// Reaction time that drivers reserve for safety
+    /// in addition to the braking distance and safety headroom.
+    pub reaction_time:           Duration,
+    /// Distance that drivers aim to stay away from the vehicle ahead for safety.
+    ///
+    /// When set to 0, stationary vehicles will aim to stick together head-to-tail.
+    pub safety_headroom:         f32,
 }
 
 impl Default for Conf {
-    fn default() -> Self { Self { standard_drifting_speed: 3.0 } }
+    fn default() -> Self {
+        Self {
+            standard_drifting_speed: 3.0,
+            reaction_time:           Duration::from_millis(800),
+            safety_headroom:         1.0,
+        }
+    }
 }
 
 pub struct AddTypeCommand {
@@ -241,7 +298,8 @@ impl EntityCommand for SpawnCommand {
         let cpmts: Vec<_> = def
             .compartments
             .iter()
-            .map(|cpmt| {
+            .enumerate()
+            .map(|(index, cpmt)| {
                 let add_storage_cmd = fluid::AddStorageCommand {
                     volume:         cpmt.volume,
                     optical_length: cpmt.volume.cbrt(),
@@ -253,16 +311,18 @@ impl EntityCommand for SpawnCommand {
                     beta:             ambient_entity,
                 };
 
-                ((CompartmentOf(entity.id()),), move |cpmt_entity: &mut EntityWorldMut| {
+                let cpmt_name = format!("Vehicle {name} compartment {index}");
+                move |cpmt_entity: &mut EntityWorldMut| {
                     let cmpt_entity_id = cpmt_entity.id();
                     add_edge_cmd.alpha = cmpt_entity_id;
 
+                    cpmt_entity.insert(Name::new(cpmt_name));
                     cpmt_entity.reborrow_scope(|child| add_storage_cmd.apply(child));
                     cpmt_entity.world_scope(|world| {
                         let vent_entity = world.spawn(CompartmentVentOf(cmpt_entity_id));
                         add_edge_cmd.apply(vent_entity);
                     });
-                })
+                }
             })
             .collect();
 
@@ -272,35 +332,122 @@ impl EntityCommand for SpawnCommand {
             Vehicle { ty: self.ty, mass },
         ));
         entity.with_related_entities::<CompartmentOf>(|spawner| {
-            for (cpmt, post_spawn) in cpmts {
-                let mut child = spawner.spawn(cpmt);
+            for post_spawn in cpmts {
+                let mut child = spawner.spawn_empty();
                 post_spawn(&mut child);
             }
         });
 
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
-        LocationTransitionCommand { new_location: self.location, ab_hint: () }.apply(entity);
+        LocationTransitionCommand { new_location: self.location, entry_method: () }.apply(entity);
     }
 }
 
 pub struct LocationTransitionCommand<Ab> {
     pub new_location: Location,
-    pub ab_hint:      Ab,
+    pub entry_method: Ab,
 }
 
-pub trait WhichHint: Send + Sync + 'static {
+pub trait EntryMethod: Copy + Send + Sync + 'static {
     fn into_option(self) -> Option<AlphaOrBeta>;
 }
 
-impl<Ab: Which> WhichHint for Ab {
+impl<Ab: Which> EntryMethod for Ab {
     fn into_option(self) -> Option<AlphaOrBeta> { Some(self.proto()) }
 }
 
-impl WhichHint for () {
+impl EntryMethod for () {
     fn into_option(self) -> Option<AlphaOrBeta> { None }
 }
 
-impl<Ab: WhichHint> EntityCommand for LocationTransitionCommand<Ab> {
+fn exit_from_rail(world: &mut World, conduit: Entity, vehicle_entity: Entity) {
+    let mut clear_reservation = false;
+
+    if let Some(mut list) = world.log_get_mut::<ListOnRail>(conduit) {
+        if list.deque.back() == Some(&vehicle_entity) {
+            // retain will scan from front,
+            // but back is much more likely than list.deque[1]
+            list.deque.pop_back();
+        } else {
+            list.deque.retain(|&e| e != vehicle_entity);
+        }
+
+        if list.deque.is_empty() {
+            clear_reservation = true;
+        }
+    }
+
+    if clear_reservation
+        && let Some(mut reservation) = world.log_get_mut::<rail::Reservation>(conduit)
+        && let Some(rail::ReservationInner { external_vehicle: None, .. }) = reservation.inner
+    {
+        // Last vehicle exits, direction is unreserved now.
+        reservation.inner = None;
+    }
+}
+
+#[derive(SystemParam)]
+struct EnterRailParams<'w, 's> {
+    conduit_query: Query<'w, 's, (Option<&'static mut ListOnRail>, &'static mut rail::Reservation)>,
+    location_query: Query<'w, 's, &'static Location>,
+    commands:       Commands<'w, 's>,
+}
+
+fn enter_rail<Ab: EntryMethod>(
+    mut params: EnterRailParams,
+    conduit: Entity,
+    vehicle_entity: Entity,
+    distance_from_alpha: f32,
+    entry_method: Ab,
+) {
+    let Some((list, mut reservation)) = params.conduit_query.log_get_mut(conduit) else { return };
+    match list {
+        Some(mut list) => match entry_method.into_option() {
+            Some(AlphaOrBeta::Alpha) => list.deque.push_front(vehicle_entity),
+            Some(AlphaOrBeta::Beta) => list.deque.push_back(vehicle_entity),
+            None => {
+                let pos = list.partition_point_by_location(distance_from_alpha, |e| {
+                    params.location_query.log_get(e).copied()
+                });
+                list.deque.insert(pos.unwrap_or(0), vehicle_entity);
+            }
+        },
+        None => {
+            params.commands.entity(conduit).insert(ListOnRail { deque: [vehicle_entity].into() });
+        }
+    }
+
+    match reservation.inner {
+        None => {
+            let Some(entry_endpoint) = entry_method.into_option() else {
+                tracing::error!(
+                    "Random rail entry is only allowed on reserved rails during savefile load"
+                );
+                return;
+            };
+            reservation.inner = Some(rail::ReservationInner {
+                direction:        rail::ReservedDirection::from_entry(entry_endpoint),
+                external_vehicle: None,
+            });
+        }
+        Some(ref mut inner) => {
+            if let Some(entry_endpoint) = entry_method.into_option() {
+                let entry_direction = rail::ReservedDirection::from_entry(entry_endpoint);
+                if inner.direction != entry_direction {
+                    tracing::error!("Vehicle entered rail from the wrong direction");
+                    return;
+                }
+            }
+
+            if inner.external_vehicle == Some(vehicle_entity) {
+                // the vehicle is no longer external now
+                inner.external_vehicle = None;
+            }
+        }
+    }
+}
+
+impl<Ab: EntryMethod> EntityCommand for LocationTransitionCommand<Ab> {
     type Out = ();
 
     fn apply(self, mut entity: EntityWorldMut) {
@@ -316,17 +463,7 @@ impl<Ab: WhichHint> EntityCommand for LocationTransitionCommand<Ab> {
                     });
                 }
                 Location::Rail { conduit, .. } => {
-                    entity.world_scope(|world| {
-                        if let Some(mut list) = world.log_get_mut::<ListOnRail>(conduit) {
-                            if list.deque.back() == Some(&entity_id) {
-                                // retain will scan from front,
-                                // but back is much more likely than list.deque[1]
-                                list.deque.pop_back();
-                            } else {
-                                list.deque.retain(|&e| e != entity_id);
-                            }
-                        }
-                    });
+                    entity.world_scope(|world| exit_from_rail(world, conduit, entity_id));
                 }
             }
         }
@@ -343,18 +480,11 @@ impl<Ab: WhichHint> EntityCommand for LocationTransitionCommand<Ab> {
                     }
                 }
             }
-            Location::Rail { conduit, .. } => match world.get_mut::<ListOnRail>(conduit) {
-                Some(mut list) => match self.ab_hint.into_option() {
-                    Some(AlphaOrBeta::Alpha) => list.deque.push_front(entity_id),
-                    Some(AlphaOrBeta::Beta) => list.deque.push_back(entity_id),
-                    None => {
-                        list.deque.partition_point(|&e| e < entity_id);
-                    }
-                },
-                None => {
-                    world.entity_mut(conduit).insert(ListOnRail { deque: [entity_id].into() });
-                }
-            },
+            Location::Rail { conduit, distance_from_alpha, .. } => {
+                run_stateless_closure(world, move |params: EnterRailParams<'_, '_>| {
+                    enter_rail(params, conduit, entity_id, distance_from_alpha, self.entry_method);
+                });
+            }
         }
     }
 }

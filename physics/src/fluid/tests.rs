@@ -6,6 +6,7 @@ use bevy::app::App;
 use bevy::ecs::entity::Entity;
 use bevy::time;
 
+use crate::util::testing::{expect_between, expect_float, expect_float_near, expect_small};
 use crate::{cleanup, fluid, persist, view};
 
 const NUM_TYPES: usize = 16;
@@ -244,42 +245,4 @@ fn print_flow(v: f32) -> impl fmt::Display {
         Some(Ordering::Equal) => format!("none: {v:?}"),
         None => panic!("found {v:?} value"),
     }
-}
-
-#[track_caller]
-fn expect_float(actual: f32, expect: f32) {
-    if expect.is_nan() {
-        assert!(actual.is_nan(), "expect {actual:?} to be nan");
-    } else if expect.is_infinite() {
-        assert!(
-            actual.is_infinite() && actual.signum() == expect.signum(),
-            "expect {actual:?} to be {expect:?}"
-        );
-    } else if expect == 0.0 {
-        assert!(actual.abs() < 1e-4, "expect {actual:?} to be zero");
-    } else {
-        assert!(
-            (actual - expect).abs() <= (expect * 1e-4).abs(),
-            "got {actual:?}, expected {expect:?}",
-        );
-    }
-}
-
-#[track_caller]
-fn expect_float_near(actual: f32, expect: f32, threshold: f32) {
-    assert!(expect.is_finite());
-    assert!(
-        (actual - expect).abs() <= threshold,
-        "got {actual:?}, expected {expect:?} within {threshold}"
-    );
-}
-
-#[track_caller]
-fn expect_small(actual: f32, max_abs: f32) {
-    assert!(actual.abs() < max_abs, "got abs({actual:?}), should be smaller than {max_abs}");
-}
-
-#[track_caller]
-fn expect_between(actual: f32, min: f32, max: f32) {
-    assert!(min < actual && actual < max, "got {actual:?}, should be between {min:?} and {max:?}");
 }
