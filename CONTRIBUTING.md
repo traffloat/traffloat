@@ -4,7 +4,7 @@
 
 ### Usage
 
-LLM usage must not exceed the purposes described in [llm-disclosure](llm-disclosure.md).
+LLM usage must not exceed the purposes described in [AI\_POLICY.md](AI_POLICY.md).
 If you are contributing code and use it for a purpose not described in the file,
 you must update the file to include the new usage in the same pull request.
 

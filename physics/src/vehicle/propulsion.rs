@@ -357,8 +357,8 @@ fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) 
             // Apply braking if desired speed is not greater than actual speed in the same direction
             apply_brake(
                 desired_speed,
-                &mut data.execute.status.brake_force,
                 actual_speed,
+                &mut data.execute.status.brake_force,
                 data.vehicle,
                 def,
                 dt,
@@ -387,6 +387,7 @@ fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) 
 
             *actual_speed = new_speed;
             *displacement += *actual_speed * dt;
+
         }
         _ => {
             *data.execute.status = Status::default();
@@ -424,8 +425,8 @@ fn apply_pressure(
 
 fn apply_brake(
     desired_speed: f32,
-    force: &mut f32,
     actual_speed: &mut f32,
+    force: &mut f32,
     vehicle: &Vehicle,
     def: &TypeDef,
     dt: f32,
@@ -494,7 +495,7 @@ fn apply_propulsion(
         1.0,
     );
 
-    let acceleration = data.status.propulsion_force * desired_speed.signum() / vehicle.mass;
+    let acceleration = data.status.propulsion_force * (desired_speed - actual_speed).signum() / vehicle.mass;
     actual_speed + acceleration * dt
 }
 

@@ -314,3 +314,6 @@ fn max_stoppable_speed(distance: f32, braking: f32, reaction_time: f32) -> f32 {
 
     ((2.0 * braking * distance + reaction_time.powi(2)).sqrt() + reaction_time) / braking
 }
+
+#[cfg(test)]
+mod tests;

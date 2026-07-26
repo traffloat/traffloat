@@ -14,7 +14,9 @@ use crate::{cleanup, fluid, persist, vehicle, view};
 
 fn new_test() -> Test {
     let mut app = App::new();
-    configure_logging(&mut app);
+    if option_env!("RUST_LOG").is_some() {
+        configure_logging(&mut app);
+    }
     app.insert_resource(time::TimeUpdateStrategy::FixedTimesteps(1));
     app.init_resource::<vehicle::Conf>();
     app.init_resource::<vehicle::Types>();
@@ -135,6 +137,7 @@ struct Test {
 }
 
 impl Test {
+    #[track_caller]
     fn assert_displace_speed(&self, expected_displace: f32, expected_speed: f32) {
         let location = self.app.world().get::<vehicle::Location>(self.vehicle).unwrap();
         let &vehicle::Location::Rail { conduit, distance_from_alpha, speed_from_alpha } = location
@@ -147,6 +150,7 @@ impl Test {
         expect_float(speed_from_alpha, expected_speed);
     }
 
+    #[track_caller]
     fn assert_efficiency(&self, expected_efficiency: f32) {
         let status = self.app.world().get::<vehicle::propulsion::Status>(self.vehicle).unwrap();
         expect_float_near(status.propulsion_efficiency, expected_efficiency, 1e-4);
@@ -166,7 +170,7 @@ impl Test {
 }
 
 #[test]
-fn test_baseline() {
+fn forward_backward() {
     let mut test = new_test();
     test.assert_displace_speed(500.0, 0.0);
     test.assert_efficiency(0.0);
@@ -182,4 +186,23 @@ fn test_baseline() {
     test.set_desired(0.0);
     test.progress(duration_to_timesteps(Duration::from_secs(10)));
     test.assert_displace_speed(506.5631, 0.0);
+}
+
+#[test]
+fn backward_forward() {
+    let mut test = new_test();
+    test.assert_displace_speed(500.0, 0.0);
+    test.assert_efficiency(0.0);
+
+    test.set_desired(-10.0);
+    test.progress(duration_to_timesteps(Duration::from_secs(10)));
+    test.assert_displace_speed(410.1039, -10.0);
+
+    test.set_desired(10.0);
+    test.progress(duration_to_timesteps(Duration::from_secs(10)));
+    test.assert_displace_speed(490.2410, 10.0);
+
+    test.set_desired(0.0);
+    test.progress(duration_to_timesteps(Duration::from_secs(10)));
+    test.assert_displace_speed(493.4369, 0.0);
 }
