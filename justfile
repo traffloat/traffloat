@@ -21,4 +21,4 @@ precommit:
 		-W unused_variables
 
 test module *args:
-	RUST_BACKTRACE=1 cargo test -p traffloat-{{module}} -F bevy/dynamic_linking,bevy/debug --lib -- --nocapture {{args}}
+	RUST_BACKTRACE=1 cargo test -p traffloat-{{module}} -F bevy/dynamic_linking,bevy/debug --lib -- --nocapture --color always {{args}}

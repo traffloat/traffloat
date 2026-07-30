@@ -28,8 +28,10 @@ pub mod rail;
 pub use rail::Rail;
 use traffloat_proto::proto::{self, AlphaOrBeta};
 
-use crate::graph::conduit;
-use crate::util::{self, QueryExt, Which, WorldExt, run_stateless_closure};
+use crate::graph::{Corridor, conduit};
+use crate::util::{
+    self, Alpha, EntityWorldMutExt, QueryExt, Which, WorldExt, run_stateless_closure,
+};
 use crate::{fluid, view};
 
 pub struct Plug;
@@ -122,7 +124,7 @@ impl Types {
 struct NextVehicleId(u64);
 
 #[derive(Component, Reflect)]
-#[require(propulsion::Status)]
+#[require(motion::Intent, propulsion::Status)]
 pub struct Vehicle {
     pub ty:   TypeId,
     pub mass: f32,
@@ -339,25 +341,158 @@ impl EntityCommand for SpawnCommand {
         });
 
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
-        LocationTransitionCommand { new_location: self.location, entry_method: () }.apply(entity);
+        AttemptLocationTransitionCommand { new_location: self.location, entry_method: () }
+            .apply(entity);
     }
 }
 
-pub struct LocationTransitionCommand<Ab> {
+pub struct AttemptLocationTransitionCommand<Ab> {
     pub new_location: Location,
     pub entry_method: Ab,
 }
 
+impl<Ab: EntryMethod> EntityCommand for AttemptLocationTransitionCommand<Ab> {
+    type Out = ();
+
+    fn apply(self, mut entity: EntityWorldMut) {
+        let entity_id = entity.id();
+
+        if let Some(entry) = self.entry_method.into_proto()
+            && let Location::Rail { conduit, .. } = self.new_location
+        {
+            if check_rail_entry(entity.world(), entity_id, conduit, entry).is_err() {
+                return;
+            }
+        }
+
+        if let Some(old) = entity.get::<Location>() {
+            match *old {
+                Location::Building { building, .. } => {
+                    entity.world_scope(|world| {
+                        if let Some(mut list) = world.log_get_mut::<ListInBuilding>(building) {
+                            list.0.retain(|&e| e != entity_id);
+                        }
+                    });
+                }
+                Location::Rail { conduit, .. } => {
+                    entity.world_scope(|world| exit_from_rail(world, conduit, entity_id));
+                }
+            }
+        }
+
+        entity.insert(self.new_location);
+        if let Some(mut desired) = entity.log_get_mut::<propulsion::Desired>() {
+            // reset desired propulsion to a universally acceptable value,
+            // then let the motion control system overwrite this.
+            *desired = propulsion::Desired::Stationary;
+        }
+
+        let world = entity.into_world_mut();
+        match self.new_location {
+            Location::Building { building, .. } => {
+                match world.get_mut::<ListInBuilding>(building) {
+                    Some(mut list) => list.0.push(entity_id),
+                    None => {
+                        world.entity_mut(building).insert(ListInBuilding([entity_id].into()));
+                    }
+                }
+            }
+            Location::Rail { conduit, distance_from_alpha, .. } => {
+                run_stateless_closure(world, move |params: EnterRailParams<'_, '_>| {
+                    enter_rail(params, conduit, entity_id, distance_from_alpha, self.entry_method);
+                });
+            }
+        }
+    }
+}
+
 pub trait EntryMethod: Copy + Send + Sync + 'static {
-    fn into_option(self) -> Option<AlphaOrBeta>;
+    fn into_proto(self) -> Option<AlphaOrBeta>;
+
+    fn into_which(self) -> Option<impl Which>;
 }
 
 impl<Ab: Which> EntryMethod for Ab {
-    fn into_option(self) -> Option<AlphaOrBeta> { Some(self.proto()) }
+    fn into_proto(self) -> Option<AlphaOrBeta> { Some(self.proto()) }
+
+    fn into_which(self) -> Option<impl Which> { Some(self) }
 }
 
 impl EntryMethod for () {
-    fn into_option(self) -> Option<AlphaOrBeta> { None }
+    fn into_proto(self) -> Option<AlphaOrBeta> { None }
+
+    fn into_which(self) -> Option<impl Which> { None::<Alpha> }
+}
+
+enum RailEntryCheck {
+    InvalidEcs,
+    WrongDirection,
+    ReservedByExternal,
+    PhysicallyBlocked,
+}
+
+fn check_rail_entry(
+    world: &World,
+    vehicle: Entity,
+    conduit: Entity,
+    entry: AlphaOrBeta,
+) -> Result<(), RailEntryCheck> {
+    let Some(reserved) = world.log_get::<rail::Reservation>(conduit) else {
+        return Err(RailEntryCheck::InvalidEcs);
+    };
+    let Some(reserved) = reserved.inner else { return Ok(()) };
+    if reserved.direction != rail::ReservedDirection::from_entry(entry) {
+        tracing::warn!(
+            "Vehicle {vehicle:?} attepmts to enter conduit {conduit:?} exit point {entry:?}"
+        );
+        return Err(RailEntryCheck::WrongDirection);
+    }
+
+    if reserved.external_vehicle.is_some() {
+        return Err(RailEntryCheck::ReservedByExternal);
+    }
+
+    let Some(vehicles) = world.log_get::<ListOnRail>(conduit) else {
+        return Err(RailEntryCheck::InvalidEcs);
+    };
+    let last_vehicle = match entry {
+        AlphaOrBeta::Alpha => vehicles.deque.front().copied(),
+        AlphaOrBeta::Beta => vehicles.deque.back().copied(),
+    };
+    if let Some(last_vehicle) = last_vehicle {
+        let Some(location) = world.log_get::<Location>(last_vehicle) else {
+            return Err(RailEntryCheck::InvalidEcs);
+        };
+        let &Location::Rail { distance_from_alpha, .. } = location else {
+            tracing::error!("Vehicle in list must be on rail");
+            return Err(RailEntryCheck::InvalidEcs);
+        };
+
+        let distance_from_entry = match entry {
+            AlphaOrBeta::Alpha => distance_from_alpha,
+            AlphaOrBeta::Beta => {
+                let Some(of_corridor) = world.log_get::<conduit::OfCorridor>(conduit) else {
+                    return Err(RailEntryCheck::InvalidEcs);
+                };
+                let Some(corridor) = world.log_get::<Corridor>(of_corridor.0) else {
+                    return Err(RailEntryCheck::InvalidEcs);
+                };
+                corridor.length - distance_from_alpha
+            }
+        };
+
+        let Some(vehicle_data) = world.log_get::<Vehicle>(vehicle) else {
+            return Err(RailEntryCheck::InvalidEcs);
+        };
+        let vehicle_def = world.resource::<Types>().get(vehicle_data.ty);
+        let vehicle_length = vehicle_def.physical.length;
+
+        if distance_from_entry < vehicle_length * 0.5 {
+            return Err(RailEntryCheck::PhysicallyBlocked);
+        }
+    }
+
+    Ok(())
 }
 
 fn exit_from_rail(world: &mut World, conduit: Entity, vehicle_entity: Entity) {
@@ -402,7 +537,7 @@ fn enter_rail<Ab: EntryMethod>(
 ) {
     let Some((list, mut reservation)) = params.conduit_query.log_get_mut(conduit) else { return };
     match list {
-        Some(mut list) => match entry_method.into_option() {
+        Some(mut list) => match entry_method.into_proto() {
             Some(AlphaOrBeta::Alpha) => list.deque.push_front(vehicle_entity),
             Some(AlphaOrBeta::Beta) => list.deque.push_back(vehicle_entity),
             None => {
@@ -419,7 +554,7 @@ fn enter_rail<Ab: EntryMethod>(
 
     match reservation.inner {
         None => {
-            let Some(entry_endpoint) = entry_method.into_option() else {
+            let Some(entry_endpoint) = entry_method.into_proto() else {
                 tracing::error!(
                     "Random rail entry is only allowed on reserved rails during savefile load"
                 );
@@ -431,7 +566,7 @@ fn enter_rail<Ab: EntryMethod>(
             });
         }
         Some(ref mut inner) => {
-            if let Some(entry_endpoint) = entry_method.into_option() {
+            if let Some(entry_endpoint) = entry_method.into_proto() {
                 let entry_direction = rail::ReservedDirection::from_entry(entry_endpoint);
                 if inner.direction != entry_direction {
                     tracing::error!("Vehicle entered rail from the wrong direction");
@@ -442,48 +577,6 @@ fn enter_rail<Ab: EntryMethod>(
             if inner.external_vehicle == Some(vehicle_entity) {
                 // the vehicle is no longer external now
                 inner.external_vehicle = None;
-            }
-        }
-    }
-}
-
-impl<Ab: EntryMethod> EntityCommand for LocationTransitionCommand<Ab> {
-    type Out = ();
-
-    fn apply(self, mut entity: EntityWorldMut) {
-        let entity_id = entity.id();
-
-        if let Some(old) = entity.get::<Location>() {
-            match *old {
-                Location::Building { building, .. } => {
-                    entity.world_scope(|world| {
-                        if let Some(mut list) = world.log_get_mut::<ListInBuilding>(building) {
-                            list.0.retain(|&e| e != entity_id);
-                        }
-                    });
-                }
-                Location::Rail { conduit, .. } => {
-                    entity.world_scope(|world| exit_from_rail(world, conduit, entity_id));
-                }
-            }
-        }
-
-        entity.insert(self.new_location);
-        let world = entity.into_world_mut();
-
-        match self.new_location {
-            Location::Building { building, .. } => {
-                match world.get_mut::<ListInBuilding>(building) {
-                    Some(mut list) => list.0.push(entity_id),
-                    None => {
-                        world.entity_mut(building).insert(ListInBuilding([entity_id].into()));
-                    }
-                }
-            }
-            Location::Rail { conduit, distance_from_alpha, .. } => {
-                run_stateless_closure(world, move |params: EnterRailParams<'_, '_>| {
-                    enter_rail(params, conduit, entity_id, distance_from_alpha, self.entry_method);
-                });
             }
         }
     }

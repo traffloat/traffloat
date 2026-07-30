@@ -12,6 +12,37 @@ use crate::util::{AlphaBeta, duration_to_timesteps};
 use crate::vehicle::Propulsion;
 use crate::{cleanup, fluid, persist, vehicle, view};
 
+fn vehicle_def() -> vehicle::TypeDef {
+    vehicle::TypeDef {
+        name:           "test".into(),
+        physical:       vehicle::def::Physical {
+            mass:   200.0,
+            gauge:  vehicle::def::GaugeSize(1, 1),
+            volume: 10.0,
+            length: 2.0,
+        },
+        motion:         vehicle::def::Motion {
+            propulsion:       Propulsion {
+                inputs:    Vec::new(),
+                outputs:   vec![vehicle::propulsion::ForceOutput { max_force: 1000.0 }.into()],
+                catalysts: Vec::new(),
+            },
+            max_speed:        20.0, // overridden by rail max speed
+            max_braking:      2000.0,
+            drag_coefficient: 0.3,
+        },
+        compartments:   [vehicle::def::Compartment {
+            name:                  String::new(),
+            volume:                100.0,
+            passenger_slots:       1,
+            vent_area:             0.0,
+            vent_resistance_recip: 1.0,
+        }]
+        .into(),
+        operator_slots: [].into(),
+    }
+}
+
 fn new_test() -> Test {
     let mut app = App::new();
     if option_env!("RUST_LOG").is_some() {
@@ -46,12 +77,12 @@ fn new_test() -> Test {
     let mut corridor = app.world_mut().spawn_empty();
     corridor.reborrow_scope(|e| {
         corridor::SpawnCommand {
-            name:               Some("".into()),
+            name:               Some(String::new()),
             endpoint_positions: AlphaBeta { alpha: Vec2::ZERO, beta: Vec2::new(1000.0, 0.0) },
             radius:             5.0,
             wall_thickness:     1.0,
         }
-        .apply(e)
+        .apply(e);
     });
     let mut fluid = corridor.get_mut::<fluid::Storage>().unwrap();
     fluid.set_heat(fluid::Energy(3e7));
@@ -62,7 +93,7 @@ fn new_test() -> Test {
     rail.reborrow_scope(|e| {
         conduit::SpawnCommand {
             corridor,
-            name: "".into(),
+            name: String::new(),
             radius: 2.0,
             typed: conduit::TypedSpawn::VehicleRail {
                 rail:         vehicle::Rail {
@@ -73,46 +104,16 @@ fn new_test() -> Test {
                 reserved_dir: Some(vehicle::rail::ReservedDirection::AlphaToBeta),
             },
         }
-        .apply(e)
+        .apply(e);
     });
     let rail = rail.id();
 
-    let vehicle_ty = vehicle::AddTypeCommand {
-        def: vehicle::TypeDef {
-            name:           "test".into(),
-            physical:       vehicle::def::Physical {
-                mass:   200.0,
-                gauge:  vehicle::def::GaugeSize(1, 1),
-                volume: 10.0,
-                length: 2.0,
-            },
-            motion:         vehicle::def::Motion {
-                propulsion:       Propulsion {
-                    inputs:    Vec::new(),
-                    outputs:   vec![vehicle::propulsion::ForceOutput { max_force: 1000.0 }.into()],
-                    catalysts: Vec::new(),
-                },
-                max_speed:        20.0, // overridden by rail max speed
-                max_braking:      2000.0,
-                drag_coefficient: 0.3,
-            },
-            compartments:   [vehicle::def::Compartment {
-                name:                  "".into(),
-                volume:                100.0,
-                passenger_slots:       1,
-                vent_area:             0.0,
-                vent_resistance_recip: 1.0,
-            }]
-            .into(),
-            operator_slots: [].into(),
-        },
-    }
-    .run(app.world_mut());
+    let vehicle_ty = vehicle::AddTypeCommand { def: vehicle_def() }.run(app.world_mut());
 
     let mut vehicle = app.world_mut().spawn_empty();
     vehicle.reborrow_scope(|e| {
         vehicle::SpawnCommand {
-            name:     Some("".into()),
+            name:     Some(String::new()),
             ty:       vehicle_ty,
             location: vehicle::Location::Rail {
                 conduit:             rail,
@@ -181,7 +182,7 @@ fn forward_backward() {
 
     test.set_desired(-10.0);
     test.progress(duration_to_timesteps(Duration::from_secs(10)));
-    test.assert_displace_speed(509.7590, -10.0);
+    test.assert_displace_speed(509.759, -10.0);
 
     test.set_desired(0.0);
     test.progress(duration_to_timesteps(Duration::from_secs(10)));
@@ -200,7 +201,7 @@ fn backward_forward() {
 
     test.set_desired(10.0);
     test.progress(duration_to_timesteps(Duration::from_secs(10)));
-    test.assert_displace_speed(490.2410, 10.0);
+    test.assert_displace_speed(490.241, 10.0);
 
     test.set_desired(0.0);
     test.progress(duration_to_timesteps(Duration::from_secs(10)));

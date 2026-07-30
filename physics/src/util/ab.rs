@@ -133,6 +133,11 @@ pub trait Which:
     fn select_ref<T>(self, ab: &AlphaBeta<T>) -> &T;
     fn select_mut<T>(self, ab: &mut AlphaBeta<T>) -> &mut T;
 
+    fn select_with<T>(self, alpha: T, beta: T) -> T { self.select(AlphaBeta { alpha, beta }) }
+    fn negate_if_beta<T: Copy + ops::Neg<Output = T>>(self, value: T) -> T {
+        self.select_with(value, -value)
+    }
+
     fn proto(self) -> proto::AlphaOrBeta;
 }
 

@@ -119,14 +119,14 @@ fn recompute_culling_rect(mut entity: EntityWorldMut) {
         let mut rect = Rect::from_center_half_size(pos, Vec2::splat(half_size));
 
         let building = if let Some(edge_entity) = entity.get::<edge::CorridorEdge<Ab>>()
-            && let Some(building_entity) =
+            && let Some(of_building) =
                 entity.world().log_get::<edge::OfBuilding<Ab>>(edge_entity.edge())
-            && let Some(building) = entity.world().log_get::<Building>(building_entity.0)
+            && let Some(building) = entity.world().log_get::<Building>(of_building.building)
         {
             let building_half_size = building.radius + building.wall_thickness;
             let building_rect = building.base_rect();
             rect = rect.union(building_rect);
-            Some(building_entity.0)
+            Some(of_building.building)
         } else {
             None
         };

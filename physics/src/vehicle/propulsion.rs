@@ -36,7 +36,7 @@ pub struct Propulsion {
 }
 
 /// The desired speed of the vehicle, when on a rail.
-#[derive(Component, Reflect, Default, Debug)]
+#[derive(Component, Reflect, Default, Debug, Clone, Copy)]
 pub enum Desired {
     #[default]
     Stationary,
@@ -387,7 +387,6 @@ fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) 
 
             *actual_speed = new_speed;
             *displacement += *actual_speed * dt;
-
         }
         _ => {
             *data.execute.status = Status::default();
@@ -495,7 +494,8 @@ fn apply_propulsion(
         1.0,
     );
 
-    let acceleration = data.status.propulsion_force * (desired_speed - actual_speed).signum() / vehicle.mass;
+    let acceleration =
+        data.status.propulsion_force * (desired_speed - actual_speed).signum() / vehicle.mass;
     actual_speed + acceleration * dt
 }
 

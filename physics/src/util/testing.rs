@@ -1,5 +1,6 @@
 use bevy::app::App;
 use bevy::log::tracing_subscriber;
+use bevy::math::Vec3;
 
 #[track_caller]
 pub fn expect_float(actual: f32, expect: f32) {
@@ -18,6 +19,13 @@ pub fn expect_float(actual: f32, expect: f32) {
             "got {actual:?}, expected {expect:?}",
         );
     }
+}
+
+#[track_caller]
+pub fn expect_vec3(actual: Vec3, expect: Vec3) {
+    expect_float(actual.x, expect.x);
+    expect_float(actual.y, expect.y);
+    expect_float(actual.z, expect.z);
 }
 
 #[track_caller]

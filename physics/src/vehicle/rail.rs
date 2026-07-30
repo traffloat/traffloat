@@ -36,7 +36,7 @@ pub struct Rail {
 /// The existence of reservation is to avoid collision, not for traffic control.
 /// A higher-level traffic control system should be applied at the pathfinding layer
 /// to avoid starvation scenario from reaching the motion layer.
-#[derive(Component, Default, Serialize, Deserialize, Reflect)]
+#[derive(Component, Debug, Default, Serialize, Deserialize, Reflect)]
 pub struct Reservation {
     pub inner: Option<ReservationInner>,
 }
@@ -60,28 +60,28 @@ pub enum ReservedDirection {
 }
 
 impl ReservedDirection {
-    pub fn from_entry(entry: AlphaOrBeta) -> Self {
+    pub const fn from_entry(entry: AlphaOrBeta) -> Self {
         match entry {
             AlphaOrBeta::Alpha => ReservedDirection::AlphaToBeta,
             AlphaOrBeta::Beta => ReservedDirection::BetaToAlpha,
         }
     }
 
-    pub fn from_exit(exit: AlphaOrBeta) -> Self {
+    pub const fn from_exit(exit: AlphaOrBeta) -> Self {
         match exit {
             AlphaOrBeta::Alpha => ReservedDirection::BetaToAlpha,
             AlphaOrBeta::Beta => ReservedDirection::AlphaToBeta,
         }
     }
 
-    pub fn entry(self) -> AlphaOrBeta {
+    pub const fn entry(self) -> AlphaOrBeta {
         match self {
             ReservedDirection::AlphaToBeta => AlphaOrBeta::Alpha,
             ReservedDirection::BetaToAlpha => AlphaOrBeta::Beta,
         }
     }
 
-    pub fn exit(self) -> AlphaOrBeta {
+    pub const fn exit(self) -> AlphaOrBeta {
         match self {
             ReservedDirection::AlphaToBeta => AlphaOrBeta::Beta,
             ReservedDirection::BetaToAlpha => AlphaOrBeta::Alpha,
