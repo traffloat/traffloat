@@ -109,9 +109,10 @@ struct ControlConduitData {
 
 #[derive(QueryData)]
 struct ControlCorridorData {
-    corridor:    &'static Corridor,
-    edges_alpha: Option<&'static edge::CorridorEdge<Alpha>>,
-    edges_beta:  Option<&'static edge::CorridorEdge<Beta>>,
+    entity:     Entity,
+    corridor:   &'static Corridor,
+    edge_alpha: Option<&'static edge::CorridorEdge<Alpha>>,
+    edge_beta:  Option<&'static edge::CorridorEdge<Beta>>,
 }
 
 fn control_system(
@@ -173,8 +174,10 @@ fn control_once(
                     displace,
                     current_speed,
                     building: thru,
+                    dt,
                 },
                 params,
+                commands,
             )
             .unwrap_or(propulsion::Desired::Stationary)
         }
@@ -197,8 +200,10 @@ fn control_once(
                     displace,
                     current_speed,
                     building,
+                    dt,
                 },
                 params,
+                commands,
             )
             .unwrap_or(propulsion::Desired::Stationary)
         }
@@ -319,11 +324,13 @@ struct ControlOnRail<'q> {
     displace:       f32,
     current_speed:  f32,
     building:       Entity,
+    dt:             f32,
 }
 
 fn control_on_rail(
     args: ControlOnRail,
     params: &ControlVehicleParams,
+    commands: &mut Commands,
     // TODO inertial
 ) -> Option<propulsion::Desired> {
     let def = params.types.get(args.vehicle.ty);
@@ -331,18 +338,17 @@ fn control_on_rail(
     let conduit = params.conduit_query.log_get(args.rail)?;
     let corridor = params.corridor_query.log_get(conduit.corridor.0)?;
     let Some(exit_endpoint) =
-        identify_endpoint(&params.edge_building_query_alpha, corridor.edges_alpha, args.building)
+        identify_endpoint(&params.edge_building_query_alpha, corridor.edge_alpha, args.building)
             .or_else(|| {
                 identify_endpoint(
                     &params.edge_building_query_beta,
-                    corridor.edges_beta,
+                    corridor.edge_beta,
                     args.building,
                 )
             })
     else {
         tracing::warn!(
-            "through_building {:?} not connected to the current location (rail {:?}) of vehicle \
-             {:?}",
+            "{:?} not connected to the current location (rail {:?}) of vehicle {:?}",
             args.building,
             args.rail,
             args.vehicle_entity
@@ -350,25 +356,18 @@ fn control_on_rail(
         return None;
     };
 
-    match conduit.reservation.inner {
-        None => {
-            tracing::warn!(
-                "Vehicle {:?} is on an unreserved rail {:?}",
-                args.vehicle_entity,
-                args.rail
-            );
-            return None;
+    control_on_rail_check_reservation(&conduit, &args, exit_endpoint).ok()?;
+
+    let try_transition = match exit_endpoint {
+        AlphaOrBeta::Alpha => {
+            control_on_rail_try_transition_to_building(params, &args, &corridor, Alpha, commands)
         }
-        Some(ref inner) if inner.direction != ReservedDirection::from_exit(exit_endpoint) => {
-            tracing::warn!(
-                "Vehicle {:?} is on rail {:?} with unexpected reserved direction {:?}",
-                args.vehicle_entity,
-                args.rail,
-                inner.direction,
-            );
-            return None;
+        AlphaOrBeta::Beta => {
+            control_on_rail_try_transition_to_building(params, &args, &corridor, Beta, commands)
         }
-        Some(_) => {}
+    };
+    if try_transition {
+        return None;
     }
 
     let vehicle_list =
@@ -401,6 +400,84 @@ fn control_on_rail(
             exit_endpoint,
         )),
     }
+}
+
+fn control_on_rail_check_reservation(
+    conduit: &ControlConduitDataItem,
+    args: &ControlOnRail,
+    exit_endpoint: AlphaOrBeta,
+) -> Result<(), ()> {
+    match conduit.reservation.inner {
+        None => {
+            tracing::warn!(
+                "Vehicle {:?} is on an unreserved rail {:?}",
+                args.vehicle_entity,
+                args.rail
+            );
+            Err(())
+        }
+        Some(ref inner) if inner.direction != ReservedDirection::from_exit(exit_endpoint) => {
+            tracing::warn!(
+                "Vehicle {:?} is on rail {:?} with unexpected reserved direction {:?}",
+                args.vehicle_entity,
+                args.rail,
+                inner.direction,
+            );
+            Err(())
+        }
+        Some(_) => Ok(()),
+    }
+}
+
+fn control_on_rail_try_transition_to_building(
+    params: &ControlVehicleParams,
+    args: &ControlOnRail,
+    corridor: &ControlCorridorDataItem,
+    exit: impl Which,
+    commands: &mut Commands,
+) -> bool {
+    fn find_interior_pos<Ab: Which>(
+        corridor_edge: Option<&edge::CorridorEdge<Ab>>,
+        edge_building_query: &Query<&edge::OfBuilding<Ab>>,
+    ) -> Option<Vec3> {
+        corridor_edge
+            .and_then(|edge| edge_building_query.log_get(edge.edge()))
+            .map(|edge| edge.interior_pos)
+    }
+
+    let def = params.types.get(args.vehicle.ty);
+
+    let probe_speed = args.current_speed.abs().max(params.config.standard_drifting_speed);
+    let probe_distance = probe_speed * args.dt;
+    let distance_from_exit = exit
+        .select_with(args.displace, corridor.corridor.length - args.displace)
+        + def.physical.length * 0.5;
+
+    if distance_from_exit > probe_distance {
+        return false;
+    }
+
+    let Some(interior_pos) = exit.select_lazy(
+        || find_interior_pos(corridor.edge_alpha, &params.edge_building_query_alpha),
+        || find_interior_pos(corridor.edge_beta, &params.edge_building_query_beta),
+    ) else {
+        tracing::error!(
+            "cannot find interior pos from corridor {:?} to building {:?}",
+            corridor.entity,
+            args.building
+        );
+        return false;
+    };
+    commands.entity(args.vehicle_entity).queue(vehicle::AttemptLocationTransitionCommand {
+        new_location: Location::Building {
+            building: args.building,
+            interior_pos,
+            speed: Vec3::ZERO,
+        },
+        entry_method: exit,
+    });
+
+    true
 }
 
 fn control_on_rail_with_vehicle_stop(

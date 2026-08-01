@@ -202,7 +202,7 @@ struct Test {
 }
 
 impl Test {
-    fn building<Ab: Which>(&self, which: Ab) -> Entity {
+    fn building(&self, which: impl Which) -> Entity {
         match which.proto() {
             AlphaOrBeta::Alpha => self.alpha_building.unwrap(),
             AlphaOrBeta::Beta => self.beta_building.unwrap(),
@@ -475,11 +475,11 @@ macro_rules! rule_c_rail_local_to_endpoint_building {
 
 rule_c_rail_local_to_endpoint_building!(_50, 50.0, 32.078);
 rule_c_rail_local_to_endpoint_building!(_10, 10.0, 15.133);
-rule_c_rail_local_to_endpoint_building!(_head, 2.0, 8.3066);
-rule_c_rail_local_to_endpoint_building!(_middle, 0.0, 5.3852);
+rule_c_rail_local_to_endpoint_building!(_head, 1.0, 7.0000); // head of vehicle touches building
+rule_c_rail_local_to_endpoint_building!(_middle, 0.0, 5.3852); // middle of vehicle touches building
 
-fn rule_c_rail_local_to_endpoint_building_with<Ab: Which>(
-    entry: Ab,
+fn rule_c_rail_local_to_endpoint_building_with(
+    entry: impl Which,
     distance_from_exit: f32,
     expect_speed: f32,
 ) {
@@ -533,8 +533,8 @@ rule_c_rail_local_to_endpoint_blocked!(_50, 50.0, 23.686);
 rule_c_rail_local_to_endpoint_blocked!(_10, 10.0, 6.2829);
 rule_c_rail_local_to_endpoint_blocked!(_within_headroom, 2.5, 0.0);
 
-fn rule_c_rail_local_to_endpoint_blocked_with<Ab: Which>(
-    entry: Ab,
+fn rule_c_rail_local_to_endpoint_blocked_with(
+    entry: impl Which,
     distance_from_blocker: f32,
     expect_speed: f32,
 ) {
@@ -587,7 +587,44 @@ fn rule_c_rail_local_to_endpoint_blocked_with<Ab: Which>(
 }
 
 #[test]
-fn rule_d_rail_to_building_alpha() {}
+fn rule_d_rail_to_building_alpha() { rule_d_rail_to_building_with(Alpha); }
 
 #[test]
-fn rule_d_rail_to_building_beta() {}
+fn rule_d_rail_to_building_beta() { rule_d_rail_to_building_with(Beta); }
+
+fn rule_d_rail_to_building_with(entry: impl Which) {
+    #[derive(Component, Default)]
+    struct MainVehicle;
+
+    let mut test = new_test(
+        TestSetup::builder()
+            .has_alpha_building(true)
+            .has_beta_building(true)
+            .reserve_rail(Some(vehicle::rail::ReservedDirection::from_entry(entry.proto())))
+            .build(),
+    );
+
+    let vehicle = spawn_vehicle::<MainVehicle>(
+        vehicle::Location::Rail {
+            conduit:             test.rail,
+            distance_from_alpha: 500.0 + entry.negate_if_beta(500.99),
+            speed_from_alpha:    0.0,
+        },
+        &mut test.app,
+    );
+
+    test.expect_pathfind_once::<MainVehicle>(vehicle::motion::Intent::BuildingStop {
+        target:               test.building(entry.other()),
+        stop_at_interior_pos: Vec3::ZERO,
+    });
+    test.app.update();
+
+    test.assert_location(
+        vehicle,
+        vehicle::Location::Building {
+            building:     test.building(entry.other()),
+            interior_pos: Vec3::new(entry.select_with(-10.0, 10.0), 0.0, 0.0),
+            speed:        Vec3::ZERO,
+        },
+    );
+}

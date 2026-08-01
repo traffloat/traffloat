@@ -33,7 +33,7 @@ use crate::graph::{Corridor, conduit};
 use crate::util::{
     self, Alpha, EntityWorldMutExt, QueryExt, Which, WorldExt, run_stateless_closure,
 };
-use crate::{fluid, view};
+use crate::{CleanupAppExt, fluid, view};
 
 pub struct Plug;
 
@@ -351,6 +351,8 @@ impl EntityCommand for SpawnCommand {
 
 pub struct AttemptLocationTransitionCommand<Ab> {
     pub new_location: Location,
+    /// Whether the entering edge is an alpha or beta edge.
+    /// This is currently unused for entering buildings, but should still be set correctly.
     pub entry_method: Ab,
 }
 
