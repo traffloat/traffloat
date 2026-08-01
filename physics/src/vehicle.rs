@@ -4,7 +4,7 @@ use std::time::Duration;
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::{EntityEvent, Event};
+use bevy::ecs::event::{EntityEvent, };
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::{QueryData, With, Without};
@@ -72,6 +72,12 @@ impl Plugin for Plug {
             incr_viewer_system
                 .in_set(view::SendUpdatesSystemSet::Incr)
                 .in_set(view::IncrSystemSets::Vehicle),
+        );
+        app.add_systems(
+            app::Update,
+            update_culling_rect_system
+                .in_set(view::SendUpdatesSystemSet::Cull)
+                .in_set(UpdateCullingRectSystemSet),
         );
 
         app.add_cleanup_hook(Types::cleanup_hook);
@@ -362,12 +368,18 @@ impl<Ab: EntryMethod> EntityCommand for AttemptLocationTransitionCommand<Ab> {
     fn apply(self, mut entity: EntityWorldMut) {
         let entity_id = entity.id();
 
-        if let Some(entry) = self.entry_method.into_proto()
-            && let Location::Rail { conduit, .. } = self.new_location
-        {
-            let result = check_rail_entry(entity.world(), entity_id, conduit, entry);
-            if result.is_err() {
-                return;
+        if let Some(entry) = self.entry_method.into_proto() {
+            // only check if this is a regular entry
+            match self.new_location {
+                Location::Building { .. } => {
+                    // TODO check building capacity
+                }
+                Location::Rail { conduit, .. } => {
+                    let result = check_rail_entry(entity.world(), entity_id, conduit, entry);
+                    if result.is_err() {
+                        return;
+                    }
+                }
             }
         }
 
@@ -410,12 +422,20 @@ impl<Ab: EntryMethod> EntityCommand for AttemptLocationTransitionCommand<Ab> {
             }
         }
 
-        world.entity_mut(entity_id).trigger(LocationTransitionEvent);
+        world.entity_mut(entity_id).trigger(move |entity| LocationTransitionEvent {
+            entity,
+            entry_method: self.entry_method.into_proto(),
+        });
     }
 }
 
+/// An entity event triggered on successful location transition.
 #[derive(Debug, Clone, Copy, EntityEvent)]
-pub struct LocationTransitionEvent(pub Entity);
+pub struct LocationTransitionEvent {
+    #[entity_event]
+    pub entity:       Entity,
+    pub entry_method: Option<AlphaOrBeta>,
+}
 
 pub trait EntryMethod: Copy + Send + Sync + 'static {
     fn into_proto(self) -> Option<AlphaOrBeta>;
@@ -662,6 +682,9 @@ fn make_proto_location(
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, SystemSet)]
+pub struct UpdateCullingRectSystemSet;
 
 fn update_culling_rect_system(
     vehicle_query: Query<(&Location, &mut view::CullingRect)>,

@@ -1,4 +1,4 @@
-use bevy::app::{self, App, Plugin};
+use bevy::app::{App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::system::EntityCommand;

@@ -120,19 +120,25 @@ pub struct SetVehicleTypes {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct VehicleType {
-    pub name:         String,
+    pub name:           String,
     /// Asset path.
     ///
     /// Currently loads from `assets/sprites/{sprite_id}.png` directly.
     /// May be extended to support dynamically loaded assets in the future.
-    pub sprite_id:    String,
+    pub sprite_id:      String,
     /// Scale rendered sprites by this factor.
-    pub sprite_scale: Vec2,
-    pub compartments: Vec<VehicleTypeCompartment>,
+    pub sprite_scale:   Vec2,
+    pub compartments:   Vec<VehicleTypeCompartment>,
+    pub operator_slots: Vec<VehicleTypeOperator>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct VehicleTypeCompartment {
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct VehicleTypeOperator {
     pub name: String,
 }
 

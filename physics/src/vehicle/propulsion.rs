@@ -1,3 +1,5 @@
+use std::cmp;
+
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
@@ -8,7 +10,6 @@ use bevy::ecs::system::{Query, Res, SystemParam};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use bevy::time::{self, Time};
-use enum_map::EnumMap;
 use serde::{Deserialize, Serialize};
 
 use crate::util::QueryExt;
@@ -446,9 +447,9 @@ fn apply_brake(
             *actual_speed -= max_v_delta * actual_speed.signum();
             *force = def.motion.max_braking;
         } else {
-            *actual_speed = braking_target_abs * actual_speed.signum();
             *force =
                 def.motion.max_braking * (actual_speed.abs() - braking_target_abs) / max_v_delta;
+            *actual_speed = braking_target_abs * actual_speed.signum();
         }
     } else {
         *force = 0.0;
@@ -482,7 +483,10 @@ fn apply_propulsion(
             _ => 0.0,
         })
         .sum::<f32>();
-    let max_efficiency = (required_force / max_output_force).min(1.0);
+    let mut max_efficiency = (required_force / max_output_force).min(1.0);
+    if max_efficiency.partial_cmp(&0.0) != Some(cmp::Ordering::Greater) {
+        max_efficiency = 0.0;
+    }
 
     let efficiency = reaction::execute_once(
         params,

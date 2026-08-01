@@ -15,7 +15,7 @@
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::query::{AnyOf, QueryData, With};
+use bevy::ecs::query::{QueryData, With};
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
@@ -24,7 +24,7 @@ use bevy::reflect::Reflect;
 use bevy::time::{self, Time};
 use traffloat_proto::proto::AlphaOrBeta;
 
-use crate::graph::{Building, Conduit, Corridor, conduit, edge};
+use crate::graph::{Corridor, conduit, edge};
 use crate::util::{Alpha, Beta, InspectLog, QueryExt, Which};
 use crate::vehicle::rail::ReservedDirection;
 use crate::vehicle::{self, Location, Rail, SystemSets, TypeDef, Vehicle, propulsion, rail};
@@ -163,9 +163,6 @@ fn control_once(
             // otherwise, slow down to std drifting speed before reaching `thru`,
             // transitioning if the building is within the current speed interval within `dt`
 
-            // TODO inertial motion
-            // for now assume we always need to slow down to std drifting speed
-
             control_on_rail(
                 ControlOnRail {
                     vehicle_entity: data.entity,
@@ -174,6 +171,7 @@ fn control_once(
                     displace,
                     current_speed,
                     building: thru,
+                    inertial_target: Some(next),
                     dt,
                 },
                 params,
@@ -200,6 +198,7 @@ fn control_once(
                     displace,
                     current_speed,
                     building,
+                    inertial_target: None,
                     dt,
                 },
                 params,
@@ -317,21 +316,23 @@ fn find_edge_interior_pos_to_corridor<Ab: Which>(
 }
 
 struct ControlOnRail<'q> {
-    vehicle_entity: Entity,
-    vehicle:        &'q Vehicle,
-    rail:           Entity,
+    vehicle_entity:  Entity,
+    vehicle:         &'q Vehicle,
+    /// Current rail of the vehicle.
+    rail:            Entity,
     /// Distance of the center of the vehicle from the alpha end of the corridor.
-    displace:       f32,
-    current_speed:  f32,
-    building:       Entity,
-    dt:             f32,
+    displace:        f32,
+    current_speed:   f32,
+    building:        Entity,
+    /// Next rail to move onto, for inertial motion.
+    inertial_target: Option<Entity>,
+    dt:              f32,
 }
 
 fn control_on_rail(
     args: ControlOnRail,
     params: &ControlVehicleParams,
     commands: &mut Commands,
-    // TODO inertial
 ) -> Option<propulsion::Desired> {
     let def = params.types.get(args.vehicle.ty);
 
@@ -356,7 +357,7 @@ fn control_on_rail(
         return None;
     };
 
-    control_on_rail_check_reservation(&conduit, &args, exit_endpoint).ok()?;
+    control_on_rail_check_current_reservation(&conduit, &args, exit_endpoint).ok()?;
 
     let try_transition = match exit_endpoint {
         AlphaOrBeta::Alpha => {
@@ -368,6 +369,14 @@ fn control_on_rail(
     };
     if try_transition {
         return None;
+    }
+
+    if let Some(result) = control_on_rail_try_acquire_inertial(params, &args, &corridor, &params.edge_building_query_alpha) {
+        return Some(result);
+    }
+
+    if let Some(result) = control_on_rail_try_acquire_inertial(params, &args, &corridor, &params.edge_building_query_beta) {
+        return Some(result);
     }
 
     let vehicle_list =
@@ -402,7 +411,7 @@ fn control_on_rail(
     }
 }
 
-fn control_on_rail_check_reservation(
+fn control_on_rail_check_current_reservation(
     conduit: &ControlConduitDataItem,
     args: &ControlOnRail,
     exit_endpoint: AlphaOrBeta,
@@ -478,6 +487,15 @@ fn control_on_rail_try_transition_to_building(
     });
 
     true
+}
+
+fn control_on_rail_try_acquire_inertial<Exit: Which>(
+    params: &ControlVehicleParams,
+    args: &ControlOnRail,
+    corridor: &ControlCorridorDataItem,
+    edge_building_query: &Query<&edge::OfBuilding<Exit>>,
+) -> Option<propulsion::Desired> {
+    None// TODO
 }
 
 fn control_on_rail_with_vehicle_stop(

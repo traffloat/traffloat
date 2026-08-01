@@ -87,7 +87,7 @@
 //! - [`resident::Location`]
 //! - [`resident::InteractingWith`], if interacting with a facility
 //! - [`vehicle::PassengerOfCompartment`], if riding in a vehicle
-//! - [`vehicle::OperatorOfVehicle`], if operating a vehicle
+//! - [`vehicle::OperatorOf`], if operating a vehicle
 //! - [`view::Viewable`]
 //!
 //! # Vehicle

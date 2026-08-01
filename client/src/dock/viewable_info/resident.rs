@@ -1,11 +1,10 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
-use egui_material_icons::icons;
 use traffloat_physics::util::QueryExt;
 
 use crate::dock::viewable_info::{show_graph_button, show_link};
-use crate::dock::{self, plot, viewable_info};
+use crate::dock::{self, plot};
 use crate::scene::{GenericViewable, resident, vehicle};
 use crate::util::new_id;
 
@@ -88,7 +87,7 @@ fn show_location(
                 .and_then(|info| params.vehicle_types.types.get(info.ty));
             let operator_type = operator_slot
                 .zip(vehicle_type)
-                .and_then(|(slot, ty)| ty.proto.compartments.get(slot))
+                .and_then(|(slot, ty)| ty.proto.operator_slots.get(slot))
                 .map_or("passenger", |cpmt| cpmt.name.as_str());
             ui.label(format!("As {operator_type} in vehicle"));
             if let Some(viewable) = params.viewable_query.log_get(entity) {

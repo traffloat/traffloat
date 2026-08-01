@@ -14,8 +14,8 @@ use traffloat_proto::proto;
 
 use crate::graph::facility;
 use crate::persist::AppExt;
-use crate::util::{AllSystemSets, QueryExt, SliceGet, run_stateless_closure};
-use crate::{graph, vehicle, view};
+use crate::util::{QueryExt, SliceGet, run_stateless_closure};
+use crate::{vehicle, view};
 
 pub mod ambient;
 pub mod attr;
@@ -42,7 +42,9 @@ impl Plugin for Plug {
 
         app.add_systems(
             app::Update,
-            update_culling_rect_system.in_set(view::SendUpdatesSystemSet::Cull),
+            update_culling_rect_system
+                .in_set(view::SendUpdatesSystemSet::Cull)
+                .after(vehicle::UpdateCullingRectSystemSet),
         );
         app.add_systems(
             app::Update,
@@ -91,7 +93,7 @@ pub enum Location {
     /// The resident is in a vehicle.
     ///
     /// Further information is in the [`crate::vehicle::PassengerOfCompartment`]
-    /// and [`crate::vehicle::OperatorOfVehicle`] components.
+    /// and [`crate::vehicle::OperatorOf`] components.
     Vehicle {
         /// The compartment entity that the resident is a passenger of.
         compartment: Entity,
@@ -377,7 +379,7 @@ fn make_proto_location(
             }
         }
         Location::Vehicle { .. } => {
-            let of_cpmt = try_log!(data.passenger, expect "passenger with vehicle location should have PassengerOfVehicle component" or return None);
+            let of_cpmt = try_log!(data.passenger, expect "passenger with vehicle location should have PassengerOfCompartment component" or return None);
             let cpmt_of = params.compartment_query.log_get(of_cpmt.compartment)?;
             let vehicle = params.viewable_query.log_get(cpmt_of.0)?.0.id;
             proto::ResidentLocation::Vehicle {

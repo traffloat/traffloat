@@ -2,7 +2,6 @@ use std::borrow::Cow;
 
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::{QueryData, With};
-use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::World;
 use bevy::math::Vec3;

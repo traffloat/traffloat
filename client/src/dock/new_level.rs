@@ -3,7 +3,6 @@ use std::hash::{Hash, Hasher};
 use bevy::app::{App, Plugin};
 use bevy::ecs::system::{Commands, SystemParam};
 use bevy::ecs::world::World;
-use egui_dock::tab_viewer::OnCloseResponse;
 use rand::RngExt;
 use rand::distr::Alphanumeric;
 use traffloat_physics::generate;

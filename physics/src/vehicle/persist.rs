@@ -11,8 +11,7 @@ use snafu::Snafu;
 
 use crate::graph::{building, conduit, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::resident::Resident;
-use crate::util::{EntityWorldMutExt, QueryExt};
+use crate::util::{QueryExt};
 use crate::vehicle::{
     self, CompartmentList, CompartmentOf, CompartmentPassengerList, Location, SpawnCommand, TypeId,
     Vehicle, propulsion,

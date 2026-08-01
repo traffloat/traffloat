@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use bevy::ecs::system::{Command, Res, SystemParam};
+use bevy::ecs::system::{Res, SystemParam};
 use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;

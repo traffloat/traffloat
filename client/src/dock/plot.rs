@@ -1,12 +1,10 @@
 use std::time::Duration;
-use std::{iter, mem};
 
 use bevy::app::{App, Plugin};
 use bevy::ecs::entity::Entity;
 use bevy::ecs::system::{Query, Res, SystemParam};
 use bevy::time::{self, Time};
-use egui_plot::{PlotBounds, PlotPoints};
-use itertools::Itertools;
+use egui_plot::PlotPoints;
 use traffloat_proto::proto;
 
 use crate::dock;

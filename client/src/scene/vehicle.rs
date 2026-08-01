@@ -7,17 +7,16 @@ use bevy::color::Color;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::name::Name;
-use bevy::ecs::query::With;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::image::Image;
-use bevy::math::{Vec2, Vec3, Vec3Swizzles};
+use bevy::math::{Vec2, Vec3Swizzles};
 use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
 use bevy::time::{self, Time};
-use bevy::transform::components::{GlobalTransform, Transform};
+use bevy::transform::components::Transform;
 use bevy_mesh::Mesh2d;
 use traffloat_physics::util::{QueryExt, run_stateless_closure};
 use traffloat_proto::proto;
@@ -26,7 +25,7 @@ use crate::scene::conduit::ConduitCorridor;
 use crate::scene::picking::ObservePicking;
 use crate::scene::{
     GenericViewable, HandlerClass, IdRegistry, ProtoId, TrackedId, UpdateHandler, ViewableKind,
-    Zorder, building, conduit, corridor, facility,
+    Zorder, building, corridor,
 };
 use crate::util::shapes::Shapes;
 
@@ -183,8 +182,7 @@ impl UpdateHandler for UpdateVehicleFluidParams<'_, '_> {
         material.color = update.taint.into();
 
         if let Some(update_compartments) = &update.compartments {
-            for (cpmt_index, (fluid_detail, cpmt_info)) in
-                update_compartments.iter().zip(&mut info.compartments).enumerate()
+            for (fluid_detail, cpmt_info) in update_compartments.iter().zip(&mut info.compartments)
             {
                 cpmt_info.fluid = Some(fluid_detail.clone());
             }
@@ -264,10 +262,9 @@ impl DynamicPosition {
 
 fn update_dynamic_position_system(
     time: Res<Time<time::Virtual>>,
-    types: Res<Types>,
-    vehicle_query: Query<(&mut Transform, &Info, &DynamicPosition)>,
+    vehicle_query: Query<(&mut Transform, &DynamicPosition)>,
 ) {
-    for (mut transform, info, dynamic_position) in vehicle_query {
+    for (mut transform, dynamic_position) in vehicle_query {
         let pos = dynamic_position.extrapolate(time.elapsed());
         transform.translation = pos.extend(Zorder::Vehicle.z());
     }
