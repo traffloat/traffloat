@@ -11,6 +11,7 @@ use bevy::ecs::system::{EntityCommand, ResMut, Single};
 use bevy::math::{Vec2, Vec3};
 use bevy::time;
 use traffloat_proto::proto::AlphaOrBeta;
+use typed_builder::TypedBuilder;
 
 use crate::graph::{building, conduit, corridor, edge};
 use crate::util::testing::{configure_logging, expect_float, expect_vec3};
@@ -62,6 +63,14 @@ fn new_test(setup: TestSetup) -> Test {
     let rail = {
         let mut rail = app.world_mut().spawn_empty();
         rail.reborrow_scope(|e| make_rail(corridor).apply(e));
+        if let Some(reserved_dir) = setup.reserve_rail {
+            rail.insert(vehicle::rail::Reservation {
+                inner: Some(vehicle::rail::ReservationInner {
+                    direction:        reserved_dir,
+                    external_vehicle: None,
+                }),
+            });
+        }
         rail.id()
     };
 
@@ -97,7 +106,7 @@ fn make_rail(corridor: Entity) -> conduit::SpawnCommand {
             rail:         vehicle::Rail {
                 gauge_size:  vehicle::def::GaugeSize(1, 1),
                 electrified: false,
-                max_speed:   10.0,
+                max_speed:   100.0,
             },
             reserved_dir: None,
         },
@@ -120,7 +129,7 @@ fn make_vehicle_type() -> vehicle::AddTypeCommand {
                     outputs:   vec![vehicle::propulsion::ForceOutput { max_force: 1000.0 }.into()],
                     catalysts: Vec::new(),
                 },
-                max_speed:        20.0, // overridden by rail max speed
+                max_speed:        200.0, // overridden by rail max speed
                 max_braking:      2000.0,
                 drag_coefficient: 0.3,
             },
@@ -176,9 +185,12 @@ fn dummy_pathfinder_system<WhichVehicle: Component>(
     }
 }
 
+#[derive(TypedBuilder)]
 struct TestSetup {
     has_alpha_building: bool,
     has_beta_building:  bool,
+    #[builder(default)]
+    reserve_rail:       Option<vehicle::rail::ReservedDirection>,
 }
 
 struct Test {
@@ -292,7 +304,8 @@ fn rule_a_building_local() {
     #[derive(Component, Default)]
     struct MainVehicle;
 
-    let mut test = new_test(TestSetup { has_alpha_building: true, has_beta_building: false });
+    let mut test =
+        new_test(TestSetup::builder().has_alpha_building(true).has_beta_building(false).build());
 
     let vehicle = spawn_vehicle::<MainVehicle>(
         vehicle::Location::Building {
@@ -302,7 +315,7 @@ fn rule_a_building_local() {
         },
         &mut test.app,
     );
-    test.expect_pathfind_once::<MainVehicle>(vehicle::motion::Intent::Building {
+    test.expect_pathfind_once::<MainVehicle>(vehicle::motion::Intent::BuildingStop {
         target:               test.alpha_building.unwrap(),
         stop_at_interior_pos: Vec3::new(5.0, 0.0, 0.0),
     });
@@ -329,7 +342,8 @@ fn rule_b_building_to_rail_pursuit(which: impl Which, expect_interior_pos: Vec3)
     #[derive(Component, Default)]
     struct MainVehicle;
 
-    let mut test = new_test(TestSetup { has_alpha_building: true, has_beta_building: true });
+    let mut test =
+        new_test(TestSetup::builder().has_alpha_building(true).has_beta_building(true).build());
 
     let vehicle = spawn_vehicle::<MainVehicle>(
         vehicle::Location::Building {
@@ -339,7 +353,7 @@ fn rule_b_building_to_rail_pursuit(which: impl Which, expect_interior_pos: Vec3)
         },
         &mut test.app,
     );
-    test.expect_pathfind_once::<MainVehicle>(vehicle::motion::Intent::Rail {
+    test.expect_pathfind_once::<MainVehicle>(vehicle::motion::Intent::EnterRail {
         target_rail:      test.rail,
         through_building: test.building(which),
     });
@@ -367,7 +381,8 @@ fn rule_b_building_to_rail_clear_and_block(which: impl Which) {
     #[derive(Component, Default)]
     struct VehicleBehind;
 
-    let mut test = new_test(TestSetup { has_alpha_building: true, has_beta_building: true });
+    let mut test =
+        new_test(TestSetup::builder().has_alpha_building(true).has_beta_building(true).build());
 
     rule_b_building_to_rail_clear_and_block_round_one::<VehicleAhead>(which, &mut test);
     rule_b_building_to_rail_clear_and_block_round_two::<VehicleAhead, VehicleBehind>(
@@ -388,7 +403,7 @@ fn rule_b_building_to_rail_clear_and_block_round_one<VehicleAhead: Component + D
         },
         &mut test.app,
     );
-    test.expect_pathfind_once::<VehicleAhead>(vehicle::motion::Intent::Rail {
+    test.expect_pathfind_once::<VehicleAhead>(vehicle::motion::Intent::EnterRail {
         target_rail:      test.rail,
         through_building: test.building(which),
     });
@@ -406,7 +421,7 @@ fn rule_b_building_to_rail_clear_and_block_round_one<VehicleAhead: Component + D
     let dir = vehicle::rail::ReservedDirection::from_entry(which.proto());
     test.assert_reserved_direction(Some(dir));
 
-    test.expect_pathfind_once::<VehicleAhead>(vehicle::motion::Intent::Building {
+    test.expect_pathfind_once::<VehicleAhead>(vehicle::motion::Intent::BuildingStop {
         target:               test.building(which.other()),
         stop_at_interior_pos: Vec3::ZERO,
     });
@@ -414,7 +429,7 @@ fn rule_b_building_to_rail_clear_and_block_round_one<VehicleAhead: Component + D
 
     test.assert_desired(
         vehicle,
-        vehicle::propulsion::Desired::Rail { speed_from_alpha: which.negate_if_beta(10.0) },
+        vehicle::propulsion::Desired::Rail { speed_from_alpha: which.negate_if_beta(100.0) },
     );
 }
 
@@ -433,11 +448,11 @@ fn rule_b_building_to_rail_clear_and_block_round_two<
     };
     let second_vehicle = spawn_vehicle::<VehicleBehind>(initial_location, &mut test.app);
 
-    test.expect_pathfind_once::<VehicleAhead>(vehicle::motion::Intent::Building {
+    test.expect_pathfind_once::<VehicleAhead>(vehicle::motion::Intent::BuildingStop {
         target:               test.building(entry.other()),
         stop_at_interior_pos: Vec3::ZERO,
     });
-    test.expect_pathfind_once::<VehicleBehind>(vehicle::motion::Intent::Rail {
+    test.expect_pathfind_once::<VehicleBehind>(vehicle::motion::Intent::EnterRail {
         target_rail:      test.rail,
         through_building: test.building(entry),
     });
@@ -446,39 +461,130 @@ fn rule_b_building_to_rail_clear_and_block_round_two<
     test.assert_location(second_vehicle, initial_location);
 }
 
-#[test]
-fn rule_c_rail_local_atob_to_endpoint_dead_end() { rule_c_rail_local_to_endpoint_dead_end(Alpha); }
+macro_rules! rule_c_rail_local_to_endpoint_building {
+    ($name:ident, $distance:expr, $speed:expr) => {
+        paste::paste! {
+            #[test]
+            fn [<rule_c_rail_local_to_endpoint_building_atob $name >]() { rule_c_rail_local_to_endpoint_building_with(Alpha, $distance, $speed); }
 
-#[test]
-fn rule_c_rail_local_btoa_to_endpoint_dead_end() { rule_c_rail_local_to_endpoint_dead_end(Beta); }
+            #[test]
+            fn [<rule_c_rail_local_to_endpoint_building_btoa $name>]() { rule_c_rail_local_to_endpoint_building_with(Beta, $distance, $speed); }
+        }
+    }
+}
 
-fn rule_c_rail_local_to_endpoint_dead_end<Ab: Which>(which: Ab) {
+rule_c_rail_local_to_endpoint_building!(_50, 50.0, 32.078);
+rule_c_rail_local_to_endpoint_building!(_10, 10.0, 15.133);
+rule_c_rail_local_to_endpoint_building!(_head, 2.0, 8.3066);
+rule_c_rail_local_to_endpoint_building!(_middle, 0.0, 5.3852);
+
+fn rule_c_rail_local_to_endpoint_building_with<Ab: Which>(
+    entry: Ab,
+    distance_from_exit: f32,
+    expect_speed: f32,
+) {
     #[derive(Component, Default)]
     struct MainVehicle;
 
-    let mut test = new_test(TestSetup { has_alpha_building: true, has_beta_building: true });
+    let mut test = new_test(
+        TestSetup::builder()
+            .has_alpha_building(true)
+            .has_beta_building(true)
+            .reserve_rail(Some(vehicle::rail::ReservedDirection::from_entry(entry.proto())))
+            .build(),
+    );
 
-    spawn_vehicle::<MainVehicle>(
+    let vehicle = spawn_vehicle::<MainVehicle>(
         vehicle::Location::Rail {
             conduit:             test.rail,
-            distance_from_alpha: 500.0,
+            distance_from_alpha: 500.0 + entry.negate_if_beta(500.0 - distance_from_exit),
+            // This doesn't matter because the vehicle tries to accel/decel to the target speed
+            // regardless of the current speed.
             speed_from_alpha:    0.0,
         },
         &mut test.app,
     );
+
+    test.expect_pathfind_once::<MainVehicle>(vehicle::motion::Intent::BuildingStop {
+        target:               test.building(entry.other()),
+        stop_at_interior_pos: Vec3::ZERO,
+    });
+    test.app.update();
+
+    test.assert_desired(
+        vehicle,
+        vehicle::propulsion::Desired::Rail { speed_from_alpha: entry.negate_if_beta(expect_speed) },
+    );
 }
 
-#[test]
-fn rule_c_rail_local_atob_to_endpoint_building() {}
+macro_rules! rule_c_rail_local_to_endpoint_blocked {
+    ($name:ident, $distance:expr, $speed:expr) => {
+        paste::paste! {
+            #[test]
+            fn [<rule_c_rail_local_to_endpoint_blocked_atob $name >]() { rule_c_rail_local_to_endpoint_blocked_with(Alpha, $distance, $speed); }
 
-#[test]
-fn rule_c_rail_local_btoa_to_endpoint_building() {}
+            #[test]
+            fn [<rule_c_rail_local_to_endpoint_blocked_btoa $name>]() { rule_c_rail_local_to_endpoint_blocked_with(Beta, $distance, $speed); }
+        }
+    }
+}
 
-#[test]
-fn rule_c_rail_local_atob_blocked_by_vehicle() {}
+rule_c_rail_local_to_endpoint_blocked!(_50, 50.0, 23.686);
+rule_c_rail_local_to_endpoint_blocked!(_10, 10.0, 6.2829);
+rule_c_rail_local_to_endpoint_blocked!(_within_headroom, 2.5, 0.0);
 
-#[test]
-fn rule_c_rail_local_btoa_blocked_by_vehicle() {}
+fn rule_c_rail_local_to_endpoint_blocked_with<Ab: Which>(
+    entry: Ab,
+    distance_from_blocker: f32,
+    expect_speed: f32,
+) {
+    #[derive(Component, Default)]
+    struct MovingVehicle;
+
+    #[derive(Component, Default)]
+    struct BlockerVehicle;
+
+    let mut test = new_test(
+        TestSetup::builder()
+            .has_alpha_building(true)
+            .has_beta_building(true)
+            .reserve_rail(Some(vehicle::rail::ReservedDirection::from_entry(entry.proto())))
+            .build(),
+    );
+
+    spawn_vehicle::<BlockerVehicle>(
+        vehicle::Location::Rail {
+            conduit:             test.rail,
+            distance_from_alpha: 500.0 + entry.negate_if_beta(400.0),
+            speed_from_alpha:    0.0,
+        },
+        &mut test.app,
+    );
+
+    let vehicle = spawn_vehicle::<MovingVehicle>(
+        vehicle::Location::Rail {
+            conduit:             test.rail,
+            distance_from_alpha: 500.0 + entry.negate_if_beta(400.0 - distance_from_blocker),
+            // This doesn't matter because the vehicle tries to accel/decel to the target speed
+            // regardless of the current speed.
+            speed_from_alpha:    0.0,
+        },
+        &mut test.app,
+    );
+
+    test.expect_pathfind_once::<BlockerVehicle>(vehicle::motion::Intent::Stationary);
+
+    test.expect_pathfind_once::<MovingVehicle>(vehicle::motion::Intent::BuildingStop {
+        target:               test.building(entry.other()),
+        stop_at_interior_pos: Vec3::ZERO,
+    });
+    test.app.update();
+
+    test.assert_desired(
+        vehicle,
+        vehicle::propulsion::Desired::Rail { speed_from_alpha: entry.negate_if_beta(expect_speed) },
+    );
+}
 
 #[test]
 fn rule_d_rail_to_building_alpha() {}

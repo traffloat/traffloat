@@ -32,6 +32,8 @@ zstd = "0.13.3"
 
 [dev-dependencies]
 criterion = { version = "0.8.2", features = ["html_reports", "csv_output"] }
+paste = "1.0.15"
+typed-builder = "0.23.2"
 
 [[bench]]
 name = "fluid"

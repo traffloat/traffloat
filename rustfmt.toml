@@ -6,3 +6,5 @@ imports_granularity = "Module"
 struct_field_align_threshold = 40
 use_field_init_shorthand = true
 use_small_heuristics = "Max"
+# fn_call_width = 100
+# max_width = 120

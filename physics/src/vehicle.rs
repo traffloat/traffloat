@@ -4,6 +4,7 @@ use std::time::Duration;
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
+use bevy::ecs::event::{EntityEvent, Event};
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::{QueryData, With, Without};
@@ -72,6 +73,8 @@ impl Plugin for Plug {
                 .in_set(view::SendUpdatesSystemSet::Incr)
                 .in_set(view::IncrSystemSets::Vehicle),
         );
+
+        app.add_cleanup_hook(Types::cleanup_hook);
 
         util::configure_enum_system_set::<SystemSets>(app, app::FixedUpdate);
     }
@@ -360,7 +363,8 @@ impl<Ab: EntryMethod> EntityCommand for AttemptLocationTransitionCommand<Ab> {
         if let Some(entry) = self.entry_method.into_proto()
             && let Location::Rail { conduit, .. } = self.new_location
         {
-            if check_rail_entry(entity.world(), entity_id, conduit, entry).is_err() {
+            let result = check_rail_entry(entity.world(), entity_id, conduit, entry);
+            if result.is_err() {
                 return;
             }
         }
@@ -403,8 +407,13 @@ impl<Ab: EntryMethod> EntityCommand for AttemptLocationTransitionCommand<Ab> {
                 });
             }
         }
+
+        world.entity_mut(entity_id).trigger(LocationTransitionEvent);
     }
 }
+
+#[derive(Debug, Clone, Copy, EntityEvent)]
+pub struct LocationTransitionEvent(pub Entity);
 
 pub trait EntryMethod: Copy + Send + Sync + 'static {
     fn into_proto(self) -> Option<AlphaOrBeta>;
@@ -443,7 +452,7 @@ fn check_rail_entry(
     let Some(reserved) = reserved.inner else { return Ok(()) };
     if reserved.direction != rail::ReservedDirection::from_entry(entry) {
         tracing::warn!(
-            "Vehicle {vehicle:?} attepmts to enter conduit {conduit:?} exit point {entry:?}"
+            "Vehicle {vehicle:?} attempts to enter conduit {conduit:?} exit point {entry:?}"
         );
         return Err(RailEntryCheck::WrongDirection);
     }
@@ -555,6 +564,9 @@ fn enter_rail<Ab: EntryMethod>(
     match reservation.inner {
         None => {
             let Some(entry_endpoint) = entry_method.into_proto() else {
+                // When a valid savefile is loaded with a vehicle on it,
+                // the rail must have been reserved by this vehicle.
+                // This branch implies that the savefile is invalid.
                 tracing::error!(
                     "Random rail entry is only allowed on reserved rails during savefile load"
                 );

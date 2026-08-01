@@ -1,5 +1,5 @@
 //! This module handles high-level vehicle motion in and between buildings and rails.
-//! determining whether to accelerate or deceelerate based on vehicle motion rules.
+//! determining whether to accelerate or decelerate based on vehicle motion rules.
 //!
 //! In particular, this module is responsible for controlling braking
 //! with the primary purpose to avoid collision.
@@ -45,19 +45,21 @@ pub enum Intent {
     /// No defined intent, just stop and await decision.
     /// Happens when the vehicle has no capable driver.
     #[default]
-    None,
+    Stationary,
     /// Stop at a specific position inside a building.
     /// The vehicle must be currently in the building
     /// or in an adjacent rail heading towards the building.
-    Building {
+    BuildingStop {
         /// The building to stop at.
         target:               Entity,
         /// The position inside the building to stop at.
         stop_at_interior_pos: Vec3,
     },
     /// Move towards a target rail.
-    Rail {
-        /// The rail to move towards.
+    ///
+    /// This intent must be immediately invalidated upon entering the target rail.
+    EnterRail {
+        /// The other rail to move towards.
         /// This should not be the rail the vehicle is currently on;
         /// if it is, the intent is interpreted as
         /// moving to `through_building` then bouncing back.
@@ -71,6 +73,7 @@ pub enum Intent {
         /// and the target rail must be adjacent to this building.
         through_building: Entity,
     },
+    // TODO support moving to end of rail for construction vehicles to construct building?
 }
 
 #[derive(SystemParam)]
@@ -83,7 +86,7 @@ struct ControlVehicleParams<'w, 's> {
     edge_corridor_query_beta:  Query<'w, 's, &'static edge::OfCorridor<Beta>>,
     building_query_alpha:      Query<'w, 's, &'static edge::BuildingEdges<Alpha>>,
     building_query_beta:       Query<'w, 's, &'static edge::BuildingEdges<Beta>>,
-    vehicle_location_query:    Query<'w, 's, &'static Location>,
+    vehicle_query:             Query<'w, 's, (&'static Vehicle, &'static Location)>,
     types:                     Res<'w, super::Types>,
     config:                    Res<'w, super::Conf>,
 }
@@ -130,10 +133,10 @@ fn control_once(
     dt: f32,
 ) -> propulsion::Desired {
     match (*data.location, *data.intent) {
-        (_, Intent::None) => propulsion::Desired::Stationary,
+        (_, Intent::Stationary) => propulsion::Desired::Stationary,
         (
             Location::Building { building, .. },
-            Intent::Building { target, stop_at_interior_pos },
+            Intent::BuildingStop { target, stop_at_interior_pos },
         ) => {
             if building == target {
                 propulsion::Desired::Building { interior_pos: stop_at_interior_pos }
@@ -152,7 +155,7 @@ fn control_once(
                 distance_from_alpha: displace,
                 speed_from_alpha: current_speed,
             },
-            Intent::Rail { target_rail: next, through_building: thru },
+            Intent::EnterRail { target_rail: next, through_building: thru },
         ) => {
             // move from `curr` to `next` through `thru`,
             // check if inertial motion is possible through `thru` to `next`,
@@ -181,7 +184,7 @@ fn control_once(
                 distance_from_alpha: displace,
                 speed_from_alpha: current_speed,
             },
-            Intent::Building { target: building, .. },
+            Intent::BuildingStop { target: building, .. },
         ) => {
             // move from `conduit` and slow down to std drifting speed before reaching `target`,
             // transitioning if the building is within the current speed interval within `dt`
@@ -201,7 +204,7 @@ fn control_once(
         }
         (
             Location::Building { building, interior_pos: current_interior_pos, .. },
-            Intent::Rail { target_rail: rail, through_building: thru },
+            Intent::EnterRail { target_rail: rail, through_building: thru },
         ) => {
             // move towards the edge location for `rail`,
             // transitioning if the edge is within the std drifting sphere within `dt`
@@ -390,6 +393,7 @@ fn control_on_rail(
             value,
         ),
         None => Some(control_on_rail_with_exit_stop(
+            params,
             def,
             corridor.corridor,
             conduit.rail,
@@ -407,8 +411,8 @@ fn control_on_rail_with_vehicle_stop(
     exit_endpoint: AlphaOrBeta,
     next_entity: Entity,
 ) -> Option<propulsion::Desired> {
-    let &Location::Rail { distance_from_alpha: next_displace, .. } =
-        params.vehicle_location_query.log_get(next_entity)?
+    let (next_vehicle_data, &Location::Rail { distance_from_alpha: next_displace, .. }) =
+        params.vehicle_query.log_get(next_entity)?
     else {
         tracing::warn!(
             "rail conduit owning vehicle {:?} must have next vehicle {:?} on the same rail",
@@ -417,7 +421,10 @@ fn control_on_rail_with_vehicle_stop(
         );
         return None;
     };
-    let padding = def.physical.length * 0.5 + params.config.safety_headroom;
+    let next_length = params.types.get(next_vehicle_data.ty).physical.length;
+
+    let padding = (next_length + def.physical.length) * 0.5 + params.config.safety_headroom;
+
     let distance = match exit_endpoint {
         AlphaOrBeta::Alpha => (args.displace - next_displace) - padding,
         AlphaOrBeta::Beta => (next_displace - args.displace) - padding,
@@ -430,10 +437,12 @@ fn control_on_rail_with_vehicle_stop(
         exit_endpoint,
         distance,
         params.config.reaction_time.as_secs_f32(),
+        0.0, // full stop due to vehicle ahead
     ))
 }
 
 fn control_on_rail_with_exit_stop(
+    params: &ControlVehicleParams,
     def: &TypeDef,
     corridor: &Corridor,
     rail: &Rail,
@@ -446,7 +455,15 @@ fn control_on_rail_with_exit_stop(
     };
 
     let distance = distance_from_exit + def.physical.length * 0.5;
-    control_on_rail_with_stop(def, args.vehicle, rail, exit_endpoint, distance, 0.0)
+    control_on_rail_with_stop(
+        def,
+        args.vehicle,
+        rail,
+        exit_endpoint,
+        distance,
+        0.0,
+        params.config.standard_drifting_speed,
+    )
 }
 
 fn control_on_rail_with_stop(
@@ -456,11 +473,17 @@ fn control_on_rail_with_stop(
     exit_endpoint: AlphaOrBeta,
     safety_distance: f32,
     reaction_time: f32,
+    terminal_speed: f32,
 ) -> propulsion::Desired {
-    let max_speed =
-        max_stoppable_speed(safety_distance, def.motion.max_braking / vehicle.mass, reaction_time)
-            .min(def.motion.max_speed)
-            .min(rail.max_speed);
+    let max_speed = max_stoppable_speed(
+        safety_distance,
+        def.motion.max_braking / vehicle.mass,
+        reaction_time,
+        terminal_speed,
+    )
+    .min(def.motion.max_speed)
+    .min(rail.max_speed)
+    .max(0.0);
 
     propulsion::Desired::Rail {
         speed_from_alpha: match exit_endpoint {
@@ -480,11 +503,20 @@ fn identify_endpoint<Ab: Which>(
     if of_building.building == building { Some(Ab::default().proto()) } else { None }
 }
 
-fn max_stoppable_speed(distance: f32, braking: f32, reaction_time: f32) -> f32 {
-    // s >= v^2 / (2*a) + v*t
-    // => v <= sqrt(a^2 * t^2 + 2*a*s) / a
+fn max_stoppable_speed(
+    distance: f32,
+    braking: f32,
+    reaction_time: f32,
+    terminal_speed: f32,
+) -> f32 {
+    // distance before reaction: s1 = u*t
+    // distance after reaction: v^2 = u^2 - 2*a*s2 => s2 = (u^2 - v^2) / (2*a)
+    // s := s1 + s2 = u*t + (u^2 - v^2) / (2*a)
+    // => (1/(2*a)) * u^2 + t * u + (-v^2)/(2*a) - s = 0
+    // => u = sqrt((a*t)^2 + 2*a*s + v^2) - a*t
 
-    ((braking * reaction_time).powi(2) + 2.0 * braking * distance).sqrt() / braking
+    ((braking * reaction_time).powi(2) + 2.0 * braking * distance + terminal_speed.powi(2)).sqrt()
+        - braking * reaction_time
 }
 
 #[cfg(test)]
