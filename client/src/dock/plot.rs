@@ -1,16 +1,14 @@
 use std::time::Duration;
-use std::{iter, mem};
 
 use bevy::app::{App, Plugin};
 use bevy::ecs::entity::Entity;
 use bevy::ecs::system::{Query, Res, SystemParam};
 use bevy::time::{self, Time};
-use egui_plot::{PlotBounds, PlotPoints};
-use itertools::Itertools;
+use egui_plot::PlotPoints;
 use traffloat_proto::proto;
 
 use crate::dock;
-use crate::scene::{building, conduit, corridor, facility, resident};
+use crate::scene::{building, conduit, corridor, facility, resident, vehicle};
 use crate::util::new_id;
 
 pub struct Plug;
@@ -57,6 +55,7 @@ pub struct BeforeRenderSystemParam<'w, 's> {
     facility_query: Query<'w, 's, &'static facility::Info>,
     conduit_query:  Query<'w, 's, &'static conduit::Info>,
     resident_query: Query<'w, 's, &'static resident::Info>,
+    vehicle_query:  Query<'w, 's, &'static vehicle::Info>,
 }
 
 impl dock::Tab for Tab {
@@ -186,6 +185,7 @@ pub enum Target {
     ReactorEfficiency { facility: Entity },
     PipeStorage { conduit: Entity, metric: FluidMetric },
     ResidentAttr { resident: Entity, ty: usize },
+    VehicleCompartmentFluid { vehicle: Entity, compartment: usize, metric: FluidMetric },
 }
 
 impl Target {
@@ -215,6 +215,11 @@ impl Target {
                 let info = param.resident_query.get(resident).ok()?;
                 info.attributes.get(ty).copied().flatten()
             }
+            Self::VehicleCompartmentFluid { vehicle, compartment, metric } => {
+                let info = param.vehicle_query.get(vehicle).ok()?;
+                let compartment_info = info.compartments.get(compartment)?;
+                metric.resolve(compartment_info.fluid.as_ref()?)
+            }
         }
     }
 
@@ -226,6 +231,7 @@ impl Target {
             Self::ReactorEfficiency { facility } => Some(facility),
             Self::PipeStorage { conduit, .. } => Some(conduit),
             Self::ResidentAttr { resident, .. } => Some(resident),
+            Self::VehicleCompartmentFluid { vehicle, .. } => Some(vehicle),
         }
     }
 }

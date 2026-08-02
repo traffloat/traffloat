@@ -4,6 +4,7 @@
 //! Components:
 //! - [`graph::Building`]
 //! - [`fluid::Storage`] (for ambient storage)
+//! - [`view::Viewable`]
 //!
 //! Parent of:
 //! - Facility.
@@ -13,6 +14,7 @@
 //! Components:
 //! - [`graph::Facility`]
 //! - [`graph::FacilityType`]
+//! - [`view::Viewable`]
 //! - By facility type:
 //!   - [`fluid::Storage`]
 //!   - [`reactor::Facility`]
@@ -26,6 +28,7 @@
 //! Components:
 //! - [`graph::Corridor`]
 //! - [`fluid::Storage`] (for ambient storage)
+//! - [`view::Viewable`]
 //!
 //! Parent of:
 //! - Conduit.
@@ -48,22 +51,15 @@
 //! - A fluid conduit in an adjacent corridor
 //!
 //! Components:
+//! - [`fluid::Edge`]
 //! - [`graph::connection::Connection`]
 //! - [`graph::connection::MainFacility`] (the "main" source facility)
 //! - Depending on the peer type,
 //!   - [`graph::connection::ToBuilding`], referencing the parent building entity
 //!   - [`graph::connection::AltFacility`], referencing the peer facility entity
 //!   - [`graph::connection::ToPipe`], referencing the adjacent conduit entity
-//!
-//! # Conduit
-//! Components:
-//! - [`graph::Conduit`]
-//! - Fluid conduits:
-//!   - [`fluid::Storage`]
-//!   - [`fluid::Sensor`]
-//!
-//! Child of:
-//! - Corridor
+//! - [`fluid::EdgeAlpha`], referencing the main facility
+//! - [`fluid::EdgeBeta`], referencing the peer storage
 //!
 //! # Facility Type
 //! Components:
@@ -72,17 +68,63 @@
 //! Parent of:
 //! - Facility
 //!
-//! # Fluid edges
+//! # Conduit
 //! Components:
-//! - [`fluid::Edge`]
-//! - [`fluid::EdgeAlpha`]
-//! - [`fluid::EdgeBeta`]
+//! - [`graph::Conduit`]
+//! - [`view::Viewable`]
+//! - Fluid conduits:
+//!   - [`fluid::Storage`]
+//!   - [`fluid::Sensor`]
+//! - Rails:
+//!   - [`vehicle::Rail`]
+//!
+//! Child of:
+//! - Corridor
 //!
 //! # Resident
 //! Components:
 //! - [`resident::Resident`]
 //! - [`resident::Location`]
 //! - [`resident::InteractingWith`], if interacting with a facility
+//! - [`vehicle::PassengerOfCompartment`], if riding in a vehicle
+//! - [`vehicle::OperatorOf`], if operating a vehicle
+//! - [`view::Viewable`]
+//!
+//! # Vehicle
+//! Components:
+//! - [`vehicle::Vehicle`]
+//! - [`vehicle::Location`]
+//! - [`vehicle::OperatorList`]
+//! - [`view::Viewable`]
+//! - [`vehicle::propulsion::Desired`]
+//! - [`vehicle::propulsion::Status`]
+//!
+//! Parent of:
+//! - Vehicle compartment
+//!
+//! # Vehicle compartment
+//! Components:
+//! - [`vehicle::CompartmentOf`]
+//! - [`vehicle::CompartmentPassengerList`]
+//! - [`fluid::Storage`]
+//! - [`fluid::Sensor`]
+//!
+//! Child of:
+//! - Vehicle
+//!
+//! Parent of:
+//! - Vehicle compartment vent
+//!
+//! # Vehicle compartment vent
+//! - [`fluid::Edge`]
+//! - [`fluid::EdgeAlpha`], referencing the compartment
+//! - [`fluid::EdgeBeta`], referencing the building/corridor ambient storage
+//!
+//! Child of:
+//! - Vehicle compartment
+//!
+//! Note: every time the vehicle moves to a new fixture,
+//! the vent entities are despawned and recreated.
 //!
 //! # Viewer
 //! Components:

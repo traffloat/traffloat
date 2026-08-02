@@ -133,12 +133,19 @@ pub trait Which:
     fn select_ref<T>(self, ab: &AlphaBeta<T>) -> &T;
     fn select_mut<T>(self, ab: &mut AlphaBeta<T>) -> &mut T;
 
+    fn select_with<T>(self, alpha: T, beta: T) -> T { self.select(AlphaBeta { alpha, beta }) }
+    fn negate_if_beta<T: Copy + ops::Neg<Output = T>>(self, value: T) -> T {
+        self.select_with(value, -value)
+    }
+
+    fn select_lazy<T>(self, alpha: impl FnOnce() -> T, beta: impl FnOnce() -> T) -> T;
+
     fn proto(self) -> proto::AlphaOrBeta;
 }
 
 macro_rules! define_which {
     (
-        $ident:ident, $field:ident, $variant:ident, $other:ident, $get:ident
+        $ident:ident, $field:ident, $variant:ident, $other:ident, $param:ident, $alpha:ident, $beta:ident
     ) => {
         #[derive(Default, Clone, Copy, Reflect)]
         pub struct $ident;
@@ -150,10 +157,14 @@ macro_rules! define_which {
             fn select_ref<T>(self, ab: &AlphaBeta<T>) -> &T { &ab.$field }
             fn select_mut<T>(self, ab: &mut AlphaBeta<T>) -> &mut T { &mut ab.$field }
 
+            fn select_lazy<T>(self, $alpha: impl FnOnce() -> T, $beta: impl FnOnce() -> T) -> T {
+                $param()
+            }
+
             fn proto(self) -> proto::AlphaOrBeta { proto::AlphaOrBeta::$variant }
         }
     };
 }
 
-define_which!(Alpha, alpha, Alpha, Beta, alpha);
-define_which!(Beta, beta, Beta, Alpha, beta);
+define_which!(Alpha, alpha, Alpha, Beta, alpha, alpha, _beta);
+define_which!(Beta, beta, Beta, Alpha, beta, _alpha, beta);

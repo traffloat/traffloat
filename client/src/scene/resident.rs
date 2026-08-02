@@ -145,7 +145,7 @@ impl LocationResolver<'_, '_> {
                 let entity = self.ids.get_building(building)?;
                 let building_info = self.building_query.log_get(entity)?;
                 let position = building_info.position + interior_pos.xy();
-                (Location::Building(entity), position, speed.xy())
+                (Location::Building(entity), Some(position), speed.xy())
             }
             proto::ResidentLocation::Corridor { corridor, linear_pos, speed } => {
                 let entity = self.ids.get_corridor(corridor)?;
@@ -153,19 +153,42 @@ impl LocationResolver<'_, '_> {
                 let endpoints = corridor_info.endpoint_positions;
                 let atob = endpoints.atob().normalize_or_zero();
                 let position = endpoints.alpha + atob * linear_pos;
-                (Location::Corridor(entity), position, atob * speed)
+                (Location::Corridor(entity), Some(position), atob * speed)
             }
             proto::ResidentLocation::Facility { facility, ref slot_name } => {
                 let entity = self.ids.get_facility(facility)?;
                 let transform = self.facility_query.log_get(entity)?;
                 (
                     Location::Facility { facility: entity, slot_name: slot_name.clone() },
-                    transform.translation().xy(),
+                    Some(transform.translation().xy()),
+                    Vec2::ZERO,
+                )
+            }
+            proto::ResidentLocation::Vehicle { vehicle, compartment, operator_slot } => {
+                let entity = self.ids.get_vehicle(vehicle)?;
+                (
+                    Location::Vehicle {
+                        entity,
+                        compartment: usize::try_from(compartment).expect("usize >= u32"),
+                        operator_slot: operator_slot
+                            .map(|s| usize::try_from(s).expect("usize >= u32")),
+                    },
+                    None,
                     Vec2::ZERO,
                 )
             }
         };
-        Some((location, DynamicPosition { epoch_position, epoch_time: self.time.elapsed(), speed }))
+        Some((
+            location,
+            match epoch_position {
+                None => DynamicPosition::Hidden,
+                Some(epoch_position) => DynamicPosition::Extrapolate {
+                    epoch_position,
+                    epoch_time: self.time.elapsed(),
+                    speed,
+                },
+            },
+        ))
     }
 }
 
@@ -255,19 +278,29 @@ pub enum Location {
     Building(Entity),
     Corridor(Entity),
     Facility { facility: Entity, slot_name: String },
+    Vehicle { entity: Entity, compartment: usize, operator_slot: Option<usize> },
 }
 
 #[derive(Component, Default, Reflect)]
-pub struct DynamicPosition {
-    epoch_position: Vec2,
-    epoch_time:     Duration,
-    speed:          Vec2,
+enum DynamicPosition {
+    Extrapolate {
+        epoch_position: Vec2,
+        epoch_time:     Duration,
+        speed:          Vec2,
+    },
+    #[default]
+    Hidden,
 }
 
 impl DynamicPosition {
-    fn extrapolate(&self, elapsed: Duration) -> Vec2 {
-        let dt = elapsed.checked_sub(self.epoch_time).unwrap_or_default();
-        self.epoch_position + self.speed * dt.as_secs_f32()
+    fn extrapolate(&self, elapsed: Duration) -> Option<Vec2> {
+        match *self {
+            Self::Extrapolate { epoch_position, epoch_time, speed } => {
+                let dt = elapsed.checked_sub(epoch_time).unwrap_or_default();
+                Some(epoch_position + speed * dt.as_secs_f32())
+            }
+            Self::Hidden => None,
+        }
     }
 }
 
@@ -277,13 +310,23 @@ fn update_dynamic_position_system(
     resident_query: Query<(&mut Transform, &Info, &DynamicPosition)>,
 ) {
     for (mut transform, info, dynamic_position) in resident_query {
-        let pos = dynamic_position.extrapolate(time.elapsed());
-        transform.translation = pos.extend(Zorder::Resident.z());
+        match dynamic_position.extrapolate(time.elapsed()) {
+            None => {
+                transform.translation.z = 2.0; // out of culling region
+                transform.scale = Vec3::ZERO;
+            }
+            Some(pos) => {
+                transform.translation = pos.extend(Zorder::Resident.z());
 
-        if let Some(size_type) = types.size_type
-            && let Some(&Some(size)) = info.attributes.get(size_type)
-        {
-            transform.scale = Vec3::new(size, size, 1.0);
+                let size = if let Some(size_type) = types.size_type
+                    && let Some(&Some(size)) = info.attributes.get(size_type)
+                {
+                    size
+                } else {
+                    1.0
+                };
+                transform.scale = Vec3::new(size, size, 1.0);
+            }
         }
     }
 }

@@ -21,6 +21,7 @@ pub mod graph;
 pub mod reaction;
 pub mod reactor;
 pub mod resident;
+pub mod vehicle;
 
 // Domain-aware modules
 pub mod generate;
@@ -32,14 +33,13 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CleanupHooks>();
-        app.add_cleanup_hook(WorldObject::cleanup_hook);
-
+        app.add_plugins(cleanup::Plug);
         app.add_plugins(persist::Plug);
         app.add_plugins(view::Plug);
         app.add_plugins(graph::Plug);
         app.add_plugins(fluid::Plug);
         app.add_plugins(resident::Plug);
+        app.add_plugins(vehicle::Plug);
         app.add_plugins(reactor::Plug);
         app.add_plugins(request::Plug);
     }

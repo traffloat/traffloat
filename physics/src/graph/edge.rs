@@ -27,6 +27,7 @@ use bevy::ecs::query::{Changed, QueryFilter};
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
 use bevy::ecs::world::{EntityWorldMut, World};
+use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 
@@ -79,7 +80,13 @@ pub struct Edge {
 /// Component on edge referencing building.
 #[derive(Component, Reflect)]
 #[relationship(relationship_target = BuildingEdges<Ab>)]
-pub struct OfBuilding<Ab: Which>(#[relationship] pub Entity, Ab);
+pub struct OfBuilding<Ab: Which> {
+    #[relationship]
+    pub building:     Entity,
+    /// Position of the edge relative to the building center.
+    pub interior_pos: Vec3,
+    which:            Ab,
+}
 
 /// Component on building listing edges.
 #[derive(Component, Reflect)]
@@ -111,10 +118,19 @@ impl<Ab: Which> EntityCommand for SpawnCommand<Ab> {
     type Out = ();
 
     fn apply(self, mut entity: EntityWorldMut) {
+        let Some(building) = entity.world().log_get::<Building>(self.building) else { return };
+        let Some(endpoint_pos) = entity
+            .world()
+            .log_get::<Corridor>(self.corridor)
+            .map(|c| self.which.select(c.endpoint_positions))
+        else {
+            return;
+        };
+        let interior_pos = (endpoint_pos - building.position).extend(0.0);
         entity.insert((
             Name::new(format!("Edge {:?} -> {:?}", self.building, self.corridor)),
             Edge { open: self.open },
-            OfBuilding(self.building, self.which),
+            OfBuilding { building: self.building, interior_pos, which: self.which },
             OfCorridor(self.corridor, self.which),
         ));
 
@@ -169,10 +185,10 @@ fn broadcast_edge_change_system<Ab: Which, Chg: BroadcastChange>(
         let Some((corridor_viewable, opposite_edge)) = corridor_query.log_get(corridor.0) else {
             continue;
         };
-        let Some(building_viewable) = building_query.log_get(building.0) else { continue };
+        let Some(building_viewable) = building_query.log_get(building.building) else { continue };
         let opposite_building_viewable = opposite_edge
             .and_then(|opposite| opposite_edge_query.log_get(opposite.0))
-            .and_then(|opposite_building| building_query.log_get(opposite_building.0));
+            .and_then(|opposite_building| building_query.log_get(opposite_building.building));
         writer.write_batch(view::Viewable::broadcast_update_if_all_optical_and_any_detail(
             [building_viewable, corridor_viewable].into_iter().chain(opposite_building_viewable),
             |level| match level {
@@ -200,7 +216,9 @@ impl EntityCommand for DespawnCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         fn cleanup<Ab: Which>(which: Ab, entity: &mut EntityWorldMut) {
-            let Some(&OfBuilding::<Ab>(building_entity, ..)) = entity.get() else { return };
+            let Some(&OfBuilding::<Ab> { building: building_entity, .. }) = entity.get() else {
+                return;
+            };
             let Some(&OfCorridor::<Ab>(corridor_entity, ..)) = entity.log_get() else { return };
 
             entity.world_scope(|world| {

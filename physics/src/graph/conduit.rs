@@ -16,7 +16,7 @@ use traffloat_proto::proto;
 use crate::graph::{Corridor, ViewInitSystemSets, corridor};
 use crate::persist::AppExt;
 use crate::util::{QueryExt, WorldExt};
-use crate::{fluid, view};
+use crate::{fluid, vehicle, view};
 
 mod persist;
 pub use persist::Persist;
@@ -64,8 +64,8 @@ pub struct OfCorridor(pub Entity);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Reflect)]
 pub enum ConduitType {
     FluidPipe,
+    VehicleRail,
     // PowerCable,
-    // VehicleRail,
 }
 
 pub struct SpawnCommand {
@@ -77,6 +77,10 @@ pub struct SpawnCommand {
 
 pub enum TypedSpawn {
     FluidPipe,
+    VehicleRail {
+        rail:         vehicle::Rail,
+        reserved_dir: Option<vehicle::rail::ReservedDirection>,
+    },
 }
 
 impl EntityCommand for SpawnCommand {
@@ -95,6 +99,7 @@ impl EntityCommand for SpawnCommand {
                 radius: self.radius,
                 ty:     match self.typed {
                     TypedSpawn::FluidPipe => ConduitType::FluidPipe,
+                    TypedSpawn::VehicleRail { .. } => ConduitType::VehicleRail,
                 },
             },
             OfCorridor(self.corridor),
@@ -114,6 +119,9 @@ impl EntityCommand for SpawnCommand {
                     optical_length: self.radius,
                 }
                 .apply(entity);
+            }),
+            TypedSpawn::VehicleRail { rail, reserved_dir } => entity.reborrow_scope(|entity| {
+                vehicle::rail::SpawnCommand { rail, reserved_dir }.apply(entity);
             }),
         }
     }
@@ -144,6 +152,7 @@ fn init_viewer_system(
                 radius:   conduit.radius,
                 ty:       match conduit.ty {
                     ConduitType::FluidPipe => proto::ConduitType::FluidPipe,
+                    ConduitType::VehicleRail => proto::ConduitType::VehicleRail,
                 },
             }))
         }));

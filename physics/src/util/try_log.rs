@@ -75,7 +75,6 @@ where
     D: IterQueryData,
     F: QueryFilter,
 {
-    #[track_caller]
     fn log_get(&self, entity: Entity) -> Option<<D::ReadOnly as QueryData>::Item<'_, 's>> {
         match self.get(entity) {
             Ok(value) => Some(value),
@@ -86,7 +85,6 @@ where
         }
     }
 
-    #[track_caller]
     fn log_get_many<const N: usize>(
         &self,
         entity: [Entity; N],
@@ -100,7 +98,6 @@ where
         }
     }
 
-    #[track_caller]
     fn log_get_mut(&mut self, entity: Entity) -> Option<D::Item<'_, 's>> {
         match self.get_mut(entity) {
             Ok(value) => Some(value),
@@ -111,7 +108,6 @@ where
         }
     }
 
-    #[track_caller]
     fn log_get_many_mut<const N: usize>(
         &mut self,
         entity: [Entity; N],
@@ -136,7 +132,6 @@ pub trait WorldExt {
 }
 
 impl WorldExt for World {
-    #[track_caller]
     fn log_get<T: Component>(&self, entity: Entity) -> Option<&T> {
         if let Some(value) = self.get::<T>(entity) {
             Some(value)
@@ -146,7 +141,6 @@ impl WorldExt for World {
         }
     }
 
-    #[track_caller]
     fn log_get_mut<T: Component<Mutability = Mutable>>(
         &mut self,
         entity: Entity,
@@ -165,7 +159,6 @@ pub trait EntityRefExt {
 }
 
 impl EntityRefExt for EntityRef<'_> {
-    #[track_caller]
     fn log_get<T: Component>(&self) -> Option<&T> {
         if let Some(value) = self.get::<T>() {
             Some(value)
@@ -183,7 +176,6 @@ pub trait EntityWorldMutExt {
 }
 
 impl EntityWorldMutExt for EntityWorldMut<'_> {
-    #[track_caller]
     fn log_get<T: Component>(&self) -> Option<&T> {
         if let Some(value) = self.get::<T>() {
             Some(value)
@@ -193,7 +185,6 @@ impl EntityWorldMutExt for EntityWorldMut<'_> {
         }
     }
 
-    #[track_caller]
     fn log_get_mut<T: Component<Mutability = Mutable>>(&mut self) -> Option<Mut<'_, T>> {
         let id = self.id(); // polonius does not like this being in the match arm
         if let Some(value) = self.get_mut::<T>() {
@@ -207,11 +198,11 @@ impl EntityWorldMutExt for EntityWorldMut<'_> {
 
 pub trait SliceGet<T> {
     fn log_get(&self, index: usize) -> Option<&T>;
+
     fn log_get_mut(&mut self, index: usize) -> Option<&mut T>;
 }
 
 impl<T> SliceGet<T> for [T] {
-    #[track_caller]
     fn log_get(&self, index: usize) -> Option<&T> {
         if let Some(value) = self.get(index) {
             Some(value)
@@ -221,7 +212,6 @@ impl<T> SliceGet<T> for [T] {
         }
     }
 
-    #[track_caller]
     fn log_get_mut(&mut self, index: usize) -> Option<&mut T> {
         let len = self.len(); // polonius
         if let Some(value) = self.get_mut(index) {
@@ -229,6 +219,34 @@ impl<T> SliceGet<T> for [T] {
         } else {
             tracing::error!("Reference to index {index} in slice of length {}", len);
             None
+        }
+    }
+}
+
+pub trait InspectLog<T> {
+    #[must_use]
+    fn inspect_log(self, must: impl fmt::Display) -> Self;
+}
+
+impl<T> InspectLog<T> for Option<T> {
+    fn inspect_log(self, must: impl fmt::Display) -> Self {
+        if let Some(value) = self {
+            Some(value)
+        } else {
+            tracing::error!("{must}");
+            None
+        }
+    }
+}
+
+impl<T, E: fmt::Display> InspectLog<T> for Result<T, E> {
+    fn inspect_log(self, must: impl fmt::Display) -> Self {
+        match self {
+            Ok(value) => Ok(value),
+            Err(err) => {
+                tracing::error!("{must}: {err}");
+                Err(err)
+            }
         }
     }
 }

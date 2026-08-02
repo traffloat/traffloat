@@ -16,6 +16,7 @@ mod conduit;
 mod corridor;
 mod facility;
 mod resident;
+mod vehicle;
 
 pub struct Plug;
 
@@ -40,6 +41,7 @@ impl dock::Tab for Tab {
             ViewableKind::Facility => format!("Facility: {}", viewable.name),
             ViewableKind::Conduit => format!("Conduit: {}", viewable.name),
             ViewableKind::Resident => format!("Resident: {}", viewable.name),
+            ViewableKind::Vehicle => format!("Vehicle: {}", viewable.name),
         }
     }
 
@@ -69,11 +71,13 @@ impl dock::Tab for Tab {
                 ViewableKind::Facility => "Facility:",
                 ViewableKind::Conduit => match generic.conduit_query.log_get(self.entity) {
                     Some(info) => match info.ty {
-                        proto::ConduitType::FluidPipe => "Fluid pipe:",
+                        proto::ConduitType::FluidPipe => "Pipe:",
+                        proto::ConduitType::VehicleRail => "Rail:",
                     },
                     None => "Invalid conduit:",
                 },
                 ViewableKind::Resident => "Resident:",
+                ViewableKind::Vehicle => "Vehicle:",
             });
             match self.ui_state.name_edit {
                 None => {
@@ -132,6 +136,10 @@ impl dock::Tab for Tab {
                 let mut param = param.ps.p5();
                 param.ui(self.entity, ui, dock);
             }
+            ViewableKind::Vehicle => {
+                let mut param = param.ps.p6();
+                param.ui(self.entity, ui, dock);
+            }
         }
     }
 
@@ -151,6 +159,7 @@ pub struct UiSystemParam<'w, 's> {
             facility::UiSystemParam<'w, 's>,
             conduit::UiSystemParam<'w, 's>,
             resident::UiSystemParam<'w, 's>,
+            vehicle::UiSystemParam<'w, 's>,
         ),
     >,
 }
@@ -197,13 +206,13 @@ impl Command for OpenCommand {
 fn show_fluid(
     ui: &mut egui::Ui,
     commands: &mut Commands,
-    ambient_fluid: &proto::FluidStorageDetail,
+    fluid: &proto::FluidStorageDetail,
     types: &FluidTypes,
     make_name: impl Fn(&str) -> String,
     make_plot_target: impl Fn(plot::FluidMetric) -> plot::Target,
 ) {
-    ui.label(format!("Volume: {:.2}", ambient_fluid.volume));
-    if let Some(pressure) = ambient_fluid.pressure {
+    ui.label(format!("Volume: {:.2}", fluid.volume));
+    if let Some(pressure) = fluid.pressure {
         ui.horizontal(|ui| {
             ui.label(format!("Pressure: {pressure:.2}"));
             ui.push_id(new_id!(), |ui| {
@@ -216,7 +225,7 @@ fn show_fluid(
             });
         });
     }
-    if let Some(temperature) = ambient_fluid.temperature {
+    if let Some(temperature) = fluid.temperature {
         ui.horizontal(|ui| {
             ui.label(format!("Temperature: {temperature:.2} K"));
             ui.push_id(new_id!(), |ui| {
@@ -230,7 +239,7 @@ fn show_fluid(
         });
     }
 
-    if let Some(data) = &ambient_fluid.types {
+    if let Some(data) = &fluid.types {
         egui::CollapsingHeader::new("Composition").id_salt(new_id!()).show(ui, |ui| {
             for (ty, &moles) in data.iter().enumerate() {
                 ui.push_id(new_id!(ty), |ui| {
@@ -238,7 +247,7 @@ fn show_fluid(
                         let ty_name = types.0.get(ty).map_or("???", |ty| &ty.name);
                         ui.label(format!(
                             "{ty_name}: {moles:.2} mol ({} mol/m\u{b3})",
-                            moles / ambient_fluid.volume,
+                            moles / fluid.volume,
                         ));
                         show_graph_button(
                             ui,

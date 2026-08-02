@@ -4,7 +4,7 @@
 
 ### Usage
 
-LLM usage must not exceed the purposes described in [llm-disclosure](llm-disclosure.md).
+LLM usage must not exceed the purposes described in [AI\_POLICY.md](AI_POLICY.md).
 If you are contributing code and use it for a purpose not described in the file,
 you must update the file to include the new usage in the same pull request.
 
@@ -72,6 +72,8 @@ cargo test --all
   nor to import the re-exports from `bevy::prelude` if a direct import is possible.
 - Unit tests should be under a separate tests.rs file
   and included from the parent with `#[cfg(test)] mod tests;`.
+- Regular submodules should follow imports in a file and precede the first item.
+  However, `#[cfg(test) mod tests;` should be the last item in a file.
 - Use `distance_cmp` and `magnitude_cmp` for comparing vector norms.
   Do not use the exact or squared methods for comparisons alone.
 - Use `Vec::from([...])` or `[...].into()` instead of `vec![...]` for Vec literals.

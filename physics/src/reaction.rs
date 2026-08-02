@@ -5,6 +5,7 @@
 //! which can be fit into other plugins involving reactions, including:
 //! - [`crate::reactor`] for facility-scoped reactions
 //! - [`crate::resident::ambient`] for resident-scoped reactions
+//! - [`crate::vehicle`] fuel consumption
 //! <!-- - spontaneous fluid/cargo reactions -->
 
 use bevy::ecs::entity::Entity;
@@ -184,6 +185,8 @@ impl EfficiencyModifierResult {
 
 pub trait ReactionExecutor<P, D> {
     fn execute(&self, efficiency: f32, params: &mut P, data: &mut D);
+
+    fn execute_zero(&self, params: &mut P, data: &mut D) {}
 }
 
 pub trait FluidStorageSelector<P, D> {
@@ -213,11 +216,55 @@ pub trait ResidentSelector<P, D> {
         then: impl FnMut(&mut resident::Attributes, Entity),
     );
 }
+pub fn execute_once<P, D, Input, Catalyst, Output>(
+    params: &mut P,
+    data: &mut D,
+    inputs: &[Input],
+    catalysts: &[Catalyst],
+    outputs: &[Output],
+    efficiency_cap: f32,
+    efficiency_multiplier: f32,
+) -> f32
+where
+    Input: EfficiencyModifier<P, D> + ReactionExecutor<P, D>,
+    Catalyst: EfficiencyModifier<P, D>,
+    Output: ReactionExecutor<P, D>,
+{
+    let mut efficiency =
+        EfficiencyModifierResult { maximum: efficiency_cap, multiplier: efficiency_multiplier };
+
+    for catalyst in catalysts {
+        let modifier = EfficiencyModifier::compute_efficiency(catalyst, params, data);
+        efficiency.merge(modifier);
+    }
+    for input in inputs {
+        let modifier = EfficiencyModifier::compute_efficiency(input, params, data);
+        efficiency.merge(modifier);
+    }
+
+    let efficiency = efficiency.to_scalar();
+    if efficiency > 0.0 {
+        for input in inputs {
+            ReactionExecutor::execute(input, efficiency, params, data);
+        }
+        for output in outputs {
+            ReactionExecutor::execute(output, efficiency, params, data);
+        }
+        efficiency
+    } else {
+        for input in inputs {
+            ReactionExecutor::execute_zero(input, params, data);
+        }
+        for output in outputs {
+            ReactionExecutor::execute_zero(output, params, data);
+        }
+        0.0
+    }
+}
 
 macro_rules! define_ruleset {
     (
         [P = $P:ident, D = $D:ident]
-        $exec_vis:vis fn $exec_fn:ident;
         $(#[$input_meta:meta])* $input_vis:vis input $input:ident
         {
             $(
@@ -240,42 +287,16 @@ macro_rules! define_ruleset {
             ),* $(,)?
         }
     ) => {
-        $exec_vis fn $exec_fn(
-            params: &mut $P,
-            data: &mut $D,
-            inputs: &[ $input ],
-            catalysts: &[ $catalyst ],
-            outputs: &[ $output ],
-            efficiency_cap: f32,
-            efficiency_multiplier: f32,
-        ) -> f32 {
-            let mut efficiency = $crate::reaction::EfficiencyModifierResult { maximum: efficiency_cap, multiplier: efficiency_multiplier };
-
-            for catalyst in catalysts {
-                let modifier = $crate::reaction::EfficiencyModifier::compute_efficiency(catalyst, params, data);
-                efficiency.merge(modifier);
-            }
-            for input in inputs {
-                let modifier = $crate::reaction::EfficiencyModifier::compute_efficiency(input, params, data);
-                efficiency.merge(modifier);
-            }
-
-            let efficiency = efficiency.to_scalar();
-            if efficiency > 0.0 {
-                for input in inputs {
-                    $crate::reaction::ReactionExecutor::execute(input, efficiency, params, data);
-                }
-                for output in outputs {
-                    $crate::reaction::ReactionExecutor::execute(output, efficiency, params, data);
-                }
-                efficiency
-            } else { 0.0 }
-        }
-
         $(#[$input_meta])*
         $input_vis enum $input {
             $($input_variant($input_var_ty),)*
         }
+
+        $(
+            impl From<$input_var_ty> for $input {
+                fn from(from: $input_var_ty) -> Self { Self::$input_variant(from) }
+            }
+        )*
 
         $crate::reaction::define_ruleset!(@impl EfficiencyModifier<$P, $D> for $input { $($input_variant)* });
         $crate::reaction::define_ruleset!(@impl ReactionExecutor<$P, $D> for $input { $($input_variant)* });
@@ -285,12 +306,24 @@ macro_rules! define_ruleset {
             $($catalyst_variant($catalyst_var_ty),)*
         }
 
+        $(
+            impl From<$catalyst_var_ty> for $catalyst {
+                fn from(from: $catalyst_var_ty) -> Self { Self::$catalyst_variant(from) }
+            }
+        )*
+
         $crate::reaction::define_ruleset!(@impl EfficiencyModifier<$P, $D> for $catalyst { $($catalyst_variant)* });
 
         $(#[$output_meta])*
         $output_vis enum $output {
             $($output_variant($output_var_ty),)*
         }
+
+        $(
+            impl From<$output_var_ty> for $output {
+                fn from(from: $output_var_ty) -> Self { Self::$output_variant(from) }
+            }
+        )*
 
         $crate::reaction::define_ruleset!(@impl ReactionExecutor<$P, $D> for $output { $($output_variant)* });
     };
@@ -316,6 +349,16 @@ macro_rules! define_ruleset {
                     $(
                         Self::$variant(inner) => {
                             $crate::reaction::ReactionExecutor::execute(inner, efficiency, params, data)
+                        }
+                    )*
+                }
+            }
+
+            fn execute_zero(&self, params: &mut $P, data: &mut $D) {
+                match self {
+                    $(
+                        Self::$variant(inner) => {
+                            $crate::reaction::ReactionExecutor::execute_zero(inner, params, data)
                         }
                     )*
                 }

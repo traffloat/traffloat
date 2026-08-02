@@ -181,14 +181,14 @@ impl Types {
 }
 
 pub struct AddTypeCommand {
-    pub type_def: TypeDef,
+    pub def: TypeDef,
 }
 
-impl Command for AddTypeCommand {
-    type Out = ();
-    fn apply(self, world: &mut World) {
+impl AddTypeCommand {
+    pub fn run(self, world: &mut World) -> TypeId {
         let mut types = world.resource_mut::<Types>();
-        types.push(self.type_def);
+        let type_id = TypeId(u32::try_from(types.types.len()).expect("too many fluid types"));
+        types.push(self.def);
         let num_types = types.types.len();
 
         for mut storage in world.query::<&mut Storage>().iter_mut(world) {
@@ -203,7 +203,14 @@ impl Command for AddTypeCommand {
                 .collect();
             edge.last_typed_transfer = new_typed;
         }
+
+        type_id
     }
+}
+
+impl Command for AddTypeCommand {
+    type Out = ();
+    fn apply(self, world: &mut World) { self.run(world); }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]

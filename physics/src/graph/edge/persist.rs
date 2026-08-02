@@ -45,7 +45,7 @@ impl Persistable for Persist {
             for data in edge_query {
                 output.push(Entry {
                     id:       ctx.alloc(data.entity),
-                    building: ctx.get_id(data.building.0)?,
+                    building: ctx.get_id(data.building.building)?,
                     corridor: ctx.get_id(data.corridor.0)?,
                     which:    Ab::default().proto(),
                     open:     data.edge.open,

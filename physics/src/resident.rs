@@ -3,10 +3,10 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
-use bevy::ecs::query::{With, Without};
+use bevy::ecs::query::{QueryData, With, Without};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{Command, EntityCommand, Query};
+use bevy::ecs::system::{Command, EntityCommand, Query, SystemParam};
 use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
@@ -14,8 +14,8 @@ use traffloat_proto::proto;
 
 use crate::graph::facility;
 use crate::persist::AppExt;
-use crate::util::{AllSystemSets, QueryExt, SliceGet, run_stateless_closure};
-use crate::{graph, view};
+use crate::util::{QueryExt, SliceGet, run_stateless_closure};
+use crate::{vehicle, view};
 
 pub mod ambient;
 pub mod attr;
@@ -42,14 +42,21 @@ impl Plugin for Plug {
 
         app.add_systems(
             app::Update,
-            update_culling_rect_system.in_set(view::SendUpdatesSystemSet::Cull),
+            update_culling_rect_system
+                .in_set(view::SendUpdatesSystemSet::Cull)
+                .after(vehicle::UpdateCullingRectSystemSet),
         );
-        app.add_systems(app::Update, init_viewer_system.in_set(view::SendUpdatesSystemSet::Init));
+        app.add_systems(
+            app::Update,
+            init_viewer_system
+                .in_set(view::SendUpdatesSystemSet::Init)
+                .in_set(view::InitSystemSets::Resident),
+        );
         app.add_systems(
             app::Update,
             incr_viewer_system
-                .after(AllSystemSets::<graph::ViewIncrSystemSets>::default())
-                .in_set(view::SendUpdatesSystemSet::Incr),
+                .in_set(view::SendUpdatesSystemSet::Incr)
+                .in_set(view::IncrSystemSets::Resident),
         );
     }
 }
@@ -83,7 +90,14 @@ pub enum Location {
         /// `distance_from_alpha` should be approximately between 0 and the corridor's length.
         distance_from_alpha: f32,
     },
-    // TODO vehicle
+    /// The resident is in a vehicle.
+    ///
+    /// Further information is in the [`crate::vehicle::PassengerOfCompartment`]
+    /// and [`crate::vehicle::OperatorOf`] components.
+    Vehicle {
+        /// The compartment entity that the resident is a passenger of.
+        compartment: Entity,
+    },
 }
 
 /// Defines how residents can interact with a facility.
@@ -147,9 +161,24 @@ pub struct SpawnCommand {
 }
 
 pub enum SpawnAt {
-    Building { building: Entity, interior_pos: Vec3 },
-    Corridor { corridor: Entity, distance_from_alpha: f32 },
-    Facility { facility: Entity, slot_index: usize },
+    Building {
+        building:     Entity,
+        interior_pos: Vec3,
+    },
+    Corridor {
+        corridor:            Entity,
+        distance_from_alpha: f32,
+    },
+    Facility {
+        facility:   Entity,
+        slot_index: usize,
+    },
+    Vehicle {
+        vehicle:           Entity,
+        compartment:       Entity,
+        compartment_index: usize,
+        operator_slot:     Option<usize>,
+    },
 }
 
 impl EntityCommand for SpawnCommand {
@@ -182,6 +211,13 @@ impl EntityCommand for SpawnCommand {
                     Location::Facility { entity: facility },
                     InteractingWith { facility, slot_index },
                 ));
+            }
+            SpawnAt::Vehicle { vehicle, compartment, compartment_index, operator_slot } => {
+                entity.insert(Location::Vehicle { compartment });
+                entity.insert(vehicle::PassengerOfCompartment { compartment, compartment_index });
+                if let Some(slot) = operator_slot {
+                    entity.insert(crate::vehicle::OperatorOf { vehicle, slot });
+                }
             }
         }
 
@@ -258,22 +294,16 @@ impl Command for StartInteractCommand {
 }
 
 fn init_viewer_system(
-    resident_query: Query<(
-        &Resident,
-        &Location,
-        Option<&InteractingWith>,
-        &view::Named,
-        &view::Viewable,
-    )>,
-    viewable_query: Query<(&view::Viewable, Option<&InteractionSlots>)>,
+    resident_query: Query<(&Resident, ProtoLocationResidentData, &view::Named, &view::Viewable)>,
+    location_params: ProtoLocationParams,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (resident, location, interact, named, viewable) in resident_query {
+    for (resident, location, named, viewable) in resident_query {
         messages.write_batch(viewable.broadcast_new(|| {
             Some(proto::Update::NewResident(proto::NewResident {
                 id:       viewable.id,
                 name:     named.name.clone(),
-                location: make_proto_location(location, interact, &viewable_query)?,
+                location: make_proto_location(&location, &location_params)?,
             }))
         }));
     }
@@ -281,17 +311,19 @@ fn init_viewer_system(
 
 fn incr_viewer_system(
     mut throttle: view::BroadcastThrottle,
-    resident_query: Query<(&Location, Option<&InteractingWith>, &view::Viewable), With<Resident>>,
-    viewable_query: Query<(&view::Viewable, Option<&InteractionSlots>)>,
+    resident_query: Query<(ProtoLocationResidentData, &view::Viewable), With<Resident>>,
+    location_params: ProtoLocationParams,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
     if !throttle.should_run() {
         return;
     }
 
-    for (location, interact, viewable) in resident_query {
+    // TODO avoid resending if unchanged
+
+    for (location, viewable) in resident_query {
         messages.write_batch(viewable.broadcast_update(|_| {
-            make_proto_location(location, interact, &viewable_query).map(|location| {
+            make_proto_location(&location, &location_params).map(|location| {
                 proto::Update::UpdateResidentLocation(proto::UpdateResidentLocation {
                     id: viewable.id,
                     location,
@@ -301,28 +333,41 @@ fn incr_viewer_system(
     }
 }
 
+#[derive(QueryData)]
+struct ProtoLocationResidentData {
+    location:  &'static Location,
+    interact:  Option<&'static InteractingWith>,
+    passenger: Option<&'static vehicle::PassengerOfCompartment>,
+    operator:  Option<&'static vehicle::OperatorOf>,
+}
+
+#[derive(SystemParam)]
+struct ProtoLocationParams<'w, 's> {
+    viewable_query:    Query<'w, 's, (&'static view::Viewable, Option<&'static InteractionSlots>)>,
+    compartment_query: Query<'w, 's, &'static vehicle::CompartmentOf>,
+}
+
 fn make_proto_location(
-    location: &Location,
-    interact: Option<&InteractingWith>,
-    viewable_query: &Query<(&view::Viewable, Option<&InteractionSlots>)>,
+    data: &ProtoLocationResidentDataItem,
+    params: &ProtoLocationParams<'_, '_>,
 ) -> Option<proto::ResidentLocation> {
-    Some(match *location {
+    Some(match *data.location {
         Location::Building { entity, interior_pos } => proto::ResidentLocation::Building {
-            building: viewable_query.log_get(entity)?.0.id,
+            building: params.viewable_query.log_get(entity)?.0.id,
             interior_pos,
             speed: Vec3::ZERO, // TODO
         },
         Location::Corridor { entity, distance_from_alpha } => proto::ResidentLocation::Corridor {
-            corridor:   viewable_query.log_get(entity)?.0.id,
+            corridor:   params.viewable_query.log_get(entity)?.0.id,
             linear_pos: distance_from_alpha,
             speed:      0.0, // TODO
         },
         Location::Facility { entity } => {
             let interact = try_log!(
-                interact,
+                data.interact,
                 expect "resident in facility should have InteractingWith component" or return None
             );
-            let (facility, slots) = viewable_query.log_get(entity)?;
+            let (facility, slots) = params.viewable_query.log_get(entity)?;
             let slots = try_log!(
                 slots,
                 expect "referenced facility should have InteractionSlots component" or return None
@@ -333,18 +378,39 @@ fn make_proto_location(
                 slot_name: slot.name.clone(),
             }
         }
+        Location::Vehicle { .. } => {
+            let of_cpmt = try_log!(data.passenger, expect "passenger with vehicle location should have PassengerOfCompartment component" or return None);
+            let cpmt_of = params.compartment_query.log_get(of_cpmt.compartment)?;
+            let vehicle = params.viewable_query.log_get(cpmt_of.0)?.0.id;
+            proto::ResidentLocation::Vehicle {
+                vehicle,
+                compartment: u32::try_from(of_cpmt.compartment_index)
+                    .expect("too many compartments"),
+                operator_slot: data
+                    .operator
+                    .map(|op| u32::try_from(op.slot).expect("too many slots")),
+            }
+        }
     })
 }
 
 fn update_culling_rect_system(
     resident_query: Query<(&Location, &mut view::CullingRect)>,
     culling_rect_query: Query<&view::CullingRect, Without<Location>>,
+    compartment_query: Query<&vehicle::CompartmentOf>,
 ) {
     for (location, mut culling_rect) in resident_query {
         let parent_entity = match *location {
             Location::Building { entity, .. }
             | Location::Corridor { entity, .. }
             | Location::Facility { entity, .. } => entity,
+            Location::Vehicle { compartment } => {
+                let Some(&vehicle::CompartmentOf(vehicle)) = compartment_query.log_get(compartment)
+                else {
+                    continue;
+                };
+                vehicle
+            }
         };
         if let Some(&parent_rect) = culling_rect_query.log_get(parent_entity) {
             *culling_rect = parent_rect;

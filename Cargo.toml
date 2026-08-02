@@ -68,6 +68,9 @@ result_unit_err = "allow"
 # Merging match arms do not always improve code readability.
 match_same_arms = "allow"
 
+# match Some/None is more explicit than if let.
+single_match_else = "allow"
+
 # Allowed during dev, checked during precommit
 dbg_macro = "allow"
 unused_self = "allow"

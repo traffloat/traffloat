@@ -10,7 +10,7 @@ use snafu::Snafu;
 use crate::graph::{Conduit, ConduitType, conduit, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
 use crate::util::EntityWorldMutExt;
-use crate::{WorldObject, fluid, persist, view};
+use crate::{WorldObject, fluid, persist, vehicle, view};
 
 #[derive(Clone)]
 pub struct Persist;
@@ -19,7 +19,11 @@ impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "graph:conduit" }
 
     fn depends(&self) -> impl IntoIterator<Item = Depend> {
-        [Depend::new(corridor::Persist), Depend::new(fluid::PersistTypes)]
+        [
+            Depend::new(corridor::Persist),
+            Depend::new(fluid::PersistTypes),
+            Depend::new(vehicle::PersistTypes),
+        ]
     }
 
     type OutputParams<'w, 's> = OutputParams<'w, 's>;
@@ -41,6 +45,7 @@ impl Persistable for Persist {
                     radius:   data.conduit.radius,
                     ty:       data.conduit.ty,
                     fluid:    data.fluid.map(fluid::persist::StorageEntry::from_component),
+                    rail:     data.rail.map(vehicle::rail::persist::StorageEntry::from_component),
                 })
             })
             .collect::<Result<_, ()>>()
@@ -67,6 +72,10 @@ impl Persistable for Persist {
                     radius:   entry.radius,
                     typed:    match entry.ty {
                         ConduitType::FluidPipe => conduit::TypedSpawn::FluidPipe,
+                        ConduitType::VehicleRail => entry
+                            .rail
+                            .ok_or(InputError::RailMismatchConduitType)?
+                            .into_conduit_typed_spawn(),
                     },
                 }
                 .apply(entity);
@@ -96,6 +105,7 @@ struct OutputQueryData {
     conduit:  &'static Conduit,
     named:    &'static view::Named,
     fluid:    Option<&'static fluid::Storage>,
+    rail:     Option<vehicle::rail::persist::OutputQueryData>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -106,12 +116,15 @@ pub struct Entry {
     pub radius:   f32,
     pub ty:       ConduitType,
     pub fluid:    Option<fluid::persist::StorageEntry>,
+    pub rail:     Option<vehicle::rail::persist::StorageEntry>,
 }
 
 #[derive(Debug, Snafu)]
 pub enum InputError {
     #[snafu(display("Unresolved corridor: {err}"))]
     UnresolvedCorridor { err: persist::UnresolvedIdError },
-    #[snafu(display("Fluid storage not expected for this conduit type"))]
+    #[snafu(display("Fluid storage expected for this conduit type"))]
     FluidStorageMismatchConduitType,
+    #[snafu(display("Rail expected for this conduit type"))]
+    RailMismatchConduitType,
 }

@@ -14,7 +14,7 @@ Each type of vehicle has the following properties:
   - Length
   - Gauge size
 - Motion properties
-  - Power source
+  - Propulsion
   - Maximum speed
   - Maximum accelerating force
   - Maximum braking force
@@ -34,9 +34,9 @@ There are also separate rail types, which have the following properties:
 - Electrification
 - Maximum speed
 
-A vehicle type is compatible with a rail type if:
+A vehicle type is compatible with a rail type if all of the following hold:
 
-- The rail type is electrified, or the vehicle does not use rail power as its power source.
+- The rail type is electrified, or the vehicle does not use rail power as its propulsion.
 - The gauge size of the rail is equal to that of the vehicle.
 
 In the setting of this game, rails are actually a pair of cylindrical rods
@@ -55,9 +55,9 @@ allowing it to store volatile cargo without contaminating along its path.
 
 Each compartment also has a specified limit of residents that can fit in.
 
-## Power source
+## Propulsion
 
-Vehicles have three possible power sources:
+Vehicles have three possible propulsion methods:
 
 - Rail power: The vehicle consumes [electric power](power.md) from the rails,
   which are the power networks that the corridor can consume from.
@@ -114,7 +114,7 @@ where `v` must satisfy all of the following conditions:
 - `v` is less than the maximum speed of the rail.
 - There are no vehicles in the next `v^2 / (2 * b) + v * t + d` distance, where:
   - `b` is the maximum braking deceleration of the vehicle computed as force divided by mass
-  - `t` is the reaction time buffer of the vehicle (constant 1 second)
+  - `t` is the reaction time buffer of the vehicle (constant 0.5 second)
   - `d` is the safety distance buffer between vehicles (constant)
 
 The same mechanism is also used for deceleration.
@@ -130,7 +130,7 @@ a vehicle must reach less than or equal to standard walking speed to enter a bui
 This means that a vehicle traveling at speed `v` must start braking
 at `(v^2 - w^2) / (2 * b) + v * t` distance before reaching the end of the building,
 where `w` is the standard walking speed,
-and `t` is the buffer reaction time of the vehicle (constant 1 second).
+and `t` is the buffer reaction time of the vehicle (constant 0.5 second).
 
 ### Rule E: Inertial movement for rapid rail switching
 
@@ -165,7 +165,7 @@ Then the vehicle is eligible for transfer movement when it is within the braking
   where `w` is the standard walking speed, and `PXQ` is the interior angle between `P` and `Q` at `X`.
   - If `u = w`, the vehicle should prefer rule D instead since reservation only reduces efficiency.
 4. The vehicle moves inertially through the distance from `PX` to `XQ` at speed `u`.
-  During this period, the vehicle does not consume any fuel or power.
+  During this period, the vehicle does not require any propulsion.
 5. The vehicle enters `q` at speed `u`.
 6. After the entire vehicle length is inside `q`, the vehicle releases the reservations for segment and entry,
   and switches back to rule C for intra-rail movement.

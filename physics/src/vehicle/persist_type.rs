@@ -1,20 +1,25 @@
 use std::borrow::Cow;
 
-use bevy::ecs::system::{Command, Res, SystemParam};
+use bevy::ecs::system::{Res, SystemParam};
 use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
-use crate::fluid;
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::{fluid, vehicle};
 
 #[derive(Clone)]
 pub struct Persist;
 
 impl Persistable for Persist {
-    fn id(&self) -> impl Into<Cow<'static, str>> { "fluid:type" }
+    fn id(&self) -> impl Into<Cow<'static, str>> { "vehicle:type" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> { [] }
+    fn depends(&self) -> impl IntoIterator<Item = Depend> {
+        [
+            Depend::new(fluid::PersistTypes),
+            // Depend::new(cargo::PersistTypes),
+        ]
+    }
 
     type OutputParams<'w, 's> = OutputParams<'w>;
     type Output = Vec<Entry>;
@@ -37,7 +42,7 @@ impl Persistable for Persist {
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
         for entry in input {
-            fluid::AddTypeCommand { def: entry.def }.apply(world);
+            vehicle::AddTypeCommand { def: entry.def }.run(world);
         }
         Ok(())
     }
@@ -45,12 +50,12 @@ impl Persistable for Persist {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entry {
-    pub def: fluid::TypeDef,
+    pub def: vehicle::TypeDef,
 }
 
 #[derive(SystemParam)]
 pub struct OutputParams<'w> {
-    types: Res<'w, fluid::Types>,
+    types: Res<'w, vehicle::Types>,
 }
 
 #[derive(Debug, Snafu)]

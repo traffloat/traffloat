@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use bevy::ecs::entity::Entity;
-use bevy::ecs::query::QueryData;
+use bevy::ecs::query::{QueryData, With};
 use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::World;
 use bevy::math::Vec3;
@@ -11,7 +11,8 @@ use snafu::Snafu;
 use crate::graph::{building, corridor, facility};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
 use crate::resident::Resident;
-use crate::util::EntityWorldMutExt;
+use crate::util::{EntityWorldMutExt, QueryExt};
+use crate::vehicle::{self, Vehicle};
 use crate::{WorldObject, persist, resident, view};
 
 #[derive(Clone)]
@@ -26,6 +27,7 @@ impl Persistable for Persist {
             Depend::new(building::Persist),
             Depend::new(corridor::Persist),
             Depend::new(facility::Persist),
+            Depend::new(vehicle::Persist),
         ]
     }
 
@@ -38,7 +40,7 @@ impl Persistable for Persist {
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
         params
-            .building_query
+            .resident_query
             .iter()
             .map(|data| {
                 Ok(Entry {
@@ -71,7 +73,30 @@ impl Persistable for Persist {
                             };
                             EntryLocation::Facility {
                                 facility:   ctx.get_id(entity)?,
-                                slot_index: interact.slot_index,
+                                slot_index: u32::try_from(interact.slot_index)
+                                    .expect("too many interaction slots"),
+                            }
+                        }
+                        resident::Location::Vehicle { compartment } => {
+                            let cpmt_data =
+                                params.compartment_query.log_get(compartment).ok_or(())?;
+                            let vehicle = ctx.get_id(cpmt_data.vehicle.0)?;
+                            let vehicle_data =
+                                params.vehicle_query.log_get(cpmt_data.vehicle.0).ok_or(())?;
+                            let as_passenger = try_log!(data.passenger, expect "location vehicle implies passenger component" or return Err(()));
+                            let cpmt_index = as_passenger.compartment_index;
+                            let operator_slot = data.operator.map(|op| {
+                                debug_assert_eq!(
+                                    op.vehicle, cpmt_data.vehicle.0,
+                                    "operator vehicle does not match compartment vehicle"
+                                );
+                                u32::try_from(op.slot).expect("too many operator slots")
+                            });
+                            EntryLocation::Vehicle {
+                                vehicle,
+                                compartment: u32::try_from(cpmt_index)
+                                    .expect("too many compartments"),
+                                operator_slot,
                             }
                         }
                     },
@@ -115,10 +140,49 @@ impl Persistable for Persist {
                         }
                         EntryLocation::Facility { facility, slot_index } => {
                             resident::SpawnAt::Facility {
-                                facility: ctx
+                                facility:   ctx
                                     .resolve_entity(facility)
                                     .map_err(|err| InputError::UnresolvedFacility { err })?,
-                                slot_index,
+                                slot_index: usize::try_from(slot_index).expect("usize >= u32"),
+                            }
+                        }
+                        EntryLocation::Vehicle {
+                            vehicle,
+                            compartment: compartment_index,
+                            operator_slot,
+                        } => {
+                            let vehicle_entity = ctx
+                                .resolve_entity(vehicle)
+                                .map_err(|err| InputError::UnresolvedVehicle { err })?;
+                            let vehicle = entity
+                                .world()
+                                .get::<Vehicle>(vehicle_entity)
+                                .expect("vehicle must have vehicle component");
+                            let cpmt_list = entity
+                                .world()
+                                .get::<vehicle::CompartmentList>(vehicle_entity)
+                                .expect("vehicle must have compartment list");
+                            let compartment_entity = cpmt_list
+                                .nth(usize::try_from(compartment_index).expect("usize >= u32"))
+                                .ok_or(InputError::InvalidCompartment {
+                                    compartment: compartment_index,
+                                })?;
+                            let ty = entity.resource::<vehicle::Types>().get(vehicle.ty);
+                            if let Some(slot) = operator_slot
+                                && usize::try_from(slot).expect("usize >= u32")
+                                    >= ty.operator_slots.len()
+                            {
+                                return Err(InputError::InvalidOperatorSlot {
+                                    operator_slot: slot,
+                                });
+                            }
+                            resident::SpawnAt::Vehicle {
+                                vehicle:           vehicle_entity,
+                                compartment:       compartment_entity,
+                                compartment_index: usize::try_from(compartment_index)
+                                    .expect("usize >= u32"),
+                                operator_slot:     operator_slot
+                                    .map(|slot| usize::try_from(slot).expect("usize >= u32")),
                             }
                         }
                     },
@@ -143,7 +207,9 @@ impl Persistable for Persist {
 
 #[derive(SystemParam)]
 pub struct OutputParams<'w, 's> {
-    building_query: Query<'w, 's, OutputQueryData>,
+    resident_query:    Query<'w, 's, OutputQueryData>,
+    vehicle_query:     Query<'w, 's, OutputVehicleQueryData, With<Vehicle>>,
+    compartment_query: Query<'w, 's, OutputCompartmentQueryData>,
 }
 
 #[derive(QueryData)]
@@ -154,6 +220,19 @@ struct OutputQueryData {
     attrs:       &'static resident::Attributes,
     named:       &'static view::Named,
     interaction: Option<&'static resident::InteractingWith>,
+    passenger:   Option<&'static vehicle::PassengerOfCompartment>,
+    operator:    Option<&'static vehicle::OperatorOf>,
+}
+
+#[derive(QueryData)]
+struct OutputVehicleQueryData {
+    compartments: &'static vehicle::CompartmentList,
+    operators:    Option<&'static vehicle::OperatorList>,
+}
+
+#[derive(QueryData)]
+struct OutputCompartmentQueryData {
+    vehicle: &'static vehicle::CompartmentOf,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -168,7 +247,8 @@ pub struct Entry {
 pub enum EntryLocation {
     Building { building: persist::Id, interior_pos: Vec3 },
     Corridor { corridor: persist::Id, distance_from_alpha: f32 },
-    Facility { facility: persist::Id, slot_index: usize },
+    Facility { facility: persist::Id, slot_index: u32 },
+    Vehicle { vehicle: persist::Id, compartment: u32, operator_slot: Option<u32> },
 }
 
 #[derive(Debug, Snafu)]
@@ -179,6 +259,12 @@ pub enum InputError {
     UnresolvedCorridor { err: persist::UnresolvedIdError },
     #[snafu(display("Unresolved facility: {err}"))]
     UnresolvedFacility { err: persist::UnresolvedIdError },
+    #[snafu(display("Unresolved vehicle: {err}"))]
+    UnresolvedVehicle { err: persist::UnresolvedIdError },
+    #[snafu(display("Invalid compartment index for this vehicle type: {compartment}"))]
+    InvalidCompartment { compartment: u32 },
+    #[snafu(display("Invalid operator slot for this vehicle type: {operator_slot}"))]
+    InvalidOperatorSlot { operator_slot: u32 },
     #[snafu(display("Resident attributes length mismatch: expected {expected}, got {got}"))]
     AttributesLengthMismatch { expected: usize, got: usize },
 }
