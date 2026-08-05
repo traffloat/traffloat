@@ -11,10 +11,10 @@ use snafu::Snafu;
 
 use crate::graph::{building, conduit, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::util::{QueryExt};
+use crate::util::QueryExt;
 use crate::vehicle::{
-    self, CompartmentList, CompartmentOf, CompartmentPassengerList, Location, SpawnCommand, TypeId,
-    Vehicle, propulsion,
+    self, CompartmentList, CompartmentOf, CompartmentPassengerList, Location, LocationBuilding,
+    LocationRail, SpawnCommand, TypeId, Vehicle, propulsion,
 };
 use crate::{WorldObject, fluid, persist, resident, view};
 
@@ -52,20 +52,16 @@ impl Persistable for Persist {
                     ty:           data.vehicle.ty.0,
                     name:         data.named.name.clone(),
                     location:     match *data.location {
-                        Location::Building { building, interior_pos, speed } => {
-                            EntryLocation::Building {
-                                building: ctx.get_id(building)?,
-                                interior_pos,
-                                speed,
-                            }
-                        }
-                        Location::Rail { conduit, distance_from_alpha, speed_from_alpha } => {
-                            EntryLocation::Rail {
-                                conduit: ctx.get_id(conduit)?,
-                                distance_from_alpha,
-                                speed_from_alpha,
-                            }
-                        }
+                        Location::Building(location) => EntryLocation::Building {
+                            building:     ctx.get_id(location.building)?,
+                            interior_pos: location.interior_pos,
+                            speed:        location.speed,
+                        },
+                        Location::Rail(location) => EntryLocation::Rail {
+                            conduit:             ctx.get_id(location.rail)?,
+                            distance_from_alpha: location.distance_from_alpha,
+                            speed_from_alpha:    location.speed_from_alpha,
+                        },
                     },
                     compartments: data
                         .compartments
@@ -101,22 +97,22 @@ impl Persistable for Persist {
                     ty:       TypeId(entry.ty),
                     location: match entry.location {
                         EntryLocation::Building { building, interior_pos, speed } => {
-                            Location::Building {
+                            Location::Building(LocationBuilding {
                                 building: ctx
                                     .resolve_entity(building)
                                     .map_err(|err| InputError::UnresolvedBuilding { err })?,
                                 interior_pos,
                                 speed,
-                            }
+                            })
                         }
                         EntryLocation::Rail { conduit, distance_from_alpha, speed_from_alpha } => {
-                            Location::Rail {
-                                conduit: ctx
+                            Location::Rail(LocationRail {
+                                rail: ctx
                                     .resolve_entity(conduit)
                                     .map_err(|err| InputError::UnresolvedConduit { err })?,
                                 distance_from_alpha,
                                 speed_from_alpha,
-                            }
+                            })
                         }
                     },
                     name:     Some(entry.name),

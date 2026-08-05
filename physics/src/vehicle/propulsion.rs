@@ -95,9 +95,9 @@ impl FluidStorageSelector {
     fn storage_entity(&self, params: &ExecuteParams, data: &ExecuteDataItem) -> Option<Entity> {
         Some(match *self {
             FluidStorageSelector::Ambient => match *data.location {
-                Location::Building { building, .. } => building,
-                Location::Rail { conduit, .. } => {
-                    let corridor = params.conduit_query.log_get(conduit)?;
+                Location::Building(location) => location.building,
+                Location::Rail(location) => {
+                    let corridor = params.conduit_query.log_get(location.rail)?;
                     corridor.0
                 }
             },
@@ -311,31 +311,21 @@ fn control_system(
 
 fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) {
     match (data.desired, &mut *data.execute.location) {
-        (Desired::Stationary, &mut Location::Building { ref mut speed, .. }) => {
-            *speed = Vec3::ZERO;
+        (Desired::Stationary, Location::Building(location)) => {
+            location.speed = Vec3::ZERO;
         }
-        (
-            &Desired::Building { interior_pos: desired_pos },
-            &mut Location::Building { interior_pos: ref mut actual_pos, ref mut speed, .. },
-        ) => {
-            let (direction, dist) = (*actual_pos - desired_pos).normalize_and_length();
+        (&Desired::Building { interior_pos: desired_pos }, Location::Building(location)) => {
+            let (direction, dist) = (location.interior_pos - desired_pos).normalize_and_length();
             let max_dist = params.config.standard_drifting_speed * dt;
             if dist > max_dist {
-                *speed = direction * params.config.standard_drifting_speed;
-                *actual_pos += *speed * dt;
+                location.speed = direction * params.config.standard_drifting_speed;
+                location.interior_pos += location.speed * dt;
             } else {
-                *speed = direction * (dist / dt);
-                *actual_pos = desired_pos;
+                location.speed = direction * (dist / dt);
+                location.interior_pos = desired_pos;
             }
         }
-        (
-            Desired::Rail { .. } | Desired::Stationary,
-            &mut Location::Rail {
-                speed_from_alpha: ref mut actual_speed,
-                conduit,
-                distance_from_alpha: _,
-            },
-        ) => {
+        (Desired::Rail { .. } | Desired::Stationary, Location::Rail(location)) => {
             let desired_speed = match *data.desired {
                 Desired::Rail { speed_from_alpha } => speed_from_alpha,
                 Desired::Stationary => 0.0,
@@ -349,8 +339,8 @@ fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) 
                 &params.execute,
                 data.vehicle,
                 &mut data.execute.status.drag_force,
-                actual_speed,
-                conduit,
+                &mut location.speed_from_alpha,
+                location.rail,
                 def,
                 dt,
             );
@@ -358,7 +348,7 @@ fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) 
             // Apply braking if desired speed is not greater than actual speed in the same direction
             apply_brake(
                 desired_speed,
-                actual_speed,
+                &mut location.speed_from_alpha,
                 &mut data.execute.status.brake_force,
                 data.vehicle,
                 def,
@@ -370,24 +360,18 @@ fn control_once(mut data: ControlDataItem, params: &mut ControlParams, dt: f32) 
             let new_speed = apply_propulsion(
                 data.vehicle,
                 desired_speed,
-                *actual_speed,
+                location.speed_from_alpha,
                 def,
                 dt,
                 &mut params.execute,
                 &mut data.execute,
             );
             // borrow again because apply_propulsion needs to read Location
-            let Location::Rail {
-                speed_from_alpha: actual_speed,
-                distance_from_alpha: displacement,
-                ..
-            } = &mut *data.execute.location
-            else {
+            let Location::Rail(location) = &mut *data.execute.location else {
                 unreachable!("apply_propulsion should not change location type")
             };
-
-            *actual_speed = new_speed;
-            *displacement += *actual_speed * dt;
+            location.speed_from_alpha = new_speed;
+            location.distance_from_alpha += new_speed * dt;
         }
         _ => {
             *data.execute.status = Status::default();

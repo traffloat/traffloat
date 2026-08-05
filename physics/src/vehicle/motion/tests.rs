@@ -237,37 +237,15 @@ impl Test {
     fn assert_location(&self, vehicle: Entity, expect: vehicle::Location) {
         let actual = self.app.world().get::<vehicle::Location>(vehicle).unwrap();
         match (expect, *actual) {
-            (
-                vehicle::Location::Building {
-                    building: expect_building,
-                    interior_pos: expect_pos,
-                    speed: expect_speed,
-                },
-                vehicle::Location::Building {
-                    building: actual_building,
-                    interior_pos: actual_pos,
-                    speed: actual_speed,
-                },
-            ) => {
-                assert_eq!(actual_building, expect_building);
-                expect_vec3(actual_pos, expect_pos);
-                expect_vec3(actual_speed, expect_speed);
+            (vehicle::Location::Building(expect), vehicle::Location::Building(actual)) => {
+                assert_eq!(actual.building, expect.building);
+                expect_vec3(actual.interior_pos, expect.interior_pos);
+                expect_vec3(actual.speed, expect.speed);
             }
-            (
-                vehicle::Location::Rail {
-                    conduit: expect_rail,
-                    distance_from_alpha: expect_pos,
-                    speed_from_alpha: expect_speed,
-                },
-                vehicle::Location::Rail {
-                    conduit: actual_rail,
-                    distance_from_alpha: actual_pos,
-                    speed_from_alpha: actual_speed,
-                },
-            ) => {
-                assert_eq!(actual_rail, expect_rail);
-                expect_float(actual_pos, expect_pos);
-                expect_float(actual_speed, expect_speed);
+            (vehicle::Location::Rail(expect), vehicle::Location::Rail(actual)) => {
+                assert_eq!(actual.rail, expect.rail);
+                expect_float(actual.distance_from_alpha, expect.distance_from_alpha);
+                expect_float(actual.speed_from_alpha, expect.speed_from_alpha);
             }
             _ => panic!("Expected location {expect:?}, got {actual:?}"),
         }
@@ -308,11 +286,11 @@ fn rule_a_building_local() {
         new_test(TestSetup::builder().has_alpha_building(true).has_beta_building(false).build());
 
     let vehicle = spawn_vehicle::<MainVehicle>(
-        vehicle::Location::Building {
+        vehicle::Location::Building(vehicle::LocationBuilding {
             building:     test.alpha_building.unwrap(),
             interior_pos: Vec3::ZERO,
             speed:        Vec3::ZERO,
-        },
+        }),
         &mut test.app,
     );
     test.expect_pathfind_once::<MainVehicle>(vehicle::motion::Intent::BuildingStop {
@@ -346,11 +324,11 @@ fn rule_b_building_to_rail_pursuit(which: impl Which, expect_interior_pos: Vec3)
         new_test(TestSetup::builder().has_alpha_building(true).has_beta_building(true).build());
 
     let vehicle = spawn_vehicle::<MainVehicle>(
-        vehicle::Location::Building {
+        vehicle::Location::Building(vehicle::LocationBuilding {
             building:     test.building(which),
             interior_pos: Vec3::ZERO,
             speed:        Vec3::ZERO,
-        },
+        }),
         &mut test.app,
     );
     test.expect_pathfind_once::<MainVehicle>(vehicle::motion::Intent::EnterRail {
@@ -396,11 +374,11 @@ fn rule_b_building_to_rail_clear_and_block_round_one<VehicleAhead: Component + D
     test: &mut Test,
 ) {
     let vehicle = spawn_vehicle::<VehicleAhead>(
-        vehicle::Location::Building {
+        vehicle::Location::Building(vehicle::LocationBuilding {
             building:     test.building(which),
             interior_pos: which.select_with(Vec3::new(9.1, 0.0, 0.0), Vec3::new(-9.1, 0.0, 0.0)),
             speed:        Vec3::ZERO,
-        },
+        }),
         &mut test.app,
     );
     test.expect_pathfind_once::<VehicleAhead>(vehicle::motion::Intent::EnterRail {
@@ -411,12 +389,12 @@ fn rule_b_building_to_rail_clear_and_block_round_one<VehicleAhead: Component + D
 
     test.assert_location(
         vehicle,
-        vehicle::Location::Rail {
-            conduit:             test.rail,
+        vehicle::Location::Rail(vehicle::LocationRail {
+            rail:                test.rail,
             distance_from_alpha: which.select_with(-1.0, 1001.0),
             speed_from_alpha:    which
                 .negate_if_beta(vehicle::Conf::default().standard_drifting_speed),
-        },
+        }),
     );
     let dir = vehicle::rail::ReservedDirection::from_entry(which.proto());
     test.assert_reserved_direction(Some(dir));
@@ -441,11 +419,11 @@ fn rule_b_building_to_rail_clear_and_block_round_two<
     entry: impl Which,
     test: &mut Test,
 ) {
-    let initial_location = vehicle::Location::Building {
+    let initial_location = vehicle::Location::Building(vehicle::LocationBuilding {
         building:     test.building(entry),
         interior_pos: entry.select_with(Vec3::new(9.1, 0.0, 0.0), Vec3::new(-9.1, 0.0, 0.0)),
         speed:        Vec3::ZERO,
-    };
+    });
     let second_vehicle = spawn_vehicle::<VehicleBehind>(initial_location, &mut test.app);
 
     test.expect_pathfind_once::<VehicleAhead>(vehicle::motion::Intent::BuildingStop {
@@ -495,13 +473,13 @@ fn rule_c_rail_local_to_endpoint_building_with(
     );
 
     let vehicle = spawn_vehicle::<MainVehicle>(
-        vehicle::Location::Rail {
-            conduit:             test.rail,
+        vehicle::Location::Rail(vehicle::LocationRail {
+            rail:                test.rail,
             distance_from_alpha: 500.0 + entry.negate_if_beta(500.0 - distance_from_exit),
             // This doesn't matter because the vehicle tries to accel/decel to the target speed
             // regardless of the current speed.
             speed_from_alpha:    0.0,
-        },
+        }),
         &mut test.app,
     );
 
@@ -553,22 +531,22 @@ fn rule_c_rail_local_to_endpoint_blocked_with(
     );
 
     spawn_vehicle::<BlockerVehicle>(
-        vehicle::Location::Rail {
-            conduit:             test.rail,
+        vehicle::Location::Rail(vehicle::LocationRail {
+            rail:                test.rail,
             distance_from_alpha: 500.0 + entry.negate_if_beta(400.0),
             speed_from_alpha:    0.0,
-        },
+        }),
         &mut test.app,
     );
 
     let vehicle = spawn_vehicle::<MovingVehicle>(
-        vehicle::Location::Rail {
-            conduit:             test.rail,
+        vehicle::Location::Rail(vehicle::LocationRail {
+            rail:                test.rail,
             distance_from_alpha: 500.0 + entry.negate_if_beta(400.0 - distance_from_blocker),
             // This doesn't matter because the vehicle tries to accel/decel to the target speed
             // regardless of the current speed.
             speed_from_alpha:    0.0,
-        },
+        }),
         &mut test.app,
     );
 
@@ -605,11 +583,11 @@ fn rule_d_rail_to_building_with(entry: impl Which) {
     );
 
     let vehicle = spawn_vehicle::<MainVehicle>(
-        vehicle::Location::Rail {
-            conduit:             test.rail,
+        vehicle::Location::Rail(vehicle::LocationRail {
+            rail:                test.rail,
             distance_from_alpha: 500.0 + entry.negate_if_beta(500.99),
             speed_from_alpha:    0.0,
-        },
+        }),
         &mut test.app,
     );
 
@@ -621,10 +599,10 @@ fn rule_d_rail_to_building_with(entry: impl Which) {
 
     test.assert_location(
         vehicle,
-        vehicle::Location::Building {
+        vehicle::Location::Building(vehicle::LocationBuilding {
             building:     test.building(entry.other()),
             interior_pos: Vec3::new(entry.select_with(-10.0, 10.0), 0.0, 0.0),
             speed:        Vec3::ZERO,
-        },
+        }),
     );
 }
