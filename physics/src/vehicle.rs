@@ -10,7 +10,7 @@ use bevy::ecs::name::Name;
 use bevy::ecs::query::{QueryData, With, Without};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
-use bevy::ecs::system::{Commands, EntityCommand, Query, SystemParam};
+use bevy::ecs::system::{Commands, EntityCommand, Query, Res, SystemParam};
 use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
@@ -61,6 +61,10 @@ impl Plugin for Plug {
         app.add_plugins(motion::Plug);
         app.add_plugins(propulsion::Plug);
 
+        app.add_systems(
+            app::Update,
+            sync_types_to_viewers_system.in_set(view::SendUpdatesSystemSet::Meta),
+        );
         app.add_systems(
             app::Update,
             init_viewer_system
@@ -315,7 +319,7 @@ impl EntityCommand for SpawnCommand {
             let id = next_id.0;
             next_id.0 += 1;
             let def = entity.resource::<Types>().get(self.ty);
-            format!("{} #{id}", def.name)
+            format!("{} #{id}", def.display.name)
         });
 
         let def = entity.resource::<Types>().get(self.ty);
@@ -647,6 +651,49 @@ fn enter_rail<Ab: EntryMethod>(
     {
         // intent fulfilled, can be cleared
         *intent = motion::Intent::Stationary;
+    }
+}
+
+/// Component on viewers to track vehicle type definition sync.
+#[derive(Component, Reflect)]
+struct ViewerSynced {
+    num_types: usize,
+}
+
+fn sync_types_to_viewers_system(
+    types: Res<Types>,
+    viewers: Query<(Entity, Option<&ViewerSynced>), With<view::Viewer>>,
+    mut commands: Commands,
+    mut writer: MessageWriter<view::SentUpdate>,
+) {
+    fn def_to_proto(def: &TypeDef) -> proto::VehicleType {
+        proto::VehicleType {
+            name:           def.display.name.clone(),
+            sprite_path:    def.display.sprite_path.clone(),
+            sprite_scale:   def.display.sprite_scale,
+            compartments:   def
+                .compartments
+                .iter()
+                .map(|cpmt| proto::VehicleTypeCompartment { name: cpmt.name.clone() })
+                .collect(),
+            operator_slots: def
+                .operator_slots
+                .iter()
+                .map(|slot| proto::VehicleTypeOperator { name: slot.name.clone() })
+                .collect(),
+        }
+    }
+
+    for (entity, viewer) in viewers {
+        if viewer.is_none_or(|v| v.num_types != types.types.len()) {
+            commands.entity(entity).insert(ViewerSynced { num_types: types.types.len() });
+            writer.write(view::SentUpdate {
+                viewers: [entity].into(),
+                body:    proto::Update::SetVehicleTypes(proto::SetVehicleTypes {
+                    types: types.types.iter().map(def_to_proto).collect(),
+                }),
+            });
+        }
     }
 }
 

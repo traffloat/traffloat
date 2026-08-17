@@ -1,5 +1,5 @@
-use std::iter;
 use std::time::Duration;
+use std::{iter, mem};
 
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, AssetServer, Assets};
@@ -18,6 +18,7 @@ use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
 use bevy::time::{self, Time};
 use bevy::transform::components::Transform;
 use bevy_mesh::Mesh2d;
+use traffloat_physics::try_log_return;
 use traffloat_physics::util::{QueryExt, run_stateless_closure};
 use traffloat_proto::proto;
 
@@ -34,6 +35,7 @@ pub struct Plug;
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Info>();
+        app.register_type::<AmbientFixture>();
         app.register_type::<DynamicPosition>();
         app.register_type::<Types>();
         app.init_resource::<Types>();
@@ -67,18 +69,18 @@ impl UpdateHandler for SetVehicleTypesParams<'_> {
         self.types.types.clear();
         self.types.types.extend(update.types.iter().map(|ty| Type {
             proto:  ty.clone(),
-            sprite: self.asset_server.load(format!("sprites/{}.png", ty.sprite_id)),
+            sprite: self.asset_server.load(format!("sprites/{}.png", ty.sprite_path)),
         }));
     }
 }
 
 #[derive(SystemParam)]
 pub(super) struct NewVehicleParams<'w, 's> {
-    commands:        Commands<'w, 's>,
-    types:           Res<'w, Types>,
-    materials:       ResMut<'w, Assets<ColorMaterial>>,
-    shapes:          Shapes<'w>,
-    ids_location_ps: ParamSet<'w, 's, (ResMut<'w, IdRegistry>, LocationResolver<'w, 's>)>,
+    commands:     Commands<'w, 's>,
+    types:        Res<'w, Types>,
+    materials:    ResMut<'w, Assets<ColorMaterial>>,
+    shapes:       Shapes<'w>,
+    ids_registry: ResMut<'w, IdRegistry>,
 }
 
 impl UpdateHandler for NewVehicleParams<'_, '_> {
@@ -114,7 +116,7 @@ impl UpdateHandler for NewVehicleParams<'_, '_> {
                 Pickable::default(),
             ))
             .queue(move |mut entity: EntityWorldMut| {
-                let Some((location, dynamic_position)) = entity.world_scope(|world| {
+                let Some((ambient_fixture, dynamic_position)) = entity.world_scope(|world| {
                     run_stateless_closure(world, move |resolver: LocationResolver<'_, '_>| {
                         resolver.resolve(&proto_location)
                     })
@@ -123,7 +125,7 @@ impl UpdateHandler for NewVehicleParams<'_, '_> {
                 };
                 entity.insert((
                     Info {
-                        location,
+                        ambient_fixture,
                         ty: type_id,
                         compartments: iter::repeat_with(CompartmentInfo::default)
                             .take(num_compartments)
@@ -131,10 +133,14 @@ impl UpdateHandler for NewVehicleParams<'_, '_> {
                     },
                     dynamic_position,
                 ));
+                match ambient_fixture {
+                    AmbientFixture::Building(building) => entity.insert(IsInBuilding(building)),
+                    AmbientFixture::Rail(rail) => entity.insert(IsOnRail(rail)),
+                };
             })
             .observe_picking()
             .id();
-        self.ids_location_ps.p0().map.insert(update.id, TrackedId::Vehicle(entity));
+        self.ids_registry.map.insert(update.id, TrackedId::Vehicle(entity));
     }
 }
 
@@ -143,6 +149,7 @@ pub(super) struct UpdateVehicleLocationParams<'w, 's> {
     ids:               Res<'w, IdRegistry>,
     vehicle_query:     Query<'w, 's, (&'static mut Info, &'static mut DynamicPosition)>,
     location_resolver: LocationResolver<'w, 's>,
+    commands:          Commands<'w, 's>,
 }
 
 impl UpdateHandler for UpdateVehicleLocationParams<'_, '_> {
@@ -153,8 +160,16 @@ impl UpdateHandler for UpdateVehicleLocationParams<'_, '_> {
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_vehicle(update.id) else { return };
         let Some(mut data) = self.vehicle_query.log_get_mut(entity) else { return };
-        let Some((location, dp)) = self.location_resolver.resolve(&update.location) else { return };
-        data.0.location = location;
+        let Some((fixture, dp)) = self.location_resolver.resolve(&update.location) else { return };
+        let prev_location = mem::replace(&mut data.0.ambient_fixture, fixture);
+        if prev_location != fixture {
+            let mut cmds = self.commands.entity(entity);
+            cmds.remove::<(IsInBuilding, IsOnRail)>();
+            match fixture {
+                AmbientFixture::Building(building) => cmds.insert(IsInBuilding(building)),
+                AmbientFixture::Rail(rail) => cmds.insert(IsOnRail(rail)),
+            };
+        }
         *data.1 = dp;
     }
 }
@@ -204,13 +219,16 @@ struct LocationResolver<'w, 's> {
 }
 
 impl LocationResolver<'_, '_> {
-    fn resolve(&self, location: &proto::VehicleLocation) -> Option<(Location, DynamicPosition)> {
-        let (location, epoch_position, speed) = match *location {
+    fn resolve(
+        &self,
+        location: &proto::VehicleLocation,
+    ) -> Option<(AmbientFixture, DynamicPosition)> {
+        let (ambient_fixture, epoch_position, speed) = match *location {
             proto::VehicleLocation::Building { building, interior_pos, speed } => {
                 let entity = self.ids.get_building(building)?;
                 let building_info = self.building_query.log_get(entity)?;
                 let position = building_info.position + interior_pos.xy();
-                (Location::Building(entity), position, speed.xy())
+                (AmbientFixture::Building(entity), position, speed.xy())
             }
             proto::VehicleLocation::Rail { conduit, distance_from_alpha, speed_from_alpha } => {
                 let entity = self.ids.get_conduit(conduit)?;
@@ -218,21 +236,24 @@ impl LocationResolver<'_, '_> {
                 let corridor_info = self.corridor_query.log_get(corridor)?;
                 let endpoints = corridor_info.endpoint_positions;
                 (
-                    Location::Rail(entity),
+                    AmbientFixture::Rail(entity),
                     endpoints.alpha + endpoints.atob().normalize_or_zero() * distance_from_alpha,
                     endpoints.atob().normalize_or_zero() * speed_from_alpha,
                 )
             }
         };
-        Some((location, DynamicPosition { epoch_position, epoch_time: self.time.elapsed(), speed }))
+        Some((
+            ambient_fixture,
+            DynamicPosition { epoch_position, epoch_time: self.time.elapsed(), speed },
+        ))
     }
 }
 
 #[derive(Component, Reflect)]
 pub struct Info {
-    pub location:     Location,
-    pub ty:           usize,
-    pub compartments: Vec<CompartmentInfo>,
+    pub ambient_fixture: AmbientFixture,
+    pub ty:              usize,
+    pub compartments:    Vec<CompartmentInfo>,
 }
 
 #[derive(Default, Reflect)]
@@ -240,11 +261,27 @@ pub struct CompartmentInfo {
     pub fluid: Option<proto::FluidStorageDetail>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Reflect)]
-pub enum Location {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
+pub enum AmbientFixture {
     Building(Entity),
     Rail(Entity),
 }
+
+#[derive(Component)]
+#[relationship(relationship_target = ListInBuilding)]
+pub struct IsInBuilding(pub Entity);
+
+#[derive(Component)]
+#[relationship_target(relationship = IsInBuilding)]
+pub struct ListInBuilding(Vec<Entity>);
+
+#[derive(Component)]
+#[relationship(relationship_target = ListOnRail)]
+pub struct IsOnRail(pub Entity);
+
+#[derive(Component)]
+#[relationship_target(relationship = IsOnRail)]
+pub struct ListOnRail(Vec<Entity>);
 
 #[derive(Component, Default, Reflect)]
 pub struct DynamicPosition {

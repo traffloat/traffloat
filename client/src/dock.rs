@@ -17,10 +17,10 @@ use egui_dock::{DockArea, DockState, TabPath};
 
 pub mod camera;
 mod menu;
-mod new_level;
+pub mod new_level;
 mod open_mode;
 pub mod plot;
-mod save;
+pub mod save;
 mod settings;
 mod startup;
 pub mod viewable_info;

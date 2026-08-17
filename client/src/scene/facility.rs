@@ -2,6 +2,7 @@ use std::cmp;
 
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, AssetServer, Assets};
+use bevy::color::Color;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::hierarchy::ChildOf;
@@ -18,10 +19,12 @@ use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
+use bevy_mod_config::{AppExt, Config, ReadConfig};
 use ordered_float::OrderedFloat;
 use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
 use traffloat_proto::proto;
 
+use crate::ConfigManager;
 use crate::scene::picking::ObservePicking;
 use crate::scene::{
     AllHandlersSystemSet, GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler,
@@ -42,13 +45,14 @@ impl Plugin for Plug {
         app.register_type::<TaintOf>();
         app.register_type::<HasTaint>();
 
+        app.init_config::<ConfigManager, Conf>("scene:facility");
         app.add_systems(app::Update, rearrange_facility_tf_system.after(AllHandlersSystemSet));
     }
 }
 
 /// List of facilities belonging to a building, component on buildings.
 #[derive(Component, Reflect)]
-#[relationship_target(relationship = FacilityBuilding, linked_spawn)]
+#[relationship_target(relationship = FacilityBuilding)]
 #[require(NeedRearrangeTransform)]
 pub struct BuildingFacilities(Vec<Entity>);
 
@@ -91,6 +95,7 @@ pub(super) struct NewFacilityParams<'w, 's> {
     meshes:       ResMut<'w, Assets<Mesh>>,
     materials:    ResMut<'w, Assets<ColorMaterial>>,
     asset_server: Res<'w, AssetServer>,
+    conf:         ReadConfig<'w, 's, Conf>,
 }
 
 impl NewFacilityParams<'_, '_> {
@@ -105,7 +110,9 @@ impl UpdateHandler for NewFacilityParams<'_, '_> {
     fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &Self::Update) {
-        let texture_handle = self.load_texture(&update.display.sprite_id);
+        let conf = self.conf.read();
+
+        let texture_handle = self.load_texture(&update.display.sprite_path);
 
         let Some(&TrackedId::Building(building_entity)) = self.ids.map.get(&update.building) else {
             tracing::error!(
@@ -122,6 +129,7 @@ impl UpdateHandler for NewFacilityParams<'_, '_> {
         let material = self.materials.add(ColorMaterial {
             texture: Some(texture_handle),
             alpha_mode: AlphaMode2d::Blend,
+            color: Color::srgba(1.0, 1.0, 1.0, conf.texture_alpha),
             ..Default::default()
         });
 
@@ -142,7 +150,7 @@ impl UpdateHandler for NewFacilityParams<'_, '_> {
             .id();
 
         if let Some(taint) = update.display.taint {
-            let texture = self.load_texture(&format!("{}.taint", update.display.sprite_id));
+            let texture = self.load_texture(&format!("{}.taint", update.display.sprite_path));
             let taint_material = self.materials.add(ColorMaterial {
                 color: taint.into(),
                 texture: Some(texture),
@@ -279,4 +287,10 @@ pub(super) fn on_despawn(entity: &mut EntityWorldMut) {
             }
         });
     }
+}
+
+#[derive(Config)]
+pub struct Conf {
+    #[config(default = 0.5, min = 0.0, max = 1.0)]
+    pub texture_alpha: f32,
 }

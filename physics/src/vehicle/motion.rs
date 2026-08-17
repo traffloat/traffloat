@@ -205,9 +205,9 @@ fn control_once(
             let corridor = rail_data.corridor.0;
             let args = BuildingToRailArgs { location, corridor, rail, dt };
 
-            control_building_to_rail(params, &params.edge_alpha, &data, commands, args)
+            control_building_to_rail(params, &params.edge_alpha, &data, commands, &args)
                 .or_else(|| {
-                    control_building_to_rail(params, &params.edge_beta, &data, commands, args)
+                    control_building_to_rail(params, &params.edge_beta, &data, commands, &args)
                 })
                 .unwrap_or_else(|| {
                     tracing::warn!(
@@ -261,7 +261,7 @@ fn control_building_to_rail<Ab: Which>(
     edge_params: &EdgeParams<Ab>,
     vehicle_data: &ControlVehicleDataItem,
     commands: &mut Commands,
-    args: BuildingToRailArgs,
+    args: &BuildingToRailArgs,
 ) -> Option<propulsion::Desired> {
     let edge_interior_pos = find_edge_interior_pos_to_corridor(
         &edge_params.building_query,

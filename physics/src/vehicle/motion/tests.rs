@@ -116,7 +116,7 @@ fn make_rail(corridor: Entity) -> conduit::SpawnCommand {
 fn make_vehicle_type() -> vehicle::AddTypeCommand {
     vehicle::AddTypeCommand {
         def: vehicle::TypeDef {
-            name:           "test".into(),
+            display:        vehicle::def::Display::TEST,
             physical:       vehicle::def::Physical {
                 mass:   200.0,
                 gauge:  vehicle::def::GaugeSize(1, 1),

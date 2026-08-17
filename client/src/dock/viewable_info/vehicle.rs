@@ -35,7 +35,12 @@ impl UiSystemParam<'_, '_> {
         let ty = self.vehicle_types.types.get(vehicle_data.info.ty);
 
         ui.heading("Location");
-        show_location(ui, &vehicle_data.info.location, &mut self.commands, &self.viewable_query);
+        show_fixture(
+            ui,
+            &vehicle_data.info.ambient_fixture,
+            &mut self.commands,
+            &self.viewable_query,
+        );
 
         ui.heading("Compartments");
         for (cpmt_index, (cpmt_def, cpmt_info)) in ty
@@ -61,21 +66,21 @@ impl UiSystemParam<'_, '_> {
     }
 }
 
-fn show_location(
+fn show_fixture(
     ui: &mut egui::Ui,
-    location: &vehicle::Location,
+    fixture: &vehicle::AmbientFixture,
     commands: &mut Commands,
     viewable_query: &Query<&'static GenericViewable>,
 ) {
-    ui.horizontal(|ui| match *location {
-        vehicle::Location::Building(building) => {
+    ui.horizontal(|ui| match *fixture {
+        vehicle::AmbientFixture::Building(building) => {
             show_link(ui, commands, building);
             ui.label("Inside building:");
             if let Some(viewable) = viewable_query.log_get(building) {
                 ui.label(&viewable.name);
             }
         }
-        vehicle::Location::Rail(rail) => {
+        vehicle::AmbientFixture::Rail(rail) => {
             show_link(ui, commands, rail);
             ui.label("On rail:");
             if let Some(viewable) = viewable_query.log_get(rail) {

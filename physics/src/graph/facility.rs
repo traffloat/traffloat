@@ -84,7 +84,7 @@ pub struct FacilityType(pub Entity);
 pub struct FacilityTypeDef {
     pub display_name: String,
     pub volume:       f32,
-    pub sprite_id:    String,
+    pub sprite_path:  String,
 
     /// Blueprint for constructing this facility type.
     #[reflect(ignore, default)]
@@ -179,8 +179,8 @@ fn init_viewer_system(
                 name:     named.name.clone(),
                 volume:   facility.volume,
                 display:  proto::FacilityDisplay {
-                    sprite_id: typedef.sprite_id.clone(),
-                    taint:     fluid_storage.map(|s| proto::Color(s.rgba)),
+                    sprite_path: typedef.sprite_path.clone(),
+                    taint:       fluid_storage.map(|s| proto::Color(s.rgba)),
                 },
             }))
         }));

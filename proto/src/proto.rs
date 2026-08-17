@@ -123,9 +123,9 @@ pub struct VehicleType {
     pub name:           String,
     /// Asset path.
     ///
-    /// Currently loads from `assets/sprites/{sprite_id}.png` directly.
+    /// Currently loads from `assets/sprites/{sprite_path}.png` directly.
     /// May be extended to support dynamically loaded assets in the future.
-    pub sprite_id:      String,
+    pub sprite_path:    String,
     /// Scale rendered sprites by this factor.
     pub sprite_scale:   Vec2,
     pub compartments:   Vec<VehicleTypeCompartment>,
@@ -240,11 +240,11 @@ pub struct NewFacility {
 pub struct FacilityDisplay {
     /// Asset path.
     ///
-    /// Currently loads from `assets/sprites/{sprite_id}.png` directly.
+    /// Currently loads from `assets/sprites/{sprite_path}.png` directly.
     /// May be extended to support dynamically loaded assets in the future.
-    pub sprite_id: String,
+    pub sprite_path: String,
     /// `Some` when the facility is a fluid storage, represents the fluid color.
-    pub taint:     Option<Color>,
+    pub taint:       Option<Color>,
 }
 
 /// Sets the taint color of a facility.

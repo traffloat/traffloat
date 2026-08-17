@@ -517,7 +517,7 @@ pub struct Sensor {
 
 /// Component on viewers to track fluid type definition sync.
 #[derive(Component, Reflect)]
-pub struct ViewerSynced {
+struct ViewerSynced {
     num_types: usize,
 }
 
@@ -527,17 +527,17 @@ fn sync_types_to_viewers_system(
     mut commands: Commands,
     mut writer: MessageWriter<view::SentUpdate>,
 ) {
+    fn def_to_proto(type_def: &TypeDef) -> proto::FluidType {
+        proto::FluidType { name: type_def.name.clone() }
+    }
+
     for (entity, viewer) in viewers {
         if viewer.is_none_or(|v| v.num_types != types.types.len()) {
             commands.entity(entity).insert(ViewerSynced { num_types: types.types.len() });
             writer.write(view::SentUpdate {
                 viewers: [entity].into(),
                 body:    proto::Update::SetFluidTypes(proto::SetFluidTypes {
-                    types: types
-                        .types
-                        .iter()
-                        .map(|type_def| proto::FluidType { name: type_def.name.clone() })
-                        .collect(),
+                    types: types.types.iter().map(def_to_proto).collect(),
                 }),
             });
         }

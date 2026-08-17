@@ -140,7 +140,7 @@ impl UpdateHandler for UpdateFluidConduitParams<'_, '_> {
 
 /// References the conduit outlines *from the corridor*.
 #[derive(Component, Reflect)]
-#[relationship_target(relationship = ConduitOutlineOf)]
+#[relationship_target(relationship = ConduitOutlineOf, linked_spawn)]
 pub struct HasConduitOutline(Entity);
 
 /// References the *corridor* from the conduit outline entity.

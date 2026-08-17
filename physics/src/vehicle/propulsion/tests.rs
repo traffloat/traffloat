@@ -14,7 +14,7 @@ use crate::{cleanup, fluid, persist, vehicle, view};
 
 fn vehicle_def() -> vehicle::TypeDef {
     vehicle::TypeDef {
-        name:           "test".into(),
+        display:        vehicle::def::Display::TEST,
         physical:       vehicle::def::Physical {
             mass:   200.0,
             gauge:  vehicle::def::GaugeSize(1, 1),

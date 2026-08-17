@@ -23,6 +23,10 @@ pub struct Config {
     pub seed: u64,
 }
 
+impl Default for Config {
+    fn default() -> Self { Self { seed: rand::random() } }
+}
+
 /// Generate a basic physics world.
 pub fn generate(world: &mut World, _: Config) {
     let std = {
@@ -52,8 +56,8 @@ pub fn generate(world: &mut World, _: Config) {
     // hexagonal housing loop
     let houses = gen_hex_houses(world, &std, core.building);
 
-    // spawn_vehicle_in_building(world, std.vehicles.bus, houses[1]);
-    // spawn_vehicle_in_building(world, std.vehicles.bus, houses[3]);
+    spawn_vehicle_in_building(world, std.vehicles.bus, houses[1]);
+    spawn_vehicle_in_building(world, std.vehicles.bus, houses[3]);
 
     spawn_resident_in_building(world, core.building);
     spawn_resident_in_facility_slot(world, garden.facility, 0);
@@ -216,7 +220,7 @@ fn gen_facility_types(
             graph::FacilityTypeDef {
                 display_name: "Garden".into(),
                 volume:       300.0,
-                sprite_id:    "facility/garden".into(),
+                sprite_path:  "facility/garden".into(),
                 blueprint:    Blueprint {
                     reactor: Some(blueprint::Reactor {
                         ty:    std_reactor.garden,
@@ -243,7 +247,7 @@ fn gen_facility_types(
             graph::FacilityTypeDef {
                 display_name: "Small tank".into(),
                 volume:       120.0,
-                sprite_id:    "facility/small-tank".into(),
+                sprite_path:  "facility/small-tank".into(),
                 blueprint:    Blueprint {
                     fluid_storage: Some(blueprint::FluidStorage {
                         volume:         100.0,
@@ -262,7 +266,7 @@ fn gen_facility_types(
             graph::FacilityTypeDef {
                 display_name: "Housing".into(),
                 volume:       100.0,
-                sprite_id:    "facility/house".into(),
+                sprite_path:  "facility/house".into(),
                 blueprint:    Blueprint { ..Default::default() },
             },
         ))
@@ -322,7 +326,11 @@ fn gen_vehicle_types(
 ) -> StandardVehicleTypes {
     StandardVehicleTypes {
         bus: world.resource_mut::<vehicle::Types>().push(vehicle::TypeDef {
-            name:           "Hydrogen Bus".into(),
+            display:        vehicle::def::Display {
+                name:         "Hydrogen Bus".into(),
+                sprite_path:  "vehicles/hydrogen-bus".into(),
+                sprite_scale: Vec2::new(10.0, 2.8),
+            },
             physical:       vehicle::def::Physical {
                 mass:   1000.0,
                 volume: 60.0,
@@ -772,6 +780,18 @@ fn connect_facility_pipe(world: &mut World, facility: Entity, pipe: Entity) {
         .apply(connection);
 }
 
+fn fill_atmosphere(std: &StandardFluidTypes, world: &mut World, building: Entity) {
+    let mut building = world.entity_mut(building);
+    let mut storage =
+        building.get_mut::<fluid::Storage>().expect("building must have fluid storage");
+    for &(ty, fraction) in &std.atmosphere {
+        let moles = fluid::Moles(fraction * storage.volume);
+        storage.set_fluid(ty, moles);
+    }
+
+    fluid::SetTemperatureCommand { temperature: std.temperature }.apply(building);
+}
+
 fn spawn_resident_in_building(world: &mut World, building: Entity) {
     let mut resident = world.spawn((WorldObject,));
     resident.reborrow_scope(|resident| {
@@ -794,16 +814,25 @@ fn spawn_resident_in_facility_slot(world: &mut World, facility: Entity, slot_ind
     });
 }
 
-fn fill_atmosphere(std: &StandardFluidTypes, world: &mut World, building: Entity) {
-    let mut building = world.entity_mut(building);
-    let mut storage =
-        building.get_mut::<fluid::Storage>().expect("building must have fluid storage");
-    for &(ty, fraction) in &std.atmosphere {
-        let moles = fluid::Moles(fraction * storage.volume);
-        storage.set_fluid(ty, moles);
-    }
-
-    fluid::SetTemperatureCommand { temperature: std.temperature }.apply(building);
+fn spawn_vehicle_in_building(
+    world: &mut World,
+    vehicle_type: vehicle::TypeId,
+    building: Entity,
+) -> Entity {
+    let mut vehicle = world.spawn((WorldObject,));
+    vehicle.reborrow_scope(|vehicle| {
+        vehicle::SpawnCommand {
+            name:     None,
+            ty:       vehicle_type,
+            location: vehicle::Location::Building(vehicle::LocationBuilding {
+                building,
+                interior_pos: Vec3::ZERO,
+                speed: Vec3::ZERO,
+            }),
+        }
+        .apply(vehicle);
+    });
+    vehicle.id()
 }
 
 fn inverse_sphere_volume(volume: f32) -> f32 { (volume * 3.0 / (4.0 * PI)).cbrt() }
