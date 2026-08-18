@@ -68,10 +68,7 @@ pub fn run(options: Options) -> AppExit {
     app.add_systems(app::PostUpdate, || tracing::trace!("post update"));
 
     #[cfg(not(target_arch = "wasm32"))]
-    if let Err(err) = handle_direct_startup(&mut app) {
-        tracing::error!("Invalid arguments: {err}");
-        return AppExit::from_code(1);
-    };
+    handle_direct_startup(&mut app);
 
     let mut app_unwind = panic::AssertUnwindSafe(&mut app);
     let result = panic::catch_unwind(move || app_unwind.run());
@@ -119,7 +116,7 @@ pub struct OtelOptions {
 pub type ConfigManager = (bevy_mod_config::manager::Egui,);
 
 #[cfg(not(target_arch = "wasm32"))]
-fn handle_direct_startup(app: &mut App) -> Result<(), String> {
+fn handle_direct_startup(app: &mut App) {
     use bevy::ecs::system::Commands;
     use traffloat_physics::generate;
 
@@ -127,15 +124,13 @@ fn handle_direct_startup(app: &mut App) -> Result<(), String> {
 
     if options.new_level {
         app.add_systems(app::PostStartup, |mut commands: Commands| {
-            commands.queue(dock::new_level::NewGameCommand { config: generate::Config::default() })
+            commands.queue(dock::new_level::NewGameCommand { config: generate::Config::default() });
         });
     }
 
     if let Some(path) = options.load_level {
         app.add_systems(app::PostStartup, move |mut commands: Commands| {
-            commands.queue(dock::save::LoadPathCommand { path: path.clone() })
+            commands.queue(dock::save::LoadPathCommand { path: path.clone() });
         });
     }
-
-    Ok(())
 }

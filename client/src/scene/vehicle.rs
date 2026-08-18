@@ -8,7 +8,7 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::name::Name;
 use bevy::ecs::resource::Resource;
-use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, SystemParam};
+use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::image::Image;
 use bevy::math::{Vec2, Vec3Swizzles};
@@ -18,7 +18,6 @@ use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
 use bevy::time::{self, Time};
 use bevy::transform::components::Transform;
 use bevy_mesh::Mesh2d;
-use traffloat_physics::try_log_return;
 use traffloat_physics::util::{QueryExt, run_stateless_closure};
 use traffloat_proto::proto;
 

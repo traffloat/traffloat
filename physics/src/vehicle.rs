@@ -181,7 +181,7 @@ impl ListOnRail {
         mut loc_fn: impl FnMut(Entity) -> Option<Location>,
     ) -> Option<usize> {
         self.partition_point(dist, |e| match loc_fn(e)? {
-            Location::Building { .. } => None,
+            Location::Building(_) => None,
             Location::Rail(location) => Some(location.distance_from_alpha),
         })
     }
@@ -390,7 +390,7 @@ impl<Ab: EntryMethod> EntityCommand for AttemptLocationTransitionCommand<Ab> {
         if let Some(entry) = self.entry_method.into_proto() {
             // only check if this is a regular entry
             match self.new_location {
-                Location::Building { .. } => {
+                Location::Building(_) => {
                     // TODO check building capacity
                 }
                 Location::Rail(location) => {
