@@ -14,7 +14,7 @@ use crate::{cleanup, fluid, persist, vehicle, view};
 
 fn vehicle_def() -> vehicle::TypeDef {
     vehicle::TypeDef {
-        name:           "test".into(),
+        display:        vehicle::def::Display::TEST,
         physical:       vehicle::def::Physical {
             mass:   200.0,
             gauge:  vehicle::def::GaugeSize(1, 1),
@@ -115,11 +115,11 @@ fn new_test() -> Test {
         vehicle::SpawnCommand {
             name:     Some(String::new()),
             ty:       vehicle_ty,
-            location: vehicle::Location::Rail {
-                conduit:             rail,
+            location: vehicle::Location::Rail(vehicle::LocationRail {
+                rail,
                 distance_from_alpha: 500.0,
-                speed_from_alpha:    0.0,
-            },
+                speed_from_alpha: 0.0,
+            }),
         }
         .apply(e);
     });
@@ -141,11 +141,15 @@ impl Test {
     #[track_caller]
     fn assert_displace_speed(&self, expected_displace: f32, expected_speed: f32) {
         let location = self.app.world().get::<vehicle::Location>(self.vehicle).unwrap();
-        let &vehicle::Location::Rail { conduit, distance_from_alpha, speed_from_alpha } = location
+        let &vehicle::Location::Rail(vehicle::LocationRail {
+            rail,
+            distance_from_alpha,
+            speed_from_alpha,
+        }) = location
         else {
             panic!("Vehicle must be on a rail");
         };
-        assert_eq!(conduit, self.rail);
+        assert_eq!(rail, self.rail);
 
         expect_float(distance_from_alpha, expected_displace);
         expect_float(speed_from_alpha, expected_speed);

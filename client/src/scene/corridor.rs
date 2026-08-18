@@ -303,7 +303,7 @@ impl From<&proto::CorridorEndpoint> for EndpointDetails {
 struct WallEntityOf<const WHICH: bool>(Entity);
 
 #[derive(Component, Reflect)]
-#[relationship_target(relationship = WallEntityOf<WHICH>)]
+#[relationship_target(relationship = WallEntityOf<WHICH>, linked_spawn)]
 struct HasWallEntity<const WHICH: bool>(Entity);
 
 #[derive(Resource, Default)]

@@ -6373,6 +6373,7 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "paste",
+ "rand 0.10.2",
  "serde",
  "snafu",
  "strum",

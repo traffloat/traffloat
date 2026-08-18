@@ -27,7 +27,10 @@ use traffloat_proto::proto::AlphaOrBeta;
 use crate::graph::{Corridor, conduit, edge};
 use crate::util::{Alpha, Beta, InspectLog, QueryExt, Which};
 use crate::vehicle::rail::ReservedDirection;
-use crate::vehicle::{self, Location, Rail, SystemSets, TypeDef, Vehicle, propulsion, rail};
+use crate::vehicle::{
+    self, AttemptLocationTransitionCommand, Location, LocationBuilding, LocationRail, Rail,
+    SystemSets, TypeDef, Vehicle, propulsion, rail,
+};
 
 pub struct Plug;
 
@@ -78,24 +81,28 @@ pub enum Intent {
 
 #[derive(SystemParam)]
 struct ControlVehicleParams<'w, 's> {
-    conduit_query:             Query<'w, 's, ControlConduitData>,
-    corridor_query:            Query<'w, 's, ControlCorridorData, With<Corridor>>,
-    edge_building_query_alpha: Query<'w, 's, &'static edge::OfBuilding<Alpha>>,
-    edge_building_query_beta:  Query<'w, 's, &'static edge::OfBuilding<Beta>>,
-    edge_corridor_query_alpha: Query<'w, 's, &'static edge::OfCorridor<Alpha>>,
-    edge_corridor_query_beta:  Query<'w, 's, &'static edge::OfCorridor<Beta>>,
-    building_query_alpha:      Query<'w, 's, &'static edge::BuildingEdges<Alpha>>,
-    building_query_beta:       Query<'w, 's, &'static edge::BuildingEdges<Beta>>,
-    vehicle_query:             Query<'w, 's, (&'static Vehicle, &'static Location)>,
-    types:                     Res<'w, super::Types>,
-    config:                    Res<'w, super::Conf>,
+    conduit_query:  Query<'w, 's, ControlConduitData>,
+    corridor_query: Query<'w, 's, ControlCorridorData, With<Corridor>>,
+    edge_alpha:     EdgeParams<'w, 's, Alpha>,
+    edge_beta:      EdgeParams<'w, 's, Beta>,
+    vehicle_query:  Query<'w, 's, (&'static Vehicle, &'static Location)>,
+    types:          Res<'w, super::Types>,
+    config:         Res<'w, super::Conf>,
+}
+
+#[derive(SystemParam)]
+struct EdgeParams<'w, 's, Ab: Which> {
+    edge_building_query: Query<'w, 's, &'static edge::OfBuilding<Ab>>,
+    edge_corridor_query: Query<'w, 's, &'static edge::OfCorridor<Ab>>,
+    building_query:      Query<'w, 's, &'static edge::BuildingEdges<Ab>>,
 }
 
 #[derive(QueryData)]
+#[query_data(mutable)]
 struct ControlVehicleData {
     entity:   Entity,
     vehicle:  &'static Vehicle,
-    intent:   &'static Intent,
+    intent:   &'static mut Intent,
     location: &'static Location,
 }
 
@@ -128,48 +135,36 @@ fn control_system(
 }
 
 fn control_once(
-    data: ControlVehicleDataItem,
+    mut data: ControlVehicleDataItem,
     params: &ControlVehicleParams,
     commands: &mut Commands,
     dt: f32,
 ) -> propulsion::Desired {
     match (*data.location, *data.intent) {
         (_, Intent::Stationary) => propulsion::Desired::Stationary,
-        (
-            Location::Building { building, .. },
-            Intent::BuildingStop { target, stop_at_interior_pos },
-        ) => {
-            if building == target {
-                propulsion::Desired::Building { interior_pos: stop_at_interior_pos }
-            } else {
-                tracing::warn!(
-                    "Vehicle {:?} received invalid motion intent, is in building {building:?} but \
-                     intent target is {target:?}",
-                    data.entity
-                );
-                propulsion::Desired::Stationary
-            }
+        (Location::Building(location), Intent::BuildingStop { target, stop_at_interior_pos }) => {
+            control_on_rail_building_local(
+                data.entity,
+                location,
+                target,
+                stop_at_interior_pos,
+                dt,
+                &mut data.intent,
+            )
         }
         (
-            Location::Rail {
-                conduit: curr,
-                distance_from_alpha: displace,
-                speed_from_alpha: current_speed,
-            },
+            Location::Rail(location),
             Intent::EnterRail { target_rail: next, through_building: thru },
         ) => {
             // move from `curr` to `next` through `thru`,
             // check if inertial motion is possible through `thru` to `next`,
             // otherwise, slow down to std drifting speed before reaching `thru`,
             // transitioning if the building is within the current speed interval within `dt`
-
             control_on_rail(
                 ControlOnRail {
                     vehicle_entity: data.entity,
                     vehicle: data.vehicle,
-                    rail: curr,
-                    displace,
-                    current_speed,
+                    location,
                     building: thru,
                     inertial_target: Some(next),
                     dt,
@@ -179,24 +174,14 @@ fn control_once(
             )
             .unwrap_or(propulsion::Desired::Stationary)
         }
-        (
-            Location::Rail {
-                conduit: rail,
-                distance_from_alpha: displace,
-                speed_from_alpha: current_speed,
-            },
-            Intent::BuildingStop { target: building, .. },
-        ) => {
+        (Location::Rail(location), Intent::BuildingStop { target: building, .. }) => {
             // move from `conduit` and slow down to std drifting speed before reaching `target`,
             // transitioning if the building is within the current speed interval within `dt`
-
             control_on_rail(
                 ControlOnRail {
                     vehicle_entity: data.entity,
                     vehicle: data.vehicle,
-                    rail,
-                    displace,
-                    current_speed,
+                    location,
                     building,
                     inertial_target: None,
                     dt,
@@ -207,90 +192,99 @@ fn control_once(
             .unwrap_or(propulsion::Desired::Stationary)
         }
         (
-            Location::Building { building, interior_pos: current_interior_pos, .. },
+            Location::Building(location),
             Intent::EnterRail { target_rail: rail, through_building: thru },
         ) => {
             // move towards the edge location for `rail`,
             // transitioning if the edge is within the std drifting sphere within `dt`
-
-            debug_assert_eq!(building, thru);
+            debug_assert_eq!(location.building, thru);
 
             let Some(rail_data) = params.conduit_query.log_get(rail) else {
                 return propulsion::Desired::Stationary;
             };
             let corridor = rail_data.corridor.0;
+            let args = BuildingToRailArgs { location, corridor, rail, dt };
 
-            control_building_to_rail(
-                params,
-                &params.building_query_alpha,
-                &params.edge_corridor_query_alpha,
-                &params.edge_building_query_alpha,
-                &data,
-                commands,
-                BuildingToRailArgs { building, corridor, rail, current_interior_pos, dt },
-            )
-            .or_else(|| {
-                control_building_to_rail(
-                    params,
-                    &params.building_query_beta,
-                    &params.edge_corridor_query_beta,
-                    &params.edge_building_query_beta,
-                    &data,
-                    commands,
-                    BuildingToRailArgs { building, corridor, rail, current_interior_pos, dt },
-                )
-            })
-            .unwrap_or_else(|| {
-                tracing::warn!(
-                    "Vehicle {:?} received invalid motion intent, is in building {building:?},
-                     which is not connected to the intent target rail {rail:?}",
-                    data.entity
-                );
-                propulsion::Desired::Stationary
-            })
+            control_building_to_rail(params, &params.edge_alpha, &data, commands, &args)
+                .or_else(|| {
+                    control_building_to_rail(params, &params.edge_beta, &data, commands, &args)
+                })
+                .unwrap_or_else(|| {
+                    tracing::warn!(
+                        "Vehicle {:?} received invalid motion intent, is in building {:?}, which \
+                         is not connected to the intent target rail {rail:?}",
+                        data.entity,
+                        location.building,
+                    );
+                    propulsion::Desired::Stationary
+                })
         }
     }
 }
 
+fn control_on_rail_building_local(
+    vehicle_entity: Entity,
+    location: LocationBuilding,
+    target: Entity,
+    stop_at_interior_pos: Vec3,
+    dt: f32,
+    desired: &mut Intent,
+) -> propulsion::Desired {
+    if location.building != target {
+        tracing::warn!(
+            "Vehicle {vehicle_entity:?} received invalid motion intent, is in building {:?} but \
+             intent target is {target:?}",
+            location.building,
+        );
+        return propulsion::Desired::Stationary;
+    }
+
+    if location.interior_pos.distance_squared(stop_at_interior_pos)
+        < location.speed.length_squared() * dt.powi(2)
+    {
+        // intent fulfilled, clear intent
+        *desired = Intent::Stationary;
+    }
+
+    propulsion::Desired::Building { interior_pos: stop_at_interior_pos }
+}
+
 struct BuildingToRailArgs {
-    building:             Entity,
-    corridor:             Entity,
-    rail:                 Entity,
-    current_interior_pos: Vec3,
-    dt:                   f32,
+    location: LocationBuilding,
+    corridor: Entity,
+    rail:     Entity,
+    dt:       f32,
 }
 
 fn control_building_to_rail<Ab: Which>(
     params: &ControlVehicleParams,
-    building_query: &Query<&edge::BuildingEdges<Ab>>,
-    edge_corridor_query: &Query<&edge::OfCorridor<Ab>>,
-    edge_building_query: &Query<&edge::OfBuilding<Ab>>,
+    edge_params: &EdgeParams<Ab>,
     vehicle_data: &ControlVehicleDataItem,
     commands: &mut Commands,
-    args: BuildingToRailArgs,
+    args: &BuildingToRailArgs,
 ) -> Option<propulsion::Desired> {
     let edge_interior_pos = find_edge_interior_pos_to_corridor(
-        building_query,
-        edge_corridor_query,
-        edge_building_query,
-        args.building,
+        &edge_params.building_query,
+        &edge_params.edge_corridor_query,
+        &edge_params.edge_building_query,
+        args.location.building,
         args.corridor,
     )?;
 
-    let distance = edge_interior_pos.distance_squared(args.current_interior_pos);
+    let distance = edge_interior_pos.distance_squared(args.location.interior_pos);
     let half_vehicle_length = params.types.get(vehicle_data.vehicle.ty).physical.length * 0.5;
 
     if distance < half_vehicle_length.powi(2) {
         let corridor_length = params.corridor_query.log_get(args.corridor)?.corridor.length;
 
-        commands.entity(vehicle_data.entity).queue(vehicle::AttemptLocationTransitionCommand {
-            new_location: Location::Rail {
-                conduit:             args.rail,
+        commands.entity(vehicle_data.entity).queue(AttemptLocationTransitionCommand {
+            new_location: Location::Rail(LocationRail {
+                rail:                args.rail,
                 distance_from_alpha: Ab::default()
                     .select_with(-half_vehicle_length, corridor_length + half_vehicle_length),
                 speed_from_alpha:    Ab::default()
                     .negate_if_beta(params.config.standard_drifting_speed),
-            },
+            }),
             entry_method: Ab::default(),
         });
     }
@@ -318,11 +312,7 @@ fn find_edge_interior_pos_to_corridor<Ab: Which>(
 struct ControlOnRail<'q> {
     vehicle_entity:  Entity,
     vehicle:         &'q Vehicle,
-    /// Current rail of the vehicle.
-    rail:            Entity,
-    /// Distance of the center of the vehicle from the alpha end of the corridor.
-    displace:        f32,
-    current_speed:   f32,
+    location:        LocationRail,
     building:        Entity,
     /// Next rail to move onto, for inertial motion.
     inertial_target: Option<Entity>,
@@ -336,23 +326,21 @@ fn control_on_rail(
 ) -> Option<propulsion::Desired> {
     let def = params.types.get(args.vehicle.ty);
 
-    let conduit = params.conduit_query.log_get(args.rail)?;
+    let conduit = params.conduit_query.log_get(args.location.rail)?;
     let corridor = params.corridor_query.log_get(conduit.corridor.0)?;
-    let Some(exit_endpoint) =
-        identify_endpoint(&params.edge_building_query_alpha, corridor.edge_alpha, args.building)
-            .or_else(|| {
-                identify_endpoint(
-                    &params.edge_building_query_beta,
-                    corridor.edge_beta,
-                    args.building,
-                )
-            })
-    else {
+    let Some(exit_endpoint) = identify_endpoint(
+        &params.edge_alpha.edge_building_query,
+        corridor.edge_alpha,
+        args.building,
+    )
+    .or_else(|| {
+        identify_endpoint(&params.edge_beta.edge_building_query, corridor.edge_beta, args.building)
+    }) else {
         tracing::warn!(
             "{:?} not connected to the current location (rail {:?}) of vehicle {:?}",
             args.building,
-            args.rail,
-            args.vehicle_entity
+            args.location.rail,
+            args.vehicle_entity,
         );
         return None;
     };
@@ -371,11 +359,21 @@ fn control_on_rail(
         return None;
     }
 
-    if let Some(result) = control_on_rail_try_acquire_inertial(params, &args, &corridor, &params.edge_building_query_alpha) {
+    if let Some(result) = control_on_rail_try_acquire_inertial(
+        params,
+        &args,
+        &corridor,
+        &params.edge_alpha.edge_building_query,
+    ) {
         return Some(result);
     }
 
-    if let Some(result) = control_on_rail_try_acquire_inertial(params, &args, &corridor, &params.edge_building_query_beta) {
+    if let Some(result) = control_on_rail_try_acquire_inertial(
+        params,
+        &args,
+        &corridor,
+        &params.edge_beta.edge_building_query,
+    ) {
         return Some(result);
     }
 
@@ -421,7 +419,7 @@ fn control_on_rail_check_current_reservation(
             tracing::warn!(
                 "Vehicle {:?} is on an unreserved rail {:?}",
                 args.vehicle_entity,
-                args.rail
+                args.location.rail,
             );
             Err(())
         }
@@ -429,7 +427,7 @@ fn control_on_rail_check_current_reservation(
             tracing::warn!(
                 "Vehicle {:?} is on rail {:?} with unexpected reserved direction {:?}",
                 args.vehicle_entity,
-                args.rail,
+                args.location.rail,
                 inner.direction,
             );
             Err(())
@@ -456,19 +454,21 @@ fn control_on_rail_try_transition_to_building(
 
     let def = params.types.get(args.vehicle.ty);
 
-    let probe_speed = args.current_speed.abs().max(params.config.standard_drifting_speed);
+    let probe_speed =
+        args.location.speed_from_alpha.abs().max(params.config.standard_drifting_speed);
     let probe_distance = probe_speed * args.dt;
-    let distance_from_exit = exit
-        .select_with(args.displace, corridor.corridor.length - args.displace)
-        + def.physical.length * 0.5;
+    let distance_from_exit = exit.select_with(
+        args.location.distance_from_alpha,
+        corridor.corridor.length - args.location.distance_from_alpha,
+    ) + def.physical.length * 0.5;
 
     if distance_from_exit > probe_distance {
         return false;
     }
 
     let Some(interior_pos) = exit.select_lazy(
-        || find_interior_pos(corridor.edge_alpha, &params.edge_building_query_alpha),
-        || find_interior_pos(corridor.edge_beta, &params.edge_building_query_beta),
+        || find_interior_pos(corridor.edge_alpha, &params.edge_alpha.edge_building_query),
+        || find_interior_pos(corridor.edge_beta, &params.edge_beta.edge_building_query),
     ) else {
         tracing::error!(
             "cannot find interior pos from corridor {:?} to building {:?}",
@@ -477,12 +477,12 @@ fn control_on_rail_try_transition_to_building(
         );
         return false;
     };
-    commands.entity(args.vehicle_entity).queue(vehicle::AttemptLocationTransitionCommand {
-        new_location: Location::Building {
+    commands.entity(args.vehicle_entity).queue(AttemptLocationTransitionCommand {
+        new_location: Location::Building(LocationBuilding {
             building: args.building,
             interior_pos,
             speed: Vec3::ZERO,
-        },
+        }),
         entry_method: exit,
     });
 
@@ -495,7 +495,7 @@ fn control_on_rail_try_acquire_inertial<Exit: Which>(
     corridor: &ControlCorridorDataItem,
     edge_building_query: &Query<&edge::OfBuilding<Exit>>,
 ) -> Option<propulsion::Desired> {
-    None// TODO
+    None // TODO
 }
 
 fn control_on_rail_with_vehicle_stop(
@@ -506,7 +506,7 @@ fn control_on_rail_with_vehicle_stop(
     exit_endpoint: AlphaOrBeta,
     next_entity: Entity,
 ) -> Option<propulsion::Desired> {
-    let (next_vehicle_data, &Location::Rail { distance_from_alpha: next_displace, .. }) =
+    let (next_vehicle_data, &Location::Rail(next_location)) =
         params.vehicle_query.log_get(next_entity)?
     else {
         tracing::warn!(
@@ -520,9 +520,10 @@ fn control_on_rail_with_vehicle_stop(
 
     let padding = (next_length + def.physical.length) * 0.5 + params.config.safety_headroom;
 
+    let next_displace = next_location.distance_from_alpha;
     let distance = match exit_endpoint {
-        AlphaOrBeta::Alpha => (args.displace - next_displace) - padding,
-        AlphaOrBeta::Beta => (next_displace - args.displace) - padding,
+        AlphaOrBeta::Alpha => (args.location.distance_from_alpha - next_displace) - padding,
+        AlphaOrBeta::Beta => (next_displace - args.location.distance_from_alpha) - padding,
     };
 
     Some(control_on_rail_with_stop(
@@ -545,8 +546,8 @@ fn control_on_rail_with_exit_stop(
     exit_endpoint: AlphaOrBeta,
 ) -> propulsion::Desired {
     let distance_from_exit = match exit_endpoint {
-        AlphaOrBeta::Alpha => args.displace,
-        AlphaOrBeta::Beta => corridor.length - args.displace,
+        AlphaOrBeta::Alpha => args.location.distance_from_alpha,
+        AlphaOrBeta::Beta => corridor.length - args.location.distance_from_alpha,
     };
 
     let distance = distance_from_exit + def.physical.length * 0.5;

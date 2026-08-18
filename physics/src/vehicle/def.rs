@@ -1,3 +1,4 @@
+use bevy::math::Vec2;
 use bevy::reflect::Reflect;
 use enum_map::EnumMap;
 use serde::{Deserialize, Serialize};
@@ -6,8 +7,8 @@ use crate::vehicle::Propulsion;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct Def {
-    /// Name of the vehicle type.
-    pub name:           String,
+    /// Display properties.
+    pub display:        Display,
     /// Physical properties.
     pub physical:       Physical,
     /// Motion properties.
@@ -19,6 +20,25 @@ pub struct Def {
     /// Note that operators are just passengers with special roles.
     /// A driver resident would take *both* operator slot and compartment passenger slot.
     pub operator_slots: Vec<OperatorSlot>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct Display {
+    /// Name of the vehicle type.
+    pub name:         String,
+    /// Sprite path, expanding to `assets/sprites/{sprite_path}.png`.
+    pub sprite_path:  String,
+    /// Scale rendered sprites by this factor.
+    ///
+    /// X is the direction along the rail. Y is the orthogonal direction.
+    pub sprite_scale: Vec2,
+}
+
+impl Display {
+    /// Placeholder for internal tests.
+    #[cfg(test)]
+    pub(crate) const TEST: Self =
+        Self { name: String::new(), sprite_path: String::new(), sprite_scale: Vec2::ONE };
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]

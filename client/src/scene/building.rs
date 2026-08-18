@@ -187,7 +187,7 @@ pub enum FluidConnectionPeer {
 struct WallEntityOf(Entity);
 
 #[derive(Component, Reflect)]
-#[relationship_target(relationship = WallEntityOf)]
+#[relationship_target(relationship = WallEntityOf, linked_spawn)]
 struct HasWallEntity(Entity);
 
 #[derive(Resource, Reflect, Default)]

@@ -1,3 +1,6 @@
+use std::panic;
+use std::path::PathBuf;
+
 use bevy::app::{self, App, AppExit, PluginGroup};
 use bevy::asset::AssetPlugin;
 use bevy::ecs::resource::Resource;
@@ -63,7 +66,23 @@ pub fn run(options: Options) -> AppExit {
     app.add_plugins((util::shapes::Plug, dock::Plug, scene::Plug));
     app.add_systems(app::PreUpdate, || tracing::trace!("pre update"));
     app.add_systems(app::PostUpdate, || tracing::trace!("post update"));
-    app.run()
+
+    #[cfg(not(target_arch = "wasm32"))]
+    handle_direct_startup(&mut app);
+
+    let mut app_unwind = panic::AssertUnwindSafe(&mut app);
+    let result = panic::catch_unwind(move || app_unwind.run());
+    match result {
+        Ok(AppExit::Success) => AppExit::Success,
+        Ok(failure) => {
+            traffloat_physics::util::panic_dump(app.world());
+            failure
+        }
+        Err(err) => {
+            traffloat_physics::util::panic_dump(app.world());
+            panic::resume_unwind(err);
+        }
+    }
 }
 
 #[derive(Clone, Resource, clap::Parser)]
@@ -76,6 +95,11 @@ pub struct Options {
     #[cfg(feature = "otel")]
     #[clap(flatten)]
     pub otel:      OtelOptions,
+
+    #[clap(long)]
+    pub new_level: bool,
+
+    pub load_level: Option<PathBuf>,
 }
 
 #[cfg(feature = "otel")]
@@ -90,3 +114,23 @@ pub struct OtelOptions {
 }
 
 pub type ConfigManager = (bevy_mod_config::manager::Egui,);
+
+#[cfg(not(target_arch = "wasm32"))]
+fn handle_direct_startup(app: &mut App) {
+    use bevy::ecs::system::Commands;
+    use traffloat_physics::generate;
+
+    let options = app.world().resource::<Options>().clone();
+
+    if options.new_level {
+        app.add_systems(app::PostStartup, |mut commands: Commands| {
+            commands.queue(dock::new_level::NewGameCommand { config: generate::Config::default() });
+        });
+    }
+
+    if let Some(path) = options.load_level {
+        app.add_systems(app::PostStartup, move |mut commands: Commands| {
+            commands.queue(dock::save::LoadPathCommand { path: path.clone() });
+        });
+    }
+}

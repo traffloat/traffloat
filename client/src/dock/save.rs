@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::time::Duration;
 
 use bevy::app::{self, App, Plugin};
@@ -180,6 +181,7 @@ pub struct LoadCommand {
 
 impl Command for LoadCommand {
     type Out = ();
+
     #[tracing::instrument(skip_all, fields(name = self.name))]
     fn apply(self, world: &mut World) {
         tracing::info!("Reading save {}", self.name);
@@ -205,6 +207,31 @@ impl Command for LoadCommand {
 
         let mut load_source = world.resource_mut::<LoadSource>();
         load_source.0 = Some(LoadSourceInner { name: self.name });
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub struct LoadPathCommand {
+    pub path: PathBuf,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Command for LoadPathCommand {
+    type Out = Result<(), String>;
+
+    fn apply(self, world: &mut World) -> Result<(), String> {
+        let data =
+            std::fs::read(&self.path).map_err(|err| format!("Failed to read file: {err}"))?;
+        tracing::info!("Loading save {} with {} bytes", self.path.display(), data.len());
+
+        if let Err(err) = persist::input(world, &data) {
+            tracing::error!("Failed to load world: {err}");
+            return Err(err.to_string());
+        }
+
+        scene::singleplayer::setup(world);
+        dock::init_camera_view(world);
+        Ok(())
     }
 }
 

@@ -1,18 +1,22 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
+use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_physics::util::{Alpha, Beta, QueryExt};
 use traffloat_proto::proto;
 
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
 use crate::dock::{self, plot};
-use crate::scene::{FluidTypes, GenericViewable, IdRegistry, ProtoId, building, conduit, corridor};
+use crate::scene::{
+    FluidTypes, GenericViewable, IdRegistry, ProtoId, building, conduit, corridor, vehicle,
+};
 use crate::util::new_id;
 
 #[derive(SystemParam)]
 pub struct UiSystemParam<'w, 's> {
     conduit_query:           Query<'w, 's, ConduitData>,
     corridor_query:          Query<'w, 's, &'static GenericViewable>,
+    vehicle_query:           Query<'w, 's, VehicleData>,
     fluid_types:             Res<'w, FluidTypes>,
     commands:                Commands<'w, 's>,
     show_connections_params: ShowConnectionsParams<'w, 's>,
@@ -24,6 +28,12 @@ struct ConduitData {
     info:     &'static conduit::Info,
     corridor: &'static conduit::ConduitCorridor,
     id:       &'static ProtoId,
+    vehicles: Option<&'static vehicle::ListOnRail>,
+}
+
+#[derive(QueryData)]
+struct VehicleData {
+    generic: &'static GenericViewable,
 }
 
 impl UiSystemParam<'_, '_> {
@@ -42,6 +52,15 @@ impl UiSystemParam<'_, '_> {
             ui.heading("Connections");
             for connection in connections {
                 connection(ui, &mut self.commands);
+            }
+        }
+
+        if let Some(vehicles) = conduit_data.vehicles
+            && !vehicles.is_empty()
+        {
+            ui.heading("Vehicles");
+            for vehicle in vehicles.iter() {
+                show_vehicle(ui, &mut self.commands, &self.vehicle_query, vehicle);
             }
         }
 
@@ -162,5 +181,20 @@ fn show_connection_ui(
             ui.add(egui::Slider::new(&mut proportion, 0.0..=100.0).suffix("%"));
             // TODO send proportion changes to the server if resp.changed()
         });
+    });
+}
+
+fn show_vehicle(
+    ui: &mut egui::Ui,
+    commands: &mut Commands,
+    vehicle_query: &Query<VehicleData>,
+    vehicle_entity: Entity,
+) {
+    let Some(vehicle_data) = vehicle_query.log_get(vehicle_entity) else { return };
+
+    ui.horizontal(|ui| {
+        show_link(ui, commands, vehicle_entity);
+
+        ui.label(&vehicle_data.generic.name);
     });
 }

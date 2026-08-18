@@ -23,6 +23,10 @@ use traffloat_proto::proto;
 use crate::util::{self, QueryExt, Throttle};
 use crate::{CleanupAppExt, request};
 
+/// When set to true, server-side culling is disabled,
+/// and clients will always receive optical updates for all viewables.
+const UNCONDITIONAL_OPTICAL: bool = true;
+
 pub struct Plug;
 
 impl Plugin for Plug {
@@ -116,6 +120,9 @@ impl Viewer {
             Some(level)
         } else if self.viewports.iter().any(|viewport| !viewport.intersect(viewable_bb).is_empty())
         {
+            Some(SubscriptionLevel::Optical)
+        } else if UNCONDITIONAL_OPTICAL {
+            // TODO add a lower optical level that minimizes updates sent to viewers
             Some(SubscriptionLevel::Optical)
         } else {
             None

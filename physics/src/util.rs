@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 use std::time::Duration;
 
 use bevy::app::App;
+use bevy::ecs::name::Name;
 use bevy::ecs::schedule::{IntoScheduleConfigs, ScheduleLabel, SystemSet};
 use bevy::ecs::system::{SystemParam, SystemParamFunction, SystemState};
 use bevy::ecs::world::World;
@@ -93,4 +94,13 @@ where
     let result = f(param);
     state.apply(world);
     result
+}
+
+pub fn panic_dump(world: &World) {
+    eprintln!("=== DUMPING ENTITY NAMES ===");
+    for entity in world.iter_entities() {
+        if let Some(name) = entity.get::<Name>() {
+            eprintln!("Entity: {:?} = {:?}", entity.id(), name.as_str());
+        }
+    }
 }

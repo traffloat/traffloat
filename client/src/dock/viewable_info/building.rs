@@ -9,7 +9,7 @@ use crate::dock::viewable_info::corridor::display_gate;
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
 use crate::dock::{self, plot};
 use crate::scene::facility::{BuildingFacilities, FacilityBuilding};
-use crate::scene::{FluidTypes, GenericViewable, building, corridor, resident};
+use crate::scene::{FluidTypes, GenericViewable, building, corridor, resident, vehicle};
 use crate::util::new_id;
 
 #[derive(SystemParam)]
@@ -19,6 +19,7 @@ pub struct UiSystemParam<'w, 's> {
     corridor_query:  Query<'w, 's, CorridorData>,
     facility_query:  Query<'w, 's, FacilityData>,
     resident_params: ShowResidentsParams<'w, 's>,
+    vehicle_query:   Query<'w, 's, VehicleData>,
     fluid_types:     Res<'w, FluidTypes>,
 }
 
@@ -29,6 +30,7 @@ struct BuildingData {
     corridors_alpha: Option<&'static corridor::IsEndpointOf<Alpha>>,
     corridors_beta:  Option<&'static corridor::IsEndpointOf<Beta>>,
     facilities:      Option<&'static BuildingFacilities>,
+    vehicles:        Option<&'static vehicle::ListInBuilding>,
 }
 
 #[derive(QueryData)]
@@ -46,6 +48,11 @@ struct CorridorData {
 
 #[derive(QueryData)]
 struct FacilityData {
+    generic: &'static GenericViewable,
+}
+
+#[derive(QueryData)]
+struct VehicleData {
     generic: &'static GenericViewable,
 }
 
@@ -100,6 +107,15 @@ impl UiSystemParam<'_, '_> {
             ui.heading("Residents");
             for resident in residents {
                 resident(ui, &mut self.commands);
+            }
+        }
+
+        if let Some(vehicles) = data.vehicles
+            && !vehicles.is_empty()
+        {
+            ui.heading("Vehicles");
+            for vehicle in vehicles.iter() {
+                show_vehicle(ui, &mut self.commands, &self.vehicle_query, vehicle);
             }
         }
 
@@ -239,4 +255,19 @@ fn show_residents<'q>(
             });
         }
     })
+}
+
+fn show_vehicle(
+    ui: &mut egui::Ui,
+    commands: &mut Commands,
+    vehicle_query: &Query<VehicleData>,
+    vehicle_entity: Entity,
+) {
+    let Some(vehicle_data) = vehicle_query.log_get(vehicle_entity) else { return };
+
+    ui.horizontal(|ui| {
+        show_link(ui, commands, vehicle_entity);
+
+        ui.label(&vehicle_data.generic.name);
+    });
 }

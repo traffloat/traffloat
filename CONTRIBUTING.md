@@ -86,6 +86,7 @@ cargo test --all
   unless the system involves aggregation over all queried entities,
   in which case the aggregation result must not be used
   to avoid propagating errors.
+- All bevy systems should be suffixed with `_system`.
 
 ### Plugin structure
 

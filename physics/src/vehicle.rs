@@ -4,13 +4,13 @@ use std::time::Duration;
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::{EntityEvent, };
+use bevy::ecs::event::EntityEvent;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::{QueryData, With, Without};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
-use bevy::ecs::system::{Commands, EntityCommand, Query, SystemParam};
+use bevy::ecs::system::{Commands, EntityCommand, Query, Res, SystemParam};
 use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
@@ -61,6 +61,10 @@ impl Plugin for Plug {
         app.add_plugins(motion::Plug);
         app.add_plugins(propulsion::Plug);
 
+        app.add_systems(
+            app::Update,
+            sync_types_to_viewers_system.in_set(view::SendUpdatesSystemSet::Meta),
+        );
         app.add_systems(
             app::Update,
             init_viewer_system
@@ -141,8 +145,22 @@ pub struct Vehicle {
 
 #[derive(Debug, Clone, Copy, Component, Reflect)]
 pub enum Location {
-    Building { building: Entity, interior_pos: Vec3, speed: Vec3 },
-    Rail { conduit: Entity, distance_from_alpha: f32, speed_from_alpha: f32 },
+    Building(LocationBuilding),
+    Rail(LocationRail),
+}
+
+#[derive(Debug, Clone, Copy, Component, Reflect)]
+pub struct LocationBuilding {
+    pub building:     Entity,
+    pub interior_pos: Vec3,
+    pub speed:        Vec3,
+}
+
+#[derive(Debug, Clone, Copy, Component, Reflect)]
+pub struct LocationRail {
+    pub rail:                Entity,
+    pub distance_from_alpha: f32,
+    pub speed_from_alpha:    f32,
 }
 
 /// Component on buildings, referencing the vehicle entities.
@@ -163,8 +181,8 @@ impl ListOnRail {
         mut loc_fn: impl FnMut(Entity) -> Option<Location>,
     ) -> Option<usize> {
         self.partition_point(dist, |e| match loc_fn(e)? {
-            Location::Building { .. } => None,
-            Location::Rail { distance_from_alpha, .. } => Some(distance_from_alpha),
+            Location::Building(_) => None,
+            Location::Rail(location) => Some(location.distance_from_alpha),
         })
     }
 
@@ -286,9 +304,10 @@ impl EntityCommand for SpawnCommand {
 
     fn apply(self, mut entity: EntityWorldMut) {
         let ambient_entity = match self.location {
-            Location::Building { building, .. } => building,
-            Location::Rail { conduit, .. } => {
-                let Some(&conduit::OfCorridor(corridor)) = entity.world().log_get(conduit) else {
+            Location::Building(location) => location.building,
+            Location::Rail(location) => {
+                let Some(&conduit::OfCorridor(corridor)) = entity.world().log_get(location.rail)
+                else {
                     return;
                 };
                 corridor
@@ -300,7 +319,7 @@ impl EntityCommand for SpawnCommand {
             let id = next_id.0;
             next_id.0 += 1;
             let def = entity.resource::<Types>().get(self.ty);
-            format!("{} #{id}", def.name)
+            format!("{} #{id}", def.display.name)
         });
 
         let def = entity.resource::<Types>().get(self.ty);
@@ -371,11 +390,11 @@ impl<Ab: EntryMethod> EntityCommand for AttemptLocationTransitionCommand<Ab> {
         if let Some(entry) = self.entry_method.into_proto() {
             // only check if this is a regular entry
             match self.new_location {
-                Location::Building { .. } => {
+                Location::Building(_) => {
                     // TODO check building capacity
                 }
-                Location::Rail { conduit, .. } => {
-                    let result = check_rail_entry(entity.world(), entity_id, conduit, entry);
+                Location::Rail(location) => {
+                    let result = check_rail_entry(entity.world(), entity_id, location.rail, entry);
                     if result.is_err() {
                         return;
                     }
@@ -385,15 +404,17 @@ impl<Ab: EntryMethod> EntityCommand for AttemptLocationTransitionCommand<Ab> {
 
         if let Some(old) = entity.get::<Location>() {
             match *old {
-                Location::Building { building, .. } => {
+                Location::Building(location) => {
                     entity.world_scope(|world| {
-                        if let Some(mut list) = world.log_get_mut::<ListInBuilding>(building) {
+                        if let Some(mut list) =
+                            world.log_get_mut::<ListInBuilding>(location.building)
+                        {
                             list.0.retain(|&e| e != entity_id);
                         }
                     });
                 }
-                Location::Rail { conduit, .. } => {
-                    entity.world_scope(|world| exit_from_rail(world, conduit, entity_id));
+                Location::Rail(location) => {
+                    entity.world_scope(|world| exit_from_rail(world, location.rail, entity_id));
                 }
             }
         }
@@ -407,17 +428,25 @@ impl<Ab: EntryMethod> EntityCommand for AttemptLocationTransitionCommand<Ab> {
 
         let world = entity.into_world_mut();
         match self.new_location {
-            Location::Building { building, .. } => {
-                match world.get_mut::<ListInBuilding>(building) {
+            Location::Building(location) => {
+                match world.get_mut::<ListInBuilding>(location.building) {
                     Some(mut list) => list.0.push(entity_id),
                     None => {
-                        world.entity_mut(building).insert(ListInBuilding([entity_id].into()));
+                        world
+                            .entity_mut(location.building)
+                            .insert(ListInBuilding([entity_id].into()));
                     }
                 }
             }
-            Location::Rail { conduit, distance_from_alpha, .. } => {
+            Location::Rail(location) => {
                 run_stateless_closure(world, move |params: EnterRailParams<'_, '_>| {
-                    enter_rail(params, conduit, entity_id, distance_from_alpha, self.entry_method);
+                    enter_rail(
+                        params,
+                        location.rail,
+                        entity_id,
+                        location.distance_from_alpha,
+                        self.entry_method,
+                    );
                 });
             }
         }
@@ -494,13 +523,13 @@ fn check_rail_entry(
         let Some(location) = world.log_get::<Location>(last_vehicle) else {
             return Err(RailEntryCheck::InvalidEcs);
         };
-        let &Location::Rail { distance_from_alpha, .. } = location else {
+        let &Location::Rail(location) = location else {
             tracing::error!("Vehicle in list must be on rail");
             return Err(RailEntryCheck::InvalidEcs);
         };
 
         let distance_from_entry = match entry {
-            AlphaOrBeta::Alpha => distance_from_alpha,
+            AlphaOrBeta::Alpha => location.distance_from_alpha,
             AlphaOrBeta::Beta => {
                 let Some(of_corridor) = world.log_get::<conduit::OfCorridor>(conduit) else {
                     return Err(RailEntryCheck::InvalidEcs);
@@ -508,7 +537,7 @@ fn check_rail_entry(
                 let Some(corridor) = world.log_get::<Corridor>(of_corridor.0) else {
                     return Err(RailEntryCheck::InvalidEcs);
                 };
-                corridor.length - distance_from_alpha
+                corridor.length - location.distance_from_alpha
             }
         };
 
@@ -556,6 +585,7 @@ fn exit_from_rail(world: &mut World, conduit: Entity, vehicle_entity: Entity) {
 struct EnterRailParams<'w, 's> {
     conduit_query: Query<'w, 's, (Option<&'static mut ListOnRail>, &'static mut rail::Reservation)>,
     location_query: Query<'w, 's, &'static Location>,
+    intent_query:   Query<'w, 's, &'static mut motion::Intent>,
     commands:       Commands<'w, 's>,
 }
 
@@ -614,6 +644,57 @@ fn enter_rail<Ab: EntryMethod>(
             }
         }
     }
+
+    if let Some(mut intent) = params.intent_query.log_get_mut(vehicle_entity)
+        && let motion::Intent::EnterRail { target_rail, .. } = *intent
+        && target_rail == conduit
+    {
+        // intent fulfilled, can be cleared
+        *intent = motion::Intent::Stationary;
+    }
+}
+
+/// Component on viewers to track vehicle type definition sync.
+#[derive(Component, Reflect)]
+struct ViewerSynced {
+    num_types: usize,
+}
+
+fn sync_types_to_viewers_system(
+    types: Res<Types>,
+    viewers: Query<(Entity, Option<&ViewerSynced>), With<view::Viewer>>,
+    mut commands: Commands,
+    mut writer: MessageWriter<view::SentUpdate>,
+) {
+    fn def_to_proto(def: &TypeDef) -> proto::VehicleType {
+        proto::VehicleType {
+            name:           def.display.name.clone(),
+            sprite_path:    def.display.sprite_path.clone(),
+            sprite_scale:   def.display.sprite_scale,
+            compartments:   def
+                .compartments
+                .iter()
+                .map(|cpmt| proto::VehicleTypeCompartment { name: cpmt.name.clone() })
+                .collect(),
+            operator_slots: def
+                .operator_slots
+                .iter()
+                .map(|slot| proto::VehicleTypeOperator { name: slot.name.clone() })
+                .collect(),
+        }
+    }
+
+    for (entity, viewer) in viewers {
+        if viewer.is_none_or(|v| v.num_types != types.types.len()) {
+            commands.entity(entity).insert(ViewerSynced { num_types: types.types.len() });
+            writer.write(view::SentUpdate {
+                viewers: [entity].into(),
+                body:    proto::Update::SetVehicleTypes(proto::SetVehicleTypes {
+                    types: types.types.iter().map(def_to_proto).collect(),
+                }),
+            });
+        }
+    }
 }
 
 fn init_viewer_system(
@@ -668,16 +749,20 @@ fn make_proto_location(
     viewable_query: &Query<(&view::Viewable,)>,
 ) -> Option<proto::VehicleLocation> {
     match *location {
-        Location::Building { building, interior_pos, speed } => {
-            let (viewable,) = viewable_query.log_get(building)?;
-            Some(proto::VehicleLocation::Building { building: viewable.id, interior_pos, speed })
+        Location::Building(location) => {
+            let (viewable,) = viewable_query.log_get(location.building)?;
+            Some(proto::VehicleLocation::Building {
+                building:     viewable.id,
+                interior_pos: location.interior_pos,
+                speed:        location.speed,
+            })
         }
-        Location::Rail { conduit, distance_from_alpha, speed_from_alpha } => {
-            let (viewable,) = viewable_query.log_get(conduit)?;
+        Location::Rail(location) => {
+            let (viewable,) = viewable_query.log_get(location.rail)?;
             Some(proto::VehicleLocation::Rail {
-                conduit: viewable.id,
-                distance_from_alpha,
-                speed_from_alpha,
+                conduit:             viewable.id,
+                distance_from_alpha: location.distance_from_alpha,
+                speed_from_alpha:    location.speed_from_alpha,
             })
         }
     }
@@ -692,8 +777,8 @@ fn update_culling_rect_system(
 ) {
     for (location, mut culling_rect) in vehicle_query {
         let parent_entity = match *location {
-            Location::Building { building, .. } => building,
-            Location::Rail { conduit, .. } => conduit,
+            Location::Building(location) => location.building,
+            Location::Rail(location) => location.rail,
         };
         if let Some(&parent_rect) = culling_rect_query.log_get(parent_entity) {
             *culling_rect = parent_rect;

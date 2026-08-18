@@ -1,7 +1,7 @@
 use std::hash::{Hash, Hasher};
 
 use bevy::app::{App, Plugin};
-use bevy::ecs::system::{Commands, SystemParam};
+use bevy::ecs::system::{Command, Commands, SystemParam};
 use bevy::ecs::world::World;
 use rand::RngExt;
 use rand::distr::Alphanumeric;
@@ -54,16 +54,26 @@ impl dock::Tab for Tab {
                 },
             };
 
-            params.commands.queue(move |world: &mut World| {
-                generate::generate(world, config);
-
-                scene::singleplayer::setup(world);
-                dock::init_camera_view(world);
-            });
+            params.commands.queue(NewGameCommand { config });
         }
     }
 
     type OnCloseSystemParam<'w, 's> = ();
 
     type BeforeRenderSystemParam<'w, 's> = ();
+}
+
+pub struct NewGameCommand {
+    pub config: generate::Config,
+}
+
+impl Command for NewGameCommand {
+    type Out = ();
+
+    fn apply(self, world: &mut World) {
+        generate::generate(world, self.config);
+
+        scene::singleplayer::setup(world);
+        dock::init_camera_view(world);
+    }
 }
