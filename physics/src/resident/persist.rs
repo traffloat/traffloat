@@ -18,17 +18,26 @@ use crate::{WorldObject, persist, resident, view};
 #[derive(Clone)]
 pub struct Persist;
 
+pub struct Deps {
+    resident_attr_types: Depend<resident::PersistAttrTypes>,
+    building:            Depend<building::Persist>,
+    corridor:            Depend<corridor::Persist>,
+    facility:            Depend<facility::Persist>,
+    vehicle:             Depend<vehicle::Persist>,
+}
+
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "resident" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> {
-        [
-            Depend::new(resident::PersistAttrTypes),
-            Depend::new(building::Persist),
-            Depend::new(corridor::Persist),
-            Depend::new(facility::Persist),
-            Depend::new(vehicle::Persist),
-        ]
+    type Deps = Deps;
+    fn depends(&self, depends: &mut impl persist::Depends) -> Self::Deps {
+        Deps {
+            resident_attr_types: depends.request(resident::PersistAttrTypes),
+            building:            depends.request(building::Persist),
+            corridor:            depends.request(corridor::Persist),
+            facility:            depends.request(facility::Persist),
+            vehicle:             depends.request(vehicle::Persist),
+        }
     }
 
     type OutputParams<'w, 's> = OutputParams<'w, 's>;
@@ -36,6 +45,7 @@ impl Persistable for Persist {
 
     fn output(
         &self,
+        deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
@@ -44,16 +54,16 @@ impl Persistable for Persist {
             .iter()
             .map(|data| {
                 Ok(Entry {
-                    id:       ctx.alloc(data.entity),
+                    id:       ctx.alloc(self, data.entity),
                     name:     data.named.name.clone(),
                     attrs:    data.attrs.values.clone().into(),
                     location: match *data.location {
                         resident::Location::Building { entity, interior_pos } => {
-                            EntryLocation::Building { building: ctx.get_id(entity)?, interior_pos }
+                            EntryLocation::Building { building: ctx.get_id(deps.building, entity)?, interior_pos }
                         }
                         resident::Location::Corridor { entity, distance_from_alpha } => {
                             EntryLocation::Corridor {
-                                corridor: ctx.get_id(entity)?,
+                                corridor: ctx.get_id(deps.corridor, entity)?,
                                 distance_from_alpha,
                             }
                         }
@@ -72,7 +82,7 @@ impl Persistable for Persist {
                                 return Err(());
                             };
                             EntryLocation::Facility {
-                                facility:   ctx.get_id(entity)?,
+                                facility:   ctx.get_id(deps.facility, entity)?,
                                 slot_index: u32::try_from(interact.slot_index)
                                     .expect("too many interaction slots"),
                             }
@@ -80,7 +90,7 @@ impl Persistable for Persist {
                         resident::Location::Vehicle { compartment } => {
                             let cpmt_data =
                                 params.compartment_query.log_get(compartment).ok_or(())?;
-                            let vehicle = ctx.get_id(cpmt_data.vehicle.0)?;
+                            let vehicle = ctx.get_id(deps.vehicle, cpmt_data.vehicle.0)?;
                             let vehicle_data =
                                 params.vehicle_query.log_get(cpmt_data.vehicle.0).ok_or(())?;
                             let as_passenger = try_log!(data.passenger, expect "location vehicle implies passenger component" or return Err(()));
@@ -110,13 +120,15 @@ impl Persistable for Persist {
 
     fn input(
         &self,
+        deps: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
         for entry in input {
             let mut entity = world.spawn((WorldObject,));
-            ctx.record(entry.id, entity.id());
+            ctx.record(self, entry.id, entity.id())
+                .map_err(|err| InputError::RecordIdError { err })?;
 
             entity.reborrow_scope(|entity| {
                 resident::SpawnCommand {
@@ -125,7 +137,7 @@ impl Persistable for Persist {
                         EntryLocation::Building { building, interior_pos } => {
                             resident::SpawnAt::Building {
                                 building: ctx
-                                    .resolve_entity(building)
+                                    .resolve_entity(deps.building, building)
                                     .map_err(|err| InputError::UnresolvedBuilding { err })?,
                                 interior_pos,
                             }
@@ -133,7 +145,7 @@ impl Persistable for Persist {
                         EntryLocation::Corridor { corridor, distance_from_alpha } => {
                             resident::SpawnAt::Corridor {
                                 corridor: ctx
-                                    .resolve_entity(corridor)
+                                    .resolve_entity(deps.corridor, corridor)
                                     .map_err(|err| InputError::UnresolvedCorridor { err })?,
                                 distance_from_alpha,
                             }
@@ -141,7 +153,7 @@ impl Persistable for Persist {
                         EntryLocation::Facility { facility, slot_index } => {
                             resident::SpawnAt::Facility {
                                 facility:   ctx
-                                    .resolve_entity(facility)
+                                    .resolve_entity(deps.facility, facility)
                                     .map_err(|err| InputError::UnresolvedFacility { err })?,
                                 slot_index: usize::try_from(slot_index).expect("usize >= u32"),
                             }
@@ -152,7 +164,7 @@ impl Persistable for Persist {
                             operator_slot,
                         } => {
                             let vehicle_entity = ctx
-                                .resolve_entity(vehicle)
+                                .resolve_entity(deps.vehicle, vehicle)
                                 .map_err(|err| InputError::UnresolvedVehicle { err })?;
                             let vehicle = entity
                                 .world()
@@ -253,14 +265,16 @@ pub enum EntryLocation {
 
 #[derive(Debug, Snafu)]
 pub enum InputError {
+    #[snafu(display("Register new ID: {err}"))]
+    RecordIdError { err: persist::IdError },
     #[snafu(display("Unresolved building: {err}"))]
-    UnresolvedBuilding { err: persist::UnresolvedIdError },
+    UnresolvedBuilding { err: persist::IdError },
     #[snafu(display("Unresolved corridor: {err}"))]
-    UnresolvedCorridor { err: persist::UnresolvedIdError },
+    UnresolvedCorridor { err: persist::IdError },
     #[snafu(display("Unresolved facility: {err}"))]
-    UnresolvedFacility { err: persist::UnresolvedIdError },
+    UnresolvedFacility { err: persist::IdError },
     #[snafu(display("Unresolved vehicle: {err}"))]
-    UnresolvedVehicle { err: persist::UnresolvedIdError },
+    UnresolvedVehicle { err: persist::IdError },
     #[snafu(display("Invalid compartment index for this vehicle type: {compartment}"))]
     InvalidCompartment { compartment: u32 },
     #[snafu(display("Invalid operator slot for this vehicle type: {operator_slot}"))]

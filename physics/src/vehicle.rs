@@ -30,6 +30,7 @@ pub use rail::Rail;
 use traffloat_proto::proto::{self, AlphaOrBeta};
 
 use crate::graph::{Corridor, conduit};
+use crate::persist::AppExt;
 use crate::util::{
     self, Alpha, EntityWorldMutExt, QueryExt, Which, WorldExt, run_stateless_closure,
 };
@@ -54,6 +55,8 @@ impl Plugin for Plug {
         app.register_type::<OperatorList>();
         app.register_type::<OperatorOf>();
 
+        app.register_persistable(PersistTypes);
+        app.register_persistable(Persist);
         app.init_resource::<Types>();
         app.init_resource::<Conf>();
         app.init_resource::<NextVehicleId>();

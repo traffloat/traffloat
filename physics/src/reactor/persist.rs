@@ -5,24 +5,26 @@ use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{self, Depend, InputContext, OutputContext, Persistable};
 use crate::{fluid, reactor, resident};
 
 #[derive(Clone)]
 pub struct Persist;
 
+pub struct Deps;
+
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "reactor:type" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> {
-        [Depend::new(fluid::PersistTypes), Depend::new(resident::attr::Persist)]
-    }
+    type Deps = Deps;
+    fn depends(&self, depends: &mut impl persist::Depends) -> Deps { Deps }
 
     type OutputParams<'w, 's> = OutputParams<'w>;
     type Output = Vec<Entry>;
 
     fn output(
         &self,
+        depends: &Deps,
         params: &mut OutputParams<'_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
@@ -34,6 +36,7 @@ impl Persistable for Persist {
 
     fn input(
         &self,
+        depends: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,

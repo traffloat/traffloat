@@ -16,15 +16,22 @@ use crate::{WorldObject, fluid, persist, reactor, view};
 #[derive(Clone)]
 pub struct Persist;
 
+pub struct Deps {
+    building:      Depend<building::Persist>,
+    facility_type: Depend<PersistTypes>,
+    fluid_type:    Depend<fluid::PersistTypes>,
+}
+
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "graph:facility" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> {
-        [
-            Depend::new(building::Persist),
-            Depend::new(PersistTypes),
-            Depend::new(fluid::PersistTypes),
-        ]
+    type Deps = Deps;
+    fn depends(&self, depends: &mut impl persist::Depends) -> Self::Deps {
+        Deps {
+            building:      depends.request(building::Persist),
+            facility_type: depends.request(PersistTypes),
+            fluid_type:    depends.request(fluid::PersistTypes),
+        }
     }
 
     type OutputParams<'w, 's> = OutputParams<'w, 's>;
@@ -32,6 +39,7 @@ impl Persistable for Persist {
 
     fn output(
         &self,
+        deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
@@ -40,10 +48,10 @@ impl Persistable for Persist {
             .iter()
             .map(|data| {
                 Ok(Entry {
-                    id:               ctx.alloc(data.entity),
+                    id:               ctx.alloc(self, data.entity),
                     name:             data.named.name.clone(),
-                    building:         ctx.get_id(data.building.0)?,
-                    ty:               ctx.get_id(data.ty.0)?,
+                    building:         ctx.get_id(deps.building, data.building.0)?,
+                    ty:               ctx.get_id(deps.facility_type, data.ty.0)?,
                     blueprint_params: BlueprintParams::extract(&data, ctx)?,
                     fluid:            data.fluid.map(fluid::persist::StorageEntry::from_component),
                 })
@@ -56,23 +64,25 @@ impl Persistable for Persist {
 
     fn input(
         &self,
+        deps: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
         for entry in input {
             let mut entity = world.spawn((WorldObject,));
-            ctx.record(entry.id, entity.id());
+            ctx.record(self, entry.id, entity.id())
+                .map_err(|err| InputError::RecordIdError { err })?;
             entity.reborrow_scope(|entity| {
                 facility::SpawnCommand {
                     name:             Some(entry.name),
                     building:         ctx
-                        .resolve_entity(entry.building)
+                        .resolve_entity(deps.building, entry.building)
                         .map_err(|err| InputError::UnresolvedBuilding { err })?,
                     ty:               ctx
-                        .resolve_entity(entry.ty)
+                        .resolve_entity(deps.facility_type, entry.ty)
                         .map_err(|err| InputError::UnresolvedFacilityType { err })?,
-                    blueprint_params: entry.blueprint_params.resolve(ctx)?,
+                    blueprint_params: entry.blueprint_params.resolve(deps, ctx)?,
                 }
                 .apply(entity);
                 Ok(())
@@ -141,17 +151,18 @@ impl BlueprintParams {
                 .ports
                 .fluid_storages
                 .iter()
-                .map(|&entity| entity.map(|entity| ctx.get_id(entity)).transpose())
+                .map(|&entity| entity.map(|entity| ctx.get_id_unchecked(entity)).transpose())
                 .collect::<Result<_, ()>>()?,
         })
     }
 
-    fn resolve(&self, ctx: &InputContext) -> Result<blueprint::Params, InputError> {
-        Ok(blueprint::Params { reactor: self.resolve_reactor(ctx)? })
+    fn resolve(&self, deps: &Deps, ctx: &InputContext) -> Result<blueprint::Params, InputError> {
+        Ok(blueprint::Params { reactor: self.resolve_reactor(deps, ctx)? })
     }
 
     fn resolve_reactor(
         &self,
+        deps: &Deps,
         ctx: &InputContext,
     ) -> Result<Option<blueprint::ReactorParams>, InputError> {
         let Some(reactor) = &self.reactor else { return Ok(None) };
@@ -162,7 +173,7 @@ impl BlueprintParams {
                 .enumerate()
                 .map(|(index, &id)| {
                     id.map(|id| {
-                        ctx.resolve_entity(id)
+                        ctx.resolve_entity_unchecked(id)
                             .map_err(|err| InputError::UnresolvedFluidStorage { err, index })
                     })
                     .transpose()
@@ -174,12 +185,14 @@ impl BlueprintParams {
 
 #[derive(Debug, Snafu)]
 pub enum InputError {
+    #[snafu(display("Register new ID: {err}"))]
+    RecordIdError { err: persist::IdError },
     #[snafu(display("Unresolved building: {err}"))]
-    UnresolvedBuilding { err: persist::UnresolvedIdError },
+    UnresolvedBuilding { err: persist::IdError },
     #[snafu(display("Unresolved facility type: {err}"))]
-    UnresolvedFacilityType { err: persist::UnresolvedIdError },
+    UnresolvedFacilityType { err: persist::IdError },
     #[snafu(display("Unresolved fluid storage at index {index}: {err}"))]
-    UnresolvedFluidStorage { err: persist::UnresolvedIdError, index: usize },
+    UnresolvedFluidStorage { err: persist::IdError, index: usize },
     #[snafu(display(
         "Blueprint for this facility type did not declare a blueprint type, but the facility \
          declared a fluid storage"

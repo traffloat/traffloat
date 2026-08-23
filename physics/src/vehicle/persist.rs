@@ -21,18 +21,29 @@ use crate::{WorldObject, fluid, persist, resident, view};
 #[derive(Clone)]
 pub struct Persist;
 
+#[derive(Default)]
+pub struct Deps {
+    fluid_type:    Depend<fluid::PersistTypes>,
+    resident_attr: Depend<resident::PersistAttrTypes>,
+    building:      Depend<building::Persist>,
+    corridor:      Depend<corridor::Persist>,
+    conduit:       Depend<conduit::Persist>,
+    vehicle_type:  Depend<vehicle::PersistTypes>,
+}
+
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "vehicle" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> {
-        [
-            Depend::new(fluid::PersistTypes),
-            Depend::new(resident::PersistAttrTypes),
-            Depend::new(building::Persist),
-            Depend::new(corridor::Persist),
-            Depend::new(conduit::Persist),
-            Depend::new(vehicle::PersistTypes),
-        ]
+    type Deps = Deps;
+    fn depends(&self, depends: &mut impl persist::Depends) -> Deps {
+        Deps {
+            fluid_type:    depends.request(fluid::PersistTypes),
+            resident_attr: depends.request(resident::PersistAttrTypes),
+            building:      depends.request(building::Persist),
+            corridor:      depends.request(corridor::Persist),
+            conduit:       depends.request(conduit::Persist),
+            vehicle_type:  depends.request(vehicle::PersistTypes),
+        }
     }
 
     type OutputParams<'w, 's> = OutputParams<'w, 's>;
@@ -40,6 +51,7 @@ impl Persistable for Persist {
 
     fn output(
         &self,
+        deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
@@ -48,17 +60,17 @@ impl Persistable for Persist {
             .iter()
             .map(|data| {
                 Ok(Entry {
-                    id:           ctx.alloc(data.entity),
+                    id:           ctx.alloc(self, data.entity),
                     ty:           data.vehicle.ty.0,
                     name:         data.named.name.clone(),
                     location:     match *data.location {
                         Location::Building(location) => EntryLocation::Building {
-                            building:     ctx.get_id(location.building)?,
+                            building:     ctx.get_id(deps.building, location.building)?,
                             interior_pos: location.interior_pos,
                             speed:        location.speed,
                         },
                         Location::Rail(location) => EntryLocation::Rail {
-                            conduit:             ctx.get_id(location.rail)?,
+                            conduit:             ctx.get_id(deps.conduit, location.rail)?,
                             distance_from_alpha: location.distance_from_alpha,
                             speed_from_alpha:    location.speed_from_alpha,
                         },
@@ -84,13 +96,15 @@ impl Persistable for Persist {
 
     fn input(
         &self,
+        deps: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
         for entry in input {
             let mut entity = world.spawn((WorldObject,));
-            ctx.record(entry.id, entity.id());
+            ctx.record(self, entry.id, entity.id())
+                .map_err(|err| InputError::RecordIdError { err })?;
 
             entity.reborrow_scope(|entity| {
                 SpawnCommand {
@@ -99,7 +113,7 @@ impl Persistable for Persist {
                         EntryLocation::Building { building, interior_pos, speed } => {
                             Location::Building(LocationBuilding {
                                 building: ctx
-                                    .resolve_entity(building)
+                                    .resolve_entity(deps.building, building)
                                     .map_err(|err| InputError::UnresolvedBuilding { err })?,
                                 interior_pos,
                                 speed,
@@ -108,7 +122,7 @@ impl Persistable for Persist {
                         EntryLocation::Rail { conduit, distance_from_alpha, speed_from_alpha } => {
                             Location::Rail(LocationRail {
                                 rail: ctx
-                                    .resolve_entity(conduit)
+                                    .resolve_entity(deps.conduit, conduit)
                                     .map_err(|err| InputError::UnresolvedConduit { err })?,
                                 distance_from_alpha,
                                 speed_from_alpha,
@@ -188,10 +202,12 @@ pub enum EntryLocation {
 
 #[derive(Debug, Snafu)]
 pub enum InputError {
+    #[snafu(display("Register new ID: {err}"))]
+    RecordIdError { err: persist::IdError },
     #[snafu(display("Unresolved building: {err}"))]
-    UnresolvedBuilding { err: persist::UnresolvedIdError },
+    UnresolvedBuilding { err: persist::IdError },
     #[snafu(display("Unresolved conduit: {err}"))]
-    UnresolvedConduit { err: persist::UnresolvedIdError },
+    UnresolvedConduit { err: persist::IdError },
     #[snafu(display("Mismatch compartment count for vehicle type {ty}, got {count}"))]
     MismatchCompartmentCount { ty: u32, count: usize },
 }

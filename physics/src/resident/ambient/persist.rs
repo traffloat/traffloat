@@ -12,11 +12,20 @@ use crate::{fluid, resident};
 #[derive(Clone)]
 pub struct Persist;
 
+pub struct Deps {
+    fluid_type:    Depend<fluid::PersistTypes>,
+    resident_attr: Depend<resident::attr::Persist>,
+}
+
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "resident:interaction" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> {
-        [Depend::new(fluid::PersistTypes), Depend::new(resident::attr::Persist)]
+    type Deps = Deps;
+    fn depends(&self, depends: &mut impl crate::persist::Depends) -> Self::Deps {
+        Deps {
+            fluid_type:    depends.request(fluid::PersistTypes),
+            resident_attr: depends.request(resident::attr::Persist),
+        }
     }
 
     type OutputParams<'w, 's> = OutputParams<'w>;
@@ -24,6 +33,7 @@ impl Persistable for Persist {
 
     fn output(
         &self,
+        deps: &Deps,
         params: &mut OutputParams<'_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
@@ -35,6 +45,7 @@ impl Persistable for Persist {
 
     fn input(
         &self,
+        deps: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,

@@ -11,16 +11,20 @@ use crate::resident::attr;
 #[derive(Clone)]
 pub struct Persist;
 
+pub struct Deps;
+
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "resident:attr:type" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> { [] }
+    type Deps = Deps;
+    fn depends(&self, _depends: &mut impl crate::persist::Depends) -> Deps { Deps }
 
     type OutputParams<'w, 's> = OutputParams<'w>;
     type Output = Data;
 
     fn output(
         &self,
+        deps: &Deps,
         params: &mut OutputParams<'_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
@@ -40,6 +44,7 @@ impl Persistable for Persist {
 
     fn input(
         &self,
+        deps: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,

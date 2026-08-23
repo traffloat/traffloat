@@ -16,11 +16,20 @@ use crate::{WorldObject, persist};
 #[derive(Clone)]
 pub struct Persist;
 
+pub struct Deps {
+    building: Depend<building::Persist>,
+    corridor: Depend<corridor::Persist>,
+}
+
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "graph:edge" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> {
-        [Depend::new(building::Persist), Depend::new(corridor::Persist)]
+    type Deps = Deps;
+    fn depends(&self, depends: &mut impl persist::Depends) -> Self::Deps {
+        Deps {
+            building: depends.request(building::Persist),
+            corridor: depends.request(corridor::Persist),
+        }
     }
 
     type OutputParams<'w, 's> = OutputParams<'w, 's>;
@@ -28,12 +37,14 @@ impl Persistable for Persist {
 
     fn output(
         &self,
+        deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
         fn run<Ab: Which>(
             output: &mut Vec<Entry>,
             params: &mut OutputParams<'_, '_>,
+            deps: &Deps,
             ctx: &mut OutputContext,
             select: impl for<'a, 'w, 's> FnOnce(
                 &'a mut Query<'w, 's, OutputQueryData<Alpha>>,
@@ -44,9 +55,9 @@ impl Persistable for Persist {
             let edge_query = select(&mut params.edge_alpha_query, &mut params.edge_beta_query);
             for data in edge_query {
                 output.push(Entry {
-                    id:       ctx.alloc(data.entity),
-                    building: ctx.get_id(data.building.building)?,
-                    corridor: ctx.get_id(data.corridor.0)?,
+                    id:       ctx.alloc(&Persist, data.entity),
+                    building: ctx.get_id(deps.building, data.building.building)?,
+                    corridor: ctx.get_id(deps.corridor, data.corridor.0)?,
                     which:    Ab::default().proto(),
                     open:     data.edge.open,
                 });
@@ -55,8 +66,8 @@ impl Persistable for Persist {
         }
 
         let mut output = Vec::new();
-        run(&mut output, params, ctx, |a, b| a)?;
-        run(&mut output, params, ctx, |a, b| b)?;
+        run(&mut output, params, deps, ctx, |a, b| a)?;
+        run(&mut output, params, deps, ctx, |a, b| b)?;
         Ok(output)
     }
 
@@ -65,32 +76,35 @@ impl Persistable for Persist {
 
     fn input(
         &self,
+        deps: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
         for entry in input {
             fn spawn_command<Ab: Which>(
+                deps: &Deps,
                 ctx: &InputContext,
                 entry: Entry,
                 which: Ab,
             ) -> Result<edge::SpawnCommand<Ab>, InputError> {
                 Ok(edge::SpawnCommand {
                     building: ctx
-                        .resolve_entity(entry.building)
+                        .resolve_entity(deps.building, entry.building)
                         .map_err(|err| InputError::UnresolvedBuilding { err })?,
                     corridor: ctx
-                        .resolve_entity(entry.corridor)
+                        .resolve_entity(deps.corridor, entry.corridor)
                         .map_err(|err| InputError::UnresolvedCorridor { err })?,
                     which,
                     open: entry.open,
                 })
             }
             let entity = world.spawn((WorldObject,));
-            ctx.record(entry.id, entity.id());
+            ctx.record(self, entry.id, entity.id())
+                .map_err(|err| InputError::RecordIdError { err })?;
             match entry.which {
-                AlphaOrBeta::Alpha => spawn_command(ctx, entry, Alpha)?.apply(entity),
-                AlphaOrBeta::Beta => spawn_command(ctx, entry, Beta)?.apply(entity),
+                AlphaOrBeta::Alpha => spawn_command(deps, ctx, entry, Alpha)?.apply(entity),
+                AlphaOrBeta::Beta => spawn_command(deps, ctx, entry, Beta)?.apply(entity),
             }
         }
         Ok(())
@@ -122,8 +136,10 @@ pub struct Entry {
 
 #[derive(Debug, Snafu)]
 pub enum InputError {
+    #[snafu(display("Register new ID: {err}"))]
+    RecordIdError { err: persist::IdError },
     #[snafu(display("Unresolved building for edge: {err}"))]
-    UnresolvedBuilding { err: persist::UnresolvedIdError },
+    UnresolvedBuilding { err: persist::IdError },
     #[snafu(display("Unresolved corridor for edge: {err}"))]
-    UnresolvedCorridor { err: persist::UnresolvedIdError },
+    UnresolvedCorridor { err: persist::IdError },
 }

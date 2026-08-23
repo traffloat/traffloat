@@ -15,16 +15,24 @@ use crate::{Vector, WorldObject, fluid, persist, view};
 #[derive(Clone)]
 pub struct Persist;
 
+pub struct Deps {
+    fluid_type: Depend<fluid::PersistTypes>,
+}
+
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "graph:corridor" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> { [Depend::new(fluid::PersistTypes)] }
+    type Deps = Deps;
+    fn depends(&self, depends: &mut impl persist::Depends) -> Deps {
+        Deps { fluid_type: depends.request(fluid::PersistTypes) }
+    }
 
     type OutputParams<'w, 's> = OutputParams<'w, 's>;
     type Output = Vec<Entry>;
 
     fn output(
         &self,
+        deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
@@ -33,7 +41,7 @@ impl Persistable for Persist {
             .iter()
             .map(|data| {
                 Ok(Entry {
-                    id:                 ctx.alloc(data.entity),
+                    id:                 ctx.alloc(self, data.entity),
                     name:               data.named.name.clone(),
                     radius:             data.corridor.radius,
                     wall_thickness:     data.corridor.wall_thickness,
@@ -49,13 +57,15 @@ impl Persistable for Persist {
 
     fn input(
         &self,
+        deps: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
         for entry in input {
             let mut entity = world.spawn((WorldObject,));
-            ctx.record(entry.id, entity.id());
+            ctx.record(self, entry.id, entity.id())
+                .map_err(|err| InputError::RecordIdError { err })?;
             entity.reborrow_scope(|entity| {
                 corridor::SpawnCommand {
                     name:               Some(entry.name),
@@ -98,4 +108,7 @@ pub struct Entry {
 }
 
 #[derive(Debug, Snafu)]
-pub enum InputError {}
+pub enum InputError {
+    #[snafu(display("Register new ID: {err}"))]
+    RecordIdError { err: persist::IdError },
+}

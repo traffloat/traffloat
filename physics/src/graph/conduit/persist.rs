@@ -15,15 +15,22 @@ use crate::{WorldObject, fluid, persist, vehicle, view};
 #[derive(Clone)]
 pub struct Persist;
 
+pub struct Deps {
+    corridor:     Depend<corridor::Persist>,
+    fluid_type:   Depend<fluid::PersistTypes>,
+    vehicle_type: Depend<vehicle::PersistTypes>,
+}
+
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "graph:conduit" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> {
-        [
-            Depend::new(corridor::Persist),
-            Depend::new(fluid::PersistTypes),
-            Depend::new(vehicle::PersistTypes),
-        ]
+    type Deps = Deps;
+    fn depends(&self, depends: &mut impl persist::Depends) -> Self::Deps {
+        Deps {
+            corridor:     depends.request(corridor::Persist),
+            fluid_type:   depends.request(fluid::PersistTypes),
+            vehicle_type: depends.request(vehicle::PersistTypes),
+        }
     }
 
     type OutputParams<'w, 's> = OutputParams<'w, 's>;
@@ -31,6 +38,7 @@ impl Persistable for Persist {
 
     fn output(
         &self,
+        deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
@@ -39,8 +47,8 @@ impl Persistable for Persist {
             .iter()
             .map(|data| {
                 Ok(Entry {
-                    id:       ctx.alloc(data.entity),
-                    corridor: ctx.get_id(data.corridor.0)?,
+                    id:       ctx.alloc(self, data.entity),
+                    corridor: ctx.get_id(deps.corridor, data.corridor.0)?,
                     name:     data.named.name.clone(),
                     radius:   data.conduit.radius,
                     ty:       data.conduit.ty,
@@ -56,17 +64,19 @@ impl Persistable for Persist {
 
     fn input(
         &self,
+        deps: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
         for entry in input {
             let mut entity = world.spawn((WorldObject,));
-            ctx.record(entry.id, entity.id());
+            ctx.record(self, entry.id, entity.id())
+                .map_err(|err| InputError::RecordIdError { err })?;
             entity.reborrow_scope(|entity| {
                 conduit::SpawnCommand {
                     corridor: ctx
-                        .resolve_entity(entry.corridor)
+                        .resolve_entity(deps.corridor, entry.corridor)
                         .map_err(|err| InputError::UnresolvedCorridor { err })?,
                     name:     entry.name,
                     radius:   entry.radius,
@@ -121,8 +131,10 @@ pub struct Entry {
 
 #[derive(Debug, Snafu)]
 pub enum InputError {
+    #[snafu(display("Register new ID: {err}"))]
+    RecordIdError { err: persist::IdError },
     #[snafu(display("Unresolved corridor: {err}"))]
-    UnresolvedCorridor { err: persist::UnresolvedIdError },
+    UnresolvedCorridor { err: persist::IdError },
     #[snafu(display("Fluid storage expected for this conduit type"))]
     FluidStorageMismatchConduitType,
     #[snafu(display("Rail expected for this conduit type"))]

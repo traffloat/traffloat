@@ -14,15 +14,22 @@ use crate::{WorldObject, fluid, persist, reactor, resident};
 #[derive(Clone)]
 pub struct Persist;
 
+pub struct Deps {
+    fluid_type:    Depend<fluid::PersistTypes>,
+    reactor:       Depend<reactor::Persist>,
+    resident_attr: Depend<resident::attr::Persist>,
+}
+
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "graph:facility:type" }
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend> {
-        [
-            Depend::new(fluid::PersistTypes),
-            Depend::new(reactor::Persist),
-            Depend::new(resident::attr::Persist),
-        ]
+    type Deps = Deps;
+    fn depends(&self, depends: &mut impl persist::Depends) -> Deps {
+        Deps {
+            fluid_type:    depends.request(fluid::PersistTypes),
+            reactor:       depends.request(reactor::Persist),
+            resident_attr: depends.request(resident::attr::Persist),
+        }
     }
 
     type OutputParams<'w, 's> = OutputParams<'w, 's>;
@@ -30,13 +37,14 @@ impl Persistable for Persist {
 
     fn output(
         &self,
+        deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
         Ok(params
             .types
             .iter()
-            .map(|(entity, def)| Entry { id: ctx.alloc(entity), def: def.clone() })
+            .map(|(entity, def)| Entry { id: ctx.alloc(self, entity), def: def.clone() })
             .collect())
     }
 
@@ -45,13 +53,15 @@ impl Persistable for Persist {
 
     fn input(
         &self,
+        deps: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
         for entry in input {
             let entity = world.spawn((WorldObject, entry.def, Name::new("FacilityTypeDef")));
-            ctx.record(entry.id, entity.id());
+            ctx.record(self, entry.id, entity.id())
+                .map_err(|err| InputError::RecordIdError { err })?;
         }
         Ok(())
     }
@@ -69,4 +79,7 @@ pub struct Entry {
 }
 
 #[derive(Debug, Snafu)]
-pub enum InputError {}
+pub enum InputError {
+    #[snafu(display("Register new ID: {err}"))]
+    RecordIdError { err: persist::IdError },
+}

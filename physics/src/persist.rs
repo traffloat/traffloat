@@ -1,7 +1,9 @@
+use std::any::{TypeId, type_name};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::io;
+use std::marker::PhantomData;
 
 use bevy::app::{App, Plugin};
 use bevy::ecs::entity::{Entity, EntityHashMap};
@@ -87,13 +89,15 @@ impl PersistableTypes {
 pub trait Persistable: Clone + Send + Sync + 'static {
     fn id(&self) -> impl Into<Cow<'static, str>>;
 
-    fn depends(&self) -> impl IntoIterator<Item = Depend>;
+    type Deps;
+    fn depends(&self, depends: &mut impl Depends) -> Self::Deps;
 
     type OutputParams<'w, 's>: SystemParam;
     type Output: Serialize;
 
     fn output(
         &self,
+        depends: &Self::Deps,
         params: &mut <Self::OutputParams<'_, '_> as SystemParam>::Item<'_, '_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()>;
@@ -103,21 +107,46 @@ pub trait Persistable: Clone + Send + Sync + 'static {
 
     fn input(
         &self,
+        depends: &Self::Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,
     ) -> Result<(), Self::InputError>;
 
-    fn no_input(&self, world: &mut World, ctx: &mut InputContext) -> Result<(), Self::InputError> {
+    fn no_input(
+        &self,
+        depends: &Self::Deps,
+        world: &mut World,
+        ctx: &mut InputContext,
+    ) -> Result<(), Self::InputError> {
         Ok(())
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Depend(Cow<'static, str>);
+#[derive(derivative::Derivative)]
+#[derivative(Clone, Copy, Default)]
+pub struct Depend<T>(PhantomData<T>);
 
-impl Depend {
-    pub fn new(p: impl Persistable) -> Self { Depend(p.id().into()) }
+#[derive(Debug, Clone)]
+struct DependRef(Cow<'static, str>);
+
+pub trait Depends {
+    fn request<P: Persistable>(&mut self, p: P) -> Depend<P>;
+}
+
+struct DependsNoop;
+
+impl Depends for DependsNoop {
+    fn request<P: Persistable>(&mut self, _: P) -> Depend<P> { Depend(PhantomData) }
+}
+
+struct DependsList(Vec<DependRef>);
+
+impl Depends for DependsList {
+    fn request<P: Persistable>(&mut self, p: P) -> Depend<P> {
+        self.0.push(DependRef(p.id().into()));
+        Depend(PhantomData)
+    }
 }
 
 /// A generic ID unique within a persistence context.
@@ -126,8 +155,14 @@ pub struct Id(pub u32);
 
 #[derive(Default)]
 pub struct OutputContext {
-    id_map:  EntityHashMap<Id>,
+    id_map:  EntityHashMap<OutputIdEntry>,
     next_id: u32,
+}
+
+struct OutputIdEntry {
+    type_id:   TypeId,
+    type_name: &'static str,
+    id:        Id,
 }
 
 impl OutputContext {
@@ -135,75 +170,154 @@ impl OutputContext {
     ///
     /// The allocated ID does not necessarily need to be used in the output,
     /// and may be used in any order in the output.
-    pub fn alloc(&mut self, entity: Entity) -> Id {
+    pub fn alloc<P: Persistable>(&mut self, _: &P, entity: Entity) -> Id {
         let id = Id(self.next_id);
         self.next_id += 1;
-        self.id_map.insert(entity, id);
+        self.id_map.insert(
+            entity,
+            OutputIdEntry { type_id: TypeId::of::<P>(), type_name: type_name::<P>(), id },
+        );
         id
     }
 
     /// Gets the ID corresponding to the given entity
     /// that should have been previously allocated with [`Self::alloc`].
-    pub fn get_id(&self, entity: Entity) -> Result<Id, ()> {
-        if let Some(&id) = self.id_map.get(&entity) {
-            Ok(id)
+    pub fn get_id<P: Persistable>(&self, depend: Depend<P>, entity: Entity) -> Result<Id, ()> {
+        if let Some(entry) = self.id_map.get(&entity) {
+            assert_eq!(
+                entry.type_id,
+                TypeId::of::<P>(),
+                "Entity {entity:?} was allocated with a different type ({} != {})",
+                entry.type_name,
+                type_name::<P>()
+            );
+            Ok(entry.id)
         } else {
             bevy::log::warn!("Entity {entity:?} should have been persisted first");
             Err(())
+        }
+    }
+
+    /// Similar to [`get_id`], but does not check the entity type.
+    ///
+    /// This will be deprecated in the future in favor of union types.
+    pub fn get_id_unchecked(&self, entity: Entity) -> Result<Id, ()> {
+        match self.id_map.get(&entity) {
+            Some(entry) => Ok(entry.id),
+            None => {
+                bevy::log::warn!("Entity {entity:?} should have been persisted first");
+                Err(())
+            }
         }
     }
 }
 
 #[derive(Default)]
 pub struct InputContext {
-    id_map: HashMap<Id, Entity>,
+    id_map: HashMap<Id, InputIdEntry>,
+}
+
+struct InputIdEntry {
+    type_id:   TypeId,
+    type_name: &'static str,
+    entity:    Entity,
 }
 
 impl InputContext {
     /// Records that an [`Id`] has been spawned as an [`Entity`].
-    pub fn record(&mut self, id: Id, entity: Entity) { self.id_map.insert(id, entity); }
+    pub fn record<P: Persistable>(&mut self, _: &P, id: Id, entity: Entity) -> Result<(), IdError> {
+        let old = self.id_map.insert(
+            id,
+            InputIdEntry { type_id: TypeId::of::<P>(), type_name: type_name::<P>(), entity },
+        );
+        if let Some(old) = old {
+            return Err(IdError::Duplicate { id, old: old.type_name, new: type_name::<P>() });
+        }
+        Ok(())
+    }
 
     /// Gets the [`Entity`] corresponding to the given [`Id`].
-    pub fn resolve_entity(&self, id: Id) -> Result<Entity, UnresolvedIdError> {
+    pub fn resolve_entity<P: Persistable>(
+        &self,
+        depend: Depend<P>,
+        id: Id,
+    ) -> Result<Entity, IdError> {
         match self.id_map.get(&id) {
-            Some(&entity) => Ok(entity),
-            None => Err(UnresolvedIdError { id }),
+            Some(entry) => {
+                if entry.type_id == TypeId::of::<P>() {
+                    Ok(entry.entity)
+                }else{
+                    Err(IdError::TypeMismatch {
+                        id,
+                        expect: type_name::<P>(),
+                        actual: entry.type_name,
+                    })
+                }
+            }
+            None => Err(IdError::Unresolved { id, type_name: type_name::<P>() }),
+        }
+    }
+
+    /// Similar to [`resolve_entity`], but does not check the entity type.
+    ///
+    /// This will be deprecated in the future in favor of union types.
+    pub fn resolve_entity_unchecked(&self, id: Id) -> Result<Entity, IdError> {
+        match self.id_map.get(&id) {
+            Some(entry) => Ok(entry.entity),
+            None => Err(IdError::Unresolved { id, type_name: "unchecked" }),
         }
     }
 }
 
 #[derive(Debug, snafu::Snafu)]
-#[snafu(display("ID {id:?} is requested before getting spawned"))]
-pub struct UnresolvedIdError {
-    pub id: Id,
+pub enum IdError {
+    #[snafu(display("Savefile references unknown {type_name} ID {id:?}"))]
+    Unresolved { id: Id, type_name: &'static str },
+    #[snafu(display(
+        "Savefile references {expect} ID {id:?} but it was previously used for {actual}"
+    ))]
+    TypeMismatch { id: Id, expect: &'static str, actual: &'static str },
+    #[snafu(display("Savefile reuses ID {id:?} for both {old} and {new}"))]
+    Duplicate { id: Id, old: &'static str, new: &'static str },
 }
 
 trait PersistableDyn: Send + Sync + 'static {
     fn id(&self) -> Cow<'static, str>;
-    fn depends(&self) -> Vec<Depend>;
+
+    fn depends(&self) -> Vec<DependRef>;
+
     fn output(&self, world: &mut World, ctx: &mut OutputContext) -> Result<Vec<u8>, ()>;
+
     fn input(
         &self,
         world: &mut World,
         data: &[u8],
         ctx: &mut InputContext,
     ) -> Result<(), InputError>;
+
     fn no_input(&self, world: &mut World, ctx: &mut InputContext) -> Result<(), InputError>;
+
     fn clone_box(&self) -> PersistableBox;
 }
 
 impl<P: Persistable> PersistableDyn for P {
     fn id(&self) -> Cow<'static, str> { Persistable::id(self).into() }
 
-    fn depends(&self) -> Vec<Depend> { Persistable::depends(self).into_iter().collect() }
+    fn depends(&self) -> Vec<DependRef> {
+        let mut depends = DependsList(Vec::new());
+        Persistable::depends(self, &mut depends);
+        depends.0
+    }
 
     #[tracing::instrument(skip_all, fields(ty = self.id().into().as_ref()))]
     fn output(&self, world: &mut World, ctx: &mut OutputContext) -> Result<Vec<u8>, ()> {
-        let output = run_stateless_closure_explicit::<
-            <P as Persistable>::OutputParams<'_, '_>,
-            _,
-            _,
-        >(world, |mut param| Persistable::output(self, &mut param, ctx))?;
+        let depends = Persistable::depends(self, &mut DependsNoop);
+
+        let output =
+            run_stateless_closure_explicit::<<P as Persistable>::OutputParams<'_, '_>, _, _>(
+                world,
+                |mut param| Persistable::output(self, &depends, &mut param, ctx),
+            )?;
         let mut buf = Vec::new();
         match ciborium::into_writer(&output, &mut buf) {
             Ok(()) => {
@@ -224,9 +338,11 @@ impl<P: Persistable> PersistableDyn for P {
         data: &[u8],
         ctx: &mut InputContext,
     ) -> Result<(), InputError> {
+        let depends = Persistable::depends(self, &mut DependsNoop);
+
         let input = ciborium::from_reader::<P::Input, _>(data)
             .map_err(|err| InputError::TypedCiborium { ty: self.id().into().to_string(), err })?;
-        Persistable::input(self, world, input, ctx).map_err(|err| InputError::Typed {
+        Persistable::input(self, &depends, world, input, ctx).map_err(|err| InputError::Typed {
             ty:  self.id().into().to_string(),
             err: Box::new(err),
         })
@@ -234,7 +350,8 @@ impl<P: Persistable> PersistableDyn for P {
 
     #[tracing::instrument(skip_all, fields(ty = self.id().into().as_ref()))]
     fn no_input(&self, world: &mut World, ctx: &mut InputContext) -> Result<(), InputError> {
-        Persistable::no_input(self, world, ctx).map_err(|err| InputError::Typed {
+        let depends = Persistable::depends(self, &mut DependsNoop);
+        Persistable::no_input(self, &depends, world, ctx).map_err(|err| InputError::Typed {
             ty:  self.id().into().to_string(),
             err: Box::new(err),
         })
