@@ -518,7 +518,7 @@ fn control_on_rail_with_vehicle_stop(
     };
     let next_length = params.types.get(next_vehicle_data.ty).physical.length;
 
-    let padding = next_length.midpoint(def.physical.length) * 0.5 + params.config.safety_headroom;
+    let padding = next_length.midpoint(def.physical.length) + params.config.safety_headroom;
 
     let next_displace = next_location.distance_from_alpha;
     let distance = match exit_endpoint {

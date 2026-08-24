@@ -11,13 +11,21 @@ use crate::{fluid, reactor, resident};
 #[derive(Clone)]
 pub struct Persist;
 
-pub struct Deps;
+pub struct Deps {
+    fluid_type:    Depend<fluid::PersistTypes>,
+    resident_attr: Depend<resident::PersistAttrTypes>,
+}
 
 impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "reactor:type" }
 
     type Deps = Deps;
-    fn depends(&self, depends: &mut impl persist::Depends) -> Deps { Deps }
+    fn depends(&self, depends: &mut impl persist::Depends) -> Deps {
+        Deps {
+            fluid_type:    depends.request(fluid::PersistTypes),
+            resident_attr: depends.request(resident::PersistAttrTypes),
+        }
+    }
 
     type OutputParams<'w, 's> = OutputParams<'w>;
     type Output = Vec<Entry>;
