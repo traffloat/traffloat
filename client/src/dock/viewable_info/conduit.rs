@@ -2,8 +2,8 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
-use traffloat_physics::util::{Alpha, Beta, QueryExt};
 use traffloat_proto::proto;
+use traffloat_util::{Alpha, Beta, QueryExt};
 
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
 use crate::dock::{self, plot};

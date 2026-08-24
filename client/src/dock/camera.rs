@@ -16,7 +16,7 @@ use bevy_egui::helpers::egui_vec2_into_vec2;
 use bevy_egui::{EguiPrimaryContextPass, EguiTextureHandle, EguiUserTextures};
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use egui::load::SizedTexture;
-use traffloat_physics::util::{QueryExt, WorldExt};
+use traffloat_util::{QueryExt, WorldExt};
 
 use crate::{ConfigManager, dock};
 

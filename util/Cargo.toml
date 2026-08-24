@@ -1,0 +1,27 @@
+[package]
+name = "traffloat-util"
+description = "traffloat common utils"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+traffloat-proto = { workspace = true }
+
+bevy = { workspace = true, features = ["serialize"] }
+derivative = "2.2.0"
+derive_more = { version = "2.1.1", default-features = false, features = ["add", "add_assign"] }
+indexmap = { version = "2.14.0", features = ["serde"] }
+itertools = "0.15.0"
+serde = { version = "1.0.228", features = ["derive"] }
+strum = { version = "0.28.0", features = ["derive"] }
+tracing = "0.1.44"
+
+[features]
+testing = []

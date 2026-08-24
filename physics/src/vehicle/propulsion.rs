@@ -11,8 +11,8 @@ use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use bevy::time::{self, Time};
 use serde::{Deserialize, Serialize};
+use traffloat_util::QueryExt;
 
-use crate::util::QueryExt;
 use crate::vehicle::{
     CompartmentList, CompartmentPassengerList, Location, OperatorList, OperatorOf, SystemSets,
     TypeDef, Types, Vehicle,

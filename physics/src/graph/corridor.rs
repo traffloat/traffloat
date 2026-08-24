@@ -14,13 +14,13 @@ use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
+use traffloat_util::{
+    Alpha, AlphaBeta, Beta, EntityWorldMutExt, Which, WorldExt, run_stateless_closure,
+};
 
 use crate::graph::conduit::{self, ListOnCorridor};
 use crate::graph::{Building, Conduit, ViewInitSystemSets, building, edge};
 use crate::persist::AppExt;
-use crate::util::{
-    Alpha, AlphaBeta, Beta, EntityWorldMutExt, Which, WorldExt, run_stateless_closure,
-};
 use crate::{Vector, fluid, view};
 
 mod persist;

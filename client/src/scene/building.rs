@@ -16,9 +16,8 @@ use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
-use traffloat_physics::try_log;
-use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
+use traffloat_util::{QueryExt, try_log};
 
 use crate::scene::facility::FacilityBuilding;
 use crate::scene::picking::ObservePicking;

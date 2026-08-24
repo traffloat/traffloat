@@ -17,8 +17,8 @@ use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
 use bevy::time::{self, Time};
 use bevy::transform::components::{GlobalTransform, Transform};
 use bevy_mesh::Mesh2d;
-use traffloat_physics::util::{QueryExt, run_stateless_closure};
 use traffloat_proto::proto;
+use traffloat_util::{QueryExt, run_stateless_closure};
 
 use crate::scene::picking::ObservePicking;
 use crate::scene::{

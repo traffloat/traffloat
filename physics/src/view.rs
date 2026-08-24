@@ -19,8 +19,8 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use traffloat_proto::proto;
+use traffloat_util::{self, QueryExt, Throttle, configure_enum_system_set};
 
-use crate::util::{self, QueryExt, Throttle};
 use crate::{CleanupAppExt, request};
 
 /// When set to true, server-side culling is disabled,
@@ -39,12 +39,12 @@ impl Plugin for Plug {
         app.init_resource::<NextProtoId>();
         app.init_resource::<IdIndex>();
         app.add_message::<SentUpdate>();
-        util::configure_enum_system_set::<SendUpdatesSystemSet>(app, app::Update);
+        configure_enum_system_set::<SendUpdatesSystemSet>(app, app::Update);
         for set in SendUpdatesSystemSet::iter() {
             app.configure_sets(app::Update, set.before(traffloat_proto::UpdateHandlerSystemSet));
         }
-        util::configure_enum_system_set::<InitSystemSets>(app, app::Update);
-        util::configure_enum_system_set::<IncrSystemSets>(app, app::Update);
+        configure_enum_system_set::<InitSystemSets>(app, app::Update);
+        configure_enum_system_set::<IncrSystemSets>(app, app::Update);
 
         app.add_systems(
             app::Update,

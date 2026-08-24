@@ -5,8 +5,8 @@ use std::{fmt, iter};
 use bevy::app::App;
 use bevy::ecs::entity::Entity;
 use bevy::time;
+use traffloat_util::testing::{expect_between, expect_float, expect_float_near, expect_small};
 
-use crate::util::testing::{expect_between, expect_float, expect_float_near, expect_small};
 use crate::{cleanup, fluid, persist, view};
 
 const NUM_TYPES: usize = 16;

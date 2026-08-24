@@ -30,10 +30,10 @@ use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
+use traffloat_util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt};
 
 use crate::graph::{Building, Corridor};
 use crate::persist::AppExt;
-use crate::util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt};
 use crate::{fluid, view};
 
 mod persist;

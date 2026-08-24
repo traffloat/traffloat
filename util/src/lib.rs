@@ -10,7 +10,7 @@ use derivative::Derivative;
 use itertools::Itertools;
 
 mod ab;
-pub use ab::{Alpha, AlphaBeta, Beta, Which};
+pub use ab::{Alpha, AlphaBeta, Beta, OptionWhich, Which};
 
 #[macro_use]
 mod try_log;
@@ -24,7 +24,7 @@ pub use merge_sort::{MergeSortedItem, merge_sorted};
 mod throttle;
 pub use throttle::Throttle;
 
-#[cfg(test)]
+#[cfg(feature = "testing")]
 pub mod testing;
 
 pub const BASE_TIMESTEP_HZ: u128 = 64;

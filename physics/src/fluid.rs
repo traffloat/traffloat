@@ -14,10 +14,10 @@ use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use traffloat_proto::proto;
+use traffloat_util::{configure_enum_system_set, duration_to_timesteps, try_log};
 
 use crate::persist::AppExt;
-use crate::util::duration_to_timesteps;
-use crate::{CleanupAppExt, util, view};
+use crate::{CleanupAppExt, view};
 
 pub mod persist;
 
@@ -58,7 +58,7 @@ impl Plugin for Plug {
         );
         app.add_cleanup_hook(Types::cleanup_hook);
 
-        util::configure_enum_system_set::<ModifySystemSets>(app, app::FixedUpdate);
+        configure_enum_system_set::<ModifySystemSets>(app, app::FixedUpdate);
         for set in ModifySystemSets::iter() {
             app.configure_sets(app::FixedUpdate, set.before(TransferSystemSet));
         }

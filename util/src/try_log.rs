@@ -24,7 +24,7 @@ macro_rules! try_log {
                 clippy::allow_attributes, clippy::question_mark,
                 reason = "potentially generalizes Option and Result in generated code"
             )]
-            if let Some(value) = $crate::util::TryLog::convert_or_log(
+            if let Some(value) = $crate::TryLog::convert_or_log(
                 $expr,
                 format_args!($must, $($($must_args),*)?),
             ) {
@@ -33,13 +33,6 @@ macro_rules! try_log {
                 $never
             }
         }
-    }
-}
-
-#[macro_export]
-macro_rules! try_log_return {
-    ($expr:expr, expect $must:literal $(, $($must_args:expr),*)? $(,)?) => {
-        $crate::try_log!($expr, expect $must $(($($must_args),*))? or return)
     }
 }
 

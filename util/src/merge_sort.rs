@@ -1,6 +1,6 @@
 use std::{cmp, iter};
 
-use crate::util::AlphaBeta;
+use crate::AlphaBeta;
 
 /// Merges two iterators with sorted and strictly increasing `key`s
 /// into a single iterator that yields items in sorted order by `key`.

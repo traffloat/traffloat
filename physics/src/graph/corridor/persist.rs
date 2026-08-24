@@ -6,10 +6,10 @@ use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use traffloat_util::{AlphaBeta, EntityWorldMutExt};
 
 use crate::graph::{Corridor, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::util::{AlphaBeta, EntityWorldMutExt};
 use crate::{Vector, WorldObject, fluid, persist, view};
 
 #[derive(Clone)]

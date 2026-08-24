@@ -9,10 +9,10 @@ use bevy::ecs::system::EntityCommand;
 use bevy::ecs::world::World;
 use bevy::math::{Vec2, Vec3};
 use enum_map::enum_map;
+use traffloat_util::{Alpha, AlphaBeta, Beta, Which, duration_to_timesteps};
 
 use crate::graph::facility::{self, Blueprint, blueprint};
 use crate::graph::{self, building, conduit, connection, corridor, edge};
-use crate::util::{Alpha, AlphaBeta, Beta, Which, duration_to_timesteps};
 use crate::vehicle::def::GaugeSize;
 use crate::{WorldObject, fluid, reaction, reactor, resident, vehicle, view};
 

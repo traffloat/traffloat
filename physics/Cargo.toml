@@ -14,6 +14,7 @@ workspace = true
 [dependencies]
 traffloat-proto = { workspace = true }
 traffloat-macro-util = { workspace = true }
+traffloat-util = { workspace = true }
 
 bevy = { workspace = true, features = ["serialize"] }
 bevy_mod_config = "0.7.0"
@@ -35,6 +36,7 @@ rand = { version = "0.10.2", default-features = false, features = ["thread_rng"]
 criterion = { version = "0.8.2", features = ["html_reports", "csv_output"] }
 paste = "1.0.15"
 typed-builder = "0.23.2"
+traffloat-util = { workspace = true, features = ["testing"] }
 
 [[bench]]
 name = "fluid"

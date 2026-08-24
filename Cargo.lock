@@ -6414,6 +6414,7 @@ dependencies = [
  "traffloat-macro-util",
  "traffloat-physics",
  "traffloat-proto",
+ "traffloat-util",
  "zstd",
 ]
 
@@ -6448,6 +6449,7 @@ dependencies = [
  "tracing",
  "traffloat-macro-util",
  "traffloat-proto",
+ "traffloat-util",
  "typed-builder",
  "zstd",
 ]
@@ -6473,6 +6475,21 @@ dependencies = [
  "rootcause",
  "serde_json",
  "zstd",
+]
+
+[[package]]
+name = "traffloat-util"
+version = "0.0.4"
+dependencies = [
+ "bevy",
+ "derivative",
+ "derive_more",
+ "indexmap",
+ "itertools 0.15.0",
+ "serde",
+ "strum",
+ "tracing",
+ "traffloat-proto",
 ]
 
 [[package]]

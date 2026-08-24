@@ -75,11 +75,11 @@ pub fn run(options: Options) -> AppExit {
     match result {
         Ok(AppExit::Success) => AppExit::Success,
         Ok(failure) => {
-            traffloat_physics::util::panic_dump(app.world());
+            traffloat_util::panic_dump(app.world());
             failure
         }
         Err(err) => {
-            traffloat_physics::util::panic_dump(app.world());
+            traffloat_util::panic_dump(app.world());
             panic::resume_unwind(err);
         }
     }

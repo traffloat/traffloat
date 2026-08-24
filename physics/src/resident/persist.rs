@@ -7,11 +7,11 @@ use bevy::ecs::world::World;
 use bevy::math::Vec3;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use traffloat_util::{EntityWorldMutExt, QueryExt, try_log};
 
 use crate::graph::{building, corridor, facility};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
 use crate::resident::Resident;
-use crate::util::{EntityWorldMutExt, QueryExt};
 use crate::vehicle::{self, Vehicle};
 use crate::{WorldObject, persist, resident, view};
 

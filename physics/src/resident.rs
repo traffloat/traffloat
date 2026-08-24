@@ -11,10 +11,10 @@ use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
+use traffloat_util::{QueryExt, SliceGet, run_stateless_closure, try_log};
 
 use crate::graph::facility;
 use crate::persist::AppExt;
-use crate::util::{QueryExt, SliceGet, run_stateless_closure};
 use crate::{vehicle, view};
 
 pub mod ambient;

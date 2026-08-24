@@ -8,10 +8,10 @@ use bevy::ecs::world::World;
 use bevy::math::Vec3;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use traffloat_util::QueryExt;
 
 use crate::graph::{building, conduit, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::util::QueryExt;
 use crate::vehicle::{
     self, CompartmentList, CompartmentOf, CompartmentPassengerList, Location, LocationBuilding,
     LocationRail, SpawnCommand, TypeId, Vehicle, propulsion,

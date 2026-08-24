@@ -17,10 +17,10 @@ use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
+use traffloat_util::{QueryExt, WorldExt};
 
 use crate::graph::{Conduit, Corridor, Facility, ViewInitSystemSets, conduit, facility};
 use crate::persist::AppExt;
-use crate::util::{QueryExt, WorldExt};
 use crate::{fluid, view};
 
 mod persist;

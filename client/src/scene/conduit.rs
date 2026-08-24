@@ -17,9 +17,8 @@ use bevy::sprite_render::{ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mesh::VertexAttributeValues;
 use ordered_float::OrderedFloat;
-use traffloat_physics::try_log;
-use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
 use traffloat_proto::proto;
+use traffloat_util::{EntityWorldMutExt, QueryExt, WorldExt, try_log};
 
 use crate::scene::picking::ObservePicking;
 use crate::scene::{

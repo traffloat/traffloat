@@ -21,8 +21,8 @@ use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use ordered_float::OrderedFloat;
-use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
 use traffloat_proto::proto;
+use traffloat_util::{EntityWorldMutExt, QueryExt, WorldExt};
 
 use crate::ConfigManager;
 use crate::scene::picking::ObservePicking;

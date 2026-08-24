@@ -3,8 +3,8 @@ use bevy::ecs::message::MessageWriter;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use egui_material_icons::icons;
-use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
+use traffloat_util::QueryExt;
 
 use crate::dock::viewable_info::{show_fluid, show_graph_button, show_link, show_link_small};
 use crate::dock::{self, plot};

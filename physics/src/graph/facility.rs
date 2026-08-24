@@ -10,10 +10,10 @@ use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
+use traffloat_util::{QueryExt, WorldExt};
 
 use crate::graph::{Building, Conduit, ViewInitSystemSets, building};
 use crate::persist::AppExt;
-use crate::util::{QueryExt, WorldExt};
 use crate::view::{IdIndex, SentUpdate};
 use crate::{fluid, reactor, request, view};
 

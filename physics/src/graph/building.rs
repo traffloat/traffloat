@@ -13,10 +13,10 @@ use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
+use traffloat_util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt};
 
 use crate::graph::{Facility, ViewInitSystemSets, edge, facility};
 use crate::persist::AppExt;
-use crate::util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt};
 use crate::{Vector, fluid, view};
 
 mod persist;

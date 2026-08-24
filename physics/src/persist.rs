@@ -14,9 +14,9 @@ use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use traffloat_util::run_stateless_closure_explicit;
 
 use crate::cleanup::execute_cleanup_hooks;
-use crate::util::run_stateless_closure_explicit;
 
 pub struct Plug;
 

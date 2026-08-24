@@ -11,11 +11,11 @@ use bevy::ecs::system::{EntityCommand, ResMut, Single};
 use bevy::math::{Vec2, Vec3};
 use bevy::time;
 use traffloat_proto::proto::AlphaOrBeta;
+use traffloat_util::testing::{configure_logging, expect_float, expect_vec3};
+use traffloat_util::{self, Alpha, AlphaBeta, Beta, Which};
 use typed_builder::TypedBuilder;
 
 use crate::graph::{building, conduit, corridor, edge};
-use crate::util::testing::{configure_logging, expect_float, expect_vec3};
-use crate::util::{self, Alpha, AlphaBeta, Beta, Which};
 use crate::{cleanup, fluid, persist, vehicle, view};
 
 fn new_test(setup: TestSetup) -> Test {
@@ -35,7 +35,7 @@ fn new_test(setup: TestSetup) -> Test {
         vehicle::motion::Plug,
     ));
 
-    util::configure_enum_system_set::<vehicle::SystemSets>(&mut app, app::FixedUpdate);
+    configure_enum_system_set::<vehicle::SystemSets>(&mut app, app::FixedUpdate);
 
     app.update();
 

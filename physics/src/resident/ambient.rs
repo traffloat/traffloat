@@ -6,10 +6,10 @@ use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Query, ResMut, SystemParam};
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
+use traffloat_util::QueryExt;
 
 use crate::graph::facility;
 use crate::persist::AppExt;
-use crate::util::QueryExt;
 use crate::{fluid, reaction, resident};
 
 mod persist;

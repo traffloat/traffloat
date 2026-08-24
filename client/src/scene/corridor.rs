@@ -19,9 +19,8 @@ use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy_mesh::PrimitiveTopology;
 use bevy_mod_config::{AppExt, Config, ReadConfig};
-use traffloat_physics::try_log;
-use traffloat_physics::util::{Alpha, AlphaBeta, Beta, QueryExt, Which};
 use traffloat_proto::proto;
+use traffloat_util::{Alpha, AlphaBeta, Beta, QueryExt, Which, try_log};
 
 use crate::scene::conduit::{ConduitCorridor, ConduitOutlineOf};
 use crate::scene::picking::ObservePicking;

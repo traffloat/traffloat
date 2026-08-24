@@ -24,9 +24,8 @@ use either::Either;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 use traffloat_macro_util::fan_out;
-use traffloat_physics::util;
-use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
+use traffloat_util::{QueryExt, configure_enum_system_set};
 
 use crate::ConfigManager;
 use crate::dock::camera::WorldCamera;
@@ -68,7 +67,7 @@ impl Plugin for Plug {
         app.add_systems(app::Update, update_viewport_config_system);
         app.add_systems(app::Update, update_focus_system);
 
-        util::configure_enum_system_set::<HandlerClass>(app, app::Update);
+        configure_enum_system_set::<HandlerClass>(app, app::Update);
         for (prev, next) in HandlerClass::iter().tuple_windows() {
             app.configure_sets(
                 app::Update,

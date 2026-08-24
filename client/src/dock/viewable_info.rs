@@ -4,8 +4,8 @@ use bevy::ecs::message::MessageWriter;
 use bevy::ecs::system::{Command, Commands, ParamSet, Query, SystemParam};
 use bevy::ecs::world::World;
 use egui_material_icons::icons;
-use traffloat_physics::util::QueryExt;
 use traffloat_proto::proto;
+use traffloat_util::QueryExt;
 
 use crate::dock::{self, DockCommand, TabPlacement, plot, viewable_info};
 use crate::scene::{self, FluidTypes, GenericViewable, ProtoId, ViewableKind};
