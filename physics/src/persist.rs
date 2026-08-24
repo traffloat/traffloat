@@ -246,7 +246,7 @@ impl InputContext {
             Some(entry) => {
                 if entry.type_id == TypeId::of::<P>() {
                     Ok(entry.entity)
-                }else{
+                } else {
                     Err(IdError::TypeMismatch {
                         id,
                         expect: type_name::<P>(),

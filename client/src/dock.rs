@@ -346,7 +346,7 @@ fn render_system(
         egui::UiBuilder::new().layer_id(egui::LayerId::background()).max_rect(ctx.viewport_rect()),
     );
 
-    egui::Panel::top(new_id!()).show_inside(ui, |ui| {
+    egui::Panel::top(new_id!()).show(ui, |ui| {
         ui.horizontal(|ui| params.ps.p0().show_menu_buttons(ui));
     });
 
@@ -369,7 +369,7 @@ fn render_system(
 
     let Ok(ctx) = contexts.ctx_mut() else { return };
 
-    egui::CentralPanel::default().show_inside(ui, |ui| {
+    egui::CentralPanel::default().show(ui, |ui| {
         DockArea::new(&mut state.0)
             .show_add_buttons(false)
             .style(egui_dock::Style::from_egui(ui.style().as_ref()))
