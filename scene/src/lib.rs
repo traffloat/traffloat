@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::iter;
+use std::marker::PhantomData;
 
 use bevy::app::{self, App, Plugin};
 use bevy::camera::Camera;
@@ -18,18 +19,13 @@ use bevy::reflect::Reflect;
 use bevy::state::app::AppExtStates;
 use bevy::state::state::States;
 use bevy::transform::components::GlobalTransform;
-use bevy_mod_config::{AppExt, Config, ReadConfig};
-use egui_notify::Toast;
+use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig, manager};
 use either::Either;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 use traffloat_macro_util::fan_out;
 use traffloat_proto::proto;
 use traffloat_util::{QueryExt, configure_enum_system_set};
-
-use crate::ConfigManager;
-use crate::dock::camera::WorldCamera;
-use crate::dock::{self, plot};
 
 pub mod building;
 pub mod conduit;
@@ -38,12 +34,21 @@ pub mod facility;
 pub mod resident;
 pub mod vehicle;
 
+pub mod gui;
+
 mod picking;
-pub mod singleplayer;
+pub mod util;
 
-pub struct Plug;
+#[derive(Default)]
+pub struct Plug<M>(PhantomData<M>);
 
-impl Plugin for Plug {
+impl<M: Manager + Default> Plugin for Plug<M>
+where
+    Conf: ConfigFieldFor<M>,
+    building::Conf: ConfigFieldFor<M>,
+    corridor::Conf: ConfigFieldFor<M>,
+    facility::Conf: ConfigFieldFor<M>,
+{
     fn build(&self, app: &mut App) {
         app.register_type::<ProtoId>();
         app.register_type::<IdRegistry>();
@@ -51,21 +56,21 @@ impl Plugin for Plug {
         app.init_state::<LevelState>();
         app.init_resource::<IdRegistry>();
         app.init_resource::<FluidTypes>();
-        app.init_config::<ConfigManager, Conf>("scene");
+        app.init_config::<M, Conf>("scene");
         app.add_message::<OutboundRequest>();
         app.add_message::<InboundUpdate>();
 
-        app.add_plugins(singleplayer::Plug);
+        app.add_plugins(util::shapes::Plug);
+        app.add_plugins(gui::Plug);
         app.add_plugins(picking::Plug);
-        app.add_plugins(building::Plug);
-        app.add_plugins(corridor::Plug);
-        app.add_plugins(facility::Plug);
+        app.add_plugins(building::Plug::<M>::default());
+        app.add_plugins(corridor::Plug::<M>::default());
+        app.add_plugins(facility::Plug::<M>::default());
         app.add_plugins(conduit::Plug);
         app.add_plugins(resident::Plug);
         app.add_plugins(vehicle::Plug);
 
         app.add_systems(app::Update, update_viewport_config_system);
-        app.add_systems(app::Update, update_focus_system);
 
         configure_enum_system_set::<HandlerClass>(app, app::Update);
         for (prev, next) in HandlerClass::iter().tuple_windows() {
@@ -148,6 +153,11 @@ pub struct InboundUpdate {
     pub body: proto::Update,
 }
 
+/// Marks a camera entity as a scene-rendering camera,
+/// in contrast to other frontend cameras e.g. GUI cameras.
+#[derive(Component)]
+pub struct WorldCamera;
+
 fn update_viewport_config_system(
     conf: ReadConfig<Conf>,
     mut writer: MessageWriter<OutboundRequest>,
@@ -168,28 +178,6 @@ fn update_viewport_config_system(
                 .collect(),
             debug:     conf.debug_view,
         }),
-    });
-}
-
-fn update_focus_system(
-    dock: Res<dock::State>,
-    id_query: Query<&ProtoId>,
-    mut writer: MessageWriter<OutboundRequest>,
-) {
-    let focused_ids = dock
-        .tabs()
-        .flat_map(|tab| match tab {
-            dock::TabEnum::ViewableInfo(tab) => Either::Left(Either::Left(iter::once(tab.entity))),
-            dock::TabEnum::Plot(tab) => Either::Left(Either::Right(
-                tab.targets.iter().flat_map(plot::Target::focused_entities),
-            )),
-            _ => Either::Right(iter::empty()),
-        })
-        .filter_map(|entity| id_query.log_get(entity))
-        .map(|comp| comp.0)
-        .collect();
-    writer.write(OutboundRequest {
-        body: proto::Request::SetViewFocus(proto::SetViewFocus { focus: focused_ids }),
     });
 }
 
@@ -373,7 +361,7 @@ impl UpdateHandler for SetFluidTypesParams<'_> {
 
 #[derive(SystemParam)]
 struct ShowGenericToastParams<'w> {
-    toasts: ResMut<'w, dock::Toasts>,
+    writer: MessageWriter<'w, gui::ShowToast>,
 }
 
 impl UpdateHandler for ShowGenericToastParams<'_> {
@@ -382,9 +370,12 @@ impl UpdateHandler for ShowGenericToastParams<'_> {
     fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &proto::ShowGenericToast) {
-        self.toasts.0.add(match update.ty {
-            proto::ToastType::Info => Toast::info(update.message.clone()),
-            proto::ToastType::Error => Toast::error(update.message.clone()),
+        self.writer.write(gui::ShowToast {
+            level:   match update.ty {
+                proto::ToastType::Info => gui::ToastLevel::Info,
+                proto::ToastType::Error => gui::ToastLevel::Error,
+            },
+            message: update.message.clone(),
         });
     }
 }

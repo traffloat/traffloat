@@ -10,7 +10,8 @@ use bevy::picking::mesh_picking::MeshPickingPlugin;
 use bevy_egui::EguiPlugin;
 
 mod dock;
-mod scene;
+mod gui_integration;
+mod singleplayer;
 mod util;
 
 pub fn run(options: Options) -> AppExit {
@@ -63,7 +64,12 @@ pub fn run(options: Options) -> AppExit {
     #[cfg(feature = "dev")]
     app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::default());
     app.add_plugins(traffloat_physics::Plug);
-    app.add_plugins((util::shapes::Plug, dock::Plug, scene::Plug));
+    app.add_plugins((
+        dock::Plug,
+        traffloat_scene::Plug::<ConfigManager>::default(),
+        gui_integration::Plug,
+        singleplayer::Plug,
+    ));
     app.add_systems(app::PreUpdate, || tracing::trace!("pre update"));
     app.add_systems(app::PostUpdate, || tracing::trace!("post update"));
 

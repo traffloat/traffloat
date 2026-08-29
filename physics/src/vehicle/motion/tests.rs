@@ -12,7 +12,7 @@ use bevy::math::{Vec2, Vec3};
 use bevy::time;
 use traffloat_proto::proto::AlphaOrBeta;
 use traffloat_util::testing::{configure_logging, expect_float, expect_vec3};
-use traffloat_util::{self, Alpha, AlphaBeta, Beta, Which};
+use traffloat_util::{self, Alpha, AlphaBeta, Beta, Which, configure_enum_system_set};
 use typed_builder::TypedBuilder;
 
 use crate::graph::{building, conduit, corridor, edge};

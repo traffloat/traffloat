@@ -16,6 +16,7 @@ use bevy_egui::helpers::egui_vec2_into_vec2;
 use bevy_egui::{EguiPrimaryContextPass, EguiTextureHandle, EguiUserTextures};
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use egui::load::SizedTexture;
+use traffloat_scene::WorldCamera;
 use traffloat_util::{QueryExt, WorldExt};
 
 use crate::{ConfigManager, dock};
@@ -181,11 +182,6 @@ pub struct UiSystemParam<'w, 's> {
     input:        input::Param<'w, 's>,
 }
 
-/// Marks a camera entity as a scene-rendering camera,
-/// in contrast to the egui camera.
-#[derive(Component)]
-pub struct WorldCamera;
-
 #[derive(Debug, Resource, Default)]
 pub struct UiState {
     pub hover_state: Option<HoverState>,
@@ -197,8 +193,9 @@ impl UiState {
 
 #[derive(Debug)]
 pub struct HoverState {
-    pub camera:       Entity,
-    pub image:        asset::Handle<Image>,
+    pub camera: Entity,
+    pub image:  asset::Handle<Image>,
+
     pub viewport_pos: egui::Vec2,
     pub world_pos:    Vec2,
 

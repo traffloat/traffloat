@@ -6414,6 +6414,7 @@ dependencies = [
  "traffloat-macro-util",
  "traffloat-physics",
  "traffloat-proto",
+ "traffloat-scene",
  "traffloat-util",
  "zstd",
 ]
@@ -6463,6 +6464,30 @@ dependencies = [
  "derive_more",
  "serde",
  "strum",
+]
+
+[[package]]
+name = "traffloat-scene"
+version = "0.0.4"
+dependencies = [
+ "bevy",
+ "bevy_mesh",
+ "bevy_mod_config 0.8.0",
+ "either",
+ "enum-map",
+ "fnv",
+ "getrandom 0.4.3",
+ "itertools 0.15.0",
+ "jiff",
+ "ordered-float",
+ "parking_lot",
+ "rand 0.10.2",
+ "strum",
+ "tracing",
+ "traffloat-macro-util",
+ "traffloat-proto",
+ "traffloat-util",
+ "zstd",
 ]
 
 [[package]]

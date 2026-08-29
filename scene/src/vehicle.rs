@@ -21,13 +21,13 @@ use bevy_mesh::Mesh2d;
 use traffloat_proto::proto;
 use traffloat_util::{QueryExt, run_stateless_closure};
 
-use crate::scene::conduit::ConduitCorridor;
-use crate::scene::picking::ObservePicking;
-use crate::scene::{
+use crate::conduit::ConduitCorridor;
+use crate::picking::ObservePicking;
+use crate::util::shapes::Shapes;
+use crate::{
     GenericViewable, HandlerClass, IdRegistry, ProtoId, TrackedId, UpdateHandler, ViewableKind,
     Zorder, building, corridor,
 };
-use crate::util::shapes::Shapes;
 
 pub struct Plug;
 

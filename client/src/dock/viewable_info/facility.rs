@@ -4,15 +4,15 @@ use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use egui_material_icons::icons;
 use traffloat_proto::proto;
+use traffloat_scene::building::FluidConnectionPeer;
+use traffloat_scene::conduit::ConduitCorridor;
+use traffloat_scene::{
+    FluidTypes, GenericViewable, IdRegistry, OutboundRequest, ProtoId, building, facility,
+};
 use traffloat_util::QueryExt;
 
 use crate::dock::viewable_info::{show_fluid, show_graph_button, show_link, show_link_small};
 use crate::dock::{self, plot};
-use crate::scene::building::FluidConnectionPeer;
-use crate::scene::conduit::ConduitCorridor;
-use crate::scene::{
-    FluidTypes, GenericViewable, IdRegistry, OutboundRequest, ProtoId, building, facility,
-};
 use crate::util::new_id;
 
 #[derive(SystemParam)]

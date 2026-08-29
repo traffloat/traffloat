@@ -1,0 +1,39 @@
+[package]
+name = "traffloat-scene"
+description = "traffloat world rendering"
+version.workspace = true
+authors.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+traffloat-macro-util = { workspace = true }
+traffloat-proto = { workspace = true }
+traffloat-util = { workspace = true }
+
+bevy_mesh = { version = "0.19.0", default-features = false }
+bevy_mod_config = "0.8.0"
+either = "1.16.0"
+enum-map = "3.1.0"
+itertools = "0.15.0"
+jiff = { version = "0.2.29", features = ["js", "logging"] }
+ordered-float = "5.3.0"
+parking_lot = "0.12.5"
+strum = { version = "0.28.0", features = ["derive"] }
+tracing = "0.1.44"
+zstd = { version = "0.13.3", features = ["wasm"] }
+rand = "0.10.2"
+getrandom = { version = "0.4.3", features = ["std", "wasm_js"] }
+fnv = "1.0.7"
+
+[dependencies.bevy]
+workspace = true
+features = ["2d"]
+
+[features]
+dev = []

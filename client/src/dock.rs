@@ -4,6 +4,7 @@ use std::sync::atomic::{self, AtomicU32};
 use bevy::app::{self, App, Plugin};
 use bevy::camera::visibility::RenderLayers;
 use bevy::camera::{Camera, Camera2d};
+use bevy::ecs::message::MessageReader;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{self, IntoScheduleConfigs, Schedulable, ScheduleConfigs};
 use bevy::ecs::system::{Command, Commands, ParamSet, Res, ResMut, RunSystemOnce, SystemParam};
@@ -24,10 +25,11 @@ pub mod save;
 mod settings;
 mod startup;
 pub mod viewable_info;
+use egui_notify::Toast;
 pub use open_mode::*;
 use traffloat_macro_util::fan_out;
+use traffloat_scene::{LevelState, gui};
 
-use crate::scene::LevelState;
 use crate::util::new_id;
 
 static NEXT_TAB_ID: AtomicU32 = AtomicU32::new(0);

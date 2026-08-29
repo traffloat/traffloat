@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets, RenderAssetUsages};
 use bevy::color::Color;
@@ -18,21 +20,24 @@ use bevy::picking::hover::PickingInteraction;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy_mesh::PrimitiveTopology;
-use bevy_mod_config::{AppExt, Config, ReadConfig};
+use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig};
 use traffloat_proto::proto;
 use traffloat_util::{Alpha, AlphaBeta, Beta, QueryExt, Which, try_log};
 
-use crate::scene::conduit::{ConduitCorridor, ConduitOutlineOf};
-use crate::scene::picking::ObservePicking;
-use crate::scene::{
-    GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
-};
+use crate::conduit::{ConduitCorridor, ConduitOutlineOf};
+use crate::picking::ObservePicking;
 use crate::util::shapes::Shapes;
-use crate::{ConfigManager, dock};
+use crate::{
+    GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder, gui,
+};
 
-pub(super) struct Plug;
+#[derive(Default)]
+pub struct Plug<M>(PhantomData<M>);
 
-impl Plugin for Plug {
+impl<M: Manager + Default> Plugin for Plug<M>
+where
+    Conf: ConfigFieldFor<M>,
+{
     fn build(&self, app: &mut App) {
         app.register_type::<Info>();
         app.register_type::<EndpointRef<Alpha>>();
@@ -47,7 +52,7 @@ impl Plugin for Plug {
         app.register_type::<HasWallEntity<false>>();
         app.register_type::<ConduitOutlineMaterial>();
 
-        app.init_config::<ConfigManager, Conf>("scene:corridor");
+        app.init_config::<M, Conf>("scene:corridor");
         app.init_resource::<WallMaterials>();
         app.init_resource::<ConduitOutlineMaterial>();
         app.add_systems(app::Startup, ConduitOutlineMaterial::init);
@@ -392,19 +397,11 @@ fn update_conduit_outline_color_system(
 }
 
 fn sync_clicked_pickable_system(
-    dock: Res<dock::State>,
+    focused_entities: Res<gui::ViewInteriorEntities>,
     conduit_query: Query<(&mut Pickable, &ConduitCorridor)>,
 ) {
-    let opened_entities: EntityHashSet = dock
-        .tabs()
-        .filter_map(|tab| match tab {
-            dock::TabEnum::ViewableInfo(tab) => Some(tab.entity),
-            _ => None,
-        })
-        .collect();
-
     for (mut pickable, corridor) in conduit_query {
-        *pickable = if opened_entities.contains(&corridor.0) {
+        *pickable = if focused_entities.set.contains(&corridor.0) {
             Pickable::default()
         } else {
             Pickable::IGNORE

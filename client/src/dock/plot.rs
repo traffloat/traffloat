@@ -6,9 +6,9 @@ use bevy::ecs::system::{Query, Res, SystemParam};
 use bevy::time::{self, Time};
 use egui_plot::PlotPoints;
 use traffloat_proto::proto;
+use traffloat_scene::{building, conduit, corridor, facility, resident, vehicle};
 
 use crate::dock;
-use crate::scene::{building, conduit, corridor, facility, resident, vehicle};
 use crate::util::new_id;
 
 pub struct Plug;

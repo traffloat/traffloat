@@ -20,12 +20,12 @@ use ordered_float::OrderedFloat;
 use traffloat_proto::proto;
 use traffloat_util::{EntityWorldMutExt, QueryExt, WorldExt, try_log};
 
-use crate::scene::picking::ObservePicking;
-use crate::scene::{
+use crate::picking::ObservePicking;
+use crate::util::shapes::Shapes;
+use crate::{
     AllHandlersSystemSet, GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler,
     ViewableKind, Zorder, corridor,
 };
-use crate::util::shapes::Shapes;
 
 pub(super) struct Plug;
 

@@ -5,10 +5,10 @@ use bevy::ecs::system::{Command, Commands, ParamSet, Query, SystemParam};
 use bevy::ecs::world::World;
 use egui_material_icons::icons;
 use traffloat_proto::proto;
+use traffloat_scene::{self, FluidTypes, GenericViewable, OutboundRequest, ProtoId, ViewableKind};
 use traffloat_util::QueryExt;
 
 use crate::dock::{self, DockCommand, TabPlacement, plot, viewable_info};
-use crate::scene::{self, FluidTypes, GenericViewable, ProtoId, ViewableKind};
 use crate::util::new_id;
 
 mod building;
@@ -100,7 +100,7 @@ impl dock::Tab for Tab {
                         if ui.button(icons::ICON_CHECK).on_hover_text("Confirm rename").clicked()
                             || submit
                         {
-                            generic.request_writer.write(scene::OutboundRequest {
+                            generic.request_writer.write(OutboundRequest {
                                 body: proto::RenameViewable { id, name: name.clone() }.into(),
                             });
                             cancel = true;
@@ -167,9 +167,9 @@ pub struct UiSystemParam<'w, 's> {
 #[derive(SystemParam)]
 struct GenericUiSystemParams<'w, 's> {
     commands:       Commands<'w, 's>,
-    conduit_query:  Query<'w, 's, &'static scene::conduit::Info>,
+    conduit_query:  Query<'w, 's, &'static traffloat_scene::conduit::Info>,
     viewable_query: Query<'w, 's, (&'static GenericViewable, &'static ProtoId)>,
-    request_writer: MessageWriter<'w, scene::OutboundRequest>,
+    request_writer: MessageWriter<'w, OutboundRequest>,
 }
 
 #[derive(Default)]

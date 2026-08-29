@@ -8,9 +8,10 @@ use bevy::ecs::world::World;
 use bevy::state::state::State as BevyState;
 use egui_material_icons::{MaterialIcon, icons};
 use traffloat_physics::persist;
+use traffloat_scene::{self, LevelState};
 
 use crate::dock::{self, TabPlacement, menu};
-use crate::scene::{self, LevelState};
+use crate::singleplayer;
 use crate::util::new_id;
 
 pub mod storage;
@@ -200,7 +201,7 @@ impl Command for LoadCommand {
                     return;
                 }
 
-                scene::singleplayer::setup(world);
+                singleplayer::setup(world);
                 dock::init_camera_view(world);
             }),
         );
@@ -229,7 +230,7 @@ impl Command for LoadPathCommand {
             return Err(err.to_string());
         }
 
-        scene::singleplayer::setup(world);
+        singleplayer::setup(world);
         dock::init_camera_view(world);
         Ok(())
     }

@@ -10,5 +10,3 @@ macro_rules! new_id_ {
 }
 
 pub(crate) use new_id_ as new_id;
-
-pub mod shapes;

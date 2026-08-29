@@ -1,11 +1,11 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
+use traffloat_scene::{GenericViewable, resident, vehicle};
 use traffloat_util::QueryExt;
 
 use crate::dock::viewable_info::{show_graph_button, show_link};
 use crate::dock::{self, plot};
-use crate::scene::{GenericViewable, resident, vehicle};
 use crate::util::new_id;
 
 #[derive(SystemParam)]

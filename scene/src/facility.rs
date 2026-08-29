@@ -1,4 +1,5 @@
 use std::cmp;
+use std::marker::PhantomData;
 
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, AssetServer, Assets};
@@ -19,24 +20,27 @@ use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
-use bevy_mod_config::{AppExt, Config, ReadConfig};
+use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig};
 use ordered_float::OrderedFloat;
 use traffloat_proto::proto;
 use traffloat_util::{EntityWorldMutExt, QueryExt, WorldExt};
 
-use crate::ConfigManager;
-use crate::scene::picking::ObservePicking;
-use crate::scene::{
+use crate::picking::ObservePicking;
+use crate::util::shapes::Shapes;
+use crate::{
     AllHandlersSystemSet, GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler,
     ViewableKind, Zorder,
 };
-use crate::util::shapes::Shapes;
 
 mod placement;
 
-pub(super) struct Plug;
+#[derive(Default)]
+pub struct Plug<M>(PhantomData<M>);
 
-impl Plugin for Plug {
+impl<M: Manager + Default> Plugin for Plug<M>
+where
+    Conf: ConfigFieldFor<M>,
+{
     fn build(&self, app: &mut App) {
         app.register_type::<NeedRearrangeTransform>();
         app.register_type::<BuildingFacilities>();
@@ -45,7 +49,7 @@ impl Plugin for Plug {
         app.register_type::<TaintOf>();
         app.register_type::<HasTaint>();
 
-        app.init_config::<ConfigManager, Conf>("scene:facility");
+        app.init_config::<M, Conf>("scene:facility");
         app.add_systems(app::Update, rearrange_facility_tf_system.after(AllHandlersSystemSet));
     }
 }

@@ -4,6 +4,7 @@ members = [
     "util",
     "proto",
     "physics",
+    "scene",
     "client", "tools",
 ]
 resolver = "3"
@@ -26,6 +27,7 @@ traffloat-macro-util = { version = "0.0.4", default-features = false, path = "ma
 traffloat-util = { version = "0.0.4", default-features = false, path = "util" }
 traffloat-proto = { version = "0.0.4", default-features = false, path = "proto" }
 traffloat-physics = { version = "0.0.4", default-features = false, path = "physics" }
+traffloat-scene = { version = "0.0.4", default-features = false, path = "scene" }
 traffloat-client = { version = "0.0.4", default-features = false, path = "client" }
 
 [workspace.lints.clippy]

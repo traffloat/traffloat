@@ -1,38 +1,101 @@
+//! Implements the interfaces required in [`traffloat_scene::gui`].
+
+use std::iter;
+
 use bevy::app::{self, App, Plugin};
 use bevy::camera::{ImageRenderTarget, NormalizedRenderTarget};
 use bevy::ecs::entity::Entity;
-use bevy::ecs::message::MessageWriter;
-use bevy::ecs::observer;
+use bevy::ecs::message::{MessageReader, MessageWriter};
 use bevy::ecs::query::With;
-use bevy::ecs::system::{Commands, EntityCommands, Local, Query, Res};
-use bevy::ecs::world::World;
+use bevy::ecs::system::{Commands, Local, Query, Res, ResMut};
 use bevy::math::Vec2;
-use bevy::picking::input::PointerInputSettings;
-use bevy::picking::mesh_picking::{MeshPickingCamera, MeshPickingSettings};
-use bevy::picking::pointer::{PointerAction, PointerId, PointerInput};
-use bevy::picking::{PickingSettings, events as pick_event, pointer};
+use bevy::picking::mesh_picking::MeshPickingCamera;
+use bevy::picking::pointer::{self, PointerAction, PointerId, PointerInput};
 use bevy_egui::helpers::egui_vec2_into_vec2;
+use egui_notify::Toast;
+use either::Either;
+use traffloat_scene::gui;
 
-use crate::dock::{self, camera, viewable_info};
+use crate::dock::{self, camera, plot, viewable_info};
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.insert_resource(PickingSettings { is_input_enabled: true, ..Default::default() });
-        app.insert_resource(PointerInputSettings { is_mouse_enabled: false, ..Default::default() });
-        app.insert_resource(MeshPickingSettings { require_markers: true, ..Default::default() });
-        app.add_systems(app::Update, input_system);
+        app.add_systems(app::Update, consume_scene_toasts_system);
+        app.add_systems(app::Update, update_focus_system);
+        app.add_systems(app::Update, camera_to_picking_system);
     }
 }
 
-fn input_system(
+fn consume_scene_toasts_system(
+    mut toasts: ResMut<dock::Toasts>,
+    mut reader: MessageReader<gui::ShowToast>,
+) {
+    for toast in reader.read() {
+        toasts.0.add(match toast.level {
+            gui::ToastLevel::Info => Toast::info(toast.message.clone()),
+            gui::ToastLevel::Error => Toast::error(toast.message.clone()),
+        });
+    }
+}
+
+fn update_focus_system(dock: Res<dock::State>, commit: gui::UpdateFocusSystemParams) {
+    commit.run(dock.tabs().flat_map(|tab| match tab {
+        dock::TabEnum::ViewableInfo(tab) => {
+            let iter = iter::once((tab.entity, gui::FocusClass::ViewInterior));
+            Either::Left(Either::Left(iter))
+        }
+        dock::TabEnum::Plot(tab) => {
+            let iter = tab
+                .targets
+                .iter()
+                .flat_map(plot::Target::focused_entities)
+                .map(|entity| (entity, gui::FocusClass::SubscribeData));
+            Either::Left(Either::Right(iter))
+        }
+        _ => Either::Right(iter::empty()),
+    }));
+}
+
+fn consume_open_viewable_info_system(
+    mut reader: MessageReader<gui::OpenViewableInfo>,
+    mut commands: Commands,
+) {
+    for request in reader.read() {
+        commands.queue(viewable_info::OpenCommand {
+            entity:    request.entity,
+            force_new: request.force_new,
+        });
+    }
+}
+
+fn request_camera_focus_system(
+    mut reader: MessageReader<gui::RequestCameraFocus>,
+    mut dock: ResMut<dock::State>,
+) {
+    for request in reader.read() {
+        dock.focus_tab(
+            |tab| matches!(tab, dock::TabEnum::Camera(tab) if tab.camera == request.camera),
+        );
+    }
+}
+
+fn camera_to_picking_system(
     ui_state: Res<camera::UiState>,
+    mut camera_interaction: ResMut<gui::CameraInteraction>,
     mut writer: MessageWriter<PointerInput>,
     camera_query: Query<Entity, With<MeshPickingCamera>>,
     mut commands: Commands,
     mut last_position: Local<Option<(Vec2, Entity)>>,
 ) {
+    camera_interaction.state =
+        ui_state.hover_state.as_ref().map(|state| gui::CameraInteractionState {
+            camera:  state.camera,
+            command: state.modifiers.command,
+            shift:   state.modifiers.shift,
+        });
+
     let hovered_camera = ui_state.hover_state.as_ref().map(|state| state.camera);
     let mut has_marker = false;
     for camera in camera_query {
@@ -85,41 +148,5 @@ fn input_system(
                 writer.write(pointer_event);
             }
         }
-    }
-}
-
-pub fn add_observers(entity: &mut EntityCommands) {
-    let id = entity.id();
-    entity.observe(
-        move |event: observer::On<pick_event::Pointer<pick_event::Click>>,
-              mut commands: Commands,
-              ui_state: Res<camera::UiState>| {
-            commands.queue(viewable_info::OpenCommand {
-                entity:    id,
-                force_new: ui_state
-                    .hover_state
-                    .as_ref()
-                    .is_some_and(|state| state.modifiers.command),
-            });
-
-            if let Some(camera_id) = ui_state.hover_state.as_ref().map(|state| state.camera) {
-                commands.queue(move |world: &mut World| {
-                    world.resource_mut::<dock::State>().focus_tab(
-                        |tab| matches!(tab, dock::TabEnum::Camera(tab) if tab.camera == camera_id),
-                    );
-                });
-            }
-        },
-    );
-}
-
-pub trait ObservePicking {
-    fn observe_picking(&mut self) -> &mut Self;
-}
-
-impl ObservePicking for EntityCommands<'_> {
-    fn observe_picking(&mut self) -> &mut Self {
-        add_observers(self);
-        self
     }
 }

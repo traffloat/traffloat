@@ -2,11 +2,11 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_proto::proto;
+use traffloat_scene::{FluidTypes, GenericViewable, vehicle};
 use traffloat_util::QueryExt;
 
 use crate::dock::viewable_info::{show_fluid, show_link};
 use crate::dock::{self, plot};
-use crate::scene::{FluidTypes, GenericViewable, vehicle};
 use crate::util::new_id;
 
 #[derive(SystemParam)]
