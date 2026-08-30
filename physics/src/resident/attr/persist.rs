@@ -5,7 +5,7 @@ use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{InputContext, OutputContext, Persistable};
 use crate::resident::attr;
 
 #[derive(Clone)]
@@ -24,9 +24,9 @@ impl Persistable for Persist {
 
     fn output(
         &self,
-        deps: &Deps,
+        _: &Deps,
         params: &mut OutputParams<'_>,
-        ctx: &mut OutputContext,
+        _: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
         Ok(Data {
             entries: params.types.iter().map(|(_ty, def)| Entry { def: def.clone() }).collect(),
@@ -44,10 +44,10 @@ impl Persistable for Persist {
 
     fn input(
         &self,
-        deps: &Deps,
+        _: &Deps,
         world: &mut World,
         input: Self::Input,
-        ctx: &mut InputContext,
+        _: &mut InputContext,
     ) -> Result<(), InputError> {
         let mut types = world.resource_mut::<attr::Types>();
         for entry in input.entries {

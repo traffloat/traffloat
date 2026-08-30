@@ -7,8 +7,7 @@ use bevy::ecs::query::With;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{Commands, Query};
 use bevy::ecs::world::World;
-
-use crate::util::run_stateless_closure;
+use traffloat_util::run_stateless_closure;
 
 pub struct Plug;
 

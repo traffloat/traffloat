@@ -14,9 +14,9 @@ use bevy::ecs::system::{Local, Query, Res, SystemParam};
 use bevy::ecs::world::World;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
+use traffloat_util::{QueryExt, duration_to_timesteps};
 
 use crate::persist::AppExt;
-use crate::util::{QueryExt, duration_to_timesteps};
 use crate::{CleanupAppExt, fluid, reaction, resident};
 
 mod persist;

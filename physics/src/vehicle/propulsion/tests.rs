@@ -2,13 +2,13 @@ use std::time::Duration;
 
 use bevy::app::App;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::system::{Command, EntityCommand};
+use bevy::ecs::system::EntityCommand;
 use bevy::math::Vec2;
 use bevy::time;
+use traffloat_util::testing::{configure_logging, expect_float, expect_float_near};
+use traffloat_util::{AlphaBeta, duration_to_timesteps};
 
 use crate::graph::{conduit, corridor};
-use crate::util::testing::{configure_logging, expect_float, expect_float_near};
-use crate::util::{AlphaBeta, duration_to_timesteps};
 use crate::vehicle::Propulsion;
 use crate::{cleanup, fluid, persist, vehicle, view};
 

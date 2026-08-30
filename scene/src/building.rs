@@ -1,8 +1,10 @@
+use std::marker::PhantomData;
+
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets};
 use bevy::color::Color;
 use bevy::ecs::component::Component;
-use bevy::ecs::entity::{Entity, EntityHashSet};
+use bevy::ecs::entity::Entity;
 use bevy::ecs::name::Name;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
@@ -15,29 +17,31 @@ use bevy::picking::hover::PickingInteraction;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
-use bevy_mod_config::{AppExt, Config, ReadConfig};
-use traffloat_physics::try_log;
-use traffloat_physics::util::QueryExt;
+use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig};
 use traffloat_proto::proto;
+use traffloat_util::{QueryExt, try_log};
 
-use crate::scene::facility::FacilityBuilding;
-use crate::scene::picking::ObservePicking;
-use crate::scene::{
-    GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder,
-};
+use crate::facility::FacilityBuilding;
+use crate::picking::ObservePicking;
 use crate::util::shapes::Shapes;
-use crate::{ConfigManager, dock};
+use crate::{
+    GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler, ViewableKind, Zorder, gui,
+};
 
-pub(super) struct Plug;
+#[derive(Default)]
+pub(super) struct Plug<M>(PhantomData<M>);
 
-impl Plugin for Plug {
+impl<M: Manager + Default> Plugin for Plug<M>
+where
+    Conf: ConfigFieldFor<M>,
+{
     fn build(&self, app: &mut App) {
         app.register_type::<WallMaterials>();
         app.register_type::<Info>();
         app.register_type::<WallEntityOf>();
         app.register_type::<WallMaterials>();
 
-        app.init_config::<ConfigManager, Conf>("scene:building");
+        app.init_config::<M, Conf>("scene:building");
         app.init_resource::<WallMaterials>();
         app.add_systems(app::Startup, WallMaterials::init);
         app.add_systems(app::Update, WallMaterials::update.ambiguous_with_all());
@@ -59,7 +63,7 @@ pub(super) struct NewBuildingParams<'w, 's> {
 impl UpdateHandler for NewBuildingParams<'_, '_> {
     type Update = proto::NewBuilding;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &proto::NewBuilding) {
         let material = self.materials.add(ColorMaterial {
@@ -104,7 +108,7 @@ pub(super) struct UpdateBuildingParams<'w, 's> {
 impl UpdateHandler for UpdateBuildingParams<'_, '_> {
     type Update = proto::UpdateBuilding;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &proto::UpdateBuilding) {
         let Some(entity) = self.ids.get_building(update.id) else { return };
@@ -128,7 +132,7 @@ pub struct UpdateBuildingFluidConnectionsParams<'w, 's> {
 impl UpdateHandler for UpdateBuildingFluidConnectionsParams<'_, '_> {
     type Update = proto::UpdateBuildingFluidConnections;
 
-    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_building(update.id) else { return };
@@ -160,7 +164,7 @@ impl Info {
                     .and_then(|facility| ids.get_facility(facility))
                     .map(FluidConnectionPeer::Facility),
                 proto::BuildingFluidConnectionPair::FacilityBuilding { facility, building } => {
-                    (building == target_facility)
+                    (facility == target_facility)
                         .then(|| ids.get_building(building))
                         .flatten()
                         .map(FluidConnectionPeer::Building)
@@ -254,19 +258,11 @@ pub struct Conf {
 }
 
 fn sync_clicked_pickable_system(
-    dock: Res<dock::State>,
+    focused_entities: Res<gui::ViewInteriorEntities>,
     facility_query: Query<(&mut Pickable, &FacilityBuilding)>,
 ) {
-    let opened_entities: EntityHashSet = dock
-        .tabs()
-        .filter_map(|tab| match tab {
-            dock::TabEnum::ViewableInfo(tab) => Some(tab.entity),
-            _ => None,
-        })
-        .collect();
-
     for (mut pickable, building) in facility_query {
-        *pickable = if opened_entities.contains(&building.0) {
+        *pickable = if focused_entities.set.contains(&building.0) {
             Pickable::default()
         } else {
             Pickable::IGNORE

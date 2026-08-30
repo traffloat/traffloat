@@ -12,10 +12,10 @@ use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
+use traffloat_util::{QueryExt, WorldExt};
 
 use crate::graph::{Corridor, ViewInitSystemSets, corridor};
 use crate::persist::AppExt;
-use crate::util::{QueryExt, WorldExt};
 use crate::{fluid, vehicle, view};
 
 mod persist;

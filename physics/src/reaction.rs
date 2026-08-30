@@ -186,7 +186,7 @@ impl EfficiencyModifierResult {
 pub trait ReactionExecutor<P, D> {
     fn execute(&self, efficiency: f32, params: &mut P, data: &mut D);
 
-    fn execute_zero(&self, params: &mut P, data: &mut D) {}
+    fn execute_zero(&self, params: &mut P, data: &mut D) { _ = (params, data) }
 }
 
 pub trait FluidStorageSelector<P, D> {
@@ -202,6 +202,8 @@ pub trait FluidStorageSelector<P, D> {
 }
 
 pub trait ResidentSelector<P, D> {
+    /// Executes the closure for each selected resident,
+    /// extracting attributes of the resident from `params`.
     fn for_each_attributes(
         &self,
         params: &P,
@@ -209,6 +211,8 @@ pub trait ResidentSelector<P, D> {
         then: impl FnMut(&resident::Attributes, Entity),
     );
 
+    /// Executes the closure for each selected resident,
+    /// extracting mutable attributes of the resident from `params`.
     fn for_each_attributes_mut(
         &self,
         params: &mut P,

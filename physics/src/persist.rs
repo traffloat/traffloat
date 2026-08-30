@@ -14,9 +14,9 @@ use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use traffloat_util::run_stateless_closure_explicit;
 
 use crate::cleanup::execute_cleanup_hooks;
-use crate::util::run_stateless_closure_explicit;
 
 pub struct Plug;
 
@@ -115,9 +115,9 @@ pub trait Persistable: Clone + Send + Sync + 'static {
 
     fn no_input(
         &self,
-        depends: &Self::Deps,
-        world: &mut World,
-        ctx: &mut InputContext,
+        _depends: &Self::Deps,
+        _world: &mut World,
+        _ctx: &mut InputContext,
     ) -> Result<(), Self::InputError> {
         Ok(())
     }
@@ -182,7 +182,7 @@ impl OutputContext {
 
     /// Gets the ID corresponding to the given entity
     /// that should have been previously allocated with [`Self::alloc`].
-    pub fn get_id<P: Persistable>(&self, depend: Depend<P>, entity: Entity) -> Result<Id, ()> {
+    pub fn get_id<P: Persistable>(&self, _depend: Depend<P>, entity: Entity) -> Result<Id, ()> {
         if let Some(entry) = self.id_map.get(&entity) {
             assert_eq!(
                 entry.type_id,
@@ -239,7 +239,7 @@ impl InputContext {
     /// Gets the [`Entity`] corresponding to the given [`Id`].
     pub fn resolve_entity<P: Persistable>(
         &self,
-        depend: Depend<P>,
+        _depend: Depend<P>,
         id: Id,
     ) -> Result<Entity, IdError> {
         match self.id_map.get(&id) {

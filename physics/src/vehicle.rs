@@ -28,12 +28,13 @@ pub use propulsion::Propulsion;
 pub mod rail;
 pub use rail::Rail;
 use traffloat_proto::proto::{self, AlphaOrBeta};
+use traffloat_util::{
+    self, EntityWorldMutExt, OptionWhich, QueryExt, WorldExt, configure_enum_system_set,
+    run_stateless_closure,
+};
 
 use crate::graph::{Corridor, conduit};
 use crate::persist::AppExt;
-use crate::util::{
-    self, Alpha, EntityWorldMutExt, QueryExt, Which, WorldExt, run_stateless_closure,
-};
 use crate::{CleanupAppExt, fluid, view};
 
 pub struct Plug;
@@ -89,7 +90,7 @@ impl Plugin for Plug {
 
         app.add_cleanup_hook(Types::cleanup_hook);
 
-        util::configure_enum_system_set::<SystemSets>(app, app::FixedUpdate);
+        configure_enum_system_set::<SystemSets>(app, app::FixedUpdate);
     }
 }
 
@@ -384,7 +385,7 @@ pub struct AttemptLocationTransitionCommand<Ab> {
     pub entry_method: Ab,
 }
 
-impl<Ab: EntryMethod> EntityCommand for AttemptLocationTransitionCommand<Ab> {
+impl<Ab: OptionWhich> EntityCommand for AttemptLocationTransitionCommand<Ab> {
     type Out = ();
 
     fn apply(self, mut entity: EntityWorldMut) {
@@ -467,24 +468,6 @@ pub struct LocationTransitionEvent {
     #[entity_event]
     pub entity:       Entity,
     pub entry_method: Option<AlphaOrBeta>,
-}
-
-pub trait EntryMethod: Copy + Send + Sync + 'static {
-    fn into_proto(self) -> Option<AlphaOrBeta>;
-
-    fn into_which(self) -> Option<impl Which>;
-}
-
-impl<Ab: Which> EntryMethod for Ab {
-    fn into_proto(self) -> Option<AlphaOrBeta> { Some(self.proto()) }
-
-    fn into_which(self) -> Option<impl Which> { Some(self) }
-}
-
-impl EntryMethod for () {
-    fn into_proto(self) -> Option<AlphaOrBeta> { None }
-
-    fn into_which(self) -> Option<impl Which> { None::<Alpha> }
 }
 
 enum RailEntryCheck {
@@ -592,7 +575,7 @@ struct EnterRailParams<'w, 's> {
     commands:       Commands<'w, 's>,
 }
 
-fn enter_rail<Ab: EntryMethod>(
+fn enter_rail<Ab: OptionWhich>(
     mut params: EnterRailParams,
     conduit: Entity,
     vehicle_entity: Entity,

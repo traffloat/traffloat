@@ -3,12 +3,12 @@ use std::iter;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Local, Query, Res, SystemParam};
+use traffloat_util::{AlphaBeta, QueryExt};
 
 use super::{
     AlphaOfEdgeList, BetaOfEdgeList, Conf, DIFFUSION_COEFFICIENT, Edge, EdgeAlpha, EdgeBeta,
     Energy, Moles, PRESSURE_COEFFICIENT, Storage, TypeId, Types,
 };
-use crate::util::{AlphaBeta, QueryExt};
 
 #[derive(QueryData)]
 #[query_data(mutable)]
@@ -213,7 +213,6 @@ fn apply_storage(
             if ty.moles.0 == 0.0 || total_moles == 0.0 { 0.0 } else { ty.moles.0 / total_moles };
         ty.molar_conc = ty.moles.0 / storage_volume;
 
-        #[expect(clippy::needless_range_loop, reason = "may be used for emission in the future")]
         for chan in 0..3 {
             let type_def = types.get(type_id);
             extinction[chan] += ty.proportion * type_def.optical_extinction[chan];

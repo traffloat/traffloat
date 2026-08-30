@@ -8,9 +8,10 @@ use bevy::ecs::world::World;
 use bevy::state::state::State as BevyState;
 use egui_material_icons::{MaterialIcon, icons};
 use traffloat_physics::persist;
+use traffloat_scene::{self, LevelState};
 
 use crate::dock::{self, TabPlacement, menu};
-use crate::scene::{self, LevelState};
+use crate::singleplayer;
 use crate::util::new_id;
 
 pub mod storage;
@@ -43,7 +44,7 @@ pub struct OpenTab {
 
 impl dock::Tab for OpenTab {
     type TitleSystemParam<'w, 's> = ();
-    fn title(&self, param: Self::TitleSystemParam<'_, '_>) -> String { "Open".into() }
+    fn title(&self, (): Self::TitleSystemParam<'_, '_>) -> String { "Open".into() }
 
     type UiSystemParam<'w, 's> = OpenUiSystemParam<'w, 's>;
     fn ui(
@@ -105,15 +106,10 @@ impl Default for SaveAsTab {
 
 impl dock::Tab for SaveAsTab {
     type TitleSystemParam<'w, 's> = ();
-    fn title(&self, param: Self::TitleSystemParam<'_, '_>) -> String { "Save as".into() }
+    fn title(&self, (): Self::TitleSystemParam<'_, '_>) -> String { "Save as".into() }
 
     type UiSystemParam<'w, 's> = SaveAsUiSystemParam<'w, 's>;
-    fn ui(
-        &mut self,
-        mut params: Self::UiSystemParam<'_, '_>,
-        ui: &mut egui::Ui,
-        ctx: dock::Context,
-    ) {
+    fn ui(&mut self, mut params: Self::UiSystemParam<'_, '_>, ui: &mut egui::Ui, _: dock::Context) {
         let mut is_name_used = false;
         let name_edit = self.name_edit.get_or_insert_with(|| {
             params.load_source.0.as_ref().map_or("", |s| &s.name).to_string()
@@ -200,7 +196,7 @@ impl Command for LoadCommand {
                     return;
                 }
 
-                scene::singleplayer::setup(world);
+                singleplayer::setup(world);
                 dock::init_camera_view(world);
             }),
         );
@@ -229,7 +225,7 @@ impl Command for LoadPathCommand {
             return Err(err.to_string());
         }
 
-        scene::singleplayer::setup(world);
+        singleplayer::setup(world);
         dock::init_camera_view(world);
         Ok(())
     }

@@ -51,8 +51,8 @@ macro_rules! define_actions {
             pub fn global_dock_shortcuts(&mut self, ctx: &egui::Context) {
                 $(
                     ctx.input_mut(|input| {
-                    define_actions_let_ps!(param, self.ps, $path);
-                        consume_shortcut(input, <$param>::default(), &mut param, ctx);
+                        define_actions_let_ps!(param, self.ps, $path);
+                        consume_shortcut(input, <$param>::default(), &mut param);
                     });
                 )*
             }
@@ -81,7 +81,6 @@ fn consume_shortcut<A: Action>(
     input: &mut egui::InputState,
     action: A,
     param: &mut <A::Params<'_, '_> as SystemParam>::Item<'_, '_>,
-    ctx: &egui::Context,
 ) {
     if action.precondition(param) && input.consume_shortcut(&action.shortcut()) {
         action.execute(param);

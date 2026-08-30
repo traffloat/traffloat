@@ -6,11 +6,11 @@ use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use traffloat_util::EntityWorldMutExt;
 
 use crate::graph::facility::{self, PersistTypes, blueprint};
 use crate::graph::{Facility, building};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::util::EntityWorldMutExt;
 use crate::{WorldObject, fluid, persist, reactor, view};
 
 #[derive(Clone)]
@@ -162,7 +162,7 @@ impl BlueprintParams {
 
     fn resolve_reactor(
         &self,
-        deps: &Deps,
+        _: &Deps,
         ctx: &InputContext,
     ) -> Result<Option<blueprint::ReactorParams>, InputError> {
         let Some(reactor) = &self.reactor else { return Ok(None) };

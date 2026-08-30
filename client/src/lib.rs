@@ -10,7 +10,8 @@ use bevy::picking::mesh_picking::MeshPickingPlugin;
 use bevy_egui::EguiPlugin;
 
 mod dock;
-mod scene;
+mod gui_integration;
+mod singleplayer;
 mod util;
 
 pub fn run(options: Options) -> AppExit {
@@ -30,10 +31,10 @@ pub fn run(options: Options) -> AppExit {
                     }
                 },
                 custom_layer: {
-                    move |app| {
+                    move |_app| {
                         #[cfg(feature = "otel")]
                         {
-                            let options = &app.world().resource::<Options>().otel;
+                            let options = &_app.world().resource::<Options>().otel;
                             if options.otel_export {
                                 use opentelemetry::trace::TracerProvider;
 
@@ -63,7 +64,12 @@ pub fn run(options: Options) -> AppExit {
     #[cfg(feature = "dev")]
     app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::default());
     app.add_plugins(traffloat_physics::Plug);
-    app.add_plugins((util::shapes::Plug, dock::Plug, scene::Plug));
+    app.add_plugins((
+        dock::Plug,
+        traffloat_scene::Plug::<ConfigManager>::default(),
+        gui_integration::Plug,
+        singleplayer::Plug,
+    ));
     app.add_systems(app::PreUpdate, || tracing::trace!("pre update"));
     app.add_systems(app::PostUpdate, || tracing::trace!("post update"));
 
@@ -75,11 +81,11 @@ pub fn run(options: Options) -> AppExit {
     match result {
         Ok(AppExit::Success) => AppExit::Success,
         Ok(failure) => {
-            traffloat_physics::util::panic_dump(app.world());
+            traffloat_util::panic_dump(app.world());
             failure
         }
         Err(err) => {
-            traffloat_physics::util::panic_dump(app.world());
+            traffloat_util::panic_dump(app.world());
             panic::resume_unwind(err);
         }
     }

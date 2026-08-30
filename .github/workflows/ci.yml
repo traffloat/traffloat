@@ -1,0 +1,55 @@
+name: "CI"
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    branches:
+      - "master"
+jobs:
+  fmt:
+    name: "Check code formatting"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: "actions/checkout@v4"
+      - uses: "dtolnay/rust-toolchain@nightly"
+        with:
+          components: "rustfmt"
+      - run: "cargo fmt --all -- --check"
+  lint:
+    name: "Clippy lint"
+    runs-on: ubuntu-latest
+    steps:
+      - run: "sudo apt-get update && sudo apt-get install -y libudev-dev"
+      - uses: "actions/checkout@v4"
+      - uses: "dtolnay/rust-toolchain@clippy"
+      - run: |
+          cargo clippy --all --tests -- \
+            -D warnings \
+            -D clippy::dbg_macro \
+            -D unused_imports \
+            -D unused_variables
+          # -D dead_code temporarily disabled due to plenty of future enhancement
+  test:
+    name: "Run tests"
+    runs-on: ubuntu-latest
+    steps:
+      - run: "sudo apt-get update && sudo apt-get install -y libudev-dev"
+      - uses: "actions/checkout@v4"
+      - uses: "dtolnay/rust-toolchain@stable"
+      - run: "cargo test --all"
+  udeps:
+    name: "Find unused dependencies"
+    runs-on: ubuntu-latest
+    steps:
+      - run: "sudo apt-get update && sudo apt-get install -y libudev-dev libwayland-dev"
+      - uses: "actions/checkout@v4"
+      - uses: "dtolnay/rust-toolchain@nightly"
+      - run: "cargo install cargo-udeps"
+      - run: |
+          cargo metadata --format-version 1 --no-deps | \
+            jq '.packages[].manifest_path' -r | \
+            while read -r manifest; do
+              cargo udeps --manifest-path "$manifest" --all-targets --all-features || touch .udeps_failed
+            done
+          ! test -f .udeps_failed

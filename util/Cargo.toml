@@ -1,6 +1,6 @@
 [package]
-name = "traffloat-physics"
-description = "traffloat core server-side simulation"
+name = "traffloat-util"
+description = "traffloat common utils"
 version.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -13,29 +13,15 @@ workspace = true
 
 [dependencies]
 traffloat-proto = { workspace = true }
-traffloat-macro-util = { workspace = true }
-traffloat-util = { workspace = true }
 
 bevy = { workspace = true, features = ["serialize"] }
-ciborium = "0.2.2"
 derivative = "2.2.0"
 derive_more = { version = "2.1.1", default-features = false, features = ["add", "add_assign"] }
-enum-map = { version = "3.1.0", features = ["serde"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
 itertools = "0.15.0"
 serde = { version = "1.0.228", features = ["derive"] }
-snafu = "0.9.1"
 strum = { version = "0.28.0", features = ["derive"] }
 tracing = "0.1.44"
-zstd = "0.13.3"
-rand = { version = "0.10.2", default-features = false, features = ["thread_rng"] }
 
-[dev-dependencies]
-criterion = { version = "0.8.2", features = ["html_reports", "csv_output"] }
-paste = "1.0.15"
-typed-builder = "0.23.2"
-traffloat-util = { workspace = true, features = ["testing"] }
-
-[[bench]]
-name = "fluid"
-harness = false
+[features]
+testing = []

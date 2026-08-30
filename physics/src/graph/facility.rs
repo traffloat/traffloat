@@ -10,10 +10,10 @@ use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
+use traffloat_util::{QueryExt, WorldExt};
 
 use crate::graph::{Building, Conduit, ViewInitSystemSets, building};
 use crate::persist::AppExt;
-use crate::util::{QueryExt, WorldExt};
 use crate::view::{IdIndex, SentUpdate};
 use crate::{fluid, reactor, request, view};
 
@@ -305,7 +305,7 @@ pub(crate) struct SetReactorEfficiencyCapHandler<'w, 's> {
 impl request::Handler for SetReactorEfficiencyCapHandler<'_, '_> {
     type Request = proto::SetReactorEfficiencyCap;
 
-    fn classify(request: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
+    fn classify(_: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
 
     fn handle(&mut self, viewer: Entity, request: &Self::Request) {
         let entity = self

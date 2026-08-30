@@ -1,8 +1,10 @@
 [workspace]
 members = [
     "macro-util",
+    "util",
     "proto",
     "physics",
+    "scene",
     "client", "tools",
 ]
 resolver = "3"
@@ -22,9 +24,10 @@ bevy = { version = "0.19", default-features = false, features = [
 ]}
 
 traffloat-macro-util = { version = "0.0.4", default-features = false, path = "macro-util" }
+traffloat-util = { version = "0.0.4", default-features = false, path = "util" }
 traffloat-proto = { version = "0.0.4", default-features = false, path = "proto" }
 traffloat-physics = { version = "0.0.4", default-features = false, path = "physics" }
-traffloat-client = { version = "0.0.4", default-features = false, path = "client" }
+traffloat-scene = { version = "0.0.4", default-features = false, path = "scene" }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }

@@ -2,12 +2,12 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
-use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
+use traffloat_scene::conduit::CorridorConduits;
+use traffloat_scene::{FluidTypes, GenericViewable, corridor};
+use traffloat_util::{Alpha, Beta, QueryExt, Which};
 
 use crate::dock::viewable_info::{show_fluid, show_link};
 use crate::dock::{self, plot};
-use crate::scene::conduit::CorridorConduits;
-use crate::scene::{FluidTypes, GenericViewable, corridor};
 use crate::util::new_id;
 
 #[derive(SystemParam)]

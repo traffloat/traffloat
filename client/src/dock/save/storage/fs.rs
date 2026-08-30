@@ -5,7 +5,7 @@ use std::{fs, mem};
 use bevy::ecs::world::{CommandQueue, World};
 use egui_notify::Toast;
 use jiff::Timestamp;
-use traffloat_physics::try_log;
+use traffloat_util::try_log;
 
 use crate::dock::save::storage::Entry;
 use crate::dock::{self};

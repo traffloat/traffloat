@@ -23,9 +23,9 @@ use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use bevy::time::{self, Time};
 use traffloat_proto::proto::AlphaOrBeta;
+use traffloat_util::{Alpha, Beta, InspectLog, QueryExt, Which};
 
 use crate::graph::{Corridor, conduit, edge};
-use crate::util::{Alpha, Beta, InspectLog, QueryExt, Which};
 use crate::vehicle::rail::ReservedDirection;
 use crate::vehicle::{
     self, AttemptLocationTransitionCommand, Location, LocationBuilding, LocationRail, Rail,
@@ -490,10 +490,10 @@ fn control_on_rail_try_transition_to_building(
 }
 
 fn control_on_rail_try_acquire_inertial<Exit: Which>(
-    params: &ControlVehicleParams,
-    args: &ControlOnRail,
-    corridor: &ControlCorridorDataItem,
-    edge_building_query: &Query<&edge::OfBuilding<Exit>>,
+    _params: &ControlVehicleParams,
+    _args: &ControlOnRail,
+    _corridor: &ControlCorridorDataItem,
+    _edge_building_query: &Query<&edge::OfBuilding<Exit>>,
 ) -> Option<propulsion::Desired> {
     None // TODO
 }

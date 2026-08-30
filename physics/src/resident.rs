@@ -11,10 +11,10 @@ use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
+use traffloat_util::{QueryExt, SliceGet, run_stateless_closure, try_log};
 
 use crate::graph::facility;
 use crate::persist::AppExt;
-use crate::util::{QueryExt, SliceGet, run_stateless_closure};
 use crate::{vehicle, view};
 
 pub mod ambient;
@@ -294,11 +294,14 @@ impl Command for StartInteractCommand {
 }
 
 fn init_viewer_system(
-    resident_query: Query<(&Resident, ProtoLocationResidentData, &view::Named, &view::Viewable)>,
+    resident_query: Query<
+        (ProtoLocationResidentData, &view::Named, &view::Viewable),
+        With<Resident>,
+    >,
     location_params: ProtoLocationParams,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (resident, location, named, viewable) in resident_query {
+    for (location, named, viewable) in resident_query {
         messages.write_batch(viewable.broadcast_new(|| {
             Some(proto::Update::NewResident(proto::NewResident {
                 id:       viewable.id,

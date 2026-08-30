@@ -1,12 +1,11 @@
 use std::cmp::Ordering;
-use std::time::Duration;
 use std::{fmt, iter};
 
 use bevy::app::App;
 use bevy::ecs::entity::Entity;
 use bevy::time;
+use traffloat_util::testing::{expect_between, expect_float, expect_float_near, expect_small};
 
-use crate::util::testing::{expect_between, expect_float, expect_float_near, expect_small};
 use crate::{cleanup, fluid, persist, view};
 
 const NUM_TYPES: usize = 16;
@@ -92,7 +91,7 @@ fn test_diffusion_big_small() {
         expect_float_near(edge.last_heat.0, 0.0, 1e-3);
 
         for ty in 0..2 {
-            expect_float_near(alpha.types[0].proportion - beta.types[0].proportion, 0.0, 1e-3);
+            expect_float_near(alpha.types[ty].proportion - beta.types[ty].proportion, 0.0, 1e-3);
         }
 
         for transfer in &edge.last_typed_transfer {

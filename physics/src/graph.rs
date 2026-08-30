@@ -1,8 +1,9 @@
 use bevy::app::{self, App, Plugin};
 use bevy::ecs::schedule::{IntoScheduleConfigs, SystemSet};
 use strum::IntoEnumIterator;
+use traffloat_util::configure_enum_system_set;
 
-use crate::{util, view};
+use crate::view;
 
 pub struct Plug;
 
@@ -15,11 +16,11 @@ impl Plugin for Plug {
         app.add_plugins(connection::Plug);
         app.add_plugins(conduit::Plug);
 
-        util::configure_enum_system_set::<ViewInitSystemSets>(app, app::Update);
+        configure_enum_system_set::<ViewInitSystemSets>(app, app::Update);
         for set in ViewInitSystemSets::iter() {
             app.configure_sets(app::Update, set.in_set(view::InitSystemSets::Graph));
         }
-        util::configure_enum_system_set::<ViewIncrSystemSets>(app, app::Update);
+        configure_enum_system_set::<ViewIncrSystemSets>(app, app::Update);
         for set in ViewIncrSystemSets::iter() {
             app.configure_sets(app::Update, set.in_set(view::IncrSystemSets::Graph));
         }

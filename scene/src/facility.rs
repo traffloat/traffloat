@@ -1,4 +1,5 @@
 use std::cmp;
+use std::marker::PhantomData;
 
 use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, AssetServer, Assets};
@@ -19,24 +20,27 @@ use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
-use bevy_mod_config::{AppExt, Config, ReadConfig};
+use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig};
 use ordered_float::OrderedFloat;
-use traffloat_physics::util::{EntityWorldMutExt, QueryExt, WorldExt};
 use traffloat_proto::proto;
+use traffloat_util::{EntityWorldMutExt, QueryExt, WorldExt};
 
-use crate::ConfigManager;
-use crate::scene::picking::ObservePicking;
-use crate::scene::{
+use crate::picking::ObservePicking;
+use crate::util::shapes::Shapes;
+use crate::{
     AllHandlersSystemSet, GenericViewable, HandlerClass, IdRegistry, TrackedId, UpdateHandler,
     ViewableKind, Zorder,
 };
-use crate::util::shapes::Shapes;
 
 mod placement;
 
-pub(super) struct Plug;
+#[derive(Default)]
+pub struct Plug<M>(PhantomData<M>);
 
-impl Plugin for Plug {
+impl<M: Manager + Default> Plugin for Plug<M>
+where
+    Conf: ConfigFieldFor<M>,
+{
     fn build(&self, app: &mut App) {
         app.register_type::<NeedRearrangeTransform>();
         app.register_type::<BuildingFacilities>();
@@ -45,7 +49,7 @@ impl Plugin for Plug {
         app.register_type::<TaintOf>();
         app.register_type::<HasTaint>();
 
-        app.init_config::<ConfigManager, Conf>("scene:facility");
+        app.init_config::<M, Conf>("scene:facility");
         app.add_systems(app::Update, rearrange_facility_tf_system.after(AllHandlersSystemSet));
     }
 }
@@ -107,7 +111,7 @@ impl NewFacilityParams<'_, '_> {
 impl UpdateHandler for NewFacilityParams<'_, '_> {
     type Update = proto::NewFacility;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &Self::Update) {
         let conf = self.conf.read();
@@ -188,7 +192,7 @@ pub struct UpdateFacilityTaintParams<'w, 's> {
 impl UpdateHandler for UpdateFacilityTaintParams<'_, '_> {
     type Update = proto::UpdateFacilityTaint;
 
-    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_facility(update.id) else { return };
@@ -218,7 +222,7 @@ pub struct UpdateFacilityFluidParams<'w, 's> {
 impl UpdateHandler for UpdateFacilityFluidParams<'_, '_> {
     type Update = proto::UpdateFacilityFluid;
 
-    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_facility(update.id) else { return };
@@ -237,7 +241,7 @@ pub struct UpdateFacilityReactorParams<'w, 's> {
 impl UpdateHandler for UpdateFacilityReactorParams<'_, '_> {
     type Update = proto::UpdateFacilityReactor;
 
-    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_facility(update.id) else { return };

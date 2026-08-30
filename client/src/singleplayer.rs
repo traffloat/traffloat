@@ -10,8 +10,7 @@ use bevy::ecs::world::World;
 use bevy::state::condition::in_state;
 use bevy::state::state::NextState;
 use traffloat_physics::{request, view};
-
-use crate::scene::{InboundUpdate, LevelState, OutboundRequest};
+use traffloat_scene::{InboundUpdate, LevelState, OutboundRequest};
 
 pub(super) struct Plug;
 

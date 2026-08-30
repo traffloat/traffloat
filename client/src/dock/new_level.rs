@@ -8,7 +8,7 @@ use rand::distr::Alphanumeric;
 use traffloat_physics::generate;
 
 use crate::dock::{self};
-use crate::scene;
+use crate::singleplayer;
 
 pub struct Plug;
 
@@ -73,7 +73,7 @@ impl Command for NewGameCommand {
     fn apply(self, world: &mut World) {
         generate::generate(world, self.config);
 
-        scene::singleplayer::setup(world);
+        singleplayer::setup(world);
         dock::init_camera_view(world);
     }
 }

@@ -7,10 +7,10 @@ use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use traffloat_proto::proto::AlphaOrBeta;
+use traffloat_util::{Alpha, Beta, Which};
 
 use crate::graph::{Edge, building, corridor, edge};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::util::{Alpha, Beta, Which};
 use crate::{WorldObject, persist};
 
 #[derive(Clone)]
@@ -66,8 +66,8 @@ impl Persistable for Persist {
         }
 
         let mut output = Vec::new();
-        run(&mut output, params, deps, ctx, |a, b| a)?;
-        run(&mut output, params, deps, ctx, |a, b| b)?;
+        run(&mut output, params, deps, ctx, |a, _| a)?;
+        run(&mut output, params, deps, ctx, |_, b| b)?;
         Ok(output)
     }
 

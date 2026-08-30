@@ -7,11 +7,11 @@ use bevy::ecs::world::World;
 use bevy::math::Vec3;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use traffloat_util::{EntityWorldMutExt, QueryExt, try_log};
 
 use crate::graph::{building, corridor, facility};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
 use crate::resident::Resident;
-use crate::util::{EntityWorldMutExt, QueryExt};
 use crate::vehicle::{self, Vehicle};
 use crate::{WorldObject, persist, resident, view};
 
@@ -91,8 +91,6 @@ impl Persistable for Persist {
                             let cpmt_data =
                                 params.compartment_query.log_get(compartment).ok_or(())?;
                             let vehicle = ctx.get_id(deps.vehicle, cpmt_data.vehicle.0)?;
-                            let vehicle_data =
-                                params.vehicle_query.log_get(cpmt_data.vehicle.0).ok_or(())?;
                             let as_passenger = try_log!(data.passenger, expect "location vehicle implies passenger component" or return Err(()));
                             let cpmt_index = as_passenger.compartment_index;
                             let operator_slot = data.operator.map(|op| {

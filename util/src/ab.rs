@@ -5,7 +5,7 @@ use bevy::reflect::{self, FromReflect, GetTypeRegistration, Reflect};
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
-use crate::util::{MergeSortedItem, merge_sorted};
+use crate::{MergeSortedItem, merge_sorted};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Reflect)]
 pub struct AlphaBeta<T> {
@@ -168,3 +168,21 @@ macro_rules! define_which {
 
 define_which!(Alpha, alpha, Alpha, Beta, alpha, alpha, _beta);
 define_which!(Beta, beta, Beta, Alpha, beta, _alpha, beta);
+
+pub trait OptionWhich: Copy + Send + Sync + 'static {
+    fn into_proto(self) -> Option<proto::AlphaOrBeta>;
+
+    fn into_which(self) -> Option<impl Which>;
+}
+
+impl<Ab: Which> OptionWhich for Ab {
+    fn into_proto(self) -> Option<proto::AlphaOrBeta> { Some(self.proto()) }
+
+    fn into_which(self) -> Option<impl Which> { Some(self) }
+}
+
+impl OptionWhich for () {
+    fn into_proto(self) -> Option<proto::AlphaOrBeta> { None }
+
+    fn into_which(self) -> Option<impl Which> { None::<Alpha> }
+}

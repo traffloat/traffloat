@@ -8,7 +8,7 @@ use bevy::math::{Quat, Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::transform::components::Transform;
 
-use crate::scene::Zorder;
+use crate::Zorder;
 
 pub struct Plug;
 

@@ -6,10 +6,10 @@ use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
+use traffloat_util::{AlphaBeta, EntityWorldMutExt};
 
 use crate::graph::{Corridor, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::util::{AlphaBeta, EntityWorldMutExt};
 use crate::{Vector, WorldObject, fluid, persist, view};
 
 #[derive(Clone)]
@@ -32,7 +32,7 @@ impl Persistable for Persist {
 
     fn output(
         &self,
-        deps: &Deps,
+        _: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
@@ -57,7 +57,7 @@ impl Persistable for Persist {
 
     fn input(
         &self,
-        deps: &Deps,
+        _: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,

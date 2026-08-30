@@ -33,9 +33,9 @@ impl Persistable for Persist {
 
     fn output(
         &self,
-        deps: &Deps,
+        _: &Deps,
         params: &mut OutputParams<'_>,
-        ctx: &mut OutputContext,
+        _: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
         Ok(params.types.list.iter().map(|def| Entry { def: def.clone() }).collect())
     }
@@ -45,10 +45,10 @@ impl Persistable for Persist {
 
     fn input(
         &self,
-        deps: &Deps,
+        _: &Deps,
         world: &mut World,
         input: Self::Input,
-        ctx: &mut InputContext,
+        _: &mut InputContext,
     ) -> Result<(), InputError> {
         let mut types = world.resource_mut::<ambient::Interactions>();
         for entry in input {

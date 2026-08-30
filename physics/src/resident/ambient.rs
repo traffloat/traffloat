@@ -6,10 +6,10 @@ use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Query, ResMut, SystemParam};
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
+use traffloat_util::QueryExt;
 
 use crate::graph::facility;
 use crate::persist::AppExt;
-use crate::util::QueryExt;
 use crate::{fluid, reaction, resident};
 
 mod persist;
@@ -179,7 +179,7 @@ impl<'pw, 'ps, 'dw, 'ds>
 {
     fn for_each_attributes(
         &self,
-        params: &InteractParams<'pw, 'ps>,
+        _: &InteractParams<'pw, 'ps>,
         data: &PreparedResidentData<'dw, 'ds>,
         mut then: impl FnMut(&resident::Attributes, Entity),
     ) {
@@ -188,7 +188,7 @@ impl<'pw, 'ps, 'dw, 'ds>
 
     fn for_each_attributes_mut(
         &self,
-        params: &mut InteractParams<'pw, 'ps>,
+        _: &mut InteractParams<'pw, 'ps>,
         data: &mut PreparedResidentData<'dw, 'ds>,
         mut then: impl FnMut(&mut resident::Attributes, Entity),
     ) {

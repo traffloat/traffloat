@@ -26,8 +26,8 @@ mod startup;
 pub mod viewable_info;
 pub use open_mode::*;
 use traffloat_macro_util::fan_out;
+use traffloat_scene::LevelState;
 
-use crate::scene::LevelState;
 use crate::util::new_id;
 
 static NEXT_TAB_ID: AtomicU32 = AtomicU32::new(0);
@@ -366,8 +366,6 @@ fn render_system(
         tab.location = Some(path);
         tab.tab.before_render(&mut contexts, &mut viewer);
     }
-
-    let Ok(ctx) = contexts.ctx_mut() else { return };
 
     egui::CentralPanel::default().show(ui, |ui| {
         DockArea::new(&mut state.0)

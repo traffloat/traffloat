@@ -4,9 +4,6 @@ use bevy::math::Vec2;
 /// Used by logic that depends on whether the graph layout is 2D or 3D.
 pub type Vector = Vec2;
 
-#[macro_use]
-pub mod util;
-
 // Framework modules
 pub mod persist;
 pub mod request;

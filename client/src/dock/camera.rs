@@ -2,7 +2,6 @@ use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets};
 use bevy::camera::{Camera, Camera2d, ClearColor, ImageRenderTarget, RenderTarget, Viewport};
 use bevy::color::Color;
-use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
@@ -16,7 +15,8 @@ use bevy_egui::helpers::egui_vec2_into_vec2;
 use bevy_egui::{EguiPrimaryContextPass, EguiTextureHandle, EguiUserTextures};
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use egui::load::SizedTexture;
-use traffloat_physics::util::{QueryExt, WorldExt};
+use traffloat_scene::WorldCamera;
+use traffloat_util::{QueryExt, WorldExt};
 
 use crate::{ConfigManager, dock};
 
@@ -165,7 +165,7 @@ impl dock::Tab for Tab {
     type BeforeRenderSystemParam<'w, 's> = ();
     fn before_render(
         &mut self,
-        contexts: &mut bevy_egui::EguiContexts,
+        _contexts: &mut bevy_egui::EguiContexts,
         _param: Self::BeforeRenderSystemParam<'_, '_>,
     ) {
         // self.image_id = contexts.image_id(&self.image_handle);
@@ -181,11 +181,6 @@ pub struct UiSystemParam<'w, 's> {
     input:        input::Param<'w, 's>,
 }
 
-/// Marks a camera entity as a scene-rendering camera,
-/// in contrast to the egui camera.
-#[derive(Component)]
-pub struct WorldCamera;
-
 #[derive(Debug, Resource, Default)]
 pub struct UiState {
     pub hover_state: Option<HoverState>,
@@ -197,8 +192,9 @@ impl UiState {
 
 #[derive(Debug)]
 pub struct HoverState {
-    pub camera:       Entity,
-    pub image:        asset::Handle<Image>,
+    pub camera: Entity,
+    pub image:  asset::Handle<Image>,
+
     pub viewport_pos: egui::Vec2,
     pub world_pos:    Vec2,
 

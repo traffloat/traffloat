@@ -1294,22 +1294,6 @@ checksum = "bff34eb29ff4b8a8688bc7299f14fb6b597461ca80fec03ed7d22939ab33e48f"
 
 [[package]]
 name = "bevy_mod_config"
-version = "0.7.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee0ff6073174085932aa4a75a0cd73f97f0771bf7a6341562e9a4addae466615"
-dependencies = [
- "bevy_app",
- "bevy_color",
- "bevy_ecs",
- "bevy_mod_config_macros",
- "derivative",
- "hashbrown 0.15.5",
- "serde",
- "variadics_please",
-]
-
-[[package]]
-name = "bevy_mod_config"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f10c69052bee2d6bd3fbb2d8bfb103092a3c982c89946e868b3b3f8bf5b79f52"
@@ -2193,15 +2177,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "chrono"
-version = "0.4.45"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1aa79e62e7697b8e29b513a68abacf485adcd1fe8284a4316c5ae868e6633327"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
 name = "ciborium"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2899,18 +2874,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.4",
-]
-
-[[package]]
-name = "enum_dispatch"
-version = "0.3.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa18ce2bc66555b3218614519ac839ddb759a7d6720732f979ef8d13be147ecd"
-dependencies = [
- "once_cell",
- "proc-macro2",
- "quote",
- "syn 2.0.119",
 ]
 
 [[package]]
@@ -4781,17 +4744,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opentelemetry-stdout"
-version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1b1c6a247d79091f0062a5f4bd058589525cf987a8d4c169440d9c1be72f0ad"
-dependencies = [
- "chrono",
- "opentelemetry",
- "opentelemetry_sdk",
-]
-
-[[package]]
 name = "opentelemetry_sdk"
 version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6387,7 +6339,7 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_egui",
  "bevy_mesh",
- "bevy_mod_config 0.8.0",
+ "bevy_mod_config",
  "clap",
  "dirs",
  "egui",
@@ -6403,7 +6355,6 @@ dependencies = [
  "jiff",
  "opentelemetry",
  "opentelemetry-otlp",
- "opentelemetry-stdout",
  "opentelemetry_sdk",
  "ordered-float",
  "parking_lot",
@@ -6414,6 +6365,8 @@ dependencies = [
  "traffloat-macro-util",
  "traffloat-physics",
  "traffloat-proto",
+ "traffloat-scene",
+ "traffloat-util",
  "zstd",
 ]
 
@@ -6431,13 +6384,11 @@ name = "traffloat-physics"
 version = "0.0.4"
 dependencies = [
  "bevy",
- "bevy_mod_config 0.7.1",
  "ciborium",
  "criterion",
  "derivative",
  "derive_more",
  "enum-map",
- "enum_dispatch",
  "indexmap",
  "itertools 0.15.0",
  "paste",
@@ -6448,6 +6399,7 @@ dependencies = [
  "tracing",
  "traffloat-macro-util",
  "traffloat-proto",
+ "traffloat-util",
  "typed-builder",
  "zstd",
 ]
@@ -6464,6 +6416,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "traffloat-scene"
+version = "0.0.4"
+dependencies = [
+ "bevy",
+ "bevy_mesh",
+ "bevy_mod_config",
+ "fnv",
+ "getrandom 0.4.3",
+ "itertools 0.15.0",
+ "ordered-float",
+ "parking_lot",
+ "rand 0.10.2",
+ "strum",
+ "tracing",
+ "traffloat-macro-util",
+ "traffloat-proto",
+ "traffloat-util",
+]
+
+[[package]]
 name = "traffloat-tools"
 version = "0.0.4"
 dependencies = [
@@ -6473,6 +6445,21 @@ dependencies = [
  "rootcause",
  "serde_json",
  "zstd",
+]
+
+[[package]]
+name = "traffloat-util"
+version = "0.0.4"
+dependencies = [
+ "bevy",
+ "derivative",
+ "derive_more",
+ "indexmap",
+ "itertools 0.15.0",
+ "serde",
+ "strum",
+ "tracing",
+ "traffloat-proto",
 ]
 
 [[package]]

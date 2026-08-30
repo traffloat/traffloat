@@ -1,11 +1,11 @@
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
-use traffloat_physics::util::QueryExt;
+use traffloat_scene::{GenericViewable, resident, vehicle};
+use traffloat_util::QueryExt;
 
 use crate::dock::viewable_info::{show_graph_button, show_link};
 use crate::dock::{self, plot};
-use crate::scene::{GenericViewable, resident, vehicle};
 use crate::util::new_id;
 
 #[derive(SystemParam)]
@@ -23,7 +23,7 @@ struct ResidentData {
 }
 
 impl UiSystemParam<'_, '_> {
-    pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, dock: dock::Context) {
+    pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, _: dock::Context) {
         let Some(resident_data) = self.resident_query.log_get(entity) else {
             ui.label("Object has been unloaded");
             return;

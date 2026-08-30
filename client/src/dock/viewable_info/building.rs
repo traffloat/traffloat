@@ -2,14 +2,14 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
-use traffloat_physics::util::{Alpha, Beta, QueryExt, Which};
 use traffloat_proto::proto::AlphaOrBeta;
+use traffloat_scene::facility::{BuildingFacilities, FacilityBuilding};
+use traffloat_scene::{FluidTypes, GenericViewable, building, corridor, resident, vehicle};
+use traffloat_util::{Alpha, Beta, QueryExt, Which};
 
 use crate::dock::viewable_info::corridor::display_gate;
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
 use crate::dock::{self, plot};
-use crate::scene::facility::{BuildingFacilities, FacilityBuilding};
-use crate::scene::{FluidTypes, GenericViewable, building, corridor, resident, vehicle};
 use crate::util::new_id;
 
 #[derive(SystemParam)]
@@ -164,7 +164,7 @@ fn show_connection<Ab: Which>(
     let peer = get_corridor_data(&corridor_data, which.other());
 
     ui.horizontal(|ui| {
-        if let Some((peer_building, peer_detail)) = peer {
+        if let Some((peer_building, _)) = peer {
             show_link(ui, commands, peer_building);
 
             if let Some(peer_building_data) = building_query.log_get(peer_building) {
