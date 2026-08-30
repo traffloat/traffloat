@@ -32,9 +32,9 @@ impl Persistable for Persist {
 
     fn output(
         &self,
-        depends: &Deps,
+        _: &Deps,
         params: &mut OutputParams<'_>,
-        ctx: &mut OutputContext,
+        _: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
         Ok(params.types.iter().map(|(_ty, def)| Entry { def: def.clone() }).collect())
     }
@@ -44,10 +44,10 @@ impl Persistable for Persist {
 
     fn input(
         &self,
-        depends: &Deps,
+        _: &Deps,
         world: &mut World,
         input: Self::Input,
-        ctx: &mut InputContext,
+        _: &mut InputContext,
     ) -> Result<(), InputError> {
         let mut types = world.resource_mut::<reactor::Types>();
         for entry in input {

@@ -17,16 +17,16 @@ impl Persistable for Persist {
     fn id(&self) -> impl Into<Cow<'static, str>> { "fluid:type" }
 
     type Deps = Deps;
-    fn depends(&self, depends: &mut impl persist::Depends) -> Deps { Deps }
+    fn depends(&self, _: &mut impl persist::Depends) -> Deps { Deps }
 
     type OutputParams<'w, 's> = OutputParams<'w>;
     type Output = Vec<Entry>;
 
     fn output(
         &self,
-        deps: &Deps,
+        _: &Deps,
         params: &mut OutputParams<'_>,
-        ctx: &mut OutputContext,
+        _: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
         Ok(params.types.iter().map(|(_ty, def)| Entry { def: def.clone() }).collect())
     }
@@ -36,10 +36,10 @@ impl Persistable for Persist {
 
     fn input(
         &self,
-        deps: &Deps,
+        _: &Deps,
         world: &mut World,
         input: Self::Input,
-        ctx: &mut InputContext,
+        _: &mut InputContext,
     ) -> Result<(), InputError> {
         for entry in input {
             fluid::AddTypeCommand { def: entry.def }.apply(world);

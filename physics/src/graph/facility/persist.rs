@@ -162,7 +162,7 @@ impl BlueprintParams {
 
     fn resolve_reactor(
         &self,
-        deps: &Deps,
+        _: &Deps,
         ctx: &InputContext,
     ) -> Result<Option<blueprint::ReactorParams>, InputError> {
         let Some(reactor) = &self.reactor else { return Ok(None) };

@@ -32,7 +32,7 @@ impl Persistable for Persist {
 
     fn output(
         &self,
-        deps: &Deps,
+        _: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
     ) -> Result<Self::Output, ()> {
@@ -55,7 +55,7 @@ impl Persistable for Persist {
 
     fn input(
         &self,
-        deps: &Deps,
+        _: &Deps,
         world: &mut World,
         input: Self::Input,
         ctx: &mut InputContext,

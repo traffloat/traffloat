@@ -31,10 +31,10 @@ pub fn run(options: Options) -> AppExit {
                     }
                 },
                 custom_layer: {
-                    move |app| {
+                    move |_app| {
                         #[cfg(feature = "otel")]
                         {
-                            let options = &app.world().resource::<Options>().otel;
+                            let options = &_app.world().resource::<Options>().otel;
                             if options.otel_export {
                                 use opentelemetry::trace::TracerProvider;
 

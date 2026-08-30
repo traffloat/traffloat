@@ -14,7 +14,7 @@ pub struct Tab;
 
 impl dock::Tab for Tab {
     type TitleSystemParam<'w, 's> = ();
-    fn title(&self, param: Self::TitleSystemParam<'_, '_>) -> String { "Main menu".into() }
+    fn title(&self, (): Self::TitleSystemParam<'_, '_>) -> String { "Main menu".into() }
 
     type UiSystemParam<'w, 's> = Commands<'w, 's>;
     fn ui(

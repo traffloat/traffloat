@@ -411,7 +411,7 @@ impl EntityCommand for AddViewableCommand {
 #[derive(SystemParam)]
 pub(crate) struct ReconcileSubscriptionParams<'w, 's> {
     viewer_query:   Query<'w, 's, (Entity, &'static Viewer)>,
-    viewable_query: Query<'w, 's, (Entity, &'static mut Viewable, &'static CullingRect)>,
+    viewable_query: Query<'w, 's, (&'static mut Viewable, &'static CullingRect)>,
     messages:       MessageWriter<'w, SentUpdate>,
 }
 
@@ -420,7 +420,7 @@ fn reconcile_subscription_system(mut params: ReconcileSubscriptionParams) {
 
     let mut prev_sub_levels = EntityHashMap::new();
 
-    for (viewable_entity, mut viewable, culling_rect) in params.viewable_query {
+    for (mut viewable, culling_rect) in params.viewable_query {
         let mut new_subscribers = viewable.new_subscribers.take_capacity();
         prev_sub_levels.clear();
         for (level, viewers) in &viewable.subscribers {
@@ -510,7 +510,7 @@ pub(crate) struct SetSubscriptionHandler<'w, 's> {
 impl request::Handler for SetSubscriptionHandler<'_, '_> {
     type Request = proto::SetSubscription;
 
-    fn classify(request: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
+    fn classify(_: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
 
     fn handle(&mut self, viewer: Entity, request: &Self::Request) {
         let Some(mut viewer) = self.viewer_query.log_get_mut(viewer) else { return };
@@ -528,7 +528,7 @@ pub(crate) struct SetViewFocusHandler<'w, 's> {
 impl request::Handler for SetViewFocusHandler<'_, '_> {
     type Request = proto::SetViewFocus;
 
-    fn classify(request: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
+    fn classify(_: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
 
     fn handle(&mut self, viewer: Entity, request: &Self::Request) {
         let Some(mut viewer) = self.viewer_query.log_get_mut(viewer) else { return };
@@ -546,7 +546,7 @@ pub(crate) struct RenameViewableHandler<'w, 's> {
 impl request::Handler for RenameViewableHandler<'_, '_> {
     type Request = proto::RenameViewable;
 
-    fn classify(request: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
+    fn classify(_: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
 
     fn handle(&mut self, viewer: Entity, request: &Self::Request) {
         let viewable_entity = self

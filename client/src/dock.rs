@@ -369,8 +369,6 @@ fn render_system(
         tab.tab.before_render(&mut contexts, &mut viewer);
     }
 
-    let Ok(ctx) = contexts.ctx_mut() else { return };
-
     egui::CentralPanel::default().show(ui, |ui| {
         DockArea::new(&mut state.0)
             .show_add_buttons(false)

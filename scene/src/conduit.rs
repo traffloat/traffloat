@@ -72,7 +72,7 @@ pub(super) struct NewConduitParams<'w, 's> {
 impl UpdateHandler for NewConduitParams<'_, '_> {
     type Update = proto::NewConduit;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(&TrackedId::Corridor(corridor_entity)) = self.ids.map.get(&update.corridor) else {
@@ -124,7 +124,7 @@ pub(super) struct UpdateFluidConduitParams<'w, 's> {
 impl UpdateHandler for UpdateFluidConduitParams<'_, '_> {
     type Update = proto::UpdateFluidConduit;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(conduit_entity) = self.ids.get_conduit(update.id) else { return };
@@ -215,8 +215,6 @@ fn compute_placement(
     let num_conduits = radii.len();
     (num_conduits != 0)
         .then(|| {
-            let total = corridor_radius.powi(2);
-
             let radius_sum: f32 = radii.clone().sum();
             let radius_ratio = (radius_sum / corridor_radius).clamp(0.3, 0.8);
             let width_scale = radius_ratio / (radius_sum / corridor_radius);

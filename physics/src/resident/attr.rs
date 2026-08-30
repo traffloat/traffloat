@@ -234,7 +234,6 @@ fn init_viewer_system(
 
 fn incr_viewer_system(
     mut throttle: view::BroadcastThrottle,
-    broadcast_type_params: BroadcastAttrTypeChangesParams,
     resident_query: Query<(&Attributes, &mut LastSentAttributes, &view::Viewable)>,
     types: Res<Types>,
     mut writer: MessageWriter<view::SentUpdate>,
@@ -275,13 +274,13 @@ fn incr_viewer_system(
                                 types.get(ty).subscribed_by(level) && last != value
                             },
                         )
-                        .map(|(last, (ty, value))| (ty.0, value))
+                        .map(|(_last, (ty, value))| (ty.0, value))
                         .collect();
                     Some(proto::UpdateResidentAttributesPartial { id: viewable.id, attrs }.into())
                 }));
                 last_sent.0 = Some(attributes.values.clone());
             }
-            Some(ref last_values) => {
+            Some(_) => {
                 // this resident was broadcast before, and values are unchanged.
             }
         }
@@ -313,7 +312,7 @@ fn broadcast_attr_type_changes(
     let viewers: EntityHashSet = params
         .viewer_query
         .into_iter()
-        .filter(|(entity, last)| last.map(|c| c.0) != Some(params.types.generation))
+        .filter(|(_, last)| last.map(|c| c.0) != Some(params.types.generation))
         .map(|(entity, _)| entity)
         .collect();
     for &viewer in &viewers {

@@ -294,11 +294,14 @@ impl Command for StartInteractCommand {
 }
 
 fn init_viewer_system(
-    resident_query: Query<(&Resident, ProtoLocationResidentData, &view::Named, &view::Viewable)>,
+    resident_query: Query<
+        (ProtoLocationResidentData, &view::Named, &view::Viewable),
+        With<Resident>,
+    >,
     location_params: ProtoLocationParams,
     mut messages: MessageWriter<view::SentUpdate>,
 ) {
-    for (resident, location, named, viewable) in resident_query {
+    for (location, named, viewable) in resident_query {
         messages.write_batch(viewable.broadcast_new(|| {
             Some(proto::Update::NewResident(proto::NewResident {
                 id:       viewable.id,

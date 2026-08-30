@@ -123,7 +123,6 @@ fn recompute_culling_rect(mut entity: EntityWorldMut) {
                 entity.world().log_get::<edge::OfBuilding<Ab>>(edge_entity.edge())
             && let Some(building) = entity.world().log_get::<Building>(of_building.building)
         {
-            let building_half_size = building.radius + building.wall_thickness;
             let building_rect = building.base_rect();
             rect = rect.union(building_rect);
             Some(of_building.building)

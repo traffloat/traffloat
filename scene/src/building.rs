@@ -63,7 +63,7 @@ pub(super) struct NewBuildingParams<'w, 's> {
 impl UpdateHandler for NewBuildingParams<'_, '_> {
     type Update = proto::NewBuilding;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &proto::NewBuilding) {
         let material = self.materials.add(ColorMaterial {
@@ -108,7 +108,7 @@ pub(super) struct UpdateBuildingParams<'w, 's> {
 impl UpdateHandler for UpdateBuildingParams<'_, '_> {
     type Update = proto::UpdateBuilding;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &proto::UpdateBuilding) {
         let Some(entity) = self.ids.get_building(update.id) else { return };
@@ -132,7 +132,7 @@ pub struct UpdateBuildingFluidConnectionsParams<'w, 's> {
 impl UpdateHandler for UpdateBuildingFluidConnectionsParams<'_, '_> {
     type Update = proto::UpdateBuildingFluidConnections;
 
-    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_building(update.id) else { return };
@@ -164,7 +164,7 @@ impl Info {
                     .and_then(|facility| ids.get_facility(facility))
                     .map(FluidConnectionPeer::Facility),
                 proto::BuildingFluidConnectionPair::FacilityBuilding { facility, building } => {
-                    (building == target_facility)
+                    (facility == target_facility)
                         .then(|| ids.get_building(building))
                         .flatten()
                         .map(FluidConnectionPeer::Building)

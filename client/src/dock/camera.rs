@@ -166,7 +166,7 @@ impl dock::Tab for Tab {
     type BeforeRenderSystemParam<'w, 's> = ();
     fn before_render(
         &mut self,
-        contexts: &mut bevy_egui::EguiContexts,
+        _contexts: &mut bevy_egui::EguiContexts,
         _param: Self::BeforeRenderSystemParam<'_, '_>,
     ) {
         // self.image_id = contexts.image_id(&self.image_handle);

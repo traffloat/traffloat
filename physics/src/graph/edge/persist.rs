@@ -66,8 +66,8 @@ impl Persistable for Persist {
         }
 
         let mut output = Vec::new();
-        run(&mut output, params, deps, ctx, |a, b| a)?;
-        run(&mut output, params, deps, ctx, |a, b| b)?;
+        run(&mut output, params, deps, ctx, |a, _| a)?;
+        run(&mut output, params, deps, ctx, |_, b| b)?;
         Ok(output)
     }
 

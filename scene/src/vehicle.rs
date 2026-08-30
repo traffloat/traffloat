@@ -62,7 +62,7 @@ pub(super) struct SetVehicleTypesParams<'w> {
 impl UpdateHandler for SetVehicleTypesParams<'_> {
     type Update = proto::SetVehicleTypes;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Meta }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Meta }
 
     fn handle(&mut self, update: &Self::Update) {
         self.types.types.clear();
@@ -85,7 +85,7 @@ pub(super) struct NewVehicleParams<'w, 's> {
 impl UpdateHandler for NewVehicleParams<'_, '_> {
     type Update = proto::NewVehicle;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &Self::Update) {
         let type_id = usize::try_from(update.ty).expect("usize >= u32 on supported targets");
@@ -154,7 +154,7 @@ pub(super) struct UpdateVehicleLocationParams<'w, 's> {
 impl UpdateHandler for UpdateVehicleLocationParams<'_, '_> {
     type Update = proto::UpdateVehicleLocation;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_vehicle(update.id) else { return };
@@ -183,7 +183,7 @@ pub(super) struct UpdateVehicleFluidParams<'w, 's> {
 impl UpdateHandler for UpdateVehicleFluidParams<'_, '_> {
     type Update = proto::UpdateVehicleFluid;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_vehicle(update.id) else { return };

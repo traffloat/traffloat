@@ -111,7 +111,7 @@ impl NewFacilityParams<'_, '_> {
 impl UpdateHandler for NewFacilityParams<'_, '_> {
     type Update = proto::NewFacility;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &Self::Update) {
         let conf = self.conf.read();
@@ -192,7 +192,7 @@ pub struct UpdateFacilityTaintParams<'w, 's> {
 impl UpdateHandler for UpdateFacilityTaintParams<'_, '_> {
     type Update = proto::UpdateFacilityTaint;
 
-    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_facility(update.id) else { return };
@@ -222,7 +222,7 @@ pub struct UpdateFacilityFluidParams<'w, 's> {
 impl UpdateHandler for UpdateFacilityFluidParams<'_, '_> {
     type Update = proto::UpdateFacilityFluid;
 
-    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_facility(update.id) else { return };
@@ -241,7 +241,7 @@ pub struct UpdateFacilityReactorParams<'w, 's> {
 impl UpdateHandler for UpdateFacilityReactorParams<'_, '_> {
     type Update = proto::UpdateFacilityReactor;
 
-    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_facility(update.id) else { return };

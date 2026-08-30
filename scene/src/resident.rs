@@ -53,7 +53,7 @@ pub(super) struct SetResidentAttrTypesParams<'w> {
 impl UpdateHandler for SetResidentAttrTypesParams<'_> {
     type Update = proto::SetResidentAttrTypes;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Meta }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Meta }
 
     fn handle(&mut self, update: &Self::Update) {
         self.types.types.clone_from(&update.types);
@@ -74,7 +74,7 @@ pub(super) struct NewResidentParams<'w, 's> {
 impl UpdateHandler for NewResidentParams<'_, '_> {
     type Update = proto::NewResident;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &Self::Update) {
         let proto_location = update.location.clone();
@@ -118,7 +118,7 @@ pub(super) struct UpdateResidentLocationParams<'w, 's> {
 impl UpdateHandler for UpdateResidentLocationParams<'_, '_> {
     type Update = proto::UpdateResidentLocation;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_resident(update.id) else { return };
@@ -202,7 +202,7 @@ pub(super) struct UpdateResidentAttributesFullParams<'w, 's> {
 impl UpdateHandler for UpdateResidentAttributesFullParams<'_, '_> {
     type Update = proto::UpdateResidentAttributesFull;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_resident(update.id) else { return };
@@ -245,7 +245,7 @@ pub(super) struct UpdateResidentAttributesPartialParams<'w, 's> {
 impl UpdateHandler for UpdateResidentAttributesPartialParams<'_, '_> {
     type Update = proto::UpdateResidentAttributesPartial;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_resident(update.id) else { return };

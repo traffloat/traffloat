@@ -23,7 +23,7 @@ struct ResidentData {
 }
 
 impl UiSystemParam<'_, '_> {
-    pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, dock: dock::Context) {
+    pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, _: dock::Context) {
         let Some(resident_data) = self.resident_query.log_get(entity) else {
             ui.label("Object has been unloaded");
             return;

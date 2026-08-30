@@ -305,7 +305,7 @@ pub(crate) struct SetReactorEfficiencyCapHandler<'w, 's> {
 impl request::Handler for SetReactorEfficiencyCapHandler<'_, '_> {
     type Request = proto::SetReactorEfficiencyCap;
 
-    fn classify(request: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
+    fn classify(_: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
 
     fn handle(&mut self, viewer: Entity, request: &Self::Request) {
         let entity = self

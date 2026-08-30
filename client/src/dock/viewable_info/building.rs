@@ -164,7 +164,7 @@ fn show_connection<Ab: Which>(
     let peer = get_corridor_data(&corridor_data, which.other());
 
     ui.horizontal(|ui| {
-        if let Some((peer_building, peer_detail)) = peer {
+        if let Some((peer_building, _)) = peer {
             show_link(ui, commands, peer_building);
 
             if let Some(peer_building_data) = building_query.log_get(peer_building) {

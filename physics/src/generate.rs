@@ -32,7 +32,7 @@ pub fn generate(world: &mut World, _: Config) {
     let std = {
         let fluids = gen_fluid_types(world);
         let attrs = gen_resident_attr_types(world);
-        let vehicles = gen_vehicle_types(world, &fluids, &attrs);
+        let vehicles = gen_vehicle_types(world, &fluids);
         let reactors = gen_reactor_types(world, &fluids);
         let facilities = gen_facility_types(world, &reactors);
         StandardTypes { fluids, attrs, vehicles, reactors, facilities }
@@ -47,9 +47,9 @@ pub fn generate(world: &mut World, _: Config) {
         AlphaBeta { alpha: core.building, beta: garden.building },
         1.1,
         |world, corridor| {
-            let pipe =
-                spawn_fluid_pipe(world, corridor, core.tank, garden.facility, "Water pipe", 0.1);
+            let pipe = spawn_fluid_pipe(world, corridor, "Water pipe", 0.1);
             connect_facility_pipe(world, core.tank, pipe);
+            connect_facility_pipe(world, garden.facility, pipe);
         },
     );
 
@@ -319,11 +319,7 @@ struct StandardVehicleTypes {
     bus: vehicle::TypeId,
 }
 
-fn gen_vehicle_types(
-    world: &mut World,
-    fluids: &StandardFluidTypes,
-    attrs: &StandardResidentAttrTypes,
-) -> StandardVehicleTypes {
+fn gen_vehicle_types(world: &mut World, fluids: &StandardFluidTypes) -> StandardVehicleTypes {
     StandardVehicleTypes {
         bus: world.resource_mut::<vehicle::Types>().push(vehicle::TypeDef {
             display:        vehicle::def::Display {
@@ -661,9 +657,7 @@ fn gen_hex_houses(world: &mut World, std: &StandardTypes, core_building: Entity)
 
         fill_atmosphere(&std.fluids, world, building_id);
 
-        for dir in ["clockwise", "anticlockwise"] {
-            mass_transit_pair(world, std, prev_building, building_id);
-        }
+        mass_transit_pair(world, std, prev_building, building_id);
 
         prev_building = building_id;
         entities[index] = building_id;
@@ -717,8 +711,6 @@ fn spawn_corridor(
 fn spawn_fluid_pipe(
     world: &mut World,
     corridor: Entity,
-    from_facility: Entity,
-    to_facility: Entity,
     name: impl Into<String>,
     radius: f32,
 ) -> Entity {

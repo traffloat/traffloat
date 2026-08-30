@@ -91,8 +91,6 @@ impl Persistable for Persist {
                             let cpmt_data =
                                 params.compartment_query.log_get(compartment).ok_or(())?;
                             let vehicle = ctx.get_id(deps.vehicle, cpmt_data.vehicle.0)?;
-                            let vehicle_data =
-                                params.vehicle_query.log_get(cpmt_data.vehicle.0).ok_or(())?;
                             let as_passenger = try_log!(data.passenger, expect "location vehicle implies passenger component" or return Err(()));
                             let cpmt_index = as_passenger.compartment_index;
                             let operator_slot = data.operator.map(|op| {

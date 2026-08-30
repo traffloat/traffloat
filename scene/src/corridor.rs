@@ -79,7 +79,7 @@ pub(super) struct NewCorridorParams<'w, 's> {
 impl UpdateHandler for NewCorridorParams<'_, '_> {
     type Update = proto::NewCorridor;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Spawn }
 
     fn handle(&mut self, update: &proto::NewCorridor) {
         fn wall_rect<const WHICH: bool>(
@@ -165,7 +165,7 @@ pub(super) struct UpdateCorridorParams<'w, 's> {
 impl UpdateHandler for UpdateCorridorParams<'_, '_> {
     type Update = proto::UpdateCorridor;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::Update }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::Update }
 
     fn handle(&mut self, update: &proto::UpdateCorridor) {
         let Some(entity) = self.ids.get_corridor(update.id) else {
@@ -200,7 +200,7 @@ struct CorridorEndpointQueryData {
 impl UpdateHandler for UpdateCorridorEndpointParams<'_, '_> {
     type Update = proto::UpdateCorridorEndpoint;
 
-    fn classify(update: &Self::Update) -> HandlerClass { HandlerClass::MixedSpawn }
+    fn classify(_: &Self::Update) -> HandlerClass { HandlerClass::MixedSpawn }
 
     fn handle(&mut self, update: &proto::UpdateCorridorEndpoint) {
         let Some(corridor) = self.ids.get_corridor(update.corridor) else {

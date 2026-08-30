@@ -244,12 +244,12 @@ pub struct ForceOutput {
 }
 
 impl reaction::ReactionExecutor<ExecuteParams<'_, '_>, ExecuteDataItem<'_, '_>> for ForceOutput {
-    fn execute(&self, efficiency: f32, params: &mut ExecuteParams, data: &mut ExecuteDataItem) {
+    fn execute(&self, efficiency: f32, _: &mut ExecuteParams, data: &mut ExecuteDataItem) {
         data.status.propulsion_efficiency = efficiency;
         data.status.propulsion_force = self.max_force * efficiency;
     }
 
-    fn execute_zero(&self, params: &mut ExecuteParams<'_, '_>, data: &mut ExecuteDataItem<'_, '_>) {
+    fn execute_zero(&self, _: &mut ExecuteParams<'_, '_>, data: &mut ExecuteDataItem<'_, '_>) {
         data.status.propulsion_efficiency = 0.0;
         data.status.propulsion_force = 0.0;
     }
@@ -472,7 +472,7 @@ fn apply_propulsion(
         max_efficiency = 0.0;
     }
 
-    let efficiency = reaction::execute_once(
+    let _efficiency = reaction::execute_once(
         params,
         data,
         &propulsion.inputs,

@@ -44,7 +44,7 @@ pub struct OpenTab {
 
 impl dock::Tab for OpenTab {
     type TitleSystemParam<'w, 's> = ();
-    fn title(&self, param: Self::TitleSystemParam<'_, '_>) -> String { "Open".into() }
+    fn title(&self, (): Self::TitleSystemParam<'_, '_>) -> String { "Open".into() }
 
     type UiSystemParam<'w, 's> = OpenUiSystemParam<'w, 's>;
     fn ui(
@@ -106,15 +106,10 @@ impl Default for SaveAsTab {
 
 impl dock::Tab for SaveAsTab {
     type TitleSystemParam<'w, 's> = ();
-    fn title(&self, param: Self::TitleSystemParam<'_, '_>) -> String { "Save as".into() }
+    fn title(&self, (): Self::TitleSystemParam<'_, '_>) -> String { "Save as".into() }
 
     type UiSystemParam<'w, 's> = SaveAsUiSystemParam<'w, 's>;
-    fn ui(
-        &mut self,
-        mut params: Self::UiSystemParam<'_, '_>,
-        ui: &mut egui::Ui,
-        ctx: dock::Context,
-    ) {
+    fn ui(&mut self, mut params: Self::UiSystemParam<'_, '_>, ui: &mut egui::Ui, _: dock::Context) {
         let mut is_name_used = false;
         let name_edit = self.name_edit.get_or_insert_with(|| {
             params.load_source.0.as_ref().map_or("", |s| &s.name).to_string()

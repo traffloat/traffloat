@@ -34,7 +34,7 @@ struct FacilityData {
 }
 
 impl UiSystemParam<'_, '_> {
-    pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, dock: dock::Context) {
+    pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, _: dock::Context) {
         let Ok(facility_data) = self.facility_query.get(entity) else {
             ui.label("Object has been unloaded");
             return;

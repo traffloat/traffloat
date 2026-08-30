@@ -490,10 +490,10 @@ fn control_on_rail_try_transition_to_building(
 }
 
 fn control_on_rail_try_acquire_inertial<Exit: Which>(
-    params: &ControlVehicleParams,
-    args: &ControlOnRail,
-    corridor: &ControlCorridorDataItem,
-    edge_building_query: &Query<&edge::OfBuilding<Exit>>,
+    _params: &ControlVehicleParams,
+    _args: &ControlOnRail,
+    _corridor: &ControlCorridorDataItem,
+    _edge_building_query: &Query<&edge::OfBuilding<Exit>>,
 ) -> Option<propulsion::Desired> {
     None // TODO
 }

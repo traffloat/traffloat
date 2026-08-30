@@ -26,7 +26,7 @@ struct VehicleData {
 }
 
 impl UiSystemParam<'_, '_> {
-    pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, dock: dock::Context) {
+    pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, _: dock::Context) {
         let Some(vehicle_data) = self.vehicle_query.log_get(entity) else {
             ui.label("Object has been unloaded");
             return;
