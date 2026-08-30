@@ -24,6 +24,8 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.add_systems(app::Update, consume_scene_toasts_system);
         app.add_systems(app::Update, update_focus_system);
+        app.add_systems(app::Update, consume_open_viewable_info_system);
+        app.add_systems(app::Update, request_camera_focus_system);
         app.add_systems(app::Update, camera_to_picking_system);
     }
 }

@@ -28,7 +28,6 @@ traffloat-util = { version = "0.0.4", default-features = false, path = "util" }
 traffloat-proto = { version = "0.0.4", default-features = false, path = "proto" }
 traffloat-physics = { version = "0.0.4", default-features = false, path = "physics" }
 traffloat-scene = { version = "0.0.4", default-features = false, path = "scene" }
-traffloat-client = { version = "0.0.4", default-features = false, path = "client" }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }

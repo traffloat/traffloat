@@ -49,7 +49,7 @@ pub fn expect_between(actual: f32, min: f32, max: f32) {
 
 pub fn configure_logging(app: &mut App) {
     app.add_plugins(bevy::log::LogPlugin {
-        fmt_layer: |app| {
+        fmt_layer: |_app| {
             Some(Box::new(
                 tracing_subscriber::fmt::layer()
                     .with_span_events(tracing_subscriber::fmt::format::FmtSpan::CLOSE),

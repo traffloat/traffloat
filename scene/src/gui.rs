@@ -22,6 +22,7 @@ impl Plugin for Plug {
         app.add_message::<ShowToast>();
         app.add_message::<OpenViewableInfo>();
         app.add_message::<RequestCameraFocus>();
+        app.init_resource::<CameraInteraction>();
         app.init_resource::<ViewInteriorEntities>();
     }
 }
