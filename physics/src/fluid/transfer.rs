@@ -213,7 +213,6 @@ fn apply_storage(
             if ty.moles.0 == 0.0 || total_moles == 0.0 { 0.0 } else { ty.moles.0 / total_moles };
         ty.molar_conc = ty.moles.0 / storage_volume;
 
-        #[expect(clippy::needless_range_loop, reason = "may be used for emission in the future")]
         for chan in 0..3 {
             let type_def = types.get(type_id);
             extinction[chan] += ty.proportion * type_def.optical_extinction[chan];

@@ -1,7 +1,6 @@
 //! A local mirror of the actual world based on incremental [proto](traffloat_proto) updates.
 
 use std::collections::HashMap;
-use std::iter;
 use std::marker::PhantomData;
 
 use bevy::app::{self, App, Plugin};
@@ -12,15 +11,14 @@ use bevy::ecs::message::{Message, MessageReader, MessageWriter};
 use bevy::ecs::query::With;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{ApplyDeferred, IntoScheduleConfigs, ScheduleConfigs, SystemSet};
-use bevy::ecs::system::{Commands, ParamSet, Query, Res, ResMut, ScheduleSystem, SystemParam};
+use bevy::ecs::system::{Commands, ParamSet, Query, ResMut, ScheduleSystem, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::math::Rect;
 use bevy::reflect::Reflect;
 use bevy::state::app::AppExtStates;
 use bevy::state::state::States;
 use bevy::transform::components::GlobalTransform;
-use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig, manager};
-use either::Either;
+use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig};
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 use traffloat_macro_util::fan_out;

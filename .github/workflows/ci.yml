@@ -28,8 +28,8 @@ jobs:
             -D warnings \
             -D clippy::dbg_macro \
             -D unused_imports \
-            -D dead_code \
             -D unused_variables
+          # -D dead_code temporarily disabled due to plenty of future enhancement
   test:
     name: "Run tests"
     runs-on: ubuntu-latest
@@ -42,7 +42,7 @@ jobs:
     name: "Find unused dependencies"
     runs-on: ubuntu-latest
     steps:
-      - run: "sudo apt-get update && sudo apt-get install -y libudev-dev"
+      - run: "sudo apt-get update && sudo apt-get install -y libudev-dev libwayland-dev"
       - uses: "actions/checkout@v4"
       - uses: "dtolnay/rust-toolchain@nightly"
       - run: "cargo install cargo-udeps"

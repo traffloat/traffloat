@@ -29,8 +29,8 @@ pub mod rail;
 pub use rail::Rail;
 use traffloat_proto::proto::{self, AlphaOrBeta};
 use traffloat_util::{
-    self, Alpha, EntityWorldMutExt, OptionWhich, QueryExt, Which, WorldExt,
-    configure_enum_system_set, run_stateless_closure,
+    self, EntityWorldMutExt, OptionWhich, QueryExt, WorldExt, configure_enum_system_set,
+    run_stateless_closure,
 };
 
 use crate::graph::{Corridor, conduit};

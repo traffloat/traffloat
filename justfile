@@ -8,7 +8,7 @@ fmt:
 	cargo +nightly fmt --all
 
 imports:
-	cargo clippy --fix --allow-staged -- -D unused_imports
+	cargo clippy --fix --tests --allow-staged -- -D unused_imports
 
 # This is currently not enforced, will be fixed in the future after project gets more mature
 precommit:

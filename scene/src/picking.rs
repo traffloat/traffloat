@@ -1,16 +1,10 @@
-use bevy::app::{self, App, Plugin};
-use bevy::camera::{ImageRenderTarget, NormalizedRenderTarget};
-use bevy::ecs::entity::Entity;
+use bevy::app::{App, Plugin};
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::observer;
-use bevy::ecs::query::With;
-use bevy::ecs::system::{Commands, EntityCommands, Local, Query, Res};
-use bevy::ecs::world::World;
-use bevy::math::Vec2;
+use bevy::ecs::system::{EntityCommands, Res};
 use bevy::picking::input::PointerInputSettings;
-use bevy::picking::mesh_picking::{MeshPickingCamera, MeshPickingSettings};
-use bevy::picking::pointer::{PointerAction, PointerId, PointerInput};
-use bevy::picking::{PickingSettings, events as pick_event, pointer};
+use bevy::picking::mesh_picking::MeshPickingSettings;
+use bevy::picking::{PickingSettings, events as pick_event};
 
 use crate::gui;
 

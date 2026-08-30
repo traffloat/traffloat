@@ -5,7 +5,7 @@ use bevy::asset::{self, Assets, RenderAssetUsages};
 use bevy::color::Color;
 use bevy::ecs::bundle::Bundle;
 use bevy::ecs::component::Component;
-use bevy::ecs::entity::{Entity, EntityHashSet};
+use bevy::ecs::entity::Entity;
 use bevy::ecs::hierarchy::ChildOf;
 use bevy::ecs::name::Name;
 use bevy::ecs::query::QueryData;

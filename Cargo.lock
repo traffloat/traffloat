@@ -6422,7 +6422,6 @@ dependencies = [
  "bevy",
  "bevy_mesh",
  "bevy_mod_config",
- "either",
  "fnv",
  "getrandom 0.4.3",
  "itertools 0.15.0",

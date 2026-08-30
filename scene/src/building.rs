@@ -4,7 +4,7 @@ use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets};
 use bevy::color::Color;
 use bevy::ecs::component::Component;
-use bevy::ecs::entity::{Entity, EntityHashSet};
+use bevy::ecs::entity::Entity;
 use bevy::ecs::name::Name;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;

@@ -2,7 +2,6 @@ use bevy::app::{self, App, Plugin};
 use bevy::asset::{self, Assets};
 use bevy::camera::{Camera, Camera2d, ClearColor, ImageRenderTarget, RenderTarget, Viewport};
 use bevy::color::Color;
-use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;

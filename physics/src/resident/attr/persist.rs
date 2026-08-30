@@ -5,7 +5,7 @@ use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{InputContext, OutputContext, Persistable};
 use crate::resident::attr;
 
 #[derive(Clone)]
