@@ -16,13 +16,9 @@ use strum::IntoEnumIterator;
 use traffloat_proto::proto;
 use traffloat_util::{configure_enum_system_set, duration_to_timesteps, try_log};
 
-use crate::persist::AppExt;
-use crate::{CleanupAppExt, view};
+use crate::{types, view};
 
 pub mod persist;
-
-mod persist_type;
-pub use persist_type::Persist as PersistTypes;
 mod transfer;
 
 /// A constant equivalent to the ideal gas constant, used for pressure calculation.
@@ -35,7 +31,6 @@ pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.register_type::<Types>();
         app.register_type::<TypeDef>();
         app.register_type::<Storage>();
         app.register_type::<Edge>();
@@ -46,7 +41,7 @@ impl Plugin for Plug {
         app.register_type::<Sensor>();
         app.register_type::<ViewerSynced>();
 
-        app.register_persistable(PersistTypes);
+        types::init::<TypeDef>(app);
 
         app.init_resource::<Conf>();
         app.init_resource::<Types>();
@@ -56,7 +51,6 @@ impl Plugin for Plug {
             app::Update,
             sync_types_to_viewers_system.in_set(view::SendUpdatesSystemSet::Meta),
         );
-        app.add_cleanup_hook(Types::cleanup_hook);
 
         configure_enum_system_set::<ModifySystemSets>(app, app::FixedUpdate);
         for set in ModifySystemSets::iter() {
@@ -144,40 +138,10 @@ impl ops::Mul<f32> for Energy {
     fn mul(self, rhs: f32) -> Self { Self(self.0 * rhs) }
 }
 
-/// Identifies a fluid type, indexes [`Types::types`].
-///
-/// Unlike [`Entity`], this is a stable identifier that is exactly restored
-/// across network sync and persistence.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Reflect,
-)]
-pub struct TypeId(pub u32);
-
-#[derive(Resource, Reflect, Default)]
-pub struct Types {
-    pub types: Vec<TypeDef>,
-}
-
-impl Types {
-    #[must_use]
-    pub fn get(&self, ty: TypeId) -> &TypeDef {
-        self.types.get(ty.0 as usize).expect("invalid fluid type reference created")
-    }
-
-    pub fn push(&mut self, type_def: TypeDef) -> TypeId {
-        let id = u32::try_from(self.types.len()).expect("too many fluid types");
-        self.types.push(type_def);
-        TypeId(id)
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (TypeId, &TypeDef)> {
-        self.types
-            .iter()
-            .enumerate()
-            .map(|(i, t)| (TypeId(u32::try_from(i).expect("too many fluid types")), t))
-    }
-
-    fn cleanup_hook(world: &mut World) { world.resource_mut::<Types>().types.clear(); }
+types::define_type! {
+    "fluid", "fluid:type", TypeDef;
+    TypeId, PersistDeps, Types, PersistTypes, TypesGeneration;
+    depends {}
 }
 
 pub struct AddTypeCommand {
@@ -187,9 +151,8 @@ pub struct AddTypeCommand {
 impl AddTypeCommand {
     pub fn run(self, world: &mut World) -> TypeId {
         let mut types = world.resource_mut::<Types>();
-        let type_id = TypeId(u32::try_from(types.types.len()).expect("too many fluid types"));
-        types.push(self.def);
-        let num_types = types.types.len();
+        let type_id = types.push(self.def);
+        let num_types = types.len();
 
         for mut storage in world.query::<&mut Storage>().iter_mut(world) {
             let new_typed =
@@ -390,7 +353,7 @@ pub struct AddStorageCommand {
 impl EntityCommand for AddStorageCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
-        let num_types = entity.world().resource::<Types>().types.len();
+        let num_types = entity.world().resource::<Types>().len();
         entity.insert(Storage::vacuum(num_types, self.volume, self.optical_length));
     }
 }
@@ -482,7 +445,7 @@ pub struct AddEdgeCommand {
 impl EntityCommand for AddEdgeCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
-        let num_types = entity.world().resource::<Types>().types.len();
+        let num_types = entity.world().resource::<Types>().len();
         entity.insert((
             Edge::new(num_types, self.resistance_recip, self.area),
             EdgeAlpha(self.alpha),
@@ -532,12 +495,12 @@ fn sync_types_to_viewers_system(
     }
 
     for (entity, viewer) in viewers {
-        if viewer.is_none_or(|v| v.num_types != types.types.len()) {
-            commands.entity(entity).insert(ViewerSynced { num_types: types.types.len() });
+        if viewer.is_none_or(|v| v.num_types != types.len()) {
+            commands.entity(entity).insert(ViewerSynced { num_types: types.len() });
             writer.write(view::SentUpdate {
                 viewers: [entity].into(),
                 body:    proto::Update::SetFluidTypes(proto::SetFluidTypes {
-                    types: types.types.iter().map(def_to_proto).collect(),
+                    types: types.iter().map(|(_, def)| def_to_proto(def)).collect(),
                 }),
             });
         }

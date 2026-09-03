@@ -201,7 +201,7 @@ fn do_test(
     {
         let mut types = default_types();
         set_types(&mut types);
-        app.insert_resource(fluid::Types { types });
+        app.insert_resource(fluid::Types::from_types(types));
     }
 
     let alpha = app.world_mut().spawn(alpha_storage).id();

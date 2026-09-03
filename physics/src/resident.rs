@@ -19,7 +19,7 @@ use crate::{vehicle, view};
 
 pub mod ambient;
 pub mod attr;
-pub use attr::{Attributes, Persist as PersistAttrTypes};
+pub use attr::{Attributes, PersistTypes as PersistAttrTypes};
 mod persist;
 pub use persist::Persist;
 
