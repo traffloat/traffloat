@@ -37,12 +37,12 @@ impl Persistable for Persist {
     type Deps = Deps;
     fn depends(&self, depends: &mut impl persist::Depends) -> Deps {
         Deps {
-            fluid_type:    depends.request(fluid::PersistTypes),
-            resident_attr: depends.request(resident::PersistAttrTypes),
+            fluid_type:    depends.request(fluid::PersistTypes::default()),
+            resident_attr: depends.request(resident::PersistAttrTypes::default()),
             building:      depends.request(building::Persist),
             corridor:      depends.request(corridor::Persist),
             conduit:       depends.request(conduit::Persist),
-            vehicle_type:  depends.request(vehicle::PersistTypes),
+            vehicle_type:  depends.request(vehicle::PersistTypes::default()),
         }
     }
 

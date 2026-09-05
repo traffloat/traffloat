@@ -10,15 +10,14 @@ fmt:
 imports:
 	cargo clippy --fix --tests --allow-staged -- -D unused_imports
 
-# This is currently not enforced, will be fixed in the future after project gets more mature
 precommit:
 	cargo +nightly fmt --all
-	cargo clippy -- \
+	cargo clippy --tests --benches --examples -- \
 		-W clippy::dbg_macro \
 		-W clippy::unused_self \
 		-W unused_imports \
-		-W dead_code \
-		-W unused_variables
+		-W unused_variables \
+		# -W dead_code # suppressed until the project is more mature
 
 test module *args:
 	RUST_BACKTRACE=1 cargo test -p traffloat-{{module}} -F bevy/dynamic_linking,bevy/debug --lib -- --nocapture --color always {{args}}

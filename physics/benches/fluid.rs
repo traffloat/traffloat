@@ -1,3 +1,5 @@
+#![allow(clippy::cast_precision_loss, reason = "benches don't care about correctness")]
+
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -12,9 +14,9 @@ fn base_app(types: u32) -> App {
     app.insert_resource(time::TimeUpdateStrategy::FixedTimesteps(1));
     app.insert_resource(fluid::Conf { transfer_timestep: 1 });
 
-    app.insert_resource(fluid::Types {
-        types: (0..types)
-            .map(|ty| fluid::TypeDef {
+    app.insert_resource(fluid::Types::from_types(
+        (0..types)
+            .map(|_ty| fluid::TypeDef {
                 name:                 String::new(),
                 molar_heat_capacity:  2.0,
                 advective_fluidity:   0.2,
@@ -24,7 +26,7 @@ fn base_app(types: u32) -> App {
                 optical_extinction:   [0.0; 3],
             })
             .collect(),
-    });
+    ));
     app
 }
 

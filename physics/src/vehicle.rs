@@ -14,15 +14,12 @@ use bevy::ecs::system::{Commands, EntityCommand, Query, Res, SystemParam};
 use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
-use serde::{Deserialize, Serialize};
 
 pub mod def;
 pub use def::Def as TypeDef;
 mod motion;
 mod persist;
 pub use persist::Persist;
-mod persist_type;
-pub use persist_type::Persist as PersistTypes;
 pub mod propulsion;
 pub use propulsion::Propulsion;
 pub mod rail;
@@ -35,13 +32,12 @@ use traffloat_util::{
 
 use crate::graph::{Corridor, conduit};
 use crate::persist::AppExt;
-use crate::{CleanupAppExt, fluid, view};
+use crate::{fluid, types, view};
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.register_type::<Types>();
         app.register_type::<NextVehicleId>();
         app.register_type::<Vehicle>();
         app.register_type::<Location>();
@@ -56,11 +52,11 @@ impl Plugin for Plug {
         app.register_type::<OperatorList>();
         app.register_type::<OperatorOf>();
 
-        app.register_persistable(PersistTypes);
         app.register_persistable(Persist);
-        app.init_resource::<Types>();
         app.init_resource::<Conf>();
         app.init_resource::<NextVehicleId>();
+
+        types::init::<TypeDef>(app);
 
         app.add_plugins(motion::Plug);
         app.add_plugins(propulsion::Plug);
@@ -88,8 +84,6 @@ impl Plugin for Plug {
                 .in_set(UpdateCullingRectSystemSet),
         );
 
-        app.add_cleanup_hook(Types::cleanup_hook);
-
         configure_enum_system_set::<SystemSets>(app, app::FixedUpdate);
     }
 }
@@ -101,40 +95,13 @@ pub enum SystemSets {
     Propulsion,
 }
 
-/// Identifies a vehicle type, indexes [`Types::types`].
-///
-/// Unlike [`Entity`], this is a stable identifier that is exactly restored
-/// across network sync and persistence.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Reflect,
-)]
-pub struct TypeId(pub u32);
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize, Reflect, Resource)]
-pub struct Types {
-    types: Vec<TypeDef>,
-}
-
-impl Types {
-    #[must_use]
-    pub fn get(&self, id: TypeId) -> &TypeDef {
-        self.types.get(id.0 as usize).expect("got invalid vehicle type reference")
+types::define_type! {
+    "vehicle", "vehicle:type", TypeDef;
+    TypeId, PersistDeps, Types, PersistTypes, TypesGeneration;
+    depends {
+        fluid_type: fluid::PersistTypes,
+        // cargo_type: cargo::PersistTypes,
     }
-
-    pub fn push(&mut self, def: TypeDef) -> TypeId {
-        let id = u32::try_from(self.types.len()).expect("too many vehicle types");
-        self.types.push(def);
-        TypeId(id)
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (TypeId, &TypeDef)> {
-        self.types
-            .iter()
-            .enumerate()
-            .map(|(i, def)| (TypeId(u32::try_from(i).expect("too many vehicle types")), def))
-    }
-
-    fn cleanup_hook(world: &mut World) { world.resource_mut::<Types>().types.clear(); }
 }
 
 #[derive(Resource, Reflect, Default)]
@@ -671,12 +638,12 @@ fn sync_types_to_viewers_system(
     }
 
     for (entity, viewer) in viewers {
-        if viewer.is_none_or(|v| v.num_types != types.types.len()) {
-            commands.entity(entity).insert(ViewerSynced { num_types: types.types.len() });
+        if viewer.is_none_or(|v| v.num_types != types.len()) {
+            commands.entity(entity).insert(ViewerSynced { num_types: types.len() });
             writer.write(view::SentUpdate {
                 viewers: [entity].into(),
                 body:    proto::Update::SetVehicleTypes(proto::SetVehicleTypes {
-                    types: types.types.iter().map(def_to_proto).collect(),
+                    types: types.iter().map(|(_, def)| def_to_proto(def)).collect(),
                 }),
             });
         }

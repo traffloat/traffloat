@@ -61,7 +61,7 @@ pub(super) fn transfer_system(
     });
 
     storage_query.par_iter_mut().for_each_init(
-        || (0..types.types.len()).map(|_| ApplyStorageBufEntry::default()).collect::<Box<[_]>>(),
+        || (0..types.types().len()).map(|_| ApplyStorageBufEntry::default()).collect::<Box<[_]>>(),
         |buf, mut storage| {
             apply_storage(
                 buf,
@@ -213,9 +213,9 @@ fn apply_storage(
             if ty.moles.0 == 0.0 || total_moles == 0.0 { 0.0 } else { ty.moles.0 / total_moles };
         ty.molar_conc = ty.moles.0 / storage_volume;
 
-        for chan in 0..3 {
+        for (chan, extinction_value) in extinction.iter_mut().enumerate() {
             let type_def = types.get(type_id);
-            extinction[chan] += ty.proportion * type_def.optical_extinction[chan];
+            *extinction_value += ty.proportion * type_def.optical_extinction[chan];
             // emission[chan] += ty.proportion * type_def.optical_emission[chan];
         }
     }

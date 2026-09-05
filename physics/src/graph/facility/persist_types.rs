@@ -16,8 +16,8 @@ pub struct Persist;
 
 pub struct Deps {
     fluid_type:    Depend<fluid::PersistTypes>,
-    reactor:       Depend<reactor::Persist>,
-    resident_attr: Depend<resident::attr::Persist>,
+    reactor:       Depend<reactor::PersistTypes>,
+    resident_attr: Depend<resident::PersistAttrTypes>,
 }
 
 impl Persistable for Persist {
@@ -26,9 +26,9 @@ impl Persistable for Persist {
     type Deps = Deps;
     fn depends(&self, depends: &mut impl persist::Depends) -> Deps {
         Deps {
-            fluid_type:    depends.request(fluid::PersistTypes),
-            reactor:       depends.request(reactor::Persist),
-            resident_attr: depends.request(resident::attr::Persist),
+            fluid_type:    depends.request(fluid::PersistTypes::default()),
+            reactor:       depends.request(reactor::PersistTypes::default()),
+            resident_attr: depends.request(resident::PersistAttrTypes::default()),
         }
     }
 

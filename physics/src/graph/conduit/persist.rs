@@ -28,8 +28,8 @@ impl Persistable for Persist {
     fn depends(&self, depends: &mut impl persist::Depends) -> Self::Deps {
         Deps {
             corridor:     depends.request(corridor::Persist),
-            fluid_type:   depends.request(fluid::PersistTypes),
-            vehicle_type: depends.request(vehicle::PersistTypes),
+            fluid_type:   depends.request(fluid::PersistTypes::default()),
+            vehicle_type: depends.request(vehicle::PersistTypes::default()),
         }
     }
 

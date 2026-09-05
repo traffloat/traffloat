@@ -30,7 +30,7 @@ impl Persistable for Persist {
         Deps {
             building:      depends.request(building::Persist),
             facility_type: depends.request(PersistTypes),
-            fluid_type:    depends.request(fluid::PersistTypes),
+            fluid_type:    depends.request(fluid::PersistTypes::default()),
         }
     }
 

@@ -24,7 +24,7 @@ impl Persistable for Persist {
 
     type Deps = Deps;
     fn depends(&self, depends: &mut impl persist::Depends) -> Deps {
-        Deps { fluid_type: depends.request(fluid::PersistTypes) }
+        Deps { fluid_type: depends.request(fluid::PersistTypes::default()) }
     }
 
     type OutputParams<'w, 's> = OutputParams<'w, 's>;

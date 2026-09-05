@@ -7,6 +7,7 @@ pub type Vector = Vec2;
 // Framework modules
 pub mod persist;
 pub mod request;
+pub mod types;
 pub mod view;
 
 mod cleanup;

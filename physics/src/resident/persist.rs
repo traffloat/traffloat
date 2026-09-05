@@ -32,7 +32,7 @@ impl Persistable for Persist {
     type Deps = Deps;
     fn depends(&self, depends: &mut impl persist::Depends) -> Self::Deps {
         Deps {
-            resident_attr_types: depends.request(resident::PersistAttrTypes),
+            resident_attr_types: depends.request(resident::PersistAttrTypes::default()),
             building:            depends.request(building::Persist),
             corridor:            depends.request(corridor::Persist),
             facility:            depends.request(facility::Persist),

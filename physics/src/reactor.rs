@@ -16,11 +16,7 @@ use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_util::{QueryExt, duration_to_timesteps};
 
-use crate::persist::AppExt;
-use crate::{CleanupAppExt, fluid, reaction, resident};
-
-mod persist;
-pub use persist::Persist;
+use crate::{fluid, reaction, resident, types};
 
 pub struct Plug;
 
@@ -28,15 +24,13 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Facility>();
 
-        app.register_persistable(Persist);
-
-        app.init_resource::<Types>();
         app.init_resource::<Conf>();
         app.add_systems(
             app::FixedUpdate,
             execute_system.in_set(ExecuteSystemSet).in_set(fluid::ModifySystemSets::Reactor),
         );
-        app.add_cleanup_hook(Types::cleanup_hook);
+
+        types::init::<TypeDef>(app);
     }
 }
 
@@ -127,36 +121,13 @@ pub struct FacilityStatus {
     pub efficiency: f32,
 }
 
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Reflect,
-)]
-pub struct TypeId(pub u32);
-
-#[derive(Resource, Default, Reflect)]
-pub struct Types {
-    pub types: Vec<TypeDef>,
-}
-
-impl Types {
-    #[must_use]
-    pub fn get(&self, id: TypeId) -> &TypeDef {
-        self.types.get(id.0 as usize).expect("got invalid reactor type reference")
+types::define_type! {
+    "reactor", "reactor:type", TypeDef;
+    TypeId, PersistDeps, Types, PersistTypes, TypesGeneration;
+    depends {
+        fluid_type:    fluid::PersistTypes,
+        resident_attr: resident::PersistAttrTypes,
     }
-
-    pub fn push(&mut self, def: TypeDef) -> TypeId {
-        let id = u32::try_from(self.types.len()).expect("too many reactor types");
-        self.types.push(def);
-        TypeId(id)
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (TypeId, &TypeDef)> {
-        self.types
-            .iter()
-            .enumerate()
-            .map(|(i, def)| (TypeId(u32::try_from(i).expect("too many reactor types")), def))
-    }
-
-    fn cleanup_hook(world: &mut World) { world.resource_mut::<Types>().types.clear(); }
 }
 
 /// A component on facilities.

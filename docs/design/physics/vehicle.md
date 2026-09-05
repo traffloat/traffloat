@@ -147,7 +147,7 @@ there exists a rail `q` in `Q` where all of the following conditions are met:
 - The initial `v^2 / (2 * b) + v * t + d` distance of `Q` is clear of vehicles,
   where `b`, `t` and `d` are defined similarly as above.
 - `P` and `Q` form an obtuse angle at `X`.
-- Facility volume occupancy in `X` is less than 40%.
+- `X` is not occupied by any facilities marked as inertia-blocking (most facilities).
 - There are no other vehicles currently having reserved entry into `q`.
 - There are no other vehicles currently having reserved segments intersecting with `PX-XQ` in `X`,
   except for those that start or end at `PX`.

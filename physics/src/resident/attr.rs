@@ -12,25 +12,21 @@ use bevy::ecs::world::World;
 use bevy::reflect::Reflect;
 use enum_map::EnumMap;
 use serde::{Deserialize, Serialize};
+use snafu::Snafu;
 use traffloat_proto::proto;
 
-use crate::persist::AppExt;
-use crate::{CleanupAppExt, view};
-
-mod persist;
-pub use persist::Persist;
+use crate::persist::{self};
+use crate::{types, view};
 
 pub struct Plug;
 
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
-        app.register_type::<Types>();
         app.register_type::<Attributes>();
         app.register_type::<LastSentConfig>();
 
-        app.register_persistable(Persist);
-
-        app.init_resource::<Types>();
+        types::init::<TypeDef>(app);
+        app.init_resource::<Niches>();
 
         app.add_systems(
             app::Update,
@@ -48,60 +44,67 @@ impl Plugin for Plug {
                 .in_set(view::SendUpdatesSystemSet::Incr)
                 .after(super::incr_viewer_system),
         );
-        app.add_cleanup_hook(Types::cleanup_hook);
     }
 }
 
-#[derive(Resource, Reflect, Default)]
-pub struct Types {
-    defs: Vec<TypeDef>,
+types::define_type! {
+    "resident attribute", "resident:attr:type", TypeDef;
+    TypeId, PersistDeps, Types, PersistTypes, TypesGeneration;
+    depends {}
+    serde_impl {
+        type ExtraData = PersistExtraData;
+        type ExtraOutputParams<'w, 's> = Res<'w, Niches>;
 
-    #[reflect(ignore, default)]
-    pub niches: EnumMap<Niche, Option<TypeId>>,
+        fn output_extra(params: &mut Self::ExtraOutputParams<'_, '_>, _: &mut persist::OutputContext) -> Result<PersistExtraData, ()> {
+            let niches=  params
+                .niches
+                .iter()
+                .filter_map(|(niche, &ty)| Some(NicheEntry { niche, ty: ty? }))
+                .collect();
+            Ok(PersistExtraData { niches })
+        }
 
-    generation: TypesGeneration,
-}
+        fn input_extra(
+            world: &mut World,
+            data: PersistExtraData,
+            _: &Self::PersistDeps,
+            _: &mut persist::InputContext,
+        ) -> Result<(), InputError> {
+            let types_len = world.resource::<Types>().len();
+            let mut niches_resource = world.resource_mut::<Niches>();
+        for entry in data.niches {
+            if !usize::try_from(entry.ty.0).is_ok_and(|v| v < types_len) {
+                return Err(InputError::InvalidNicheType { niche: entry.niche, ty: entry.ty });
+            }
+            niches_resource.niches[entry.niche] = Some(entry.ty);
+        }
+            Ok(())
+        }
 
-impl Types {
-    fn push(&mut self, def: TypeDef) -> TypeId {
-        let id = TypeId(u32::try_from(self.defs.len()).expect("too many types"));
-        self.defs.push(def);
-        self.generation.0 = self.generation.0.strict_add(1);
-        id
-    }
+        type Serialize = Self;
 
-    pub fn get(&self, ty: TypeId) -> &TypeDef {
-        self.defs
-            .get(usize::try_from(ty.0).expect("u32 <= usize on all supported targets"))
-            .expect("invalid type ID")
-    }
+        fn to_serialize(&self) -> Self::Serialize { self.clone() }
 
-    pub fn iter(&self) -> impl Iterator<Item = (TypeId, &TypeDef)> {
-        self.defs
-            .iter()
-            .enumerate()
-            .map(|(i, def)| (TypeId(u32::try_from(i).expect("too many attribute types")), def))
-    }
+        type Deserialize = Self;
+        type InputError = InputError;
 
-    pub fn len(&self) -> usize { self.defs.len() }
+        fn from_deserialize(deser: Self::Deserialize) -> Result<Self, Self::InputError> {
+            Ok(deser)
+        }
 
-    pub fn is_empty(&self) -> bool { self.defs.is_empty() }
-
-    pub fn cleanup_hook(world: &mut World) {
-        let mut types = world.resource_mut::<Types>();
-        types.defs.clear();
-        for niche in types.niches.values_mut() {
+        fn on_cleanup(world: &mut World) {
+            let mut niches = world.resource_mut::<Niches>();
+        for niche in niches.niches.values_mut() {
             *niche = None;
         }
-        types.generation.0 = 0;
+        }
     }
 }
 
-/// Identifies an attribute type, equivalent to iteration order in [`Types`].
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Reflect,
-)]
-pub struct TypeId(pub u32);
+#[derive(Resource, Default)]
+pub struct Niches {
+    pub niches: EnumMap<Niche, Option<TypeId>>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct TypeDef {
@@ -125,8 +128,22 @@ pub enum Niche {
     Hitpoints,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Reflect)]
-struct TypesGeneration(u32);
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersistExtraData {
+    pub niches: Vec<NicheEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NicheEntry {
+    pub niche: Niche,
+    pub ty:    TypeId,
+}
+
+#[derive(Debug, Snafu)]
+pub enum InputError {
+    #[snafu(display("Niche {niche:?} has invalid type {:?}", ty.0))]
+    InvalidNicheType { niche: Niche, ty: TypeId },
+}
 
 #[derive(Component, Reflect)]
 #[require(LastSentAttributes)]
@@ -173,13 +190,10 @@ impl AddTypeCommand {
     pub fn run(self, world: &mut World) -> TypeId {
         let default_value = self.def.default_value;
 
-        let ty;
+        let ty = world.resource_mut::<Types>().push(self.def);
         {
-            let mut types = world.resource_mut::<Types>();
-            ty = types.push(self.def);
-
             for niche in self.niches {
-                types.niches[niche] = Some(ty);
+                world.resource_mut::<Niches>().niches[niche] = Some(ty);
             }
         };
 
@@ -295,6 +309,7 @@ struct LastSentConfig(TypesGeneration);
 struct BroadcastAttrTypeChangesParams<'w, 's> {
     viewer_query: Query<'w, 's, (Entity, Option<&'static LastSentConfig>)>,
     types:        Res<'w, Types>,
+    niches:       Res<'w, Niches>,
 }
 
 fn broadcast_attr_type_changes_system(
@@ -312,20 +327,19 @@ fn broadcast_attr_type_changes(
     let viewers: EntityHashSet = params
         .viewer_query
         .into_iter()
-        .filter(|(_, last)| last.map(|c| c.0) != Some(params.types.generation))
+        .filter(|(_, last)| last.map(|c| c.0) != Some(params.types.generation()))
         .map(|(entity, _)| entity)
         .collect();
     for &viewer in &viewers {
-        commands.entity(viewer).insert(LastSentConfig(params.types.generation));
+        commands.entity(viewer).insert(LastSentConfig(params.types.generation()));
     }
 
     // TODO benchmark this function, confirm if it would be more vectorizable
     // if index list is precomputed before iteration
     let mut types: Vec<_> = params
         .types
-        .defs
         .iter()
-        .map(|def| proto::ResidentAttrType {
+        .map(|(_, def)| proto::ResidentAttrType {
             name:       def.name.clone(),
             subscribed: def
                 .visibility
@@ -336,7 +350,7 @@ fn broadcast_attr_type_changes(
             niches:     proto::ResidentAttrNiche::empty(),
         })
         .collect();
-    if let Some(volume_ty) = params.types.niches[Niche::Volume] {
+    if let Some(volume_ty) = params.niches.niches[Niche::Volume] {
         types[volume_ty.0 as usize].niches |= proto::ResidentAttrNiche::SIZE;
     }
     iter::once(view::SentUpdate { viewers, body: proto::SetResidentAttrTypes { types }.into() })
