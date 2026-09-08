@@ -198,7 +198,7 @@ impl OutputContext {
         }
     }
 
-    /// Similar to [`get_id`], but does not check the entity type.
+    /// Similar to [`Self::get_id`], but does not check the entity type.
     ///
     /// This will be deprecated in the future in favor of union types.
     pub fn get_id_unchecked(&self, entity: Entity) -> Result<Id, ()> {
@@ -258,7 +258,7 @@ impl InputContext {
         }
     }
 
-    /// Similar to [`resolve_entity`], but does not check the entity type.
+    /// Similar to [`Self::resolve_entity`], but does not check the entity type.
     ///
     /// This will be deprecated in the future in favor of union types.
     pub fn resolve_entity_unchecked(&self, id: Id) -> Result<Entity, IdError> {
