@@ -480,7 +480,7 @@ pub struct Sensor {
 
 /// Component on viewers to track fluid type definition sync.
 #[derive(Component, Reflect)]
-struct ViewerSynced {
+pub struct ViewerSynced {
     num_types: usize,
 }
 
