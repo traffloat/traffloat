@@ -180,9 +180,9 @@ fn show_connection<Ab: Which>(
             ui.label(&corridor_data.generic.name);
         });
 
-        display_gate(ui, near_detail.open, "Proximal gate");
+        display_gate(ui, near_detail.open, "Local gate");
         if let Some((_, peer_detail)) = peer {
-            display_gate(ui, peer_detail.open, "Distal gate");
+            display_gate(ui, peer_detail.open, "Peer gate");
         }
     });
 }

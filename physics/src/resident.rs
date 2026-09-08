@@ -20,6 +20,7 @@ use crate::{vehicle, view};
 pub mod ambient;
 pub mod attr;
 pub use attr::{Attributes, PersistTypes as PersistAttrTypes};
+pub mod behavior;
 mod persist;
 pub use persist::Persist;
 
@@ -29,6 +30,7 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.add_plugins(attr::Plug);
         app.add_plugins(ambient::Plug);
+        app.add_plugins(behavior::Plug);
 
         app.register_type::<Resident>();
         app.register_type::<InteractionSlots>();

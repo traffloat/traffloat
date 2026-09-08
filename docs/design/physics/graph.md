@@ -127,12 +127,11 @@ Demolishment or upgrading of a conduit is treated as equivalent to construction.
 Corridors are closed off when they are under construction or have conduits under construction.
 When a corridor is closed off,
 
-- its ambient space must be vacated of all residents
-- all [fluid](fluid.md) connections across the ambient space must be closed
+- residents cannot move between its ambient space and adjacent buildings.
+- all [fluid](fluid.md) connections across the ambient space must be closed.
 - [fluid](fluid.md) connections to pipes are still functional, but fans stop operating.
 - all [power](power.md) connections are still functional.
 - the corridor stops consuming maintenance [power](power.md).
-- all [rails](vehicle.md) in the corridor become unmoveable, except for non-power-based vehicles.
-  An exception is active construction vehicles,
+- all [rails](vehicle.md) in the corridor become unmoveable, except for construction vehicles,
   which are only unusable if the corridor was forcibly closed due to power deficit.
   All vehicles currently on its rails will stop moving and emergency brake.
