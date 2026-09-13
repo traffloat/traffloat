@@ -93,13 +93,17 @@ and a special "inertial" rule for rapid rail switching across a junction buildin
 ### Rule A: Intra-building non-inertial movement
 
 When a vehicle is at rest in a building,
-it can accelerate to the [standard walking speed](resident.md) immediately without using any fuel.
+it can accelerate to the standard drifting speed immediately without using any fuel.
+
+This standard drifting speed is conceptually similar to the standard walking speed of residents,
+but has a distinct value for vehicles.
 
 ### Rule B: Building-to-rail non-inertial movement
 
 A vehicle in a building can enter a rail when all of the following conditions are met:
 
-- It is located near the point that the corridor docks with the building.
+- It is located near the interior position of the rail on the corridor section
+  on the docking surface between the corirdor and the building.
 - The rail does not have any vehicles in the opposite direction.
 - The first (initial length + safety distance) distance of the rail is clear of vehicles.
 
@@ -125,61 +129,59 @@ This leads to heavier or faster vehicles requiring more distance from the vehicl
 ### Rule D: Rail-to-building non-inertial movement
 
 When the conditions for inertial movement (rule E) are not met,
-a vehicle must reach less than or equal to standard walking speed to enter a building from a rail.
+a vehicle must reach less than or equal to standard drifting speed to enter a building from a rail.
 
 This means that a vehicle traveling at speed `v` must start braking
 at `(v^2 - w^2) / (2 * b) + v * t` distance before reaching the end of the building,
-where `w` is the standard walking speed,
+where `w` is the standard drifting speed,
 and `t` is the buffer reaction time of the vehicle (constant 0.5 second).
+
+The vehicle would then enter the building on the docking surface with the corridor,
+at the location of the rail within the corridor cross section.
 
 ### Rule E: Inertial movement for rapid rail switching
 
 Consider a building `X` with two separate corridors `P` and `Q`.
-A vehicle is traveling from an inbound rail in `P` at speed `v` towards `X`,
+A vehicle is traveling from an inbound rail `p` in `P` at speed `v` towards `X`,
 and plans to enter a rail in `Q` next.
 
 The vehicle is eligible for inertial movement if
-there exists a rail `q` in `Q` where all of the following conditions are met:
+there exists a rail `q` in `Q` satisfying all of the following conditions:
 
 - `q` is compatible with the vehicle.
 - The vehicle does not plan to stop at `X`.
 - The vehicle plans to continue to `Q` after `X`.
-- The initial `v^2 / (2 * b) + v * t + d` distance of `Q` is clear of vehicles,
+- The initial `v^2 / (2 * b) + v * t + d` distance of `q` is clear of vehicles,
   where `b`, `t` and `d` are defined similarly as above.
 - `P` and `Q` form an obtuse angle at `X`.
 - `X` is not occupied by any facilities marked as inertia-blocking (most facilities).
 - There are no other vehicles currently having reserved entry into `q`.
-- There are no other vehicles currently having reserved segments intersecting with `PX-XQ` in `X`,
-  except for those that start or end at `PX`.
-
-> [!NOTE]
-> In the 2D version, all corridor entrypoints are on the same plane, so it is very likely to intersect.
-> In the 3D version, this intersection is instead the intersection of cylindrical volumes around the paths,
-> where the cylindrical radius is a safety distance based on the gauge size.
+- There are no other vehicles currently having reserved segments intersecting with `pX-Xq` in `X`,
+  where the segment has a radius equivalent to the rail radius.
 
 Then the vehicle is eligible for transfer movement when it is within the braking decision distance for rule D:
 
-1. The vehicle reserves the segment `PX-XQ` within `X`.
+1. The vehicle reserves the segment `pX-Xq` within `X`.
 2. The vehicle reserves entry into `q`.
-3. The vehicle accelerates or decelerates to an inertial speed `u <= max(w, v * -cos(PXQ))` before reaching boundary `PX`,
-  where `w` is the standard walking speed, and `PXQ` is the interior angle between `P` and `Q` at `X`.
+3. The vehicle decelerates to an inertial speed `u <= max(w, v * -cos(PXQ))` before reaching boundary `pX`,
+  where `w` is the standard drifting speed, and `PXQ` is the interior angle between `P` and `Q` at `X`.
   - If `u = w`, the vehicle should prefer rule D instead since reservation only reduces efficiency.
-4. The vehicle moves inertially through the distance from `PX` to `XQ` at speed `u`.
+4. The vehicle moves inertially through the distance from `pX` to `Xq` at speed `u`.
   During this period, the vehicle does not require any propulsion.
 5. The vehicle enters `q` at speed `u`.
 6. After the entire vehicle length is inside `q`, the vehicle releases the reservations for segment and entry,
   and switches back to rule C for intra-rail movement.
 
-If the conditions are not met, rule D applies, requiring the vehicle to slow down to standard walking speed.
+If the conditions are not met, rule D applies, requiring the vehicle to slow down to standard drifting speed.
 During the slowdown, eligibility for rule E may be re-evaluated and switch to rule E immediately when eligible.
 In that case it may continue accelerating again to reach a higher `u` within bounds.
 
 ## Facility interaction
 
 Vehicles may interact with [reactors](reactor.md) involving vehicle input
-by moving near the center of a building and approaching less than standard walking speed.
+by approaching the facility radius at less than standard drifting speed.
 This would despawn the vehicle and drop any cargo, fluid or resident in its compartments
 into the ambient space of the current building.
 
 Vehicles may be produced by reactors involving vehicle output,
-which would spawn the vehicle at the center of the building at zero speed.
+which would spawn the vehicle at the center of the facility at zero speed.

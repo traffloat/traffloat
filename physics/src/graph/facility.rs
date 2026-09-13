@@ -7,6 +7,7 @@ use bevy::ecs::query::{Has, QueryData, With};
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query, Res, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
+use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
@@ -56,7 +57,8 @@ impl Plugin for Plug {
 
 #[derive(Component, Reflect)]
 pub struct Facility {
-    pub volume: f32,
+    pub volume:       f32,
+    pub interior_pos: Vec3,
 }
 
 /// Facilities in a building. Component on buildings.
@@ -95,9 +97,10 @@ pub struct FacilityTypeDef {
 ///
 /// Facility blueprint is not handled by this command since they require additional parameters.
 pub struct SpawnCommand {
-    pub name:     Option<String>,
-    pub building: Entity,
-    pub ty:       Entity,
+    pub name:         Option<String>,
+    pub building:     Entity,
+    pub ty:           Entity,
+    pub interior_pos: Vec3,
 
     pub blueprint_params: blueprint::Params,
 }
@@ -123,7 +126,7 @@ impl EntityCommand for SpawnCommand {
             Name::new(format!("Facility {name}")),
             FacilityType(self.ty),
             OfBuilding(self.building),
-            Facility { volume },
+            Facility { volume, interior_pos: self.interior_pos },
             view::Named { name },
             building_rect,
         ));
@@ -174,11 +177,12 @@ fn init_viewer_system(
             let building_viewable = building_query.log_get(building_entity)?;
             let typedef = type_query.log_get(ty)?;
             Some(proto::Update::NewFacility(proto::NewFacility {
-                id:       viewable.id,
-                building: building_viewable.id,
-                name:     named.name.clone(),
-                volume:   facility.volume,
-                display:  proto::FacilityDisplay {
+                id:           viewable.id,
+                building:     building_viewable.id,
+                name:         named.name.clone(),
+                interior_pos: facility.interior_pos,
+                volume:       facility.volume,
+                display:      proto::FacilityDisplay {
                     sprite_path: typedef.sprite_path.clone(),
                     taint:       fluid_storage.map(|s| proto::Color(s.rgba)),
                 },

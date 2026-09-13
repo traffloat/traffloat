@@ -32,10 +32,10 @@ and the vehicle speed is less than standard walking speed.
 
 ### Entering facilities
 
-Residents can enter a facility with class `resident::InteractSlots`
-when they are near the center of the building hosting the facility.
+Residents can enter a facility with component `resident::InteractionSlots`
+when they enter the radius of the facility within the building.
 
-When residents leave a facility, they start at the center of the building.
+When residents leave a facility, they start at the center of the facility.
 
 ## Facility interaction
 
@@ -59,8 +59,10 @@ In particular, some [reactors](reactor.md) behave like "schools" that increase c
 ## Cargo carrying
 
 Residents can carry a small amount of cargo with them,
-which can be loaded from or unloaded to any facility or vehicle with `cargo::Storage` class
-when they are located in the same building (not corridors).
+which can be loaded from or unloaded to any facility
+when they are located within the facility radius,
+or any vehicle with `cargo::Storage` class
+when the distance between the resident and the vehicle is less than the vehicle length.
 
 ## Survival
 

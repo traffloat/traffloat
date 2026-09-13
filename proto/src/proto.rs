@@ -228,11 +228,17 @@ pub struct CorridorEndpoint {
 /// Subscribed to a new facility in an existing building.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct NewFacility {
-    pub id:       Id,
-    pub building: Id,
-    pub name:     String,
-    pub volume:   f32,
-    pub display:  FacilityDisplay,
+    pub id:           Id,
+    pub building:     Id,
+    pub name:         String,
+    /// Position relative to building center.
+    pub interior_pos: Vec3,
+    /// Radius may be inferred by reversing spherical volume.
+    ///
+    /// Radius is only used for display purposes and is not exact,
+    /// so we do not send the exact value when it can be derived.
+    pub volume:       f32,
+    pub display:      FacilityDisplay,
 }
 
 /// Display information about a facility.
@@ -319,6 +325,8 @@ pub struct NewConduit {
     pub id:       Id,
     pub name:     String,
     pub corridor: Id,
+    /// Cross-section position relative to corridor centerline.
+    pub position: Vec2,
     pub radius:   f32,
     pub ty:       ConduitType,
 }

@@ -102,6 +102,7 @@ fn make_rail(corridor: Entity) -> conduit::SpawnCommand {
         corridor,
         name: String::new(),
         radius: 2.0,
+        interior_pos: Vec2::ZERO,
         typed: conduit::TypedSpawn::VehicleRail {
             rail:         vehicle::Rail {
                 gauge_size:  vehicle::def::GaugeSize(1, 1),

@@ -4,6 +4,7 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::World;
+use bevy::math::Vec2;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use traffloat_util::EntityWorldMutExt;
@@ -47,13 +48,16 @@ impl Persistable for Persist {
             .iter()
             .map(|data| {
                 Ok(Entry {
-                    id:       ctx.alloc(self, data.entity),
-                    corridor: ctx.get_id(deps.corridor, data.corridor.0)?,
-                    name:     data.named.name.clone(),
-                    radius:   data.conduit.radius,
-                    ty:       data.conduit.ty,
-                    fluid:    data.fluid.map(fluid::persist::StorageEntry::from_component),
-                    rail:     data.rail.map(vehicle::rail::persist::StorageEntry::from_component),
+                    id:           ctx.alloc(self, data.entity),
+                    corridor:     ctx.get_id(deps.corridor, data.corridor.0)?,
+                    name:         data.named.name.clone(),
+                    radius:       data.conduit.radius,
+                    interior_pos: data.conduit.interior_pos,
+                    ty:           data.conduit.ty,
+                    fluid:        data.fluid.map(fluid::persist::StorageEntry::from_component),
+                    rail:         data
+                        .rail
+                        .map(vehicle::rail::persist::StorageEntry::from_component),
                 })
             })
             .collect::<Result<_, ()>>()
@@ -75,12 +79,13 @@ impl Persistable for Persist {
                 .map_err(|err| InputError::RecordIdError { err })?;
             entity.reborrow_scope(|entity| {
                 conduit::SpawnCommand {
-                    corridor: ctx
+                    corridor:     ctx
                         .resolve_entity(deps.corridor, entry.corridor)
                         .map_err(|err| InputError::UnresolvedCorridor { err })?,
-                    name:     entry.name,
-                    radius:   entry.radius,
-                    typed:    match entry.ty {
+                    name:         entry.name,
+                    radius:       entry.radius,
+                    interior_pos: entry.interior_pos,
+                    typed:        match entry.ty {
                         ConduitType::FluidPipe => conduit::TypedSpawn::FluidPipe,
                         ConduitType::VehicleRail => entry
                             .rail
@@ -120,13 +125,14 @@ struct OutputQueryData {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Entry {
-    pub id:       persist::Id,
-    pub corridor: persist::Id,
-    pub name:     String,
-    pub radius:   f32,
-    pub ty:       ConduitType,
-    pub fluid:    Option<fluid::persist::StorageEntry>,
-    pub rail:     Option<vehicle::rail::persist::StorageEntry>,
+    pub id:           persist::Id,
+    pub corridor:     persist::Id,
+    pub name:         String,
+    pub radius:       f32,
+    pub interior_pos: Vec2,
+    pub ty:           ConduitType,
+    pub fluid:        Option<fluid::persist::StorageEntry>,
+    pub rail:         Option<vehicle::rail::persist::StorageEntry>,
 }
 
 #[derive(Debug, Snafu)]

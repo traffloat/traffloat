@@ -71,6 +71,7 @@ pub struct FacilityBuilding(pub Entity);
 
 #[derive(Component, Reflect, Default)]
 pub struct Info {
+    pub interior_pos: Vec3,
     pub volume:       f32,
     pub stored_fluid: Option<proto::FluidStorageDetail>,
     pub reactor:      Option<ReactorInfo>,
@@ -148,7 +149,11 @@ impl UpdateHandler for NewFacilityParams<'_, '_> {
                 Pickable::IGNORE, // to be set to Pickable::default() when building is hovered
                 FacilityBuilding(building_entity),
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Facility },
-                Info { volume: update.volume, ..Default::default() },
+                Info {
+                    interior_pos: update.interior_pos,
+                    volume: update.volume,
+                    ..Default::default()
+                },
             ))
             .observe_picking()
             .id();

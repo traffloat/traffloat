@@ -9,6 +9,7 @@ use bevy::ecs::query::With;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{EntityCommand, Query};
 use bevy::ecs::world::EntityWorldMut;
+use bevy::math::Vec2;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
@@ -47,8 +48,9 @@ impl Plugin for Plug {
 
 #[derive(Component, Reflect)]
 pub struct Conduit {
-    pub radius: f32,
-    pub ty:     ConduitType,
+    pub radius:       f32,
+    pub ty:           ConduitType,
+    pub interior_pos: Vec2,
 }
 
 /// Conduits in a corridor. Component on corridors.
@@ -69,10 +71,11 @@ pub enum ConduitType {
 }
 
 pub struct SpawnCommand {
-    pub corridor: Entity,
-    pub name:     String,
-    pub radius:   f32,
-    pub typed:    TypedSpawn,
+    pub corridor:     Entity,
+    pub name:         String,
+    pub radius:       f32,
+    pub interior_pos: Vec2,
+    pub typed:        TypedSpawn,
 }
 
 pub enum TypedSpawn {
@@ -96,8 +99,9 @@ impl EntityCommand for SpawnCommand {
         entity.insert((
             Name::new("Conduit"),
             Conduit {
-                radius: self.radius,
-                ty:     match self.typed {
+                radius:       self.radius,
+                interior_pos: self.interior_pos,
+                ty:           match self.typed {
                     TypedSpawn::FluidPipe => ConduitType::FluidPipe,
                     TypedSpawn::VehicleRail { .. } => ConduitType::VehicleRail,
                 },
@@ -149,6 +153,7 @@ fn init_viewer_system(
                 id:       viewable.id,
                 name:     named.name.clone(),
                 corridor: corridor_viewable.id,
+                position: conduit.interior_pos,
                 radius:   conduit.radius,
                 ty:       match conduit.ty {
                     ConduitType::FluidPipe => proto::ConduitType::FluidPipe,

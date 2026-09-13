@@ -4,6 +4,7 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::World;
+use bevy::math::Vec3;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use traffloat_util::EntityWorldMutExt;
@@ -52,6 +53,7 @@ impl Persistable for Persist {
                     name:             data.named.name.clone(),
                     building:         ctx.get_id(deps.building, data.building.0)?,
                     ty:               ctx.get_id(deps.facility_type, data.ty.0)?,
+                    interior_pos:     data.facility.interior_pos,
                     blueprint_params: BlueprintParams::extract(&data, ctx)?,
                     fluid:            data.fluid.map(fluid::persist::StorageEntry::from_component),
                 })
@@ -82,6 +84,7 @@ impl Persistable for Persist {
                     ty:               ctx
                         .resolve_entity(deps.facility_type, entry.ty)
                         .map_err(|err| InputError::UnresolvedFacilityType { err })?,
+                    interior_pos:     entry.interior_pos,
                     blueprint_params: entry.blueprint_params.resolve(deps, ctx)?,
                 }
                 .apply(entity);
@@ -121,6 +124,7 @@ pub struct Entry {
     pub name:             String,
     pub building:         persist::Id,
     pub ty:               persist::Id,
+    pub interior_pos:     Vec3,
     pub blueprint_params: BlueprintParams,
     pub fluid:            Option<fluid::persist::StorageEntry>,
 }

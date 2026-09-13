@@ -17,7 +17,7 @@ use crate::vehicle::def::GaugeSize;
 use crate::{WorldObject, fluid, reaction, reactor, resident, vehicle, view};
 
 const STANDARD_WALL_THICKNESS: f32 = 0.5;
-const GAUGE_SIZE_MASS_TRANSIT: GaugeSize = GaugeSize(28, 10);
+const GAUGE_SIZE_STREETCAR: GaugeSize = GaugeSize(18, 10);
 
 pub struct Config {
     pub seed: u64,
@@ -47,7 +47,7 @@ pub fn generate(world: &mut World, _: Config) {
         AlphaBeta { alpha: core.building, beta: garden.building },
         1.1,
         |world, corridor| {
-            let pipe = spawn_fluid_pipe(world, corridor, "Water pipe", 0.1);
+            let pipe = spawn_fluid_pipe(world, corridor, "Water pipe", 0.1, Vec2::new(0.0, -0.4));
             connect_facility_pipe(world, core.tank, pipe);
             connect_facility_pipe(world, garden.facility, pipe);
         },
@@ -331,7 +331,7 @@ fn gen_vehicle_types(world: &mut World, fluids: &StandardFluidTypes) -> Standard
                 mass:   1000.0,
                 volume: 60.0,
                 length: 10.0,
-                gauge:  GAUGE_SIZE_MASS_TRANSIT,
+                gauge:  GAUGE_SIZE_STREETCAR,
             },
             motion:         vehicle::def::Motion {
                 propulsion:       vehicle::Propulsion {
@@ -552,6 +552,7 @@ fn gen_core(world: &mut World, std: &StandardTypes) -> CoreGen {
             name:             Some("Core water tank".into()),
             building:         building_id,
             ty:               std.facilities.small_tank,
+            interior_pos:     Vec3::ZERO,
             blueprint_params: blueprint::Params::default(),
         }
         .apply(facility);
@@ -593,6 +594,7 @@ fn gen_garden(world: &mut World, std: &StandardTypes) -> GardenGen {
             name:             None,
             building:         building_id,
             ty:               std.facilities.garden,
+            interior_pos:     Vec3::ZERO,
             blueprint_params: blueprint::Params {
                 reactor: Some(blueprint::ReactorParams {
                     fluid_storages: [Some(building_id), None].into(),
@@ -614,8 +616,17 @@ struct GardenGen {
 fn gen_hex_houses(world: &mut World, std: &StandardTypes, core_building: Entity) -> [Entity; 5] {
     fn mass_transit_pair(world: &mut World, std: &StandardTypes, alpha: Entity, beta: Entity) {
         spawn_corridor(world, std, AlphaBeta { alpha, beta }, 2.0, |world, corridor| {
-            for dir in ["clockwise", "anticlockwise"] {
-                spawn_rail(world, corridor, format!("Mass Transit ({dir})"), 1.0);
+            for (dir, interior_pos) in
+                [("clockwise", Vec2::new(-1.0, 0.0)), ("anticlockwise", Vec2::new(1.0, 0.0))]
+            {
+                spawn_rail(
+                    world,
+                    corridor,
+                    format!("Mass Transit ({dir})"),
+                    1.0,
+                    interior_pos,
+                    GAUGE_SIZE_STREETCAR,
+                );
             }
         });
     }
@@ -650,6 +661,7 @@ fn gen_hex_houses(world: &mut World, std: &StandardTypes, core_building: Entity)
                 name:             None,
                 building:         building_id,
                 ty:               std.facilities.housing,
+                interior_pos:     Vec3::ZERO,
                 blueprint_params: blueprint::Params { reactor: None },
             }
             .apply(facility);
@@ -713,6 +725,7 @@ fn spawn_fluid_pipe(
     corridor: Entity,
     name: impl Into<String>,
     radius: f32,
+    interior_pos: Vec2,
 ) -> Entity {
     let mut pipe = world.spawn((WorldObject,));
 
@@ -721,6 +734,7 @@ fn spawn_fluid_pipe(
             corridor,
             name: name.into(),
             radius,
+            interior_pos,
             typed: conduit::TypedSpawn::FluidPipe,
         }
         .apply(pipe);
@@ -729,7 +743,14 @@ fn spawn_fluid_pipe(
     pipe.id()
 }
 
-fn spawn_rail(world: &mut World, corridor: Entity, name: impl Into<String>, radius: f32) -> Entity {
+fn spawn_rail(
+    world: &mut World,
+    corridor: Entity,
+    name: impl Into<String>,
+    radius: f32,
+    interior_pos: Vec2,
+    gauge_size: GaugeSize,
+) -> Entity {
     let mut rail = world.spawn((WorldObject,));
 
     rail.reborrow_scope(|rail| {
@@ -737,12 +758,9 @@ fn spawn_rail(world: &mut World, corridor: Entity, name: impl Into<String>, radi
             corridor,
             name: name.into(),
             radius,
+            interior_pos,
             typed: conduit::TypedSpawn::VehicleRail {
-                rail:         vehicle::Rail {
-                    gauge_size:  GAUGE_SIZE_MASS_TRANSIT,
-                    electrified: false,
-                    max_speed:   25.0,
-                },
+                rail:         vehicle::Rail { gauge_size, electrified: false, max_speed: 25.0 },
                 reserved_dir: None,
             },
         }

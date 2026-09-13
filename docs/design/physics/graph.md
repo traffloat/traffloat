@@ -5,14 +5,16 @@ buildings, corridors, facilities and conduits.
 Buildings and corridors form an exterior structural graph.
 Facilities and conduits are fixtures within buildings and corridors respectively.
 
-Buildings are shaped as spheres.
-Facilities are unshaped structures that take up the space of the building.
+Buildings are sphere-shaped structures with a wall.
+Facilities are spherical structures that take up the inner space in the building.
 
 Corridors are shaped as cylindrical tubes with a circular cross-section.
 Conduits of different sizes are presented as smaller circles along the cross-section.
+These small circles have fixed positions and should not overlap with each other.
 
 In addition to facilities and conduits,
-buildings and corridors also have ambient space, which is the interior space not occupied by any fixtures.
+buildings and corridors also have ambient space,
+which is the interior space not occupied by any fixtures.
 The ambient space serves as a [fluid](fluid.md) storage
 as well as a space for [residents](resident.md) to move through.
 [Vehicles](vehicle.md) also move across building ambient space either by inertia
@@ -88,10 +90,8 @@ it is completely unusable and does not actually exist in the world.
 ### Facility construction
 
 A facility must be constructed within a building.
-Its position within the building is currently undetermined,
-but they quantitatively consume building vacant space.
-The amount of vacant space in the building affects storages in its ambient space
-and the speed of vehicles transferring through it.
+Its position within the building must be selected before construction starts.
+The facility consumes vacant space in the building, reducing the ambient volume.
 
 Construction materials are loaded into a construction [vehicle](vehicle.md),
 which travels to the building and starts building the facility as required.

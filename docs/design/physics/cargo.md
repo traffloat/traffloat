@@ -38,5 +38,5 @@ Cargo can only be transferred between the following pairs of interactions:
   to another resident or storage, provided that the amount does not exceed the resident(s)' carrying capacity.
   This takes a fixed period of time, during which the resident cannot perform any other action.
 - Vehicle and ambient space/facility: a vehicle can transfer cargo to/from a storage
-  when they are located in the same building and the vehicle is stationary.
+  when it is within the facility radius and the vehicle is stationary.
   The rate of transfer is determined by the vehicle's properties.

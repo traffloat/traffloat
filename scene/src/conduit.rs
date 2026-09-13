@@ -9,7 +9,7 @@ use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
-use bevy::math::{Quat, Vec3};
+use bevy::math::{Quat, Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::picking::Pickable;
 use bevy::reflect::Reflect;
@@ -57,6 +57,7 @@ struct NeedRearrangeTransform(bool);
 #[derive(Component, Reflect)]
 pub struct Info {
     pub ty:           proto::ConduitType,
+    pub interior_pos: Vec2,
     pub radius:       f32,
     pub stored_fluid: Option<proto::FluidStorageDetail>,
 }
@@ -105,7 +106,12 @@ impl UpdateHandler for NewConduitParams<'_, '_> {
                 Pickable::IGNORE,
                 ConduitCorridor(corridor_entity),
                 GenericViewable { name: update.name.clone(), kind: ViewableKind::Conduit },
-                Info { ty: update.ty, radius: update.radius, stored_fluid: None },
+                Info {
+                    ty:           update.ty,
+                    interior_pos: update.position,
+                    radius:       update.radius,
+                    stored_fluid: None,
+                },
             ))
             .observe_picking()
             .id();
