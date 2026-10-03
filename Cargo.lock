@@ -6391,6 +6391,7 @@ dependencies = [
  "enum-map",
  "indexmap",
  "itertools 0.15.0",
+ "ordered-float",
  "paste",
  "rand 0.10.2",
  "serde",
