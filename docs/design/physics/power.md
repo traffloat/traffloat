@@ -2,89 +2,120 @@
 
 Power is the flow of electricity between sources (generators) and sinks (consumers).
 
-Generators are [reactor](reactor.md) facilities with class `power::Generator`.
-Consumers include all non-closed buildings, all non-closed corridors and any facility with class `power::Consumer`.
-
 Power consumption and transmission are orthogonal.
-A [fixture](graph.md) may consume power from multiple sources without connecting them into the same power network.
+A reactor may consume power from multiple sources without connecting them into the same power network.
 
 ## Transmission
 
 Power is transmitted through power conduits, a.k.a. "cables", across corridors.
-Buildings can be configured to connect any pair of cables connected to the building.
+A cable may be connected to:
+- the corridor it belongs to
+- a building at either end of the corridor
+- a facility in the buildings at either end of the corridor
+- another cable sharing an endpoint building
 
-Cables are undirected.
-All generators and consumers in the same connected component of the power network
-contribute to the total power generation and consumption of the component.
+Buildings, corridors and facilities act as generators/consumers that are effectively connected to ground behind,
+while cables are connected to other cables or generators/consumers transitively.
 
-## Generation
+Example:
 
-Each facility with class `power::Generator` serves as a power source
-for a specific network it is configured to connect to.
-Such connection is defined as the network of a selected power cable connected to the building.
+```
+            gnd   gnd   gnd   gnd
+             |     |     |     |
+            cor   bdg   fac   fac
+             |     |     |     |
+             +-cbl-+-----+-----+
+             |
+            cbl
+             |
+ +-----+-----+-cbl-+-----+-----+
+ |     |     |     |     |     |
+cbl   cbl   cbl    |     |     |
+ |     |     |     |     |     |
+gen   gen   cor   bdg   fac   fac
+ |     |     |     |     |     |
+gnd   gnd   gnd   gnd   gnd   gnd
+```
 
-## Consumption
+Cables, generators and consumers have a predetermined voltage rating.
+A generator or consumer may only be connected to a cable equal to its voltage rating.
 
-Each building and its facilities with class `power::Consumer` receive power from
-any cable in any corridor docked with the building.
-If there is a `power::Generator` facility in a building,
-all facilities in the building are automatically powered
-since they must be able to consume from the cable targeted by the generator.
-An exception is when the building has a generator
-but the generator did not select any target cables,
-in which case the generator can still power the building itself as well as its facilities, effectively a local cable.
+Consumers have a predetermined power rating.
+Cables have a predetermind resistance rating based on material and shape,
+and a current limit rating based on material.
+The ratings are used for the following algorithm:
 
-Corridors are powered by any networks connected to either of its endpoint buildings.
-but do not transmit power from them unless there is a cable in the corridor connected to them.
-This means that a corridor can be powered by a building even without any connected cables.
+TODO
 
-If a consumer is connected to multiple power networks,
-it automatically chooses the network with higher absolute power surplus (or lower absolute power deficit) to consume from.
-However it is not possible for a consumer to consume from multiple networks simultaneously.
+## Generators and consumers
 
-## Wrapping up producer/consumer graphs
+There are three types of generators and consumers:
 
-Put differently, a power network is constructed by:
+- All corridors, unless both edges are closed.
+- All buildings.
+- Facilities that are [reactors](reactor.md) with power input or output.
 
-1. the set of cables connected to each other by explicit pairwise connections in buildings.
-2. the set of buildings adjacent to cables in this set
-3. the set of consumer facilities in these buildings
-4. the set of corridors adjacent to these buildings
+### Buildings as consumers
 
-By corollary,
+Buildings consume power from one of the following:
 
-- a consumer can participate as a member of multiple isolated power networks
-- a generator can only contribute to one isolated power network (but can consume from multiple if it requires starting power)
-- a corridor can be powered by a cable of an adjacent corridor without having a cable connected to it.
+- a chosen cable in an adjacent corridor.
+- a facility in the building that generates power.
 
-## Storage
+The ruleset may restrict this to cables of specific voltages or generator facility types.
 
-Facilities with class `power::Storage` can store power as a `u64` quantity.
+#### Power consumption
 
-A power storage behaves like a power consumer.
-It receives excess power from any network its building is connected to
-when the network has a power surplus and it has a capacity surplus.
-Multiple storages in a network receive excess power simultaneously evenly.
+Building power consumption only includes the base [building maintenance costs](graph.md).
+Facility consumption is separately considered.
 
-A power storage also behaves like a power generator.
-Similar to `power::Generator`s, it can be configured to connect to the network of a selected power cable.
-It only generates power when the connected network would otherwise have a power deficit.
+#### Power deficit
 
-By corollary, a power storage consuming from multiple networks would
-compensate the power deficit of its generation target network
-with the power surplus of its consumption source networks,
-but would not do the other way round.
-This effectively serves as a unidirectional diode between the two networks.
+Building power deficit has the following effects:
 
-## Power deficit
+| Subsystem | Effect |
+| :---: | :---: |
+| [residents](resident.md) | serves as an ambient catalyst |
+| [reactors](reactor.md) | at *x*% power, circuit breaker disconnects facilities (1-*x*)% of the time |
+| [vehicle](vehicle.md) | at *x*% power, vehicles cannot perform inertial motion through the building |
 
-When power generation is less than consumption,
-consumers stop receiving power in an order determined by a player-assigned priority.
-Lower-priority consumers are shut down before higher-priority consumers.
-The impact of lack of power depends on the type of consumer:
+Power deficit does not affect functioning of the building itself,
+but it serves as a catalyst/condition for some facilities in the building.
 
-- If a building is unpowered, all facilities in the building are automatically shut down.
-  Thus, a building effectively has higher priority than all of its facilities.
-- If a corridor is unpowered, it is automatically [closed](graph.md#corridor-closure).
-- If all endpoint buildings of a corridor are unpowered, the corridor is also unpowered.
-- If a [reactor](reactor.md) facility is unpowered, it stops producing.
+### Corridors as consumers
+
+Corridors consume power from a chosen cable in the corridor itself.
+The ruleset may restrict this to a specific voltage.
+
+#### Power consumption
+
+Corridor power consumption is the sum of the following:
+
+- base corridor operation cost (see [corridor maintenance costs](graph.md))
+- powering vehicles on rails
+- powering fans in conduits
+
+#### Power deficit
+
+Corridor power deficit has the following effects:
+
+| Subsystem | Effect |
+| :---: | :---: |
+| [residents](resident.md) | serves as an ambient catalyst |
+| [fluid](fluid.md) | conduit fans stop working |
+| [power](power.md) | connections remain functional |
+| [rails](vehicle.md) | all power-based vehicles lose propulsion |
+
+### Facilities as generators/consumers
+
+A reactor facility may specify cable ports to connect to,
+with specified voltage ratings subject to the reactor type,
+acting as reactor inputs and outputs.
+A power deficit results in 
+
+A kind of reactor is transformer,
+which acts as a power consumer at one voltage and a power generator at another voltage.
+This allows connecting consumers at one voltage to generators at another voltage
+by dynamically scaling the consumption requirement.
+Transformers would be demand-driven,
+i.e. demand at the output network determines the consumption at the input network.

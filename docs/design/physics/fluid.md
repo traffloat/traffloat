@@ -30,7 +30,7 @@ There are several sources of fluid storages:
 
 - Building ambient space, subject to the volume of vacant space in the building
 - Corridor ambient space, subject to the area of vacant cross-section in the corridor
-- Facilities with class `fluid::Storage`
+- Facilities with component `fluid::Storage`
 - Conduits of type `Fluid`, a.k.a. "pipes"
 - [Vehicle](vehicle.md) compartments
 
