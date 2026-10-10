@@ -13,7 +13,7 @@ use enum_map::EnumMap;
 use serde::{Deserialize, Serialize};
 use traffloat_util::try_log;
 
-use crate::{fluid, reactor, resident};
+use crate::{fluid, reaction, reactor, resident};
 
 // This type is currently a struct instead of an enum
 // in case a combination of multiple functional components is needed in the future.
@@ -64,6 +64,7 @@ impl Blueprint {
             id:             def.ty,
             efficiency_cap: 1.0,
             ports:          reactor::Ports { fluid_storages: params.fluid_storages.clone() },
+            state:          params.reaction_state.clone(),
         };
         Some(move |entity: &mut EntityWorldMut| {
             entity.insert(reactor);
@@ -150,6 +151,7 @@ pub enum FluidStoragePortType {
 
 #[derive(Debug)]
 pub struct ReactorParams {
+    pub reaction_state: reaction::ExecutionState,
     pub fluid_storages: Vec<Option<Entity>>,
 }
 

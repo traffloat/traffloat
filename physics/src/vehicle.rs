@@ -137,7 +137,7 @@ pub struct LocationRail {
 
 /// Component on buildings, referencing the vehicle entities.
 #[derive(Component, Reflect)]
-pub struct ListInBuilding(Vec<Entity>);
+pub struct ListInBuilding(pub Vec<Entity>);
 
 /// Component on rail conduit.
 #[derive(Component, Reflect)]
