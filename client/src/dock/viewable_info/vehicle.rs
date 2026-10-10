@@ -3,7 +3,7 @@ use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_proto::proto;
 use traffloat_scene::{FluidTypes, GenericViewable, vehicle};
-use traffloat_util::QueryExt;
+use traffloat_util::{QueryExt, loc};
 
 use crate::dock::viewable_info::{show_fluid, show_link};
 use crate::dock::{self, plot};
@@ -27,7 +27,7 @@ struct VehicleData {
 
 impl UiSystemParam<'_, '_> {
     pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, _: dock::Context) {
-        let Some(vehicle_data) = self.vehicle_query.log_get(entity) else {
+        let Some(vehicle_data) = self.vehicle_query.log_get(entity, loc!()) else {
             ui.label("Object has been unloaded");
             return;
         };
@@ -76,14 +76,14 @@ fn show_fixture(
         vehicle::AmbientFixture::Building(building) => {
             show_link(ui, commands, building);
             ui.label("Inside building:");
-            if let Some(viewable) = viewable_query.log_get(building) {
+            if let Some(viewable) = viewable_query.log_get(building, loc!()) {
                 ui.label(&viewable.name);
             }
         }
         vehicle::AmbientFixture::Rail(rail) => {
             show_link(ui, commands, rail);
             ui.label("On rail:");
-            if let Some(viewable) = viewable_query.log_get(rail) {
+            if let Some(viewable) = viewable_query.log_get(rail, loc!()) {
                 ui.label(&viewable.name);
             }
         }

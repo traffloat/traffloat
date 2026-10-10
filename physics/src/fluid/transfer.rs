@@ -3,7 +3,7 @@ use std::iter;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Local, Query, Res, SystemParam};
-use traffloat_util::{AlphaBeta, QueryExt};
+use traffloat_util::{AlphaBeta, QueryExt, loc};
 
 use super::{
     AlphaOfEdgeList, BetaOfEdgeList, Conf, DIFFUSION_COEFFICIENT, Edge, EdgeAlpha, EdgeBeta,
@@ -53,7 +53,8 @@ pub(super) fn transfer_system(
 
     edge_query.par_iter_mut().for_each(|mut data| {
         let (edge, ab) = data.split();
-        let Some(storages) = ab.map(|entity| storage_query.log_get(entity)).transpose() else {
+        let Some(storages) = ab.map(|entity| storage_query.log_get(entity, loc!())).transpose()
+        else {
             return;
         };
 
@@ -176,7 +177,7 @@ fn apply_storage(
         edges_alpha.iter().flat_map(|list| &list.0).map(|&e| (e, -1.0)),
         edges_beta.into_iter().flat_map(|list| &list.0).map(|&e| (e, 1.0)),
     ) {
-        let Some(edge) = edge_query.log_get(edge_entity) else { continue };
+        let Some(edge) = edge_query.log_get(edge_entity, loc!()) else { continue };
         let edge = edge.edge;
 
         new_heat += edge.last_heat * sign;

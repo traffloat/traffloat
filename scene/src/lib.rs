@@ -23,7 +23,7 @@ use itertools::Itertools;
 use strum::IntoEnumIterator;
 use traffloat_macro_util::fan_out;
 use traffloat_proto::proto;
-use traffloat_util::{QueryExt, configure_enum_system_set};
+use traffloat_util::{QueryExt, configure_enum_system_set, loc};
 
 pub mod building;
 pub mod conduit;
@@ -402,7 +402,7 @@ impl UpdateHandler for UpdateViewableNameParams<'_, '_> {
             | TrackedId::Resident(entity)
             | TrackedId::Vehicle(entity) => *entity,
         };
-        let Some(mut viewable) = self.query.log_get_mut(entity) else { return };
+        let Some(mut viewable) = self.query.log_get_mut(entity, loc!()) else { return };
         viewable.name.clone_from(&update.name);
     }
 }

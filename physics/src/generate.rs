@@ -40,7 +40,7 @@ pub fn generate(world: &mut World, _: Config) {
     gen_resident_ambient_interactions(world, &std);
 
     let core = gen_core(world, &std);
-    let garden = gen_garden(world, &std);
+    let (garden, garden_init) = gen_garden(world, &std);
     spawn_corridor(
         world,
         &std,
@@ -49,7 +49,7 @@ pub fn generate(world: &mut World, _: Config) {
         |world, corridor| {
             let pipe = spawn_fluid_pipe(world, corridor, "Water pipe", 0.1, Vec2::new(0.0, -0.4));
             connect_facility_pipe(world, core.tank, pipe);
-            connect_facility_pipe(world, garden.facility, pipe);
+            garden_init(world, GardenInit { water_pipe: Some(pipe) });
         },
     );
 
@@ -573,7 +573,14 @@ struct CoreGen {
     tank:     Entity,
 }
 
-fn gen_garden(world: &mut World, std: &StandardTypes) -> GardenGen {
+struct GardenInit {
+    water_pipe: Option<Entity>,
+}
+
+fn gen_garden<'std>(
+    world: &mut World,
+    std: &'std StandardTypes,
+) -> (GardenGen, impl FnOnce(&mut World, GardenInit) + use<'std>) {
     let mut building = world.spawn((WorldObject,));
     building.reborrow_scope(|building| {
         building::SpawnCommand {
@@ -588,8 +595,9 @@ fn gen_garden(world: &mut World, std: &StandardTypes) -> GardenGen {
     let building_id = building.id();
     fill_atmosphere(&std.fluids, world, building_id);
 
-    let mut facility = world.spawn(WorldObject);
-    facility.reborrow_scope(|facility| {
+    let facility = world.spawn(WorldObject).id();
+    let init = move |world: &mut World, init: GardenInit| {
+        let facility = world.entity_mut(facility);
         facility::SpawnCommand {
             name:             None,
             building:         building_id,
@@ -597,15 +605,14 @@ fn gen_garden(world: &mut World, std: &StandardTypes) -> GardenGen {
             interior_pos:     Vec3::ZERO,
             blueprint_params: blueprint::Params {
                 reactor: Some(blueprint::ReactorParams {
-                    fluid_storages: [Some(building_id), None].into(),
+                    fluid_storages: [Some(building_id), init.water_pipe].into(),
                 }),
             },
         }
         .apply(facility);
-    });
-    let facility = facility.id();
+    };
 
-    GardenGen { building: building_id, facility }
+    (GardenGen { building: building_id, facility }, init)
 }
 
 struct GardenGen {

@@ -15,14 +15,19 @@ jobs:
       - uses: "dtolnay/rust-toolchain@nightly"
         with:
           components: "rustfmt"
-      - run: "cargo fmt --all -- --check"
+      - run: "cargo +nightly fmt --all -- --check"
   lint:
     name: "Clippy lint"
     runs-on: ubuntu-latest
     steps:
       - run: "sudo apt-get update && sudo apt-get install -y libudev-dev"
       - uses: "actions/checkout@v4"
+      - id: "check_toolchain"
+        run: |
+          echo "toolchain=$(cat rust-toolchain)" >> "$GITHUB_OUTPUT"
       - uses: "dtolnay/rust-toolchain@clippy"
+        with:
+          toolchain: "${{steps.check_toolchain.outputs.toolchain}}"
       - run: |
           cargo clippy --all --tests -- \
             -D warnings \
@@ -36,7 +41,12 @@ jobs:
     steps:
       - run: "sudo apt-get update && sudo apt-get install -y libudev-dev"
       - uses: "actions/checkout@v4"
+      - id: "check_toolchain"
+        run: |
+          echo "toolchain=$(cat rust-toolchain)" >> "$GITHUB_OUTPUT"
       - uses: "dtolnay/rust-toolchain@stable"
+        with:
+          toolchain: "${{steps.check_toolchain.outputs.toolchain}}"
       - run: "cargo test --all"
   udeps:
     name: "Find unused dependencies"
@@ -44,7 +54,12 @@ jobs:
     steps:
       - run: "sudo apt-get update && sudo apt-get install -y libudev-dev libwayland-dev"
       - uses: "actions/checkout@v4"
-      - uses: "dtolnay/rust-toolchain@nightly"
+      - id: "check_toolchain"
+        run: |
+          echo "toolchain=$(cat rust-toolchain)" >> "$GITHUB_OUTPUT"
+      - uses: "dtolnay/rust-toolchain@stable"
+        with:
+          toolchain: "${{steps.check_toolchain.outputs.toolchain}}"
       - run: "cargo install cargo-udeps"
       - run: |
           cargo metadata --format-version 1 --no-deps | \

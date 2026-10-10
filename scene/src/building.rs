@@ -19,7 +19,7 @@ use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig};
 use traffloat_proto::proto;
-use traffloat_util::{QueryExt, try_log};
+use traffloat_util::{QueryExt, loc, try_log};
 
 use crate::facility::FacilityBuilding;
 use crate::picking::ObservePicking;
@@ -136,7 +136,7 @@ impl UpdateHandler for UpdateBuildingFluidConnectionsParams<'_, '_> {
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_building(update.id) else { return };
-        let Some(mut info) = self.building_query.log_get_mut(entity) else { return };
+        let Some(mut info) = self.building_query.log_get_mut(entity, loc!()) else { return };
         info.connections.clone_from(&update.connections);
     }
 }

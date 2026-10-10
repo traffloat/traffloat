@@ -11,7 +11,7 @@ use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
-use traffloat_util::{QueryExt, SliceGet, run_stateless_closure, try_log};
+use traffloat_util::{QueryExt, SliceGet, loc, run_stateless_closure, try_log};
 
 use crate::graph::facility;
 use crate::persist::AppExt;
@@ -266,8 +266,8 @@ impl Command for StartInteractCommand {
             mut resident_query: Query<&mut Location>,
             mut facility_query: Query<(&mut InteractionSlots, &facility::OfBuilding)>,
             | {
-                let Some((mut slots, parent_building)) = facility_query.log_get_mut(self.facility) else { return false };
-                let Some(mut location) = resident_query.log_get_mut(self.resident) else { return false };
+                let Some((mut slots, parent_building)) = facility_query.log_get_mut(self.facility,  loc!()) else { return false };
+                let Some(mut location) = resident_query.log_get_mut(self.resident,  loc!()) else { return false };
                 let Location::Building { entity: resident_building, .. } = *location else { return false };
                 if resident_building != parent_building.0 {
                     return false;
@@ -356,12 +356,12 @@ fn make_proto_location(
 ) -> Option<proto::ResidentLocation> {
     Some(match *data.location {
         Location::Building { entity, interior_pos } => proto::ResidentLocation::Building {
-            building: params.viewable_query.log_get(entity)?.0.id,
+            building: params.viewable_query.log_get(entity, loc!())?.0.id,
             interior_pos,
             speed: Vec3::ZERO, // TODO
         },
         Location::Corridor { entity, distance_from_alpha } => proto::ResidentLocation::Corridor {
-            corridor:   params.viewable_query.log_get(entity)?.0.id,
+            corridor:   params.viewable_query.log_get(entity, loc!())?.0.id,
             linear_pos: distance_from_alpha,
             speed:      0.0, // TODO
         },
@@ -370,12 +370,12 @@ fn make_proto_location(
                 data.interact,
                 expect "resident in facility should have InteractingWith component" or return None
             );
-            let (facility, slots) = params.viewable_query.log_get(entity)?;
+            let (facility, slots) = params.viewable_query.log_get(entity, loc!())?;
             let slots = try_log!(
                 slots,
                 expect "referenced facility should have InteractionSlots component" or return None
             );
-            let slot = slots.slots.log_get(interact.slot_index)?;
+            let slot = slots.slots.log_get(interact.slot_index, loc!())?;
             proto::ResidentLocation::Facility {
                 facility:  facility.id,
                 slot_name: slot.name.clone(),
@@ -383,8 +383,8 @@ fn make_proto_location(
         }
         Location::Vehicle { .. } => {
             let of_cpmt = try_log!(data.passenger, expect "passenger with vehicle location should have PassengerOfCompartment component" or return None);
-            let cpmt_of = params.compartment_query.log_get(of_cpmt.compartment)?;
-            let vehicle = params.viewable_query.log_get(cpmt_of.0)?.0.id;
+            let cpmt_of = params.compartment_query.log_get(of_cpmt.compartment, loc!())?;
+            let vehicle = params.viewable_query.log_get(cpmt_of.0, loc!())?.0.id;
             proto::ResidentLocation::Vehicle {
                 vehicle,
                 compartment: u32::try_from(of_cpmt.compartment_index)
@@ -408,14 +408,15 @@ fn update_culling_rect_system(
             | Location::Corridor { entity, .. }
             | Location::Facility { entity, .. } => entity,
             Location::Vehicle { compartment } => {
-                let Some(&vehicle::CompartmentOf(vehicle)) = compartment_query.log_get(compartment)
+                let Some(&vehicle::CompartmentOf(vehicle)) =
+                    compartment_query.log_get(compartment, loc!())
                 else {
                     continue;
                 };
                 vehicle
             }
         };
-        if let Some(&parent_rect) = culling_rect_query.log_get(parent_entity) {
+        if let Some(&parent_rect) = culling_rect_query.log_get(parent_entity, loc!()) {
             *culling_rect = parent_rect;
         }
     }

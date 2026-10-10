@@ -6,7 +6,7 @@ use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Query, ResMut, SystemParam};
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
-use traffloat_util::QueryExt;
+use traffloat_util::{QueryExt, loc};
 
 use crate::graph::facility;
 use crate::persist::AppExt;
@@ -122,7 +122,7 @@ fn interact_once(
     let storage_entity = match *resident.location {
         resident::Location::Building { entity, .. }
         | resident::Location::Corridor { entity, .. } => entity,
-        resident::Location::Facility { entity } => params.facility_query.log_get(entity)?.0,
+        resident::Location::Facility { entity } => params.facility_query.log_get(entity, loc!())?.0,
         resident::Location::Vehicle { compartment } => compartment,
     };
     let mut data = PreparedResidentData { data: resident, storage_entity };
@@ -157,7 +157,7 @@ impl<'pw, 'ps, 'dw, 'ds>
         data: &PreparedResidentData<'dw, 'ds>,
         then: impl FnOnce(&fluid::Storage) -> R,
     ) -> Option<R> {
-        params.storage_query.log_get(data.storage_entity).map(then)
+        params.storage_query.log_get(data.storage_entity, loc!()).map(then)
     }
 
     fn select_mut<R>(
@@ -166,7 +166,10 @@ impl<'pw, 'ps, 'dw, 'ds>
         data: &mut PreparedResidentData<'dw, 'ds>,
         then: impl FnOnce(&mut fluid::Storage) -> R,
     ) -> Option<R> {
-        params.storage_query.log_get_mut(data.storage_entity).map(|mut storage| then(&mut storage))
+        params
+            .storage_query
+            .log_get_mut(data.storage_entity, loc!())
+            .map(|mut storage| then(&mut storage))
     }
 }
 

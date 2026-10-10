@@ -7,7 +7,7 @@ use bevy::ecs::world::World;
 use bevy::math::Vec3;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
-use traffloat_util::{EntityWorldMutExt, QueryExt, try_log};
+use traffloat_util::{EntityWorldMutExt, QueryExt, loc, try_log};
 
 use crate::graph::{building, corridor, facility};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
@@ -89,7 +89,7 @@ impl Persistable for Persist {
                         }
                         resident::Location::Vehicle { compartment } => {
                             let cpmt_data =
-                                params.compartment_query.log_get(compartment).ok_or(())?;
+                                params.compartment_query.log_get(compartment,  loc!()).ok_or(())?;
                             let vehicle = ctx.get_id(deps.vehicle, cpmt_data.vehicle.0)?;
                             let as_passenger = try_log!(data.passenger, expect "location vehicle implies passenger component" or return Err(()));
                             let cpmt_index = as_passenger.compartment_index;
@@ -201,7 +201,7 @@ impl Persistable for Persist {
                 Ok(())
             })?;
 
-            if let Some(mut attrs) = entity.log_get_mut::<resident::Attributes>() {
+            if let Some(mut attrs) = entity.log_get_mut::<resident::Attributes>(loc!()) {
                 if attrs.values.len() != entry.attrs.len() {
                     return Err(InputError::AttributesLengthMismatch {
                         expected: attrs.values.len(),

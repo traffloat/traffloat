@@ -19,7 +19,7 @@ use bevy::time::{self, Time};
 use bevy::transform::components::Transform;
 use bevy_mesh::Mesh2d;
 use traffloat_proto::proto;
-use traffloat_util::{QueryExt, run_stateless_closure};
+use traffloat_util::{QueryExt, loc, run_stateless_closure};
 
 use crate::conduit::ConduitCorridor;
 use crate::picking::ObservePicking;
@@ -158,7 +158,7 @@ impl UpdateHandler for UpdateVehicleLocationParams<'_, '_> {
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_vehicle(update.id) else { return };
-        let Some(mut data) = self.vehicle_query.log_get_mut(entity) else { return };
+        let Some(mut data) = self.vehicle_query.log_get_mut(entity, loc!()) else { return };
         let Some((fixture, dp)) = self.location_resolver.resolve(&update.location) else { return };
         let prev_location = mem::replace(&mut data.0.ambient_fixture, fixture);
         if prev_location != fixture {
@@ -187,7 +187,8 @@ impl UpdateHandler for UpdateVehicleFluidParams<'_, '_> {
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_vehicle(update.id) else { return };
-        let Some((material_handle, mut info)) = self.vehicle_query.log_get_mut(entity) else {
+        let Some((material_handle, mut info)) = self.vehicle_query.log_get_mut(entity, loc!())
+        else {
             return;
         };
 
@@ -225,14 +226,14 @@ impl LocationResolver<'_, '_> {
         let (ambient_fixture, epoch_position, speed) = match *location {
             proto::VehicleLocation::Building { building, interior_pos, speed } => {
                 let entity = self.ids.get_building(building)?;
-                let building_info = self.building_query.log_get(entity)?;
+                let building_info = self.building_query.log_get(entity, loc!())?;
                 let position = building_info.position + interior_pos.xy();
                 (AmbientFixture::Building(entity), position, speed.xy())
             }
             proto::VehicleLocation::Rail { conduit, distance_from_alpha, speed_from_alpha } => {
                 let entity = self.ids.get_conduit(conduit)?;
-                let &ConduitCorridor(corridor) = self.conduit_query.log_get(entity)?;
-                let corridor_info = self.corridor_query.log_get(corridor)?;
+                let &ConduitCorridor(corridor) = self.conduit_query.log_get(entity, loc!())?;
+                let corridor_info = self.corridor_query.log_get(corridor, loc!())?;
                 let endpoints = corridor_info.endpoint_positions;
                 (
                     AmbientFixture::Rail(entity),
