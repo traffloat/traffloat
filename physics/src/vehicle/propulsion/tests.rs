@@ -22,11 +22,7 @@ fn vehicle_def() -> vehicle::TypeDef {
             length: 2.0,
         },
         motion:         vehicle::def::Motion {
-            propulsion:       Propulsion {
-                inputs:    Vec::new(),
-                outputs:   vec![vehicle::propulsion::ForceOutput { max_force: 1000.0 }.into()],
-                catalysts: Vec::new(),
-            },
+            propulsion:       Propulsion::default().with_output(vehicle::propulsion::ForceOutput { max_force: 1000.0 }),
             max_speed:        20.0, // overridden by rail max speed
             max_braking:      2000.0,
             drag_coefficient: 0.3,
