@@ -14,6 +14,7 @@ use bevy::ecs::system::{Commands, EntityCommand, Query, Res, SystemParam};
 use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
+use traffloat_util::loc;
 
 pub mod def;
 pub use def::Def as TypeDef;
@@ -277,7 +278,8 @@ impl EntityCommand for SpawnCommand {
         let ambient_entity = match self.location {
             Location::Building(location) => location.building,
             Location::Rail(location) => {
-                let Some(&conduit::OfCorridor(corridor)) = entity.world().log_get(location.rail)
+                let Some(&conduit::OfCorridor(corridor)) =
+                    entity.world().log_get(location.rail, loc!())
                 else {
                     return;
                 };
@@ -378,7 +380,7 @@ impl<Ab: OptionWhich> EntityCommand for AttemptLocationTransitionCommand<Ab> {
                 Location::Building(location) => {
                     entity.world_scope(|world| {
                         if let Some(mut list) =
-                            world.log_get_mut::<ListInBuilding>(location.building)
+                            world.log_get_mut::<ListInBuilding>(location.building, loc!())
                         {
                             list.0.retain(|&e| e != entity_id);
                         }
@@ -391,7 +393,7 @@ impl<Ab: OptionWhich> EntityCommand for AttemptLocationTransitionCommand<Ab> {
         }
 
         entity.insert(self.new_location);
-        if let Some(mut desired) = entity.log_get_mut::<propulsion::Desired>() {
+        if let Some(mut desired) = entity.log_get_mut::<propulsion::Desired>(loc!()) {
             // reset desired propulsion to a universally acceptable value,
             // then let the motion control system overwrite this.
             *desired = propulsion::Desired::Stationary;
@@ -450,7 +452,7 @@ fn check_rail_entry(
     conduit: Entity,
     entry: AlphaOrBeta,
 ) -> Result<(), RailEntryCheck> {
-    let Some(reserved) = world.log_get::<rail::Reservation>(conduit) else {
+    let Some(reserved) = world.log_get::<rail::Reservation>(conduit, loc!()) else {
         return Err(RailEntryCheck::InvalidEcs);
     };
     let Some(reserved) = reserved.inner else { return Ok(()) };
@@ -465,7 +467,7 @@ fn check_rail_entry(
         return Err(RailEntryCheck::ReservedByExternal);
     }
 
-    let Some(vehicles) = world.log_get::<ListOnRail>(conduit) else {
+    let Some(vehicles) = world.log_get::<ListOnRail>(conduit, loc!()) else {
         return Err(RailEntryCheck::InvalidEcs);
     };
     let last_vehicle = match entry {
@@ -473,7 +475,7 @@ fn check_rail_entry(
         AlphaOrBeta::Beta => vehicles.deque.back().copied(),
     };
     if let Some(last_vehicle) = last_vehicle {
-        let Some(location) = world.log_get::<Location>(last_vehicle) else {
+        let Some(location) = world.log_get::<Location>(last_vehicle, loc!()) else {
             return Err(RailEntryCheck::InvalidEcs);
         };
         let &Location::Rail(location) = location else {
@@ -484,17 +486,18 @@ fn check_rail_entry(
         let distance_from_entry = match entry {
             AlphaOrBeta::Alpha => location.distance_from_alpha,
             AlphaOrBeta::Beta => {
-                let Some(of_corridor) = world.log_get::<conduit::OfCorridor>(conduit) else {
+                let Some(of_corridor) = world.log_get::<conduit::OfCorridor>(conduit, loc!())
+                else {
                     return Err(RailEntryCheck::InvalidEcs);
                 };
-                let Some(corridor) = world.log_get::<Corridor>(of_corridor.0) else {
+                let Some(corridor) = world.log_get::<Corridor>(of_corridor.0, loc!()) else {
                     return Err(RailEntryCheck::InvalidEcs);
                 };
                 corridor.length - location.distance_from_alpha
             }
         };
 
-        let Some(vehicle_data) = world.log_get::<Vehicle>(vehicle) else {
+        let Some(vehicle_data) = world.log_get::<Vehicle>(vehicle, loc!()) else {
             return Err(RailEntryCheck::InvalidEcs);
         };
         let vehicle_def = world.resource::<Types>().get(vehicle_data.ty);
@@ -511,7 +514,7 @@ fn check_rail_entry(
 fn exit_from_rail(world: &mut World, conduit: Entity, vehicle_entity: Entity) {
     let mut clear_reservation = false;
 
-    if let Some(mut list) = world.log_get_mut::<ListOnRail>(conduit) {
+    if let Some(mut list) = world.log_get_mut::<ListOnRail>(conduit, loc!()) {
         if list.deque.back() == Some(&vehicle_entity) {
             // retain will scan from front,
             // but back is much more likely than list.deque[1]
@@ -526,7 +529,7 @@ fn exit_from_rail(world: &mut World, conduit: Entity, vehicle_entity: Entity) {
     }
 
     if clear_reservation
-        && let Some(mut reservation) = world.log_get_mut::<rail::Reservation>(conduit)
+        && let Some(mut reservation) = world.log_get_mut::<rail::Reservation>(conduit, loc!())
         && let Some(rail::ReservationInner { external_vehicle: None, .. }) = reservation.inner
     {
         // Last vehicle exits, direction is unreserved now.
@@ -549,14 +552,16 @@ fn enter_rail<Ab: OptionWhich>(
     distance_from_alpha: f32,
     entry_method: Ab,
 ) {
-    let Some((list, mut reservation)) = params.conduit_query.log_get_mut(conduit) else { return };
+    let Some((list, mut reservation)) = params.conduit_query.log_get_mut(conduit, loc!()) else {
+        return;
+    };
     match list {
         Some(mut list) => match entry_method.into_proto() {
             Some(AlphaOrBeta::Alpha) => list.deque.push_front(vehicle_entity),
             Some(AlphaOrBeta::Beta) => list.deque.push_back(vehicle_entity),
             None => {
                 let pos = list.partition_point_by_location(distance_from_alpha, |e| {
-                    params.location_query.log_get(e).copied()
+                    params.location_query.log_get(e, loc!()).copied()
                 });
                 list.deque.insert(pos.unwrap_or(0), vehicle_entity);
             }
@@ -598,7 +603,7 @@ fn enter_rail<Ab: OptionWhich>(
         }
     }
 
-    if let Some(mut intent) = params.intent_query.log_get_mut(vehicle_entity)
+    if let Some(mut intent) = params.intent_query.log_get_mut(vehicle_entity, loc!())
         && let motion::Intent::EnterRail { target_rail, .. } = *intent
         && target_rail == conduit
     {
@@ -703,7 +708,7 @@ fn make_proto_location(
 ) -> Option<proto::VehicleLocation> {
     match *location {
         Location::Building(location) => {
-            let (viewable,) = viewable_query.log_get(location.building)?;
+            let (viewable,) = viewable_query.log_get(location.building, loc!())?;
             Some(proto::VehicleLocation::Building {
                 building:     viewable.id,
                 interior_pos: location.interior_pos,
@@ -711,7 +716,7 @@ fn make_proto_location(
             })
         }
         Location::Rail(location) => {
-            let (viewable,) = viewable_query.log_get(location.rail)?;
+            let (viewable,) = viewable_query.log_get(location.rail, loc!())?;
             Some(proto::VehicleLocation::Rail {
                 conduit:             viewable.id,
                 distance_from_alpha: location.distance_from_alpha,
@@ -733,7 +738,7 @@ fn update_culling_rect_system(
             Location::Building(location) => location.building,
             Location::Rail(location) => location.rail,
         };
-        if let Some(&parent_rect) = culling_rect_query.log_get(parent_entity) {
+        if let Some(&parent_rect) = culling_rect_query.log_get(parent_entity, loc!()) {
             *culling_rect = parent_rect;
         }
     }

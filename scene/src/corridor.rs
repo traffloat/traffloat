@@ -22,7 +22,7 @@ use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy_mesh::PrimitiveTopology;
 use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig};
 use traffloat_proto::proto;
-use traffloat_util::{Alpha, AlphaBeta, Beta, QueryExt, Which, try_log};
+use traffloat_util::{Alpha, AlphaBeta, Beta, QueryExt, Which, loc, try_log};
 
 use crate::conduit::{ConduitCorridor, ConduitOutlineOf};
 use crate::picking::ObservePicking;
@@ -208,7 +208,7 @@ impl UpdateHandler for UpdateCorridorEndpointParams<'_, '_> {
             return;
         };
 
-        let Some(data) = self.corridor_query.log_get_mut(corridor) else { return };
+        let Some(data) = self.corridor_query.log_get_mut(corridor, loc!()) else { return };
 
         let current = match update.which {
             proto::AlphaOrBeta::Alpha => {

@@ -6,7 +6,7 @@ use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
-use traffloat_util::EntityWorldMutExt;
+use traffloat_util::{EntityWorldMutExt, loc};
 
 use crate::graph::{Connection, building, conduit, connection, facility};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
@@ -97,7 +97,7 @@ impl Persistable for Persist {
                 ),
             };
             entity.reborrow_scope(|entity| connection::SpawnCommand { main, peer }.apply(entity));
-            if let Some(mut edge) = entity.log_get_mut::<fluid::Edge>() {
+            if let Some(mut edge) = entity.log_get_mut::<fluid::Edge>(loc!()) {
                 edge.area = entry.current_area;
             }
         }

@@ -7,7 +7,7 @@ use bevy::ecs::world::World;
 use bevy::math::Vec2;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
-use traffloat_util::EntityWorldMutExt;
+use traffloat_util::{EntityWorldMutExt, loc};
 
 use crate::graph::{Conduit, ConduitType, conduit, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
@@ -98,7 +98,7 @@ impl Persistable for Persist {
             })?;
 
             if let Some(entry_fluid) = entry.fluid {
-                let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>() else {
+                let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>(loc!()) else {
                     return Err(InputError::FluidStorageMismatchConduitType);
                 };
                 entry_fluid.apply_to_component(&mut fluid);

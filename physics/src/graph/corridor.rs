@@ -15,7 +15,7 @@ use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 use traffloat_util::{
-    Alpha, AlphaBeta, Beta, EntityWorldMutExt, Which, WorldExt, run_stateless_closure,
+    Alpha, AlphaBeta, Beta, EntityWorldMutExt, Which, WorldExt, loc, run_stateless_closure,
 };
 
 use crate::graph::conduit::{self, ListOnCorridor};
@@ -120,8 +120,8 @@ fn recompute_culling_rect(mut entity: EntityWorldMut) {
 
         let building = if let Some(edge_entity) = entity.get::<edge::CorridorEdge<Ab>>()
             && let Some(of_building) =
-                entity.world().log_get::<edge::OfBuilding<Ab>>(edge_entity.edge())
-            && let Some(building) = entity.world().log_get::<Building>(of_building.building)
+                entity.world().log_get::<edge::OfBuilding<Ab>>(edge_entity.edge(), loc!())
+            && let Some(building) = entity.world().log_get::<Building>(of_building.building, loc!())
         {
             let building_rect = building.base_rect();
             rect = rect.union(building_rect);
@@ -133,7 +133,7 @@ fn recompute_culling_rect(mut entity: EntityWorldMut) {
         (rect, building)
     }
 
-    let Some(corridor) = entity.log_get::<Corridor>() else { return };
+    let Some(corridor) = entity.log_get::<Corridor>(loc!()) else { return };
     let (rect_alpha, building_alpha) = get_endpoint_rect(&entity, corridor, Alpha);
     let (rect_beta, building_beta) = get_endpoint_rect(&entity, corridor, Beta);
     let rect = rect_alpha.union(rect_beta);
@@ -151,7 +151,8 @@ fn recompute_culling_rect(mut entity: EntityWorldMut) {
         entity.get::<conduit::ListOnCorridor>().iter().flat_map(|list| list.iter()).collect();
     entity.world_scope(|world| {
         for conduit in conduits {
-            if let Some(mut culling_rect) = world.log_get_mut::<view::CullingRect>(conduit) {
+            if let Some(mut culling_rect) = world.log_get_mut::<view::CullingRect>(conduit, loc!())
+            {
                 culling_rect.0 = rect;
             }
         }
@@ -177,20 +178,20 @@ impl EntityCommand for RecomputeAmbientVolume {
             let conduits: Vec<_> = conduit_list.iter().collect();
             conduits
                 .iter()
-                .filter_map(|&f| entity.world().log_get::<Conduit>(f))
+                .filter_map(|&f| entity.world().log_get::<Conduit>(f, loc!()))
                 .map(|f| f.radius * f.radius)
                 .sum()
         } else {
             0.0
         };
-        let Some(mut corridor) = entity.log_get_mut::<Corridor>() else { return };
+        let Some(mut corridor) = entity.log_get_mut::<Corridor>(loc!()) else { return };
 
         let ambient_base = corridor.radius * corridor.radius - used_by_conduits;
         let ambient_area = ambient_base * PI;
         corridor.ambient_area = ambient_area;
         let ambient_volume = ambient_area * corridor.length;
 
-        if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>() {
+        if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>(loc!()) {
             fluid.volume = ambient_volume;
         }
     }

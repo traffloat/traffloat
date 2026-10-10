@@ -6,7 +6,7 @@ use traffloat_proto::proto;
 use traffloat_scene::{
     FluidTypes, GenericViewable, IdRegistry, ProtoId, building, conduit, corridor, vehicle,
 };
-use traffloat_util::{Alpha, Beta, QueryExt};
+use traffloat_util::{Alpha, Beta, QueryExt, loc};
 
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
 use crate::dock::{self, plot};
@@ -87,7 +87,7 @@ fn show_corridor(
     commands: &mut Commands,
     corridor_entity: Entity,
 ) {
-    let Some(corridor_info) = corridor_query.log_get(corridor_entity) else { return };
+    let Some(corridor_info) = corridor_query.log_get(corridor_entity, loc!()) else { return };
 
     ui.horizontal(|ui| {
         show_link(ui, commands, corridor_entity);
@@ -117,14 +117,14 @@ fn show_connections(
 ) -> impl Iterator<Item = impl FnOnce(&mut egui::Ui, &mut Commands)> {
     params
         .corridor_query
-        .log_get(conduit_data.corridor.0)
+        .log_get(conduit_data.corridor.0, loc!())
         .into_iter()
         .flat_map(|(a, b)| [a.map(|a| a.0), b.map(|b| b.0)])
         .flatten()
         .flat_map(move |building| {
             params
                 .building_query
-                .log_get(building)
+                .log_get(building, loc!())
                 .into_iter()
                 .flat_map(|building_info| &building_info.connections)
                 .filter_map(|conn| match conn.pair {
@@ -164,12 +164,12 @@ fn show_connection_ui(
     ui.horizontal(|ui| {
         show_link(ui, commands, facility);
         ui.label("Facility:");
-        if let Some(facility_viewable) = viewable_query.log_get(facility) {
+        if let Some(facility_viewable) = viewable_query.log_get(facility, loc!()) {
             ui.label(&facility_viewable.name);
         }
         ui.label("in building:");
         show_link_small(ui, commands, building);
-        if let Some(building_viewable) = viewable_query.log_get(building) {
+        if let Some(building_viewable) = viewable_query.log_get(building, loc!()) {
             ui.label(&building_viewable.name);
         }
     });
@@ -190,7 +190,7 @@ fn show_vehicle(
     vehicle_query: &Query<VehicleData>,
     vehicle_entity: Entity,
 ) {
-    let Some(vehicle_data) = vehicle_query.log_get(vehicle_entity) else { return };
+    let Some(vehicle_data) = vehicle_query.log_get(vehicle_entity, loc!()) else { return };
 
     ui.horizontal(|ui| {
         show_link(ui, commands, vehicle_entity);

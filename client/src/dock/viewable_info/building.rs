@@ -5,7 +5,7 @@ use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_proto::proto::AlphaOrBeta;
 use traffloat_scene::facility::{BuildingFacilities, FacilityBuilding};
 use traffloat_scene::{FluidTypes, GenericViewable, building, corridor, resident, vehicle};
-use traffloat_util::{Alpha, Beta, QueryExt, Which};
+use traffloat_util::{Alpha, Beta, QueryExt, Which, loc};
 
 use crate::dock::viewable_info::corridor::display_gate;
 use crate::dock::viewable_info::{show_fluid, show_link, show_link_small};
@@ -167,7 +167,7 @@ fn show_connection<Ab: Which>(
         if let Some((peer_building, _)) = peer {
             show_link(ui, commands, peer_building);
 
-            if let Some(peer_building_data) = building_query.log_get(peer_building) {
+            if let Some(peer_building_data) = building_query.log_get(peer_building, loc!()) {
                 ui.label(&peer_building_data.generic.name);
             }
         }
@@ -193,7 +193,7 @@ fn show_facility(
     facility_query: &Query<FacilityData>,
     facility_entity: Entity,
 ) {
-    let Some(facility_data) = facility_query.log_get(facility_entity) else { return };
+    let Some(facility_data) = facility_query.log_get(facility_entity, loc!()) else { return };
 
     ui.horizontal(|ui| {
         show_link(ui, commands, facility_entity);
@@ -226,7 +226,7 @@ fn show_residents<'q>(
     });
     let in_facility = params.resident_query.iter().filter_map(move |(resident, viewable, info)| {
         if let resident::Location::Facility { facility, ref slot_name } = info.location
-            && let Some((facility_viewable, fb)) = params.facility_query.log_get(facility)
+            && let Some((facility_viewable, fb)) = params.facility_query.log_get(facility, loc!())
             && fb.0 == building
         {
             Some((resident, viewable, LocRef::Facility(facility, facility_viewable, slot_name)))
@@ -263,7 +263,7 @@ fn show_vehicle(
     vehicle_query: &Query<VehicleData>,
     vehicle_entity: Entity,
 ) {
-    let Some(vehicle_data) = vehicle_query.log_get(vehicle_entity) else { return };
+    let Some(vehicle_data) = vehicle_query.log_get(vehicle_entity, loc!()) else { return };
 
     ui.horizontal(|ui| {
         show_link(ui, commands, vehicle_entity);

@@ -21,7 +21,7 @@ impl Plugin for Plug {
 pub fn add_observers(entity: &mut EntityCommands) {
     let id = entity.id();
     entity.observe(
-        move |_: observer::On<pick_event::Pointer<pick_event::Click>>,
+        move |_: observer::On<pick_event::PointerClick>,
               mut focus_writer: MessageWriter<gui::RequestCameraFocus>,
               mut open_writer: MessageWriter<gui::OpenViewableInfo>,
               camera: Res<gui::CameraInteraction>| {

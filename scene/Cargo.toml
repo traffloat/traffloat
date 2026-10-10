@@ -16,8 +16,8 @@ traffloat-macro-util = { workspace = true }
 traffloat-proto = { workspace = true }
 traffloat-util = { workspace = true }
 
-bevy_mesh = { version = "0.19.0", default-features = false }
-bevy_mod_config = "0.8.0"
+bevy_mesh = { version = "0.20.0", default-features = false }
+bevy_mod_config = "0.9.0"
 itertools = "0.15.0"
 ordered-float = "5.3.0"
 parking_lot = "0.12.5"

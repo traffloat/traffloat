@@ -13,7 +13,7 @@ use bevy::math::Vec2;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
-use traffloat_util::{QueryExt, WorldExt};
+use traffloat_util::{QueryExt, WorldExt, loc};
 
 use crate::graph::{Corridor, ViewInitSystemSets, corridor};
 use crate::persist::AppExt;
@@ -90,8 +90,11 @@ impl EntityCommand for SpawnCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let (Some(corridor_length), Some(&corridor_rect)) = (
-            entity.world().log_get::<Corridor>(self.corridor).map(|corridor| corridor.length),
-            entity.world().log_get::<view::CullingRect>(self.corridor),
+            entity
+                .world()
+                .log_get::<Corridor>(self.corridor, loc!())
+                .map(|corridor| corridor.length),
+            entity.world().log_get::<view::CullingRect>(self.corridor, loc!()),
         ) else {
             return;
         };
@@ -148,7 +151,7 @@ fn init_viewer_system(
 ) {
     for (conduit, named, viewable, &OfCorridor(corridor_entity)) in conduit_query {
         messages.write_batch(viewable.broadcast_new(|| {
-            let corridor_viewable = corridor_query.log_get(corridor_entity)?;
+            let corridor_viewable = corridor_query.log_get(corridor_entity, loc!())?;
             Some(proto::Update::NewConduit(proto::NewConduit {
                 id:       viewable.id,
                 name:     named.name.clone(),

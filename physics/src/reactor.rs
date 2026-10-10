@@ -14,7 +14,7 @@ use bevy::ecs::system::{Local, Query, Res, SystemParam};
 use bevy::ecs::world::World;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
-use traffloat_util::{QueryExt, duration_to_timesteps};
+use traffloat_util::{QueryExt, duration_to_timesteps, loc};
 
 use crate::{fluid, reaction, resident, types};
 
@@ -165,7 +165,7 @@ impl<'pw, 'ps, 'dw, 'ds>
             .fluid_storages
             .get(usize::try_from(self.port).expect("usize >= u32"))
         {
-            Some(&Some(entity)) => params.fluid_storage.log_get(entity).map(then),
+            Some(&Some(entity)) => params.fluid_storage.log_get(entity, loc!()).map(then),
             Some(None) => None,
             None => {
                 tracing::warn!("Reference to undefined port {}", self.port);
@@ -186,9 +186,10 @@ impl<'pw, 'ps, 'dw, 'ds>
             .fluid_storages
             .get(usize::try_from(self.port).expect("usize >= u32"))
         {
-            Some(&Some(entity)) => {
-                params.fluid_storage.log_get_mut(entity).map(|mut storage| then(&mut storage))
-            }
+            Some(&Some(entity)) => params
+                .fluid_storage
+                .log_get_mut(entity, loc!())
+                .map(|mut storage| then(&mut storage)),
             Some(None) => None,
             None => {
                 tracing::warn!("Reference to undefined port {}", self.port);
@@ -214,7 +215,7 @@ impl<'pw, 'ps, 'dw, 'ds>
         mut then: impl FnMut(&resident::Attributes, Entity),
     ) {
         data.interaction_slots.iter().flat_map(|slots| slots.iter()).for_each(|entity| {
-            let Some((attrs, with)) = params.resident.log_get(entity) else { return };
+            let Some((attrs, with)) = params.resident.log_get(entity, loc!()) else { return };
             debug_assert_eq!(with.facility, data.entity);
             if with.slot_index == self.slot_index {
                 then(attrs, entity);
@@ -229,7 +230,9 @@ impl<'pw, 'ps, 'dw, 'ds>
         mut then: impl FnMut(&mut resident::Attributes, Entity),
     ) {
         data.interaction_slots.iter().flat_map(|slots| slots.iter()).for_each(|entity| {
-            let Some((mut attrs, with)) = params.resident.log_get_mut(entity) else { return };
+            let Some((mut attrs, with)) = params.resident.log_get_mut(entity, loc!()) else {
+                return;
+            };
             debug_assert_eq!(with.facility, data.entity);
             if with.slot_index == self.slot_index {
                 then(&mut attrs, entity);

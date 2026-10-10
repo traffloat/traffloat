@@ -9,17 +9,17 @@ use bevy::ecs::name::Name;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
 use bevy::ecs::system::{Commands, Query, Res, ResMut, SystemParam};
-use bevy::math::primitives::Annulus;
 use bevy::math::{Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
 use bevy::picking::Pickable;
 use bevy::picking::hover::PickingInteraction;
 use bevy::reflect::Reflect;
+use bevy::shape::Annulus;
 use bevy::sprite_render::{AlphaMode2d, ColorMaterial, MeshMaterial2d};
 use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig};
 use traffloat_proto::proto;
-use traffloat_util::{QueryExt, try_log};
+use traffloat_util::{QueryExt, loc, try_log};
 
 use crate::facility::FacilityBuilding;
 use crate::picking::ObservePicking;
@@ -136,7 +136,7 @@ impl UpdateHandler for UpdateBuildingFluidConnectionsParams<'_, '_> {
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_building(update.id) else { return };
-        let Some(mut info) = self.building_query.log_get_mut(entity) else { return };
+        let Some(mut info) = self.building_query.log_get_mut(entity, loc!()) else { return };
         info.connections.clone_from(&update.connections);
     }
 }
