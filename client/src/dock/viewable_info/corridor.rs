@@ -4,7 +4,7 @@ use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_scene::conduit::CorridorConduits;
 use traffloat_scene::{FluidTypes, GenericViewable, corridor};
-use traffloat_util::{Alpha, Beta, QueryExt, Which};
+use traffloat_util::{Alpha, Beta, QueryExt, Which, loc};
 
 use crate::dock::viewable_info::{show_fluid, show_link};
 use crate::dock::{self, plot};
@@ -81,7 +81,7 @@ fn show_conduit(
     commands: &mut Commands,
     entity: Entity,
 ) {
-    let Some(conduit_viewable) = conduit_query.log_get(entity) else { return };
+    let Some(conduit_viewable) = conduit_query.log_get(entity, loc!()) else { return };
 
     ui.horizontal(|ui| {
         show_link(ui, commands, entity);
@@ -95,7 +95,7 @@ fn show_connection(
     commands: &mut Commands,
     data: EndpointDataItem<impl Which>,
 ) {
-    let Some(building_info) = building_query.log_get(data.building.0) else { return };
+    let Some(building_info) = building_query.log_get(data.building.0, loc!()) else { return };
 
     ui.horizontal(|ui| {
         show_link(ui, commands, data.building.0);

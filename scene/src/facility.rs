@@ -23,7 +23,7 @@ use bevy::transform::components::Transform;
 use bevy_mod_config::{AppExt, Config, ConfigFieldFor, Manager, ReadConfig};
 use ordered_float::OrderedFloat;
 use traffloat_proto::proto;
-use traffloat_util::{EntityWorldMutExt, QueryExt, WorldExt};
+use traffloat_util::{EntityWorldMutExt, QueryExt, WorldExt, loc};
 
 use crate::picking::ObservePicking;
 use crate::util::shapes::Shapes;
@@ -202,14 +202,14 @@ impl UpdateHandler for UpdateFacilityTaintParams<'_, '_> {
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_facility(update.id) else { return };
 
-        let Some(taint_entity) = self.facility_query.log_get(entity) else { return };
+        let Some(taint_entity) = self.facility_query.log_get(entity, loc!()) else { return };
         let Some(taint_entity) = taint_entity else {
             tracing::error!("Facility {entity:?} did not have a taint when created");
             return;
         };
         let Some(mut material) = self
             .taint_query
-            .log_get(taint_entity.0)
+            .log_get(taint_entity.0, loc!())
             .map(|material| self.materials.get_mut(&material.0).expect("strong material handle"))
         else {
             return;
@@ -231,7 +231,7 @@ impl UpdateHandler for UpdateFacilityFluidParams<'_, '_> {
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_facility(update.id) else { return };
-        let Some(mut info) = self.facility_query.log_get_mut(entity) else {
+        let Some(mut info) = self.facility_query.log_get_mut(entity, loc!()) else {
             return;
         };
         info.stored_fluid = Some(update.fluid.clone());
@@ -250,7 +250,7 @@ impl UpdateHandler for UpdateFacilityReactorParams<'_, '_> {
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_facility(update.id) else { return };
-        let Some(mut info) = self.facility_query.log_get_mut(entity) else {
+        let Some(mut info) = self.facility_query.log_get_mut(entity, loc!()) else {
             return;
         };
         info.reactor = Some(ReactorInfo {
@@ -272,13 +272,14 @@ fn rearrange_facility_tf_system(
         if need.0 {
             let mut facilities: Vec<_> = facilities
                 .iter()
-                .filter_map(|entity| facility_query.log_get(entity))
+                .filter_map(|entity| facility_query.log_get(entity, loc!()))
                 .map(|(entity, info, _)| (entity, info.volume))
                 .collect();
             facilities.sort_by_key(|&(_, volume)| cmp::Reverse(OrderedFloat(volume)));
             for (relative_tf, (entity, _)) in placement::compute(facilities.len()).zip(facilities) {
-                let (_, _, mut facility_tf) =
-                    facility_query.log_get_mut(entity).expect("facility entity should exist");
+                let (_, _, mut facility_tf) = facility_query
+                    .log_get_mut(entity, loc!())
+                    .expect("facility entity should exist");
                 *facility_tf = building_tf.mul_transform(relative_tf);
                 facility_tf.translation.z = Zorder::Facility.z();
             }
@@ -288,10 +289,11 @@ fn rearrange_facility_tf_system(
 }
 
 pub(super) fn on_despawn(entity: &mut EntityWorldMut) {
-    let building = entity.log_get::<FacilityBuilding>().map(|b| b.0);
+    let building = entity.log_get::<FacilityBuilding>(loc!()).map(|b| b.0);
     if let Some(building) = building {
         entity.world_scope(|world| {
-            if let Some(mut marker) = world.log_get_mut::<NeedRearrangeTransform>(building) {
+            if let Some(mut marker) = world.log_get_mut::<NeedRearrangeTransform>(building, loc!())
+            {
                 marker.0 = true;
             }
         });

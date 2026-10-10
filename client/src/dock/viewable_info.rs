@@ -6,7 +6,7 @@ use bevy::ecs::world::World;
 use egui_material_icons::icons;
 use traffloat_proto::proto;
 use traffloat_scene::{self, FluidTypes, GenericViewable, OutboundRequest, ProtoId, ViewableKind};
-use traffloat_util::QueryExt;
+use traffloat_util::{QueryExt, loc};
 
 use crate::dock::{self, DockCommand, TabPlacement, plot, viewable_info};
 use crate::util::new_id;
@@ -69,7 +69,7 @@ impl dock::Tab for Tab {
                 ViewableKind::Building => "Building:",
                 ViewableKind::Corridor => "Corridor:",
                 ViewableKind::Facility => "Facility:",
-                ViewableKind::Conduit => match generic.conduit_query.log_get(self.entity) {
+                ViewableKind::Conduit => match generic.conduit_query.log_get(self.entity, loc!()) {
                     Some(info) => match info.ty {
                         proto::ConduitType::FluidPipe => "Pipe:",
                         proto::ConduitType::VehicleRail => "Rail:",

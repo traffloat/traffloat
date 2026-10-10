@@ -19,7 +19,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use traffloat_proto::proto;
-use traffloat_util::{self, QueryExt, Throttle, configure_enum_system_set};
+use traffloat_util::{self, QueryExt, Throttle, configure_enum_system_set, loc};
 
 use crate::{CleanupAppExt, request};
 
@@ -513,7 +513,7 @@ impl request::Handler for SetSubscriptionHandler<'_, '_> {
     fn classify(_: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
 
     fn handle(&mut self, viewer: Entity, request: &Self::Request) {
-        let Some(mut viewer) = self.viewer_query.log_get_mut(viewer) else { return };
+        let Some(mut viewer) = self.viewer_query.log_get_mut(viewer, loc!()) else { return };
         viewer.viewports.clone_from(&request.viewports);
         viewer.config =
             if request.debug { SubscriptionConfig::Debug } else { SubscriptionConfig::Normal };
@@ -531,7 +531,7 @@ impl request::Handler for SetViewFocusHandler<'_, '_> {
     fn classify(_: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
 
     fn handle(&mut self, viewer: Entity, request: &Self::Request) {
-        let Some(mut viewer) = self.viewer_query.log_get_mut(viewer) else { return };
+        let Some(mut viewer) = self.viewer_query.log_get_mut(viewer, loc!()) else { return };
         viewer.focus_requests.clone_from(&request.focus);
     }
 }
@@ -549,11 +549,10 @@ impl request::Handler for RenameViewableHandler<'_, '_> {
     fn classify(_: &Self::Request) -> request::HandlerClass { request::HandlerClass::Mutate }
 
     fn handle(&mut self, viewer: Entity, request: &Self::Request) {
-        let viewable_entity = self
-            .index
-            .index
-            .get(&request.id)
-            .and_then(|&viewable_entity| self.viewable_query.log_get_mut(viewable_entity));
+        let viewable_entity =
+            self.index.index.get(&request.id).and_then(|&viewable_entity| {
+                self.viewable_query.log_get_mut(viewable_entity, loc!())
+            });
         match viewable_entity {
             None => {
                 send_error_toast(

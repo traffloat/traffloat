@@ -23,7 +23,7 @@ use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use bevy::time::{self, Time};
 use traffloat_proto::proto::AlphaOrBeta;
-use traffloat_util::{Alpha, Beta, InspectLog, QueryExt, Which};
+use traffloat_util::{Alpha, Beta, InspectLog, QueryExt, Which, loc};
 
 use crate::graph::{Corridor, conduit, edge};
 use crate::vehicle::rail::ReservedDirection;
@@ -199,7 +199,7 @@ fn control_once(
             // transitioning if the edge is within the std drifting sphere within `dt`
             debug_assert_eq!(location.building, thru);
 
-            let Some(rail_data) = params.conduit_query.log_get(rail) else {
+            let Some(rail_data) = params.conduit_query.log_get(rail, loc!()) else {
                 return propulsion::Desired::Stationary;
             };
             let corridor = rail_data.corridor.0;
@@ -275,7 +275,7 @@ fn control_building_to_rail<Ab: Which>(
     let half_vehicle_length = params.types.get(vehicle_data.vehicle.ty).physical.length * 0.5;
 
     if distance < half_vehicle_length.powi(2) {
-        let corridor_length = params.corridor_query.log_get(args.corridor)?.corridor.length;
+        let corridor_length = params.corridor_query.log_get(args.corridor, loc!())?.corridor.length;
 
         commands.entity(vehicle_data.entity).queue(AttemptLocationTransitionCommand {
             new_location: Location::Rail(LocationRail {
@@ -303,9 +303,11 @@ fn find_edge_interior_pos_to_corridor<Ab: Which>(
     edges
         .iter()
         .find(|&edge| {
-            edge_corridor_query.log_get(edge).is_some_and(|of_corridor| of_corridor.0 == corridor)
+            edge_corridor_query
+                .log_get(edge, loc!())
+                .is_some_and(|of_corridor| of_corridor.0 == corridor)
         })
-        .and_then(|edge| edge_building_query.log_get(edge))
+        .and_then(|edge| edge_building_query.log_get(edge, loc!()))
         .map(|of_building| of_building.interior_pos)
 }
 
@@ -326,8 +328,8 @@ fn control_on_rail(
 ) -> Option<propulsion::Desired> {
     let def = params.types.get(args.vehicle.ty);
 
-    let conduit = params.conduit_query.log_get(args.location.rail)?;
-    let corridor = params.corridor_query.log_get(conduit.corridor.0)?;
+    let conduit = params.conduit_query.log_get(args.location.rail, loc!())?;
+    let corridor = params.corridor_query.log_get(conduit.corridor.0, loc!())?;
     let Some(exit_endpoint) = identify_endpoint(
         &params.edge_alpha.edge_building_query,
         corridor.edge_alpha,
@@ -377,12 +379,13 @@ fn control_on_rail(
         return Some(result);
     }
 
-    let vehicle_list =
-        conduit.vehicles.inspect_log("rail conduit owning vehicle must have vehicle list")?;
+    let vehicle_list = conduit
+        .vehicles
+        .inspect_log(loc!(), "rail conduit owning vehicle must have vehicle list")?;
     let index_in_list = vehicle_list
         .iter()
         .position(|v| v == args.vehicle_entity)
-        .inspect_log("rail conduit owning vehicle must contain vehicle in list")?;
+        .inspect_log(loc!(), "rail conduit owning vehicle must contain vehicle in list")?;
     let next_vehicle = match exit_endpoint {
         AlphaOrBeta::Alpha => {
             index_in_list.checked_sub(1).and_then(|minus_one| vehicle_list.get(minus_one))
@@ -448,7 +451,7 @@ fn control_on_rail_try_transition_to_building(
         edge_building_query: &Query<&edge::OfBuilding<Ab>>,
     ) -> Option<Vec3> {
         corridor_edge
-            .and_then(|edge| edge_building_query.log_get(edge.edge()))
+            .and_then(|edge| edge_building_query.log_get(edge.edge(), loc!()))
             .map(|edge| edge.interior_pos)
     }
 
@@ -507,7 +510,7 @@ fn control_on_rail_with_vehicle_stop(
     next_entity: Entity,
 ) -> Option<propulsion::Desired> {
     let (next_vehicle_data, &Location::Rail(next_location)) =
-        params.vehicle_query.log_get(next_entity)?
+        params.vehicle_query.log_get(next_entity, loc!())?
     else {
         tracing::warn!(
             "rail conduit owning vehicle {:?} must have next vehicle {:?} on the same rail",
@@ -595,7 +598,7 @@ fn identify_endpoint<Ab: Which>(
     building: Entity,
 ) -> Option<AlphaOrBeta> {
     let edge = edge?.edge();
-    let of_building = edge_building_query.log_get(edge)?;
+    let of_building = edge_building_query.log_get(edge, loc!())?;
     if of_building.building == building { Some(Ab::default().proto()) } else { None }
 }
 

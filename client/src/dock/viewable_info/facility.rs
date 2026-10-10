@@ -9,7 +9,7 @@ use traffloat_scene::conduit::ConduitCorridor;
 use traffloat_scene::{
     FluidTypes, GenericViewable, IdRegistry, OutboundRequest, ProtoId, building, facility,
 };
-use traffloat_util::QueryExt;
+use traffloat_util::{QueryExt, loc};
 
 use crate::dock::viewable_info::{show_fluid, show_graph_button, show_link, show_link_small};
 use crate::dock::{self, plot};
@@ -41,7 +41,7 @@ impl UiSystemParam<'_, '_> {
         };
 
         let Some((building_viewable, building_info)) =
-            self.building_query.log_get(facility_data.building.0)
+            self.building_query.log_get(facility_data.building.0, loc!())
         else {
             return;
         };
@@ -169,7 +169,7 @@ fn show_connections(
                     FluidConnectionPeer::Facility(peer) => {
                         show_link(ui, commands, peer);
                         ui.label("Neighbor facility:");
-                        if let Some(peer_viewable) = params.viewable_query.log_get(peer) {
+                        if let Some(peer_viewable) = params.viewable_query.log_get(peer, loc!()) {
                             ui.label(&peer_viewable.name);
                         }
                     }
@@ -180,15 +180,15 @@ fn show_connections(
                     FluidConnectionPeer::Pipe(peer) => {
                         show_link(ui, commands, peer);
                         ui.label("Pipe:");
-                        if let Some(peer_viewable) = params.viewable_query.log_get(peer) {
+                        if let Some(peer_viewable) = params.viewable_query.log_get(peer, loc!()) {
                             ui.label(&peer_viewable.name);
                         }
 
-                        if let Some(corridor) = params.conduit_query.log_get(peer) {
+                        if let Some(corridor) = params.conduit_query.log_get(peer, loc!()) {
                             ui.label("in corridor:");
                             show_link_small(ui, commands, corridor.0);
                             if let Some(corridor_viewable) =
-                                params.viewable_query.log_get(corridor.0)
+                                params.viewable_query.log_get(corridor.0, loc!())
                             {
                                 ui.label(&corridor_viewable.name);
                             }

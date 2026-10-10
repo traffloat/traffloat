@@ -18,7 +18,7 @@ use bevy::transform::components::Transform;
 use bevy_mesh::VertexAttributeValues;
 use ordered_float::OrderedFloat;
 use traffloat_proto::proto;
-use traffloat_util::{EntityWorldMutExt, QueryExt, WorldExt, try_log};
+use traffloat_util::{EntityWorldMutExt, QueryExt, WorldExt, loc, try_log};
 
 use crate::picking::ObservePicking;
 use crate::util::shapes::Shapes;
@@ -170,7 +170,7 @@ fn rearrange_conduit_tf_system(
 ) {
     for (mut need, &corridor_tf, conduits, corridor_info, outline) in corridor_query {
         if need.0 {
-            let Some(outline_mesh) = outline_query.log_get(outline.0) else { continue };
+            let Some(outline_mesh) = outline_query.log_get(outline.0, loc!()) else { continue };
             let mut outline_mesh = meshes
                 .get_mut(&outline_mesh.0)
                 .expect("getting asset by strong handle should succeed");
@@ -183,7 +183,7 @@ fn rearrange_conduit_tf_system(
 
             let mut conduits: Vec<_> = conduits
                 .iter()
-                .filter_map(|entity| conduit_query.log_get(entity))
+                .filter_map(|entity| conduit_query.log_get(entity, loc!()))
                 .map(|(entity, info, _)| (entity, info.radius))
                 .collect();
             conduits.sort_by_key(|&(_, radius)| OrderedFloat(radius));
@@ -194,7 +194,7 @@ fn rearrange_conduit_tf_system(
                     .zip(&conduits)
             {
                 let (_, _, mut conduit_tf) =
-                    conduit_query.log_get_mut(entity).expect("conduit entity should exist");
+                    conduit_query.log_get_mut(entity, loc!()).expect("conduit entity should exist");
                 *conduit_tf = corridor_tf.mul_transform(relative_tf);
                 conduit_tf.translation.z = Zorder::Conduit.z();
 
@@ -252,10 +252,11 @@ fn compute_placement(
 }
 
 pub(super) fn on_despawn(entity: &mut EntityWorldMut) {
-    let corridor = entity.log_get::<ConduitCorridor>().map(|b| b.0);
+    let corridor = entity.log_get::<ConduitCorridor>(loc!()).map(|b| b.0);
     if let Some(corridor) = corridor {
         entity.world_scope(|world| {
-            if let Some(mut marker) = world.log_get_mut::<NeedRearrangeTransform>(corridor) {
+            if let Some(mut marker) = world.log_get_mut::<NeedRearrangeTransform>(corridor, loc!())
+            {
                 marker.0 = true;
             }
         });

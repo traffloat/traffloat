@@ -6,7 +6,7 @@ use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
-use traffloat_util::{AlphaBeta, EntityWorldMutExt};
+use traffloat_util::{AlphaBeta, EntityWorldMutExt, loc};
 
 use crate::graph::{Corridor, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
@@ -76,7 +76,7 @@ impl Persistable for Persist {
                 .apply(entity);
             });
 
-            if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>() {
+            if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>(loc!()) {
                 entry.fluid.apply_to_component(&mut fluid);
             }
         }

@@ -11,7 +11,7 @@ use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use bevy::time::{self, Time};
 use serde::{Deserialize, Serialize};
-use traffloat_util::QueryExt;
+use traffloat_util::{QueryExt, loc};
 
 use crate::vehicle::{
     CompartmentList, CompartmentPassengerList, Location, OperatorList, OperatorOf, SystemSets,
@@ -97,7 +97,7 @@ impl FluidStorageSelector {
             FluidStorageSelector::Ambient => match *data.location {
                 Location::Building(location) => location.building,
                 Location::Rail(location) => {
-                    let corridor = params.conduit_query.log_get(location.rail)?;
+                    let corridor = params.conduit_query.log_get(location.rail, loc!())?;
                     corridor.0
                 }
             },
@@ -121,7 +121,7 @@ impl<'pw, 'ps, 'dw, 'ds>
         then: impl FnOnce(&fluid::Storage) -> R,
     ) -> Option<R> {
         let storage_entity = self.storage_entity(params, data)?;
-        let storage = params.fluid_storage_query.log_get(storage_entity)?;
+        let storage = params.fluid_storage_query.log_get(storage_entity, loc!())?;
         Some(then(storage))
     }
 
@@ -132,7 +132,7 @@ impl<'pw, 'ps, 'dw, 'ds>
         then: impl FnOnce(&mut fluid::Storage) -> R,
     ) -> Option<R> {
         let storage_entity = self.storage_entity(params, data)?;
-        let mut storage = params.fluid_storage_query.log_get_mut(storage_entity)?;
+        let mut storage = params.fluid_storage_query.log_get_mut(storage_entity, loc!())?;
         Some(then(&mut storage))
     }
 }
@@ -164,7 +164,8 @@ impl<'pw, 'ps, 'dw, 'ds>
             Self::Operator { slot } => {
                 let slot = usize::try_from(slot).expect("usize >= u32");
                 for operator_entity in data.operators.iter().flat_map(|list| list.iter()) {
-                    let Some(resident) = params.resident_query.log_get(operator_entity) else {
+                    let Some(resident) = params.resident_query.log_get(operator_entity, loc!())
+                    else {
                         continue;
                     };
                     debug_assert_eq!(resident.as_operator.vehicle, data.entity);
@@ -180,11 +181,12 @@ impl<'pw, 'ps, 'dw, 'ds>
                 };
                 for passenger_entity in params
                     .compartment_query
-                    .log_get(compartment_entity)
+                    .log_get(compartment_entity, loc!())
                     .iter()
                     .flat_map(|list| list.iter())
                 {
-                    let Some(resident) = params.resident_query.log_get(passenger_entity) else {
+                    let Some(resident) = params.resident_query.log_get(passenger_entity, loc!())
+                    else {
                         continue;
                     };
                     then(resident.attributes, data.entity);
@@ -203,7 +205,8 @@ impl<'pw, 'ps, 'dw, 'ds>
             Self::Operator { slot } => {
                 let slot = usize::try_from(slot).expect("usize >= u32");
                 for operator_entity in data.operators.iter().flat_map(|list| list.iter()) {
-                    let Some(mut resident) = params.resident_query.log_get_mut(operator_entity)
+                    let Some(mut resident) =
+                        params.resident_query.log_get_mut(operator_entity, loc!())
                     else {
                         continue;
                     };
@@ -220,11 +223,12 @@ impl<'pw, 'ps, 'dw, 'ds>
                 };
                 for passenger_entity in params
                     .compartment_query
-                    .log_get(compartment_entity)
+                    .log_get(compartment_entity, loc!())
                     .iter()
                     .flat_map(|list| list.iter())
                 {
-                    let Some(mut resident) = params.resident_query.log_get_mut(passenger_entity)
+                    let Some(mut resident) =
+                        params.resident_query.log_get_mut(passenger_entity, loc!())
                     else {
                         continue;
                     };
@@ -395,9 +399,11 @@ fn apply_pressure(
     def: &TypeDef,
     dt: f32,
 ) {
-    let Some(corridor) = params.conduit_query.log_get(conduit) else { return };
-    let pressure =
-        params.fluid_storage_query.log_get(corridor.0).map_or(0.0, |storage| storage.pressure);
+    let Some(corridor) = params.conduit_query.log_get(conduit, loc!()) else { return };
+    let pressure = params
+        .fluid_storage_query
+        .log_get(corridor.0, loc!())
+        .map_or(0.0, |storage| storage.pressure);
     *force = def.motion.drag_coefficient * pressure * speed.powi(2);
     let drag_v_delta = *force / vehicle.mass * dt;
     *speed = if *speed > 0.0 {

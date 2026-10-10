@@ -18,7 +18,7 @@ use bevy::time::{self, Time};
 use bevy::transform::components::{GlobalTransform, Transform};
 use bevy_mesh::Mesh2d;
 use traffloat_proto::proto;
-use traffloat_util::{QueryExt, run_stateless_closure};
+use traffloat_util::{QueryExt, loc, run_stateless_closure};
 
 use crate::picking::ObservePicking;
 use crate::util::shapes::Shapes;
@@ -122,7 +122,7 @@ impl UpdateHandler for UpdateResidentLocationParams<'_, '_> {
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_resident(update.id) else { return };
-        let Some(mut data) = self.resident_query.log_get_mut(entity) else { return };
+        let Some(mut data) = self.resident_query.log_get_mut(entity, loc!()) else { return };
         let Some((location, dp)) = self.location_resolver.resolve(&update.location) else { return };
         data.0.location = location;
         *data.1 = dp;
@@ -143,13 +143,13 @@ impl LocationResolver<'_, '_> {
         let (location, epoch_position, speed) = match *location {
             proto::ResidentLocation::Building { building, interior_pos, speed } => {
                 let entity = self.ids.get_building(building)?;
-                let building_info = self.building_query.log_get(entity)?;
+                let building_info = self.building_query.log_get(entity, loc!())?;
                 let position = building_info.position + interior_pos.xy();
                 (Location::Building(entity), Some(position), speed.xy())
             }
             proto::ResidentLocation::Corridor { corridor, linear_pos, speed } => {
                 let entity = self.ids.get_corridor(corridor)?;
-                let corridor_info = self.corridor_query.log_get(entity)?;
+                let corridor_info = self.corridor_query.log_get(entity, loc!())?;
                 let endpoints = corridor_info.endpoint_positions;
                 let atob = endpoints.atob().normalize_or_zero();
                 let position = endpoints.alpha + atob * linear_pos;
@@ -157,7 +157,7 @@ impl LocationResolver<'_, '_> {
             }
             proto::ResidentLocation::Facility { facility, ref slot_name } => {
                 let entity = self.ids.get_facility(facility)?;
-                let transform = self.facility_query.log_get(entity)?;
+                let transform = self.facility_query.log_get(entity, loc!())?;
                 (
                     Location::Facility { facility: entity, slot_name: slot_name.clone() },
                     Some(transform.translation().xy()),
@@ -206,7 +206,7 @@ impl UpdateHandler for UpdateResidentAttributesFullParams<'_, '_> {
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_resident(update.id) else { return };
-        let Some(mut info) = self.resident_query.log_get_mut(entity) else { return };
+        let Some(mut info) = self.resident_query.log_get_mut(entity, loc!()) else { return };
 
         info.attributes.resize(self.types.types.len(), None);
 
@@ -249,7 +249,7 @@ impl UpdateHandler for UpdateResidentAttributesPartialParams<'_, '_> {
 
     fn handle(&mut self, update: &Self::Update) {
         let Some(entity) = self.ids.get_resident(update.id) else { return };
-        let Some(mut info) = self.resident_query.log_get_mut(entity) else { return };
+        let Some(mut info) = self.resident_query.log_get_mut(entity, loc!()) else { return };
 
         info.attributes.resize(self.types.types.len(), None);
 

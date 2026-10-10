@@ -8,7 +8,7 @@ use bevy::ecs::world::World;
 use bevy::math::Vec3;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
-use traffloat_util::QueryExt;
+use traffloat_util::{QueryExt, loc};
 
 use crate::graph::{building, conduit, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
@@ -80,7 +80,8 @@ impl Persistable for Persist {
                         .iter()
                         .flat_map(|list| list.iter())
                         .map(|cpmt_entity| {
-                            let cpmt = params.compartment_query.log_get(cpmt_entity).ok_or(())?;
+                            let cpmt =
+                                params.compartment_query.log_get(cpmt_entity, loc!()).ok_or(())?;
                             Ok(CompartmentEntry {
                                 fluid: fluid::persist::StorageEntry::from_component(cpmt.fluid),
                             })

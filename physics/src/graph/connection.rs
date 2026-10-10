@@ -17,7 +17,7 @@ use bevy::ecs::system::{EntityCommand, Query, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
-use traffloat_util::{QueryExt, WorldExt};
+use traffloat_util::{QueryExt, WorldExt, loc};
 
 use crate::graph::{Conduit, Corridor, Facility, ViewInitSystemSets, conduit, facility};
 use crate::persist::AppExt;
@@ -145,7 +145,7 @@ impl EntityCommand for SpawnCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         let Some(&Facility { volume: main_volume, .. }) =
-            entity.world().log_get::<Facility>(self.main)
+            entity.world().log_get::<Facility>(self.main, loc!())
         else {
             return;
         };
@@ -155,7 +155,7 @@ impl EntityCommand for SpawnCommand {
         let peer_storage = match self.peer {
             SpawnPeer::Facility(peer) => {
                 let Some(&Facility { volume: peer_volume, .. }) =
-                    entity.world().log_get::<Facility>(peer)
+                    entity.world().log_get::<Facility>(peer, loc!())
                 else {
                     return;
                 };
@@ -173,12 +173,14 @@ impl EntityCommand for SpawnCommand {
                 peer
             }
             SpawnPeer::Pipe(peer) => {
-                let Some(conduit) = entity.world().log_get::<Conduit>(peer) else { return };
-                let Some(&conduit::OfCorridor(corridor_entity)) = entity.world().log_get(peer)
+                let Some(conduit) = entity.world().log_get::<Conduit>(peer, loc!()) else { return };
+                let Some(&conduit::OfCorridor(corridor_entity)) =
+                    entity.world().log_get(peer, loc!())
                 else {
                     return;
                 };
-                let Some(corridor) = entity.world().log_get::<Corridor>(corridor_entity) else {
+                let Some(corridor) = entity.world().log_get::<Corridor>(corridor_entity, loc!())
+                else {
                     return;
                 };
                 max_area = conduit.radius.powi(2) * PI;
@@ -258,17 +260,17 @@ fn broadcast_changes(
         if let Some(pipe) = data.pipe {
             Some(proto::BuildingFluidConnectionPair::FacilityPipe {
                 facility: main_id,
-                pipe:     viewable_query.log_get(pipe.0)?.id,
+                pipe:     viewable_query.log_get(pipe.0, loc!())?.id,
             })
         } else if let Some(alt_facility) = data.alt_facility {
             Some(proto::BuildingFluidConnectionPair::FacilityFacility(
                 main_id,
-                viewable_query.log_get(alt_facility.0)?.id,
+                viewable_query.log_get(alt_facility.0, loc!())?.id,
             ))
         } else if let Some(building) = data.building {
             Some(proto::BuildingFluidConnectionPair::FacilityBuilding {
                 facility: main_id,
-                building: viewable_query.log_get(building.0)?.id,
+                building: viewable_query.log_get(building.0, loc!())?.id,
             })
         } else {
             tracing::warn!("Connection {connection_entity:?} has no peer component");
@@ -280,13 +282,16 @@ fn broadcast_changes(
         let mut connections = Vec::new();
 
         for facility in facility_list.iter() {
-            let Some(&view::Viewable { id: main_id, .. }) = params.viewable_query.log_get(facility)
+            let Some(&view::Viewable { id: main_id, .. }) =
+                params.viewable_query.log_get(facility, loc!())
             else {
                 continue;
             };
             let Ok(connection_list) = params.facility_query.get(facility) else { continue };
             for connection in connection_list.iter() {
-                let Some(data) = params.connection_query.log_get(connection) else { continue };
+                let Some(data) = params.connection_query.log_get(connection, loc!()) else {
+                    continue;
+                };
                 if let Some(pair) =
                     make_proto_pair(&params.viewable_query, main_id, &data, connection)
                 {

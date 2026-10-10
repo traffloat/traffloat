@@ -30,7 +30,7 @@ use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
-use traffloat_util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt};
+use traffloat_util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt, loc};
 
 use crate::graph::{Building, Corridor};
 use crate::persist::AppExt;
@@ -118,10 +118,12 @@ impl<Ab: Which> EntityCommand for SpawnCommand<Ab> {
     type Out = ();
 
     fn apply(self, mut entity: EntityWorldMut) {
-        let Some(building) = entity.world().log_get::<Building>(self.building) else { return };
+        let Some(building) = entity.world().log_get::<Building>(self.building, loc!()) else {
+            return;
+        };
         let Some(endpoint_pos) = entity
             .world()
-            .log_get::<Corridor>(self.corridor)
+            .log_get::<Corridor>(self.corridor, loc!())
             .map(|c| self.which.select(c.endpoint_positions))
         else {
             return;
@@ -146,8 +148,8 @@ impl<Ab: Which> EntityCommand for SpawnCommand<Ab> {
 // Convention: fluid edge alpha = building, fluid edge beta = corridor
 fn insert_fluid_edge(world: &mut World, edge: Entity, building: Entity, corridor: Entity) {
     let (resistance_recip, area) = {
-        let Some(building) = world.log_get::<Building>(building) else { return };
-        let Some(corridor) = world.log_get::<Corridor>(corridor) else { return };
+        let Some(building) = world.log_get::<Building>(building, loc!()) else { return };
+        let Some(corridor) = world.log_get::<Corridor>(corridor, loc!()) else { return };
         (1.0 / (building.radius + corridor.length * 0.5), corridor.ambient_area)
     };
 
@@ -182,13 +184,18 @@ fn broadcast_edge_change_system<Ab: Which, Chg: BroadcastChange>(
     mut writer: MessageWriter<view::SentUpdate>,
 ) {
     for (building, corridor, edge) in edge_query {
-        let Some((corridor_viewable, opposite_edge)) = corridor_query.log_get(corridor.0) else {
+        let Some((corridor_viewable, opposite_edge)) = corridor_query.log_get(corridor.0, loc!())
+        else {
             continue;
         };
-        let Some(building_viewable) = building_query.log_get(building.building) else { continue };
+        let Some(building_viewable) = building_query.log_get(building.building, loc!()) else {
+            continue;
+        };
         let opposite_building_viewable = opposite_edge
-            .and_then(|opposite| opposite_edge_query.log_get(opposite.0))
-            .and_then(|opposite_building| building_query.log_get(opposite_building.building));
+            .and_then(|opposite| opposite_edge_query.log_get(opposite.0, loc!()))
+            .and_then(|opposite_building| {
+                building_query.log_get(opposite_building.building, loc!())
+            });
         writer.write_batch(view::Viewable::broadcast_update_if_all_optical_and_any_detail(
             [building_viewable, corridor_viewable].into_iter().chain(opposite_building_viewable),
             |level| match level {
@@ -216,10 +223,13 @@ impl EntityCommand for DespawnCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         fn cleanup<Ab: Which>(which: Ab, entity: &mut EntityWorldMut) {
-            let Some(&OfCorridor::<Ab>(corridor_entity, ..)) = entity.log_get() else { return };
+            let Some(&OfCorridor::<Ab>(corridor_entity, ..)) = entity.log_get(loc!()) else {
+                return;
+            };
 
             entity.world_scope(|world| {
-                let Some(corridor_viewable) = world.log_get::<view::Viewable>(corridor_entity)
+                let Some(corridor_viewable) =
+                    world.log_get::<view::Viewable>(corridor_entity, loc!())
                 else {
                     return;
                 };

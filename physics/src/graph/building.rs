@@ -13,7 +13,7 @@ use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
-use traffloat_util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt};
+use traffloat_util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt, loc};
 
 use crate::graph::{Facility, ViewInitSystemSets, edge, facility};
 use crate::persist::AppExt;
@@ -111,14 +111,14 @@ pub(super) fn recompute_culling_rect(mut params: RecomputeCullingRectParams, bui
         corridor_query: &Query<RecomputeCullingRectCorridorData>,
     ) {
         for edge in edge_list.iter().flat_map(|edges| edges.iter()) {
-            let Some(edge) = edge_query.log_get(edge) else { continue };
-            let Some(corridor) = corridor_query.log_get(edge.corridor.0) else { continue };
+            let Some(edge) = edge_query.log_get(edge, loc!()) else { continue };
+            let Some(corridor) = corridor_query.log_get(edge.corridor.0, loc!()) else { continue };
             *rect = rect.union(corridor.rect.0);
         }
     }
 
     let Some(RecomputeCullingRectBuildingDataItem { building, alpha_edges, beta_edges, mut rect }) =
-        params.building_query.log_get_mut(building)
+        params.building_query.log_get_mut(building, loc!())
     else {
         return;
     };
@@ -176,18 +176,18 @@ impl EntityCommand for RecomputeAmbientVolume {
                 let facilities: Vec<_> = facility_list.iter().collect();
                 facilities
                     .iter()
-                    .filter_map(|&f| entity.world().log_get::<Facility>(f))
+                    .filter_map(|&f| entity.world().log_get::<Facility>(f, loc!()))
                     .map(|f| f.volume)
                     .sum()
             } else {
                 0.0
             };
-        let Some(mut building) = entity.log_get_mut::<Building>() else { return };
+        let Some(mut building) = entity.log_get_mut::<Building>(loc!()) else { return };
 
         let ambient_volume = sphere_volume(building.radius) - used_by_facilities;
         building.ambient_volume = ambient_volume;
 
-        if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>() {
+        if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>(loc!()) {
             fluid.volume = ambient_volume;
         }
     }

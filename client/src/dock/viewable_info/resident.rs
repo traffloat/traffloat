@@ -2,7 +2,7 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_scene::{GenericViewable, resident, vehicle};
-use traffloat_util::QueryExt;
+use traffloat_util::{QueryExt, loc};
 
 use crate::dock::viewable_info::{show_graph_button, show_link};
 use crate::dock::{self, plot};
@@ -24,7 +24,7 @@ struct ResidentData {
 
 impl UiSystemParam<'_, '_> {
     pub fn ui(&mut self, entity: Entity, ui: &mut egui::Ui, _: dock::Context) {
-        let Some(resident_data) = self.resident_query.log_get(entity) else {
+        let Some(resident_data) = self.resident_query.log_get(entity, loc!()) else {
             ui.label("Object has been unloaded");
             return;
         };
@@ -61,21 +61,21 @@ fn show_location(
         resident::Location::Building(building) => {
             show_link(ui, commands, building);
             ui.label("Inside building:");
-            if let Some(viewable) = params.viewable_query.log_get(building) {
+            if let Some(viewable) = params.viewable_query.log_get(building, loc!()) {
                 ui.label(&viewable.name);
             }
         }
         resident::Location::Corridor(corridor) => {
             show_link(ui, commands, corridor);
             ui.label("Inside corridor:");
-            if let Some(viewable) = params.viewable_query.log_get(corridor) {
+            if let Some(viewable) = params.viewable_query.log_get(corridor, loc!()) {
                 ui.label(&viewable.name);
             }
         }
         resident::Location::Facility { facility, ref slot_name } => {
             show_link(ui, commands, facility);
             ui.label(format!("{slot_name} in facility:"));
-            if let Some(viewable) = params.viewable_query.log_get(facility) {
+            if let Some(viewable) = params.viewable_query.log_get(facility, loc!()) {
                 ui.label(&viewable.name);
             }
         }
@@ -83,14 +83,14 @@ fn show_location(
             show_link(ui, commands, entity);
             let vehicle_type = params
                 .vehicle_query
-                .log_get(entity)
+                .log_get(entity, loc!())
                 .and_then(|info| params.vehicle_types.types.get(info.ty));
             let operator_type = operator_slot
                 .zip(vehicle_type)
                 .and_then(|(slot, ty)| ty.proto.operator_slots.get(slot))
                 .map_or("passenger", |cpmt| cpmt.name.as_str());
             ui.label(format!("As {operator_type} in vehicle"));
-            if let Some(viewable) = params.viewable_query.log_get(entity) {
+            if let Some(viewable) = params.viewable_query.log_get(entity, loc!()) {
                 ui.label(&viewable.name);
             }
             if let Some(ty) = vehicle_type

@@ -16,7 +16,7 @@ use bevy_egui::{EguiPrimaryContextPass, EguiTextureHandle, EguiUserTextures};
 use bevy_mod_config::{AppExt, Config, ReadConfig};
 use egui::load::SizedTexture;
 use traffloat_scene::WorldCamera;
-use traffloat_util::{QueryExt, WorldExt};
+use traffloat_util::{QueryExt, WorldExt, loc};
 
 use crate::{ConfigManager, dock};
 
@@ -86,7 +86,7 @@ impl dock::Tab for Tab {
         dock: dock::Context,
     ) {
         let Some((mut camera, mut camera_tf, global_tf)) =
-            param.camera_query.log_get_mut(self.camera)
+            param.camera_query.log_get_mut(self.camera, loc!())
         else {
             return;
         };
@@ -242,9 +242,11 @@ impl Command for FocusCommand {
             return;
         };
 
-        let Some(&target_tf) = world.log_get::<GlobalTransform>(self.target) else { return };
+        let Some(&target_tf) = world.log_get::<GlobalTransform>(self.target, loc!()) else {
+            return;
+        };
 
-        let Some(mut camera) = world.log_get_mut::<Transform>(camera) else { return };
+        let Some(mut camera) = world.log_get_mut::<Transform>(camera, loc!()) else { return };
         camera.translation = target_tf.translation();
     }
 }

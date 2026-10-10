@@ -11,7 +11,7 @@ use bevy::ecs::message::{Message, MessageWriter};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{Query, ResMut, SystemParam};
 use traffloat_proto::proto;
-use traffloat_util::QueryExt;
+use traffloat_util::{QueryExt, loc};
 
 use crate::{OutboundRequest, ProtoId};
 
@@ -60,7 +60,7 @@ impl UpdateFocusSystemParams<'_, '_> {
             if class == FocusClass::ViewInterior {
                 self.view_interior_entities.set.insert(entity);
             }
-            if let Some(proto_id) = self.id_query.log_get(entity) {
+            if let Some(proto_id) = self.id_query.log_get(entity, loc!()) {
                 focused_ids.push(proto_id.0);
             }
         }

@@ -11,7 +11,7 @@ use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
-use traffloat_util::{QueryExt, WorldExt};
+use traffloat_util::{QueryExt, WorldExt, loc};
 
 use crate::graph::{Building, Conduit, ViewInitSystemSets, building};
 use crate::persist::AppExt;
@@ -108,7 +108,9 @@ pub struct SpawnCommand {
 impl EntityCommand for SpawnCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
-        let Some(typedef) = entity.world().log_get::<FacilityTypeDef>(self.ty) else { return };
+        let Some(typedef) = entity.world().log_get::<FacilityTypeDef>(self.ty, loc!()) else {
+            return;
+        };
         let volume = typedef.volume;
         let name = self.name.clone().unwrap_or_else(|| typedef.display_name.clone());
 
@@ -118,9 +120,8 @@ impl EntityCommand for SpawnCommand {
         // when the building itself is directly visible.
         let building_rect = entity
             .world()
-            .log_get::<Building>(self.building)
-            .map(|b| view::CullingRect(b.base_rect()))
-            .unwrap_or_default();
+            .log_get::<Building>(self.building, loc!())
+            .map_or_default(|b| view::CullingRect(b.base_rect()));
 
         entity.insert((
             Name::new(format!("Facility {name}")),
@@ -136,7 +137,7 @@ impl EntityCommand for SpawnCommand {
             building::RecomputeAmbientVolume.apply(world.entity_mut(self.building));
         });
 
-        let Some(def) = entity.world().log_get::<FacilityTypeDef>(self.ty) else { return };
+        let Some(def) = entity.world().log_get::<FacilityTypeDef>(self.ty, loc!()) else { return };
         def.blueprint.populate(&self.blueprint_params)(&mut entity);
     }
 }
@@ -174,8 +175,8 @@ fn init_viewer_system(
     ) in facility_query
     {
         messages.write_batch(viewable.broadcast_new(|| {
-            let building_viewable = building_query.log_get(building_entity)?;
-            let typedef = type_query.log_get(ty)?;
+            let building_viewable = building_query.log_get(building_entity, loc!())?;
+            let typedef = type_query.log_get(ty, loc!())?;
             Some(proto::Update::NewFacility(proto::NewFacility {
                 id:           viewable.id,
                 building:     building_viewable.id,
@@ -261,7 +262,7 @@ fn fluid_ports_to_proto(
         .iter()
         .enumerate()
         .map(|(port_index, entity)| {
-            match entity.and_then(|entity| port_peer_query.log_get(entity)) {
+            match entity.and_then(|entity| port_peer_query.log_get(entity, loc!())) {
                 None => proto::FacilityReactorFluidPort::None,
                 Some(peer) => {
                     if peer.facility {
@@ -316,7 +317,7 @@ impl request::Handler for SetReactorEfficiencyCapHandler<'_, '_> {
             .index
             .index
             .get(&request.id)
-            .and_then(|&entity| self.facility_query.log_get_mut(entity));
+            .and_then(|&entity| self.facility_query.log_get_mut(entity, loc!()));
         match entity {
             None => {
                 view::send_error_toast(

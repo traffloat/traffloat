@@ -8,6 +8,15 @@ use bevy::ecs::query::{IterQueryData, QueryData, QueryFilter};
 use bevy::ecs::system::Query;
 use bevy::ecs::world::{EntityRef, EntityWorldMut, World};
 
+pub type Loc = (&'static str, u32);
+
+#[macro_export]
+macro_rules! loc {
+    () => {
+        (file!(), line!())
+    };
+}
+
 #[macro_export]
 macro_rules! try_log {
     (
@@ -26,6 +35,7 @@ macro_rules! try_log {
             )]
             if let Some(value) = $crate::TryLog::convert_or_log(
                 $expr,
+                $crate::loc!(),
                 format_args!($must, $($($must_args),*)?),
             ) {
                 value
@@ -42,15 +52,20 @@ pub trait QueryExtSuper {
 }
 
 pub trait QueryExt: QueryExtSuper {
-    fn log_get(&self, entity: Entity) -> Option<Self::Read<'_>>;
+    fn log_get(&self, entity: Entity, loc: Loc) -> Option<Self::Read<'_>>;
 
-    fn log_get_many<const N: usize>(&self, entity: [Entity; N]) -> Option<[Self::Read<'_>; N]>;
+    fn log_get_many<const N: usize>(
+        &self,
+        entity: [Entity; N],
+        loc: Loc,
+    ) -> Option<[Self::Read<'_>; N]>;
 
-    fn log_get_mut(&mut self, entity: Entity) -> Option<Self::Write<'_>>;
+    fn log_get_mut(&mut self, entity: Entity, loc: Loc) -> Option<Self::Write<'_>>;
 
     fn log_get_many_mut<const N: usize>(
         &mut self,
         entity: [Entity; N],
+        loc: Loc,
     ) -> Option<[Self::Write<'_>; N]>;
 }
 
@@ -68,11 +83,20 @@ where
     D: IterQueryData,
     F: QueryFilter,
 {
-    fn log_get(&self, entity: Entity) -> Option<<D::ReadOnly as QueryData>::Item<'_, 's>> {
+    fn log_get(
+        &self,
+        entity: Entity,
+        (file, line): Loc,
+    ) -> Option<<D::ReadOnly as QueryData>::Item<'_, 's>> {
         match self.get(entity) {
             Ok(value) => Some(value),
             Err(err) => {
-                tracing::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
+                tracing::error!(
+                    file = file,
+                    line = line,
+                    "Expected {entity:?} to match query {}: {err}",
+                    type_name::<D>()
+                );
                 None
             }
         }
@@ -81,21 +105,32 @@ where
     fn log_get_many<const N: usize>(
         &self,
         entity: [Entity; N],
+        (file, line): Loc,
     ) -> Option<[<D::ReadOnly as QueryData>::Item<'_, 's>; N]> {
         match self.get_many(entity) {
             Ok(value) => Some(value),
             Err(err) => {
-                tracing::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
+                tracing::error!(
+                    file = file,
+                    line = line,
+                    "Expected {entity:?} to match query {}: {err}",
+                    type_name::<D>()
+                );
                 None
             }
         }
     }
 
-    fn log_get_mut(&mut self, entity: Entity) -> Option<D::Item<'_, 's>> {
+    fn log_get_mut(&mut self, entity: Entity, (file, line): Loc) -> Option<D::Item<'_, 's>> {
         match self.get_mut(entity) {
             Ok(value) => Some(value),
             Err(err) => {
-                tracing::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
+                tracing::error!(
+                    file = file,
+                    line = line,
+                    "Expected {entity:?} to match query {}: {err}",
+                    type_name::<D>()
+                );
                 None
             }
         }
@@ -104,11 +139,17 @@ where
     fn log_get_many_mut<const N: usize>(
         &mut self,
         entity: [Entity; N],
+        (file, line): Loc,
     ) -> Option<[D::Item<'_, 's>; N]> {
         match self.get_many_mut(entity) {
             Ok(value) => Some(value),
             Err(err) => {
-                tracing::error!("Expected {entity:?} to match query {}: {err}", type_name::<D>());
+                tracing::error!(
+                    file = file,
+                    line = line,
+                    "Expected {entity:?} to match query {}: {err}",
+                    type_name::<D>()
+                );
                 None
             }
         }
@@ -116,20 +157,26 @@ where
 }
 
 pub trait WorldExt {
-    fn log_get<T: Component>(&self, entity: Entity) -> Option<&T>;
+    fn log_get<T: Component>(&self, entity: Entity, loc: Loc) -> Option<&T>;
 
     fn log_get_mut<T: Component<Mutability = Mutable>>(
         &mut self,
         entity: Entity,
+        loc: Loc,
     ) -> Option<Mut<'_, T>>;
 }
 
 impl WorldExt for World {
-    fn log_get<T: Component>(&self, entity: Entity) -> Option<&T> {
+    fn log_get<T: Component>(&self, entity: Entity, (file, line): Loc) -> Option<&T> {
         if let Some(value) = self.get::<T>(entity) {
             Some(value)
         } else {
-            tracing::error!("Expected {entity:?} to have component {}", type_name::<T>());
+            tracing::error!(
+                file = file,
+                line = line,
+                "Expected {entity:?} to have component {}",
+                type_name::<T>()
+            );
             None
         }
     }
@@ -137,80 +184,117 @@ impl WorldExt for World {
     fn log_get_mut<T: Component<Mutability = Mutable>>(
         &mut self,
         entity: Entity,
+        (file, line): Loc,
     ) -> Option<Mut<'_, T>> {
         if let Some(value) = self.get_mut::<T>(entity) {
             Some(value)
         } else {
-            tracing::error!("Expected {entity:?} to have component {}", type_name::<T>());
+            tracing::error!(
+                file = file,
+                line = line,
+                "Expected {entity:?} to have component {}",
+                type_name::<T>()
+            );
             None
         }
     }
 }
 
 pub trait EntityRefExt {
-    fn log_get<T: Component>(&self) -> Option<&T>;
+    fn log_get<T: Component>(&self, loc: Loc) -> Option<&T>;
 }
 
 impl EntityRefExt for EntityRef<'_> {
-    fn log_get<T: Component>(&self) -> Option<&T> {
+    fn log_get<T: Component>(&self, (file, line): Loc) -> Option<&T> {
         if let Some(value) = self.get::<T>() {
             Some(value)
         } else {
-            tracing::error!("Expected {:?} to have component {}", self.id(), type_name::<T>());
+            tracing::error!(
+                file = file,
+                line = line,
+                "Expected {:?} to have component {}",
+                self.id(),
+                type_name::<T>()
+            );
             None
         }
     }
 }
 
 pub trait EntityWorldMutExt {
-    fn log_get<T: Component>(&self) -> Option<&T>;
+    fn log_get<T: Component>(&self, loc: Loc) -> Option<&T>;
 
-    fn log_get_mut<T: Component<Mutability = Mutable>>(&mut self) -> Option<Mut<'_, T>>;
+    fn log_get_mut<T: Component<Mutability = Mutable>>(&mut self, loc: Loc) -> Option<Mut<'_, T>>;
 }
 
 impl EntityWorldMutExt for EntityWorldMut<'_> {
-    fn log_get<T: Component>(&self) -> Option<&T> {
+    fn log_get<T: Component>(&self, (file, line): Loc) -> Option<&T> {
         if let Some(value) = self.get::<T>() {
             Some(value)
         } else {
-            tracing::error!("Expected {:?} to have component {}", self.id(), type_name::<T>());
+            tracing::error!(
+                file = file,
+                line = line,
+                "Expected {:?} to have component {}",
+                self.id(),
+                type_name::<T>()
+            );
             None
         }
     }
 
-    fn log_get_mut<T: Component<Mutability = Mutable>>(&mut self) -> Option<Mut<'_, T>> {
+    fn log_get_mut<T: Component<Mutability = Mutable>>(
+        &mut self,
+        (file, line): Loc,
+    ) -> Option<Mut<'_, T>> {
         let id = self.id(); // polonius does not like this being in the match arm
         if let Some(value) = self.get_mut::<T>() {
             Some(value)
         } else {
-            tracing::error!("Expected {:?} to have component {}", id, type_name::<T>());
+            tracing::error!(
+                file = file,
+                line = line,
+                "Expected {:?} to have component {}",
+                id,
+                type_name::<T>()
+            );
             None
         }
     }
 }
 
 pub trait SliceGet<T> {
-    fn log_get(&self, index: usize) -> Option<&T>;
+    fn log_get(&self, index: usize, loc: Loc) -> Option<&T>;
 
-    fn log_get_mut(&mut self, index: usize) -> Option<&mut T>;
+    fn log_get_mut(&mut self, index: usize, loc: Loc) -> Option<&mut T>;
 }
 
 impl<T> SliceGet<T> for [T] {
-    fn log_get(&self, index: usize) -> Option<&T> {
+    fn log_get(&self, index: usize, (file, line): Loc) -> Option<&T> {
         if let Some(value) = self.get(index) {
             Some(value)
         } else {
-            tracing::error!("Reference to index {index} in slice of length {}", self.len());
+            tracing::error!(
+                file = file,
+                line = line,
+                "Reference to index {index} in slice of length {}",
+                self.len()
+            );
             None
         }
     }
 
-    fn log_get_mut(&mut self, index: usize) -> Option<&mut T> {
+    fn log_get_mut(&mut self, index: usize, (file, line): Loc) -> Option<&mut T> {
         let len = self.len(); // polonius
         if let Some(value) = self.get_mut(index) {
             Some(value)
         } else {
-            tracing::error!("Reference to index {index} in slice of length {}", len);
+            tracing::error!(
+                file = file,
+                line = line,
+                "Reference to index {index} in slice of length {}",
+                len
+            );
             None
         }
     }
@@ -218,26 +302,26 @@ impl<T> SliceGet<T> for [T] {
 
 pub trait InspectLog<T> {
     #[must_use]
-    fn inspect_log(self, must: impl fmt::Display) -> Self;
+    fn inspect_log(self, loc: Loc, must: impl fmt::Display) -> Self;
 }
 
 impl<T> InspectLog<T> for Option<T> {
-    fn inspect_log(self, must: impl fmt::Display) -> Self {
+    fn inspect_log(self, (file, line): Loc, must: impl fmt::Display) -> Self {
         if let Some(value) = self {
             Some(value)
         } else {
-            tracing::error!("{must}");
+            tracing::error!(file = file, line = line, "{must}");
             None
         }
     }
 }
 
 impl<T, E: fmt::Display> InspectLog<T> for Result<T, E> {
-    fn inspect_log(self, must: impl fmt::Display) -> Self {
+    fn inspect_log(self, (file, line): Loc, must: impl fmt::Display) -> Self {
         match self {
             Ok(value) => Ok(value),
             Err(err) => {
-                tracing::error!("{must}: {err}");
+                tracing::error!(file = file, line = line, "{must}: {err}");
                 Err(err)
             }
         }
@@ -247,26 +331,26 @@ impl<T, E: fmt::Display> InspectLog<T> for Result<T, E> {
 /// An expression that can be used for `$expr` in [`try_log!`](crate::try_log!).
 pub trait TryLog<T> {
     /// Returns the successful result as `Some`, or log the error with `must`.
-    fn convert_or_log(this: Self, must: impl fmt::Display) -> Option<T>;
+    fn convert_or_log(this: Self, loc: Loc, must: impl fmt::Display) -> Option<T>;
 }
 
 impl<T> TryLog<T> for Option<T> {
-    fn convert_or_log(this: Self, must: impl fmt::Display) -> Option<T> {
+    fn convert_or_log(this: Self, (file, line): Loc, must: impl fmt::Display) -> Option<T> {
         if let Some(value) = this {
             Some(value)
         } else {
-            tracing::error!("{must}");
+            tracing::error!(file = file, line = line, "{must}");
             None
         }
     }
 }
 
 impl<T, E: fmt::Display> TryLog<T> for Result<T, E> {
-    fn convert_or_log(this: Self, must: impl fmt::Display) -> Option<T> {
+    fn convert_or_log(this: Self, (file, line): Loc, must: impl fmt::Display) -> Option<T> {
         match this {
             Ok(value) => Some(value),
             Err(err) => {
-                tracing::error!("{must}: {err}");
+                tracing::error!(file = file, line = line, "{must}: {err}");
                 None
             }
         }
