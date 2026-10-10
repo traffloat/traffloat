@@ -18,12 +18,12 @@ traffloat-proto = { workspace = true }
 traffloat-scene = { workspace = true }
 traffloat-util = { workspace = true }
 
-bevy_mesh = { version = "0.19.0", default-features = false }
-bevy_mod_config = { version = "0.8.0", features = ["egui"] }
+bevy_mesh = { version = "0.20.0", default-features = false }
+bevy_mod_config = { version = "0.9.0", features = ["egui"] }
 clap = { version = "4.6.1", features = ["cargo", "derive", "env", "unstable-markdown"] }
 dirs = "6.0.0"
 egui = "0.36.1"
-egui-notify = { version = "0.23.0", git = "https://github.com/UnknownSuperficialNight/egui-notify", rev = "ae98ed7cb57a5c1c0127ef878bc9b2233d335983" }
+egui-notify = "0.23.0"
 egui_dock = "0.21.1"
 egui_plot = "0.37.0"
 egui_material_icons = { version = "0.8.0", default-features = false, features = ["filled"] }
@@ -50,15 +50,15 @@ default-features = false
 optional = true
 features = ["documentation", "egui_clipboard", "bevy_render"]
 # TODO remove this when updated
-git = "https://github.com/kisya-games/bevy-inspector-egui"
-rev = "7087caed7b08f86392313299e00c32f0597b44c9"
+git = "https://github.com/SOF3/bevy-inspector-egui"
+rev = "f6383b0781e2f06fc75eee882db84a2961ed2adb"
 
 [dependencies.bevy]
 workspace = true
 features = ["2d"]
 
 [dependencies.bevy_egui]
-version = "0.42.0"
+version = "0.43.0"
 default-features = false
 features = ["default_fonts", "manage_clipboard", "open_url", "render", "serde"]
 

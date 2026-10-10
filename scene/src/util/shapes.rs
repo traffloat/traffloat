@@ -3,9 +3,9 @@ use bevy::asset::{self, Assets};
 use bevy::ecs::bundle::Bundle;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::system::{Res, ResMut, SystemParam};
-use bevy::math::primitives::{Circle, Rectangle};
 use bevy::math::{Quat, Vec2, Vec3};
 use bevy::mesh::{Mesh, Mesh2d};
+use bevy::shape::{Circle, Rectangle};
 use bevy::transform::components::Transform;
 
 use crate::Zorder;
