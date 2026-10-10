@@ -44,7 +44,6 @@ impl Plugin for Plug {
         types::init::<TypeDef>(app);
 
         app.init_resource::<Conf>();
-        app.init_resource::<Types>();
 
         app.add_systems(app::FixedUpdate, transfer::transfer_system.in_set(TransferSystemSet));
         app.add_systems(

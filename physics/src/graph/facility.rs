@@ -119,8 +119,7 @@ impl EntityCommand for SpawnCommand {
         let building_rect = entity
             .world()
             .log_get::<Building>(self.building)
-            .map(|b| view::CullingRect(b.base_rect()))
-            .unwrap_or_default();
+            .map_or_default(|b| view::CullingRect(b.base_rect()));
 
         entity.insert((
             Name::new(format!("Facility {name}")),

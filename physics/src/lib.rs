@@ -14,6 +14,7 @@ mod cleanup;
 pub use crate::cleanup::{CleanupAppExt, CleanupHooks, WorldObject};
 
 // Domain-specific modules
+pub mod cargo;
 pub mod fluid;
 pub mod graph;
 pub mod reaction;
@@ -35,6 +36,7 @@ impl Plugin for Plug {
         app.add_plugins(persist::Plug);
         app.add_plugins(view::Plug);
         app.add_plugins(graph::Plug);
+        app.add_plugins(cargo::Plug);
         app.add_plugins(fluid::Plug);
         app.add_plugins(resident::Plug);
         app.add_plugins(vehicle::Plug);
