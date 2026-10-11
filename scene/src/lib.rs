@@ -54,6 +54,7 @@ where
         app.init_state::<LevelState>();
         app.init_resource::<IdRegistry>();
         app.init_resource::<FluidTypes>();
+        app.init_resource::<CargoTypes>();
         app.init_config::<M, Conf>("scene");
         app.add_message::<OutboundRequest>();
         app.add_message::<InboundUpdate>();
@@ -316,6 +317,7 @@ fan_out! {
     define_params, define_params_tuple, define_params_item;
     8, 2;
     SetFluidTypes(SetFluidTypesParams<'w>),
+    SetCargoTypes(SetCargoTypesParams<'w>),
     SetResidentAttrTypes(resident::SetResidentAttrTypesParams<'w>),
     SetVehicleTypes(vehicle::SetVehicleTypesParams<'w>),
     ShowGenericToast(ShowGenericToastParams<'w>),
@@ -354,6 +356,25 @@ impl UpdateHandler for SetFluidTypesParams<'_> {
 
     fn handle(&mut self, update: &proto::SetFluidTypes) {
         self.fluids.0 = update.types.iter().map(|t| FluidType { name: t.name.clone() }).collect();
+    }
+}
+
+#[derive(SystemParam)]
+struct SetCargoTypesParams<'w> {
+    cargos: ResMut<'w, CargoTypes>,
+}
+
+impl UpdateHandler for SetCargoTypesParams<'_> {
+    type Update = proto::SetCargoTypes;
+
+    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Meta }
+
+    fn handle(&mut self, update: &proto::SetCargoTypes) {
+        self.cargos.0 = update
+            .types
+            .iter()
+            .map(|t| CargoType { name: t.name.clone(), density: t.density })
+            .collect();
     }
 }
 
@@ -476,6 +497,14 @@ pub struct FluidTypes(pub Vec<FluidType>);
 
 pub struct FluidType {
     pub name: String,
+}
+
+#[derive(Resource, Default)]
+pub struct CargoTypes(pub Vec<CargoType>);
+
+pub struct CargoType {
+    pub name:    String,
+    pub density: f32,
 }
 
 #[derive(Config)]

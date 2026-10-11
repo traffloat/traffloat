@@ -4,10 +4,11 @@
 //! Components:
 //! - [`graph::Building`]
 //! - [`fluid::Storage`] (for ambient storage)
+//! - [`cargo::Storage`]
 //! - [`view::Viewable`]
 //!
 //! Parent of:
-//! - Facility.
+//! - Facility
 //! - Graph Edge
 //!
 //! # Facility
@@ -17,17 +18,19 @@
 //! - [`view::Viewable`]
 //! - By facility type:
 //!   - [`fluid::Storage`]
+//!   - [`cargo::Storage`]
 //!   - [`reactor::Facility`]
 //! - [`resident::InteractionSlots`]
 //!
 //! Child of:
-//! - Building.
+//! - Building
 //! - Facility Type
 //!
 //! # Corridor
 //! Components:
 //! - [`graph::Corridor`]
 //! - [`fluid::Storage`] (for ambient storage)
+//! - [`cargo::Storage`]
 //! - [`view::Viewable`]
 //!
 //! Parent of:
@@ -107,6 +110,7 @@
 //! - [`vehicle::CompartmentOf`]
 //! - [`vehicle::CompartmentPassengerList`]
 //! - [`fluid::Storage`]
+//! - [`cargo::Storage`]
 //! - [`fluid::Sensor`]
 //!
 //! Child of:
@@ -130,5 +134,6 @@
 //! Components:
 //! - [`view::Viewer`]
 //! - [`fluid::ViewerSynced`]
+//! - [`cargo::ViewerSynced`]
 
 use crate::*;

@@ -149,30 +149,28 @@ struct StandardReactorTypes {
 
 fn gen_reactor_types(world: &mut World, std_fluids: &StandardFluidTypes) -> StandardReactorTypes {
     let mut types = world.resource_mut::<reactor::Types>();
-    let garden = types.push(reactor::TypeDef {
-        inputs:    [reactor::Input::Fluid(reaction::input::Fluid {
-            selector:       reactor::FluidPortSelector { port: 0 },
-            ty:             std_fluids.carbon_dioxide,
-            max_rate:       fluid::Moles(0.1),
-            conc_threshold: reaction::Threshold {
-                curve:         reaction::Curve::Linear {
-                    min_input:      0.0,
-                    max_input:      0.1,
-                    min_multiplier: 0.0,
-                    max_multiplier: 1.0,
+    let garden = types.push(
+        reactor::TypeDef::default()
+            .with_input(reaction::input::Fluid {
+                selector:       reactor::FluidPortSelector { port: 0 },
+                ty:             std_fluids.carbon_dioxide,
+                max_rate:       fluid::Moles(0.1),
+                conc_threshold: reaction::Threshold {
+                    curve:         reaction::Curve::Linear {
+                        min_input:      0.0,
+                        max_input:      0.1,
+                        min_multiplier: 0.0,
+                        max_multiplier: 1.0,
+                    },
+                    modifier_type: reaction::ThresholdModifierType::Maximum,
                 },
-                modifier_type: reaction::ThresholdModifierType::Maximum,
-            },
-        })]
-        .into(),
-        outputs:   [reactor::Output::Fluid(reaction::output::Fluid {
-            selector: reactor::FluidPortSelector { port: 0 },
-            ty:       std_fluids.oxygen,
-            max_rate: fluid::Moles(0.2),
-        })]
-        .into(),
-        catalysts: [
-            reactor::Catalyst::Fluid(reaction::catalyst::Fluid {
+            })
+            .with_output(reaction::output::Fluid {
+                selector: reactor::FluidPortSelector { port: 0 },
+                ty:       std_fluids.oxygen,
+                max_rate: fluid::Moles(0.2),
+            })
+            .with_catalyst(reaction::catalyst::Fluid {
                 selector:       reactor::FluidPortSelector { port: 1 },
                 ty:             std_fluids.water,
                 conc_threshold: reaction::Threshold {
@@ -184,8 +182,8 @@ fn gen_reactor_types(world: &mut World, std_fluids: &StandardFluidTypes) -> Stan
                     },
                     modifier_type: reaction::ThresholdModifierType::Maximum,
                 },
-            }),
-            reactor::Catalyst::Temperature(reaction::catalyst::Temperature {
+            })
+            .with_catalyst(reaction::catalyst::Temperature {
                 selector:       reactor::FluidPortSelector { port: 0 },
                 temp_threshold: reaction::Threshold {
                     curve:         reaction::Curve::Gaussian {
@@ -197,9 +195,7 @@ fn gen_reactor_types(world: &mut World, std_fluids: &StandardFluidTypes) -> Stan
                     modifier_type: reaction::ThresholdModifierType::Multiplier,
                 },
             }),
-        ]
-        .into(),
-    });
+    );
     StandardReactorTypes { garden }
 }
 
@@ -336,48 +332,55 @@ fn gen_vehicle_types(world: &mut World, fluids: &StandardFluidTypes) -> Standard
             motion:         vehicle::def::Motion {
                 propulsion:       vehicle::Propulsion {
                     inputs:    [
-                        reaction::input::Fluid {
-                            selector:       vehicle::propulsion::FluidStorageSelector::Compartment(
-                                1,
-                            ),
-                            ty:             fluids.hydrogen,
-                            max_rate:       fluid::Moles(0.4),
-                            conc_threshold: reaction::Threshold {
-                                curve:         reaction::Curve::Linear {
-                                    min_input:      0.0,
-                                    max_input:      1.0,
-                                    min_multiplier: 0.0,
-                                    max_multiplier: 1.0,
+                        vehicle::propulsion::Input::Fluid(
+                            reaction::input::Fluid {
+                                selector:
+                                    vehicle::propulsion::FluidStorageSelector::Compartment(1),
+                                ty:             fluids.hydrogen,
+                                max_rate:       fluid::Moles(0.4),
+                                conc_threshold: reaction::Threshold {
+                                    curve:         reaction::Curve::Linear {
+                                        min_input:      0.0,
+                                        max_input:      1.0,
+                                        min_multiplier: 0.0,
+                                        max_multiplier: 1.0,
+                                    },
+                                    modifier_type: reaction::ThresholdModifierType::Multiplier,
                                 },
-                                modifier_type: reaction::ThresholdModifierType::Multiplier,
-                            },
-                        }
-                        .into(),
-                        reaction::input::Fluid {
-                            selector:       vehicle::propulsion::FluidStorageSelector::Ambient,
-                            ty:             fluids.oxygen,
-                            max_rate:       fluid::Moles(0.2),
-                            conc_threshold: reaction::Threshold {
-                                curve:         reaction::Curve::Linear {
-                                    min_input:      0.1,
-                                    max_input:      0.8,
-                                    min_multiplier: 0.0,
-                                    max_multiplier: 1.0,
+                            }
+                            .into(),
+                        ),
+                        vehicle::propulsion::Input::Fluid(
+                            reaction::input::Fluid {
+                                selector:       vehicle::propulsion::FluidStorageSelector::Ambient,
+                                ty:             fluids.oxygen,
+                                max_rate:       fluid::Moles(0.2),
+                                conc_threshold: reaction::Threshold {
+                                    curve:         reaction::Curve::Linear {
+                                        min_input:      0.1,
+                                        max_input:      0.8,
+                                        min_multiplier: 0.0,
+                                        max_multiplier: 1.0,
+                                    },
+                                    modifier_type: reaction::ThresholdModifierType::Multiplier,
                                 },
-                                modifier_type: reaction::ThresholdModifierType::Multiplier,
-                            },
-                        }
-                        .into(),
+                            }
+                            .into(),
+                        ),
                     ]
                     .into(),
                     outputs:   [
-                        vehicle::propulsion::ForceOutput { max_force: 3000.0 }.into(),
-                        reaction::output::Fluid {
-                            selector: vehicle::propulsion::FluidStorageSelector::Compartment(2),
-                            ty:       fluids.water,
-                            max_rate: fluid::Moles(0.4),
-                        }
-                        .into(),
+                        vehicle::propulsion::Output::Force(
+                            vehicle::propulsion::ForceOutput { max_force: 3000.0 }.into(),
+                        ),
+                        vehicle::propulsion::Output::Fluid(
+                            reaction::output::Fluid {
+                                selector: vehicle::propulsion::FluidStorageSelector::Compartment(2),
+                                ty:       fluids.water,
+                                max_rate: fluid::Moles(0.4),
+                            }
+                            .into(),
+                        ),
                     ]
                     .into(),
                     catalysts: [].into(),
@@ -420,39 +423,37 @@ fn gen_vehicle_types(world: &mut World, fluids: &StandardFluidTypes) -> Standard
 
 fn gen_resident_ambient_interactions(world: &mut World, std: &StandardTypes) {
     let mut interactions = world.resource_mut::<resident::ambient::Interactions>();
-    interactions.list.push(
-        resident::ambient::Interaction::new(
-            "Breathing",
-            const { duration_to_timesteps(Duration::from_secs(5)) },
-        )
-        .with_input(resident::ambient::Input::Fluid(reaction::input::Fluid {
-            selector:       resident::ambient::AmbientFluidSelector,
-            ty:             std.fluids.oxygen,
-            max_rate:       fluid::Moles(0.05),
-            conc_threshold: reaction::Threshold {
-                curve:         reaction::Curve::Linear {
-                    min_input:      0.1,
-                    max_input:      0.8,
-                    min_multiplier: 0.0,
-                    max_multiplier: 1.0,
+    interactions.list.push(resident::ambient::Interaction::new(
+        "Breathing",
+        const { duration_to_timesteps(Duration::from_secs(5)) },
+        resident::ambient::Formula::default()
+            .with_input(reaction::input::Fluid {
+                selector:       resident::ambient::AmbientFluidSelector,
+                ty:             std.fluids.oxygen,
+                max_rate:       fluid::Moles(0.05),
+                conc_threshold: reaction::Threshold {
+                    curve:         reaction::Curve::Linear {
+                        min_input:      0.1,
+                        max_input:      0.8,
+                        min_multiplier: 0.0,
+                        max_multiplier: 1.0,
+                    },
+                    modifier_type: reaction::ThresholdModifierType::Multiplier,
                 },
-                modifier_type: reaction::ThresholdModifierType::Multiplier,
-            },
-        }))
-        .with_catalyst(resident::ambient::Catalyst::Pressure(reaction::catalyst::Pressure {
-            selector:           resident::ambient::AmbientFluidSelector,
-            pressure_threshold: reaction::Threshold {
-                curve:         reaction::Curve::Linear {
-                    min_input:      0.0,
-                    max_input:      6.0,
-                    min_multiplier: 0.0,
-                    max_multiplier: 1.0,
+            })
+            .with_catalyst(reaction::catalyst::Pressure {
+                selector:           resident::ambient::AmbientFluidSelector,
+                pressure_threshold: reaction::Threshold {
+                    curve:         reaction::Curve::Linear {
+                        min_input:      0.0,
+                        max_input:      6.0,
+                        min_multiplier: 0.0,
+                        max_multiplier: 1.0,
+                    },
+                    modifier_type: reaction::ThresholdModifierType::Multiplier,
                 },
-                modifier_type: reaction::ThresholdModifierType::Multiplier,
-            },
-        }))
-        .with_catalyst(resident::ambient::Catalyst::ResidentAttr(
-            reaction::catalyst::ResidentAttr {
+            })
+            .with_catalyst(reaction::catalyst::ResidentAttr {
                 selector:   resident::ambient::SelfResidentSelector,
                 attr:       std.attrs.suffocation,
                 threshold:  reaction::Threshold {
@@ -465,46 +466,37 @@ fn gen_resident_ambient_interactions(world: &mut World, std: &StandardTypes) {
                     modifier_type: reaction::ThresholdModifierType::Maximum,
                 },
                 aggregator: reaction::Aggregator::Sum,
-            },
-        ))
-        .with_output(resident::ambient::Output::Fluid(reaction::output::Fluid {
-            selector: resident::ambient::AmbientFluidSelector,
-            ty:       std.fluids.carbon_dioxide,
-            max_rate: fluid::Moles(0.05),
-        }))
-        .with_output(resident::ambient::Output::ResidentAttr(
-            reaction::output::ResidentAttr {
+            })
+            .with_output(reaction::output::Fluid {
+                selector: resident::ambient::AmbientFluidSelector,
+                ty:       std.fluids.carbon_dioxide,
+                max_rate: fluid::Moles(0.05),
+            })
+            .with_output(reaction::output::ResidentAttr {
                 selector: resident::ambient::SelfResidentSelector,
                 attr:     std.attrs.suffocation,
                 // this will be multiplied by efficiency, so it is actually not as high as it seems
                 delta:    -3.0,
                 min:      Some(0.0),
                 max:      Some(1.0),
-            },
-        )),
-    );
-    interactions.list.push(
-        resident::ambient::Interaction::new(
-            "Respiration",
-            const { duration_to_timesteps(Duration::from_secs(5)) },
-        )
-        .with_output(resident::ambient::Output::ResidentAttr(
-            reaction::output::ResidentAttr {
-                selector: resident::ambient::SelfResidentSelector,
-                attr:     std.attrs.suffocation,
-                delta:    0.1, // Reaches critical level after 50 seconds without breathing
-                min:      Some(0.0),
-                max:      Some(1.0),
-            },
-        )),
-    );
-    interactions.list.push(
-        resident::ambient::Interaction::new(
-            "Suffocation",
-            const { duration_to_timesteps(Duration::from_secs(5)) },
-        )
-        .with_catalyst(resident::ambient::Catalyst::ResidentAttr(
-            reaction::catalyst::ResidentAttr {
+            }),
+    ));
+    interactions.list.push(resident::ambient::Interaction::new(
+        "Respiration",
+        const { duration_to_timesteps(Duration::from_secs(5)) },
+        resident::ambient::Formula::default().with_output(reaction::output::ResidentAttr {
+            selector: resident::ambient::SelfResidentSelector,
+            attr:     std.attrs.suffocation,
+            delta:    0.1, // Reaches critical level after 50 seconds without breathing
+            min:      Some(0.0),
+            max:      Some(1.0),
+        }),
+    ));
+    interactions.list.push(resident::ambient::Interaction::new(
+        "Suffocation",
+        const { duration_to_timesteps(Duration::from_secs(5)) },
+        resident::ambient::Formula::default()
+            .with_catalyst(reaction::catalyst::ResidentAttr {
                 selector:   resident::ambient::SelfResidentSelector,
                 attr:       std.attrs.suffocation,
                 aggregator: reaction::Aggregator::Sum,
@@ -517,18 +509,15 @@ fn gen_resident_ambient_interactions(world: &mut World, std: &StandardTypes) {
                     },
                     modifier_type: reaction::ThresholdModifierType::Maximum,
                 },
-            },
-        ))
-        .with_output(resident::ambient::Output::ResidentAttr(
-            reaction::output::ResidentAttr {
+            })
+            .with_output(reaction::output::ResidentAttr {
                 selector: resident::ambient::SelfResidentSelector,
                 attr:     std.attrs.hp,
                 delta:    -1.0, // Lose 1 HP every 5 seconds when suffocating, death in 8 minutes.
                 min:      Some(0.0),
                 max:      None,
-            },
-        )),
-    );
+            }),
+    ));
 }
 
 fn gen_core(world: &mut World, std: &StandardTypes) -> CoreGen {
@@ -605,6 +594,7 @@ fn gen_garden<'std>(
             interior_pos:     Vec3::ZERO,
             blueprint_params: blueprint::Params {
                 reactor: Some(blueprint::ReactorParams {
+                    reaction_state: reaction::ExecutionState::default(),
                     fluid_storages: [Some(building_id), init.water_pipe].into(),
                 }),
             },

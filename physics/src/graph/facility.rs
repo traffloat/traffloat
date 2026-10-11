@@ -94,8 +94,6 @@ pub struct FacilityTypeDef {
 }
 
 /// Spawns the facility and recomputes building ambient volume.
-///
-/// Facility blueprint is not handled by this command since they require additional parameters.
 pub struct SpawnCommand {
     pub name:         Option<String>,
     pub building:     Entity,
@@ -132,10 +130,6 @@ impl EntityCommand for SpawnCommand {
             building_rect,
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
-
-        entity.world_scope(|world| {
-            building::RecomputeAmbientVolume.apply(world.entity_mut(self.building));
-        });
 
         let Some(def) = entity.world().log_get::<FacilityTypeDef>(self.ty, loc!()) else { return };
         def.blueprint.populate(&self.blueprint_params)(&mut entity);

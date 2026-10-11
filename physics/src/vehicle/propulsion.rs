@@ -29,12 +29,7 @@ impl Plugin for Plug {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct Propulsion {
-    pub inputs:    Vec<Input>,
-    pub catalysts: Vec<Catalyst>,
-    pub outputs:   Vec<Output>,
-}
+pub type Propulsion = reaction::Triple<Input, Catalyst, Output>;
 
 /// The desired speed of the vehicle, when on a rail.
 #[derive(Component, Reflect, Default, Debug, Clone, Copy)]
@@ -247,8 +242,15 @@ pub struct ForceOutput {
     pub max_force: f32,
 }
 
-impl reaction::ReactionExecutor<ExecuteParams<'_, '_>, ExecuteDataItem<'_, '_>> for ForceOutput {
-    fn execute(&self, efficiency: f32, _: &mut ExecuteParams, data: &mut ExecuteDataItem) {
+impl reaction::ContinuousReactionExecutor<ExecuteParams<'_, '_>, ExecuteDataItem<'_, '_>>
+    for ForceOutput
+{
+    fn execute_continuous(
+        &self,
+        efficiency: f32,
+        _: &mut ExecuteParams,
+        data: &mut ExecuteDataItem,
+    ) {
         data.status.propulsion_efficiency = efficiency;
         data.status.propulsion_force = self.max_force * efficiency;
     }
@@ -260,12 +262,12 @@ impl reaction::ReactionExecutor<ExecuteParams<'_, '_>, ExecuteDataItem<'_, '_>> 
 }
 
 reaction::define_ruleset! {
-    [P = ExecuteParams, D = ExecuteDataItem]
+    [@all_continuous P = ExecuteParams, D = ExecuteDataItem]
 
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
     pub input Input {
-        Fluid(reaction::input::Fluid<FluidStorageSelector>),
-        Heat(reaction::input::Heat<FluidStorageSelector>),
+        Fluid(Continuous: reaction::input::Fluid<FluidStorageSelector>),
+        Heat(Continuous: reaction::input::Heat<FluidStorageSelector>),
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
@@ -278,9 +280,9 @@ reaction::define_ruleset! {
 
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
     pub output Output {
-        Fluid(reaction::output::Fluid<FluidStorageSelector>),
-        Heat(reaction::output::Heat<FluidStorageSelector>),
-        Force(ForceOutput),
+        Fluid(Continuous: reaction::output::Fluid<FluidStorageSelector>),
+        Heat(Continuous: reaction::output::Heat<FluidStorageSelector>),
+        Force(Continuous: ForceOutput),
     }
 }
 
@@ -469,7 +471,7 @@ fn apply_propulsion(
         .outputs
         .iter()
         .map(|output| match output {
-            Output::Force(force) => force.max_force,
+            Output::Force(force) => force.0.max_force,
             _ => 0.0,
         })
         .sum::<f32>();
@@ -478,7 +480,7 @@ fn apply_propulsion(
         max_efficiency = 0.0;
     }
 
-    let _efficiency = reaction::execute_once(
+    let _efficiency = reaction::execute_one_reaction(
         params,
         data,
         &propulsion.inputs,

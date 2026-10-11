@@ -119,7 +119,7 @@ impl UpdateHandler for UpdateBuildingParams<'_, '_> {
         let mut material = try_log!(self.materials.get_mut(&handle.0), expect "building entity should reference a valid material" or return);
         material.color = update.color.into();
 
-        info.ambient_fluid.clone_from(&update.ambient_fluid);
+        info.ambient_fluid.clone_from(&update.ambient);
     }
 }
 

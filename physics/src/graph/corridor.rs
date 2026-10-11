@@ -227,17 +227,17 @@ fn incr_viewer_system(
     for (viewable, storage, sensor) in corridor_query.iter() {
         messages.write_batch(viewable.broadcast_update(|level| {
             let mut update = proto::UpdateCorridor {
-                id:            viewable.id,
-                color:         proto::Color(storage.rgba),
-                ambient_fluid: None,
+                id:      viewable.id,
+                color:   proto::Color(storage.rgba),
+                ambient: None,
             };
             match level {
                 view::SubscriptionLevel::Optical => {}
                 view::SubscriptionLevel::Detail => {
-                    update.ambient_fluid = Some(storage.to_proto_normal(sensor));
+                    update.ambient = Some(storage.to_proto_normal(sensor));
                 }
                 view::SubscriptionLevel::Debug => {
-                    update.ambient_fluid = Some(storage.to_proto_debug());
+                    update.ambient = Some(storage.to_proto_debug());
                 }
             }
             [update.into()]
