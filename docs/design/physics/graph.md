@@ -125,14 +125,15 @@ Demolishment or upgrading of a conduit is treated as equivalent to construction.
 ### Corridor closure
 
 Corridors are closed off when they are under construction or have conduits under construction.
-When a corridor is closed off,
+Corridor closure has the following effects:
 
-- its ambient space must be vacated of all residents
-- all [fluid](fluid.md) connections across the ambient space must be closed
-- [fluid](fluid.md) connections to pipes are still functional, but fans stop operating.
-- all [power](power.md) connections are still functional.
-- the corridor stops consuming maintenance [power](power.md).
-- all [rails](vehicle.md) in the corridor become unmoveable, except for non-power-based vehicles.
-  An exception is active construction vehicles,
-  which are only unusable if the corridor was forcibly closed due to power deficit.
-  All vehicles currently on its rails will stop moving and emergency brake.
+| Subsystem | Effect |
+| :---: | :---: | :---: | :---: |
+| [residents](resident.md) | cannot enter or exit the corridor |
+| [fluid](fluid.md) | ambient space is closed, connection no longer exists |
+| [fluid](fluid.md) | conduits remain functional |
+| [power](power.md) | connections remain functional |
+| [rails](vehicle.md) | vehicles cannot move in or out unless they are airtight |
+
+Airtight is a vehicle property that allows it to move through closed corridors.
+This is typically applicable to construction vehicles.

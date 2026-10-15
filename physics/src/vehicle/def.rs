@@ -51,6 +51,14 @@ pub struct Physical {
     pub length: f32,
     /// Gauge size of the vehicle, used for rail compatibility.
     pub gauge:  GaugeSize,
+    /// Whether the vehicle is airtight.
+    pub airtight: Option<Airtight>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct Airtight {
+    /// Maximum speed of the vehicle when moving through a closed edge.
+    pub max_speed: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
