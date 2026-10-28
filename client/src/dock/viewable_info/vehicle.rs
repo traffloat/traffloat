@@ -2,7 +2,8 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::query::QueryData;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_proto::proto;
-use traffloat_scene::{FluidTypes, GenericViewable, vehicle};
+use traffloat_scene::meta::FluidTypes;
+use traffloat_scene::{GenericViewable, vehicle};
 use traffloat_util::{QueryExt, loc};
 
 use crate::dock::viewable_info::{show_fluid, show_link};

@@ -22,7 +22,8 @@ fn vehicle_def() -> vehicle::TypeDef {
             length: 2.0,
         },
         motion:         vehicle::def::Motion {
-            propulsion:       Propulsion::default().with_output(vehicle::propulsion::ForceOutput { max_force: 1000.0 }),
+            propulsion:       Propulsion::default()
+                .with_output(vehicle::propulsion::ForceOutput { max_force: 1000.0 }),
             max_speed:        20.0, // overridden by rail max speed
             max_braking:      2000.0,
             drag_coefficient: 0.3,
@@ -60,6 +61,7 @@ fn new_test() -> Test {
     let air = fluid::AddTypeCommand {
         def: fluid::TypeDef {
             name:                 "air".into(),
+            description:          "air".into(),
             molar_heat_capacity:  1.0,
             advective_fluidity:   1.0,
             diffusive_fluidity:   1.0,

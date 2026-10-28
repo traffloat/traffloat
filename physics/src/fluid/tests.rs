@@ -13,6 +13,7 @@ const NUM_TYPES: usize = 16;
 fn default_types() -> Vec<fluid::TypeDef> {
     iter::repeat_with(|| fluid::TypeDef {
         name:                 String::new(),
+        description:          String::new(),
         molar_heat_capacity:  1.0,
         advective_fluidity:   1.0,
         diffusive_fluidity:   1.0,

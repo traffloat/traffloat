@@ -34,6 +34,7 @@ impl Plugin for Plug {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct TypeDef {
     pub name:           String,
+    pub description:    String,
     pub granule_mass:   f32,
     pub granule_volume: f32,
 }
@@ -92,8 +93,9 @@ fn sync_types_to_viewers_system(
 ) {
     fn def_to_proto(type_def: &TypeDef) -> proto::CargoType {
         proto::CargoType {
-            name:    type_def.name.clone(),
-            density: type_def.granule_mass / type_def.granule_volume,
+            name:        type_def.name.clone(),
+            description: type_def.description.clone(),
+            density:     type_def.granule_mass / type_def.granule_volume,
         }
     }
 
@@ -138,14 +140,20 @@ impl Storage {
         }
     }
 
-    pub fn types(&self) -> impl DoubleEndedIterator<Item = &TypedStorage> + ExactSizeIterator { self.typed.iter() }
+    pub fn types(&self) -> impl DoubleEndedIterator<Item = &TypedStorage> + ExactSizeIterator {
+        self.typed.iter()
+    }
 
-    pub fn types_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut TypedStorage> + ExactSizeIterator { self.typed.iter_mut() }
+    pub fn types_mut(
+        &mut self,
+    ) -> impl DoubleEndedIterator<Item = &mut TypedStorage> + ExactSizeIterator {
+        self.typed.iter_mut()
+    }
 }
 
 #[derive(Reflect, Debug, Clone)]
 pub struct TypedStorage {
-    pub ty:  TypeId,
+    pub ty:       TypeId,
     /// Number of granules of this cargo in the storage.
     pub granules: Granules,
 }

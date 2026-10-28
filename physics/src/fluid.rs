@@ -178,6 +178,7 @@ impl Command for AddTypeCommand {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct TypeDef {
     pub name:                 String,
+    pub description:          String,
     /// Heat energy per mole.
     pub molar_heat_capacity:  f32,
     /// Mass per mole.
@@ -490,7 +491,10 @@ fn sync_types_to_viewers_system(
     mut writer: MessageWriter<view::SentUpdate>,
 ) {
     fn def_to_proto(type_def: &TypeDef) -> proto::FluidType {
-        proto::FluidType { name: type_def.name.clone() }
+        proto::FluidType {
+            name:        type_def.name.clone(),
+            description: type_def.description.clone(),
+        }
     }
 
     for (entity, viewer) in viewers {

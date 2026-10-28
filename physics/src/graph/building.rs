@@ -5,19 +5,19 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
-use bevy::ecs::query::{QueryData, With, };
+use bevy::ecs::query::{QueryData, With};
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{EntityCommand, Res,Query, SystemParam};
+use bevy::ecs::system::{EntityCommand, Query, Res, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
-use traffloat_util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt, loc};
+use traffloat_util::{Alpha, Beta, QueryExt, Which, loc};
 
 use crate::graph::{Facility, ViewInitSystemSets, edge, facility};
 use crate::persist::AppExt;
-use crate::{Vector, cargo, fluid, resident, vehicle, view};
+use crate::{Vector, cargo, fluid, vehicle, view};
 
 mod persist;
 pub use persist::Persist;
@@ -158,7 +158,6 @@ struct RecomputeCullingRectCorridorData {
     rect: &'static view::CullingRect,
 }
 
-
 pub struct DespawnCommand;
 
 impl EntityCommand for DespawnCommand {
@@ -172,9 +171,9 @@ impl EntityCommand for DespawnCommand {
 #[derive(SystemParam)]
 struct RecomputeAmbientVolumeContextParams<'w, 's> {
     facility_query: Query<'w, 's, &'static Facility>,
-    vehicle_types: Res<'w, vehicle::Types>,
-    vehicle_query: Query<'w, 's, &'static vehicle::Vehicle>,
-    cargo_types: Res<'w, cargo::Types>,
+    vehicle_types:  Res<'w, vehicle::Types>,
+    vehicle_query:  Query<'w, 's, &'static vehicle::Vehicle>,
+    cargo_types:    Res<'w, cargo::Types>,
 }
 
 #[derive(QueryData)]
@@ -182,45 +181,63 @@ struct RecomputeAmbientVolumeData {
     facilities: Option<&'static facility::ListOnBuilding>,
     // residents:  Option<&'static resident::ListInBuilding>,
     vehicles:   Option<&'static vehicle::ListInBuilding>,
-    cargo:     Option<&'static cargo::Storage>,
+    cargo:      Option<&'static cargo::Storage>,
 }
 
 fn recompute_ambient_volume_system(
     building_query: Query<(&mut Building, RecomputeAmbientVolumeData, Option<&mut fluid::Storage>)>,
     ctx: RecomputeAmbientVolumeContextParams,
 ) {
-    fn used_by_facilities(data: &RecomputeAmbientVolumeDataItem, ctx: &RecomputeAmbientVolumeContextParams) -> f32 {
+    fn used_by_facilities(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
         let Some(list) = data.facilities else { return 0.0 };
-        list
-            .iter()
-            .filter_map(|f| ctx.facility_query.log_get(f, loc!()))
-            .map(|f| f.volume)
-            .sum()
+        list.iter().filter_map(|f| ctx.facility_query.log_get(f, loc!())).map(|f| f.volume).sum()
     }
 
-    fn used_by_residents(data: &RecomputeAmbientVolumeDataItem, ctx: &RecomputeAmbientVolumeContextParams) -> f32 {
+    fn used_by_residents(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
         // TODO implement resident::ListInBuilding
         0.0
     }
 
-    fn used_by_vehicles(data: &RecomputeAmbientVolumeDataItem, ctx: &RecomputeAmbientVolumeContextParams) -> f32 {
+    fn used_by_vehicles(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
         let Some(list) = data.vehicles else { return 0.0 };
-        list.0.iter().filter_map(|&v| ctx.vehicle_query.log_get(v, loc!()))
+        list.0
+            .iter()
+            .filter_map(|&v| ctx.vehicle_query.log_get(v, loc!()))
             .map(|vehicle| ctx.vehicle_types.get(vehicle.ty).physical.volume)
             .sum()
     }
 
-    #[expect(clippy::cast_precision_loss, reason = "precision loss is acceptable after conversion to volume")]
-    fn used_by_cargo(data: &RecomputeAmbientVolumeDataItem, ctx: &RecomputeAmbientVolumeContextParams) -> f32 {
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "precision loss is acceptable after conversion to volume"
+    )]
+    fn used_by_cargo(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
         let Some(storage) = data.cargo else { return 0.0 };
-        storage.types().map(|t| ctx.cargo_types.get(t.ty).granule_volume * (t.granules.0 as f32)).sum()
+        storage
+            .types()
+            .map(|t| ctx.cargo_types.get(t.ty).granule_volume * (t.granules.0 as f32))
+            .sum()
     }
 
     // This loop is perfectly parallelizable, but the task is largely memory-bound,
     // so parallelization would only be more likely to increase cache misses.
     for (mut building, data, fluid_storage) in building_query {
-        let used = used_by_facilities(&data, &ctx) + used_by_residents(&data, &ctx)
-            + used_by_vehicles(&data, &ctx) + used_by_cargo(&data, &ctx);
+        let used = used_by_facilities(&data, &ctx)
+            + used_by_residents(&data, &ctx)
+            + used_by_vehicles(&data, &ctx)
+            + used_by_cargo(&data, &ctx);
 
         let ambient_volume = sphere_volume(building.radius) - used;
         building.ambient_volume = ambient_volume;

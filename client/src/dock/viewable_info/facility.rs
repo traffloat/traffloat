@@ -6,9 +6,8 @@ use egui_material_icons::icons;
 use traffloat_proto::proto;
 use traffloat_scene::building::FluidConnectionPeer;
 use traffloat_scene::conduit::ConduitCorridor;
-use traffloat_scene::{
-    FluidTypes, GenericViewable, IdRegistry, OutboundRequest, ProtoId, building, facility,
-};
+use traffloat_scene::meta::FluidTypes;
+use traffloat_scene::{GenericViewable, IdRegistry, OutboundRequest, ProtoId, building, facility};
 use traffloat_util::{QueryExt, loc};
 
 use crate::dock::viewable_info::{show_fluid, show_graph_button, show_link, show_link_small};

@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 use traffloat_util::{QueryExt, WorldExt, loc};
 
-use crate::graph::{Building, Conduit, ViewInitSystemSets, building};
+use crate::graph::{Building, Conduit, ViewInitSystemSets};
 use crate::persist::AppExt;
 use crate::view::{IdIndex, SentUpdate};
 use crate::{fluid, reactor, request, view};

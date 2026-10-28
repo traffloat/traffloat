@@ -94,7 +94,8 @@ pub struct SetFluidTypes {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct FluidType {
-    pub name: String,
+    pub name:        String,
+    pub description: String,
 }
 
 /// Defines all cargo types.
@@ -105,8 +106,9 @@ pub struct SetCargoTypes {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct CargoType {
-    pub name:    String,
-    pub density: f32,
+    pub name:        String,
+    pub description: String,
+    pub density:     f32,
 }
 
 /// Defines all resident attribute types.

@@ -30,8 +30,8 @@ impl dock::Tab for Tab {
 pub struct MenuAction;
 
 impl menu::Action for MenuAction {
-    fn shortcut(&self) -> egui::KeyboardShortcut {
-        egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::Comma)
+    fn shortcut(&self) -> Option<egui::KeyboardShortcut> {
+        Some(egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::Comma))
     }
 
     fn icon(&self) -> MaterialIcon { icons::ICON_SETTINGS }

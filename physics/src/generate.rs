@@ -86,6 +86,9 @@ fn gen_fluid_types(world: &mut World) -> StandardFluidTypes {
     let mut types = world.resource_mut::<fluid::Types>();
     let nitrogen = types.push(fluid::TypeDef {
         name:                 "Nitrogen".into(),
+        description:          "Main component of air. Not very reactive, but important for \
+                               pressurization."
+            .into(),
         molar_heat_capacity:  20.800,
         molar_density:        28.014,
         advective_fluidity:   0.4,
@@ -95,6 +98,9 @@ fn gen_fluid_types(world: &mut World) -> StandardFluidTypes {
     });
     let oxygen = types.push(fluid::TypeDef {
         name:                 "Oxygen".into(),
+        description:          "Residents suffocate quickly without it. Produced by gardens or \
+                               electrolysis."
+            .into(),
         molar_heat_capacity:  21.000,
         molar_density:        31.998,
         advective_fluidity:   0.344,
@@ -104,6 +110,9 @@ fn gen_fluid_types(world: &mut World) -> StandardFluidTypes {
     });
     let carbon_dioxide = types.push(fluid::TypeDef {
         name:                 "Carbon dioxide".into(),
+        description:          "Exhaled by residents, accumulating over time. Absorbed by gardens \
+                               of scrubbers."
+            .into(),
         molar_heat_capacity:  28.460,
         molar_density:        44.009,
         advective_fluidity:   0.475,
@@ -113,6 +122,9 @@ fn gen_fluid_types(world: &mut World) -> StandardFluidTypes {
     });
     let water = types.push(fluid::TypeDef {
         name:                 "Water".into(),
+        description:          "An important input in many facilities. Residents dehydrate \
+                               gradually without it."
+            .into(),
         molar_heat_capacity:  75.327,
         molar_density:        18.015,
         advective_fluidity:   0.1,
@@ -122,6 +134,7 @@ fn gen_fluid_types(world: &mut World) -> StandardFluidTypes {
     });
     let hydrogen = types.push(fluid::TypeDef {
         name:                 "Hydrogen".into(),
+        description:          "A very light gas. Can be used as a propellant or fuel.".into(),
         molar_heat_capacity:  28.836,
         molar_density:        2.016,
         advective_fluidity:   0.795,
