@@ -5,23 +5,24 @@ use bevy::ecs::component::Component;
 use bevy::ecs::entity::{Entity, EntityHashSet};
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::name::Name;
-use bevy::ecs::query::With;
+use bevy::ecs::query::{QueryData, With};
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{EntityCommand, Query};
+use bevy::ecs::system::{EntityCommand, Query, Res, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
 use traffloat_util::{
-    Alpha, AlphaBeta, Beta, EntityWorldMutExt, Which, WorldExt, loc, run_stateless_closure,
+    Alpha, AlphaBeta, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt, loc,
+    run_stateless_closure,
 };
 
-use crate::graph::conduit::{self, ListOnCorridor};
+use crate::graph::conduit;
 use crate::graph::{Building, Conduit, ViewInitSystemSets, building, edge};
 use crate::persist::AppExt;
-use crate::{Vector, fluid, view};
+use crate::{Vector, cargo, fluid, resident, view};
 
 mod persist;
 pub use persist::Persist;
@@ -47,6 +48,8 @@ impl Plugin for Plug {
                 .in_set(super::ViewIncrSystemSets::Corridor)
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
+
+        app.add_systems(app::Update, recompute_ambient_volume_system);
     }
 }
 
@@ -55,6 +58,10 @@ pub struct Corridor {
     pub length:             f32,
     pub radius:             f32,
     pub wall_thickness:     f32,
+    /// Mean cross-sectional area of the ambient space of the corridor.
+    ///
+    /// This takes into account the residents and cargo blocking ambient space,
+    /// primarily used to compute the resistance of fluids advecting through the corridor.
     pub ambient_area:       f32,
     pub endpoint_positions: AlphaBeta<Vector>,
 }
@@ -148,7 +155,7 @@ fn recompute_culling_rect(mut entity: EntityWorldMut) {
     }
 
     let conduits: EntityHashSet =
-        entity.get::<conduit::ListOnCorridor>().iter().flat_map(|list| list.iter()).collect();
+        entity.get::<conduit::ListInCorridor>().iter().flat_map(|list| list.iter()).collect();
     entity.world_scope(|world| {
         for conduit in conduits {
             if let Some(mut culling_rect) = world.log_get_mut::<view::CullingRect>(conduit, loc!())
@@ -169,29 +176,77 @@ impl EntityCommand for DespawnCommand {
     }
 }
 
-pub struct RecomputeAmbientVolume;
+#[derive(SystemParam)]
+struct RecomputeAmbientVolumeContextParams<'w, 's> {
+    conduit_query:   Query<'w, 's, &'static Conduit>,
+    resident_niches: Res<'w, resident::attr::Niches>,
+    resident_query:  Query<'w, 's, &'static resident::Attributes>,
+    cargo_types:     Res<'w, cargo::Types>,
+}
 
-impl EntityCommand for RecomputeAmbientVolume {
-    type Out = ();
-    fn apply(self, mut entity: EntityWorldMut) {
-        let used_by_conduits: f32 = if let Some(conduit_list) = entity.get::<ListOnCorridor>() {
-            let conduits: Vec<_> = conduit_list.iter().collect();
-            conduits
-                .iter()
-                .filter_map(|&f| entity.world().log_get::<Conduit>(f, loc!()))
-                .map(|f| f.radius * f.radius)
-                .sum()
-        } else {
-            0.0
+#[derive(QueryData)]
+struct RecomputeAmbientVolumeData {
+    conduits:  Option<&'static conduit::ListInCorridor>,
+    residents: Option<&'static resident::ListInAmbientFixture>,
+    cargo:     Option<&'static cargo::Storage>,
+}
+
+fn recompute_ambient_volume_system(
+    corridor_query: Query<(&mut Corridor, RecomputeAmbientVolumeData, Option<&mut fluid::Storage>)>,
+    ctx: RecomputeAmbientVolumeContextParams,
+) {
+    fn area_used_by_conduits_before_pi(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
+        let Some(list) = data.conduits else { return 0.0 };
+        list.iter()
+            .filter_map(|c| ctx.conduit_query.log_get(c, loc!()))
+            .map(|c| c.radius * c.radius)
+            .sum()
+    }
+
+    fn used_by_residents(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
+        let Some(list) = data.residents else { return 0.0 };
+        let Some(volume_attr) = ctx.resident_niches.niches[resident::attr::Niche::Volume] else {
+            return 0.0;
         };
-        let Some(mut corridor) = entity.log_get_mut::<Corridor>(loc!()) else { return };
+        list.iter()
+            .filter_map(|r| ctx.resident_query.log_get(r, loc!()))
+            .map(|attrs| attrs.get(volume_attr))
+            .sum()
+    }
 
-        let ambient_base = corridor.radius * corridor.radius - used_by_conduits;
-        let ambient_area = ambient_base * PI;
-        corridor.ambient_area = ambient_area;
-        let ambient_volume = ambient_area * corridor.length;
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "precision loss is acceptable after conversion to volume"
+    )]
+    fn used_by_cargo(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
+        let Some(storage) = data.cargo else { return 0.0 };
+        storage
+            .types()
+            .map(|t| ctx.cargo_types.get(t.ty).granule_volume * (t.granules.0 as f32))
+            .sum()
+    }
 
-        if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>(loc!()) {
+    // This loop is perfectly parallelizable, but the task is largely memory-bound,
+    // so parallelization would only be more likely to increase L3 cache misses.
+    for (mut corridor, data, fluid_storage) in corridor_query {
+        let ambient_area_before_pi =
+            corridor.radius * corridor.radius - area_used_by_conduits_before_pi(&data, &ctx);
+        let mut ambient_volume = ambient_area_before_pi * PI * corridor.length;
+        ambient_volume -= used_by_residents(&data, &ctx);
+        ambient_volume -= used_by_cargo(&data, &ctx);
+
+        corridor.ambient_area = ambient_volume / corridor.length;
+
+        if let Some(mut fluid) = fluid_storage {
             fluid.volume = ambient_volume;
         }
     }
@@ -227,17 +282,17 @@ fn incr_viewer_system(
     for (viewable, storage, sensor) in corridor_query.iter() {
         messages.write_batch(viewable.broadcast_update(|level| {
             let mut update = proto::UpdateCorridor {
-                id:            viewable.id,
-                color:         proto::Color(storage.rgba),
-                ambient_fluid: None,
+                id:      viewable.id,
+                color:   proto::Color(storage.rgba),
+                ambient: None,
             };
             match level {
                 view::SubscriptionLevel::Optical => {}
                 view::SubscriptionLevel::Detail => {
-                    update.ambient_fluid = Some(storage.to_proto_normal(sensor));
+                    update.ambient = Some(storage.to_proto_normal(sensor));
                 }
                 view::SubscriptionLevel::Debug => {
-                    update.ambient_fluid = Some(storage.to_proto_debug());
+                    update.ambient = Some(storage.to_proto_debug());
                 }
             }
             [update.into()]

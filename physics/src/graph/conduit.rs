@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 use traffloat_util::{QueryExt, WorldExt, loc};
 
-use crate::graph::{Corridor, ViewInitSystemSets, corridor};
+use crate::graph::{Corridor, ViewInitSystemSets};
 use crate::persist::AppExt;
 use crate::{fluid, vehicle, view};
 
@@ -28,7 +28,7 @@ impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Conduit>();
         app.register_type::<OfCorridor>();
-        app.register_type::<ListOnCorridor>();
+        app.register_type::<ListInCorridor>();
 
         app.register_persistable(Persist);
         app.add_systems(
@@ -56,11 +56,11 @@ pub struct Conduit {
 /// Conduits in a corridor. Component on corridors.
 #[derive(Component, Reflect)]
 #[relationship_target(relationship = OfCorridor, linked_spawn)]
-pub struct ListOnCorridor(Vec<Entity>);
+pub struct ListInCorridor(Vec<Entity>);
 
 /// Corridor owning the conduit. Component on conduits.
 #[derive(Component, Reflect)]
-#[relationship(relationship_target = ListOnCorridor)]
+#[relationship(relationship_target = ListInCorridor)]
 pub struct OfCorridor(pub Entity);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Reflect)]
@@ -114,10 +114,6 @@ impl EntityCommand for SpawnCommand {
             corridor_rect,
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
-
-        entity.world_scope(|world| {
-            corridor::RecomputeAmbientVolume.apply(world.entity_mut(self.corridor));
-        });
 
         match self.typed {
             TypedSpawn::FluidPipe => entity.reborrow_scope(|entity| {

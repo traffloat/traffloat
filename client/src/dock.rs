@@ -6,7 +6,7 @@ use bevy::camera::visibility::RenderLayers;
 use bevy::camera::{Camera, Camera2d};
 use bevy::ecs::resource::Resource;
 use bevy::ecs::schedule::{self, IntoScheduleConfigs, Schedulable, ScheduleConfigs};
-use bevy::ecs::system::{Command, Commands, ParamSet, Res, ResMut, RunSystemOnce, SystemParam};
+use bevy::ecs::system::{Command, Commands, ParamSet, ResMut, RunSystemOnce, SystemParam};
 use bevy::ecs::world::World;
 use bevy_egui::{
     EguiContexts, EguiGlobalSettings, EguiPreUpdateSet, EguiPrimaryContextPass, PrimaryEguiContext,
@@ -17,6 +17,7 @@ use egui_dock::{DockArea, DockState, TabPath};
 
 pub mod camera;
 mod menu;
+mod meta_info;
 pub mod new_level;
 mod open_mode;
 pub mod plot;
@@ -26,7 +27,7 @@ mod startup;
 pub mod viewable_info;
 pub use open_mode::*;
 use traffloat_macro_util::fan_out;
-use traffloat_scene::LevelState;
+use traffloat_scene::meta;
 
 use crate::util::new_id;
 
@@ -317,6 +318,8 @@ fan_out! {
     ViewableInfo(viewable_info::Tab),
     Plot(plot::Tab),
     SaveAs(save::SaveAsTab),
+    MetaInfoFluid(meta_info::Tab<meta::FluidType>),
+    MetaInfoCargo(meta_info::Tab<meta::CargoType>),
 }
 
 fn setup_system(mut egui_global_settings: ResMut<EguiGlobalSettings>, mut commands: Commands) {
@@ -374,13 +377,6 @@ fn render_system(
             .show_inside(ui, &mut viewer);
         viewer.params.ps.p0().global_dock_shortcuts(ui.ctx());
     });
-}
-
-#[derive(SystemParam)]
-struct MenuParams<'w, 's> {
-    commands:    Commands<'w, 's>,
-    src:         Res<'w, save::LoadSource>,
-    level_state: Res<'w, bevy::state::state::State<LevelState>>,
 }
 
 pub struct DockCommand<F: FnOnce(&mut State)>(pub F);

@@ -13,7 +13,7 @@ use bevy::math::FloatExt;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
-use crate::{fluid, resident};
+use crate::{cargo, fluid, resident};
 
 pub mod catalyst;
 pub mod input;
@@ -184,9 +184,93 @@ impl EfficiencyModifierResult {
 }
 
 pub trait ReactionExecutor<P, D> {
-    fn execute(&self, efficiency: f32, params: &mut P, data: &mut D);
+    fn execute(&self, efficiency: f32, params: &mut P, data: &mut D, fract_overflows: u32);
+}
+
+pub trait ContinuousReactionExecutor<P, D> {
+    fn execute_continuous(&self, efficiency: f32, params: &mut P, data: &mut D);
 
     fn execute_zero(&self, params: &mut P, data: &mut D) { _ = (params, data) }
+}
+
+/// Wraps a [`ContinuousReactionExecutor`] to implement [`ReactionExecutor`].
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct Continuous<X>(pub X);
+
+impl<X> From<X> for Continuous<X> {
+    fn from(from: X) -> Self { Self(from) }
+}
+
+impl<X, P, D> EfficiencyModifier<P, D> for Continuous<X>
+where
+    X: EfficiencyModifier<P, D>,
+{
+    fn compute_efficiency(&self, params: &P, data: &D) -> EfficiencyModifierResult {
+        self.0.compute_efficiency(params, data)
+    }
+}
+
+impl<X, P, D> ReactionExecutor<P, D> for Continuous<X>
+where
+    X: ContinuousReactionExecutor<P, D>,
+{
+    fn execute(&self, efficiency: f32, params: &mut P, data: &mut D, _fract_overflows: u32) {
+        if efficiency > 0.0 {
+            self.0.execute_continuous(efficiency, params, data);
+        } else {
+            self.0.execute_zero(params, data);
+        }
+    }
+}
+
+impl<X, P, D> ContinuousReactionExecutor<P, D> for Continuous<X>
+where
+    X: ContinuousReactionExecutor<P, D>,
+{
+    fn execute_continuous(&self, efficiency: f32, params: &mut P, data: &mut D) {
+        self.0.execute_continuous(efficiency, params, data);
+    }
+
+    fn execute_zero(&self, params: &mut P, data: &mut D) { self.0.execute_zero(params, data); }
+}
+
+pub trait GranularReactionExecutor<P, D> {
+    fn execute_granule(&self, params: &mut P, data: &mut D, multiplier: u32);
+}
+
+/// Wraps a [`GranularReactionExecutor`] to implement [`ReactionExecutor`].
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct Granular<X>(pub X);
+
+impl<X> From<X> for Granular<X> {
+    fn from(from: X) -> Self { Self(from) }
+}
+
+impl<X, P, D> EfficiencyModifier<P, D> for Granular<X>
+where
+    X: EfficiencyModifier<P, D>,
+{
+    fn compute_efficiency(&self, params: &P, data: &D) -> EfficiencyModifierResult {
+        self.0.compute_efficiency(params, data)
+    }
+}
+
+impl<X, P, D> ReactionExecutor<P, D> for Granular<X>
+where
+    X: GranularReactionExecutor<P, D>,
+{
+    fn execute(&self, _efficiency: f32, params: &mut P, data: &mut D, fract_overflows: u32) {
+        self.0.execute_granule(params, data, fract_overflows);
+    }
+}
+
+impl<X, P, D> GranularReactionExecutor<P, D> for Granular<X>
+where
+    X: GranularReactionExecutor<P, D>,
+{
+    fn execute_granule(&self, params: &mut P, data: &mut D, multiplier: u32) {
+        self.0.execute_granule(params, data, multiplier);
+    }
 }
 
 pub trait FluidStorageSelector<P, D> {
@@ -198,6 +282,18 @@ pub trait FluidStorageSelector<P, D> {
         params: &mut P,
         data: &mut D,
         then: impl FnOnce(&mut fluid::Storage) -> R,
+    ) -> Option<R>;
+}
+
+pub trait CargoStorageSelector<P, D> {
+    fn select<R>(&self, params: &P, data: &D, then: impl FnOnce(&cargo::Storage) -> R)
+    -> Option<R>;
+
+    fn select_mut<R>(
+        &self,
+        params: &mut P,
+        data: &mut D,
+        then: impl FnOnce(&mut cargo::Storage) -> R,
     ) -> Option<R>;
 }
 
@@ -220,7 +316,9 @@ pub trait ResidentSelector<P, D> {
         then: impl FnMut(&mut resident::Attributes, Entity),
     );
 }
-pub fn execute_once<P, D, Input, Catalyst, Output>(
+
+/// Executes one reaction tick on continuous reaction executors only.
+pub fn execute_one_reaction<P, D, Input, Catalyst, Output>(
     params: &mut P,
     data: &mut D,
     inputs: &[Input],
@@ -230,9 +328,90 @@ pub fn execute_once<P, D, Input, Catalyst, Output>(
     efficiency_multiplier: f32,
 ) -> f32
 where
+    Input: EfficiencyModifier<P, D> + ContinuousReactionExecutor<P, D>,
+    Catalyst: EfficiencyModifier<P, D>,
+    Output: ContinuousReactionExecutor<P, D>,
+{
+    let efficiency =
+        compute_efficiency(params, data, inputs, catalysts, efficiency_cap, efficiency_multiplier);
+    if efficiency > 0.0 {
+        for input in inputs {
+            ContinuousReactionExecutor::execute_continuous(input, efficiency, params, data);
+        }
+        for output in outputs {
+            ContinuousReactionExecutor::execute_continuous(output, efficiency, params, data);
+        }
+        efficiency
+    } else {
+        for input in inputs {
+            ContinuousReactionExecutor::execute_zero(input, params, data);
+        }
+        for output in outputs {
+            ContinuousReactionExecutor::execute_zero(output, params, data);
+        }
+        0.0
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Reflect)]
+pub struct ExecutionState {
+    /// If the reaction involves granular executors, this fraction is used as an intermediate state.
+    pub granular_fract: f32,
+}
+
+/// Executes one reaction tick on any reaction executors.
+pub fn execute_one_reaction_stateful<P, D, Input, Catalyst, Output>(
+    params: &mut P,
+    data: &mut D,
+    inputs: &[Input],
+    catalysts: &[Catalyst],
+    outputs: &[Output],
+    efficiency_cap: f32,
+    efficiency_multiplier: f32,
+    execution_state: impl Fn(&mut D) -> &mut ExecutionState,
+) -> f32
+where
     Input: EfficiencyModifier<P, D> + ReactionExecutor<P, D>,
     Catalyst: EfficiencyModifier<P, D>,
     Output: ReactionExecutor<P, D>,
+{
+    let efficiency =
+        compute_efficiency(params, data, inputs, catalysts, efficiency_cap, efficiency_multiplier)
+            .max(0.0);
+
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "granular_fract and efficiency are always nonnegative and reasonably small"
+    )]
+    let fract_overflows = {
+        let state = execution_state(data);
+        let old = state.granular_fract;
+        let new = old + efficiency;
+        state.granular_fract = new.fract();
+        new.floor() as u32
+    };
+
+    for input in inputs {
+        ReactionExecutor::execute(input, efficiency, params, data, fract_overflows);
+    }
+    for output in outputs {
+        ReactionExecutor::execute(output, efficiency, params, data, fract_overflows);
+    }
+    efficiency
+}
+
+fn compute_efficiency<P, D, Input, Catalyst>(
+    params: &mut P,
+    data: &mut D,
+    inputs: &[Input],
+    catalysts: &[Catalyst],
+    efficiency_cap: f32,
+    efficiency_multiplier: f32,
+) -> f32
+where
+    Input: EfficiencyModifier<P, D>,
+    Catalyst: EfficiencyModifier<P, D>,
 {
     let mut efficiency =
         EfficiencyModifierResult { maximum: efficiency_cap, multiplier: efficiency_multiplier };
@@ -246,59 +425,39 @@ where
         efficiency.merge(modifier);
     }
 
-    let efficiency = efficiency.to_scalar();
-    if efficiency > 0.0 {
-        for input in inputs {
-            ReactionExecutor::execute(input, efficiency, params, data);
-        }
-        for output in outputs {
-            ReactionExecutor::execute(output, efficiency, params, data);
-        }
-        efficiency
-    } else {
-        for input in inputs {
-            ReactionExecutor::execute_zero(input, params, data);
-        }
-        for output in outputs {
-            ReactionExecutor::execute_zero(output, params, data);
-        }
-        0.0
-    }
+    efficiency.to_scalar()
 }
 
 macro_rules! define_ruleset {
     (
-        [P = $P:ident, D = $D:ident]
-        $(#[$input_meta:meta])* $input_vis:vis input $input:ident
-        {
+        [$(@$directive:ident)* P = $P:ident, D = $D:ident]
+        $(#[$input_meta:meta])* $input_vis:vis input $input:ident {
             $(
                 $(#[$input_variant_meta:meta])*
-                $input_variant:ident ($input_var_ty:ty)
+                $input_variant:ident ($input_var_wrapper:ident: $input_var_ty:ty)
             ),* $(,)?
         }
-        $(#[$catalyst_meta:meta])* $catalyst_vis:vis catalyst $catalyst:ident
-        {
+        $(#[$catalyst_meta:meta])* $catalyst_vis:vis catalyst $catalyst:ident {
             $(
                 $(#[$catalyst_variant_meta:meta])*
                 $catalyst_variant:ident ($catalyst_var_ty:ty)
             ),* $(,)?
         }
-        $(#[$output_meta:meta])* $output_vis:vis output $output:ident
-        {
+        $(#[$output_meta:meta])* $output_vis:vis output $output:ident {
             $(
                 $(#[$output_variant_meta:meta])*
-                $output_variant:ident ($output_var_ty:ty)
+                $output_variant:ident ($output_var_wrapper:ident: $output_var_ty:ty)
             ),* $(,)?
         }
     ) => {
         $(#[$input_meta])*
         $input_vis enum $input {
-            $($input_variant($input_var_ty),)*
+            $($input_variant($crate::reaction::$input_var_wrapper<$input_var_ty>),)*
         }
 
         $(
             impl From<$input_var_ty> for $input {
-                fn from(from: $input_var_ty) -> Self { Self::$input_variant(from) }
+                fn from(from: $input_var_ty) -> Self { Self::$input_variant($crate::reaction::$input_var_wrapper(from)) }
             }
         )*
 
@@ -320,16 +479,24 @@ macro_rules! define_ruleset {
 
         $(#[$output_meta])*
         $output_vis enum $output {
-            $($output_variant($output_var_ty),)*
+            $($output_variant($crate::reaction::$output_var_wrapper<$output_var_ty>),)*
         }
 
         $(
             impl From<$output_var_ty> for $output {
-                fn from(from: $output_var_ty) -> Self { Self::$output_variant(from) }
+                fn from(from: $output_var_ty) -> Self { Self::$output_variant($crate::reaction::$output_var_wrapper(from)) }
             }
         )*
 
         $crate::reaction::define_ruleset!(@impl ReactionExecutor<$P, $D> for $output { $($output_variant)* });
+
+        $crate::reaction::define_ruleset!(@directives {
+            P($P),
+            D($D),
+            input($input { $($input_variant)* }),
+            catalyst($catalyst { $($catalyst_variant)* }),
+            output($output { $($output_variant)* }),
+        } $($directive)*);
     };
 
     (@impl EfficiencyModifier<$P:ident, $D:ident> for $enum:ident { $($variant:ident)* }) => {
@@ -348,11 +515,36 @@ macro_rules! define_ruleset {
 
     (@impl ReactionExecutor<$P:ident, $D:ident> for $enum:ident { $($variant:ident)* }) => {
         impl<'pw, 'ps, 'dw, 'ds> $crate::reaction::ReactionExecutor<$P<'pw, 'ps>, $D<'dw, 'ds>> for $enum {
-            fn execute(&self, efficiency: f32, params: &mut $P, data: &mut $D) {
+            fn execute(&self, efficiency: f32, params: &mut $P, data: &mut $D, fract_overflows: u32) {
                 match self {
                     $(
                         Self::$variant(inner) => {
-                            $crate::reaction::ReactionExecutor::execute(inner, efficiency, params, data)
+                            $crate::reaction::ReactionExecutor::execute(
+                                inner,
+                                efficiency,
+                                params,
+                                data,
+                                fract_overflows,
+                            )
+                        }
+                    )*
+                }
+            }
+        }
+    };
+
+    (@impl ContinuousReactionExecutor<$P:ident, $D:ident> for $enum:ident { $($variant:ident)* }) => {
+        impl<'pw, 'ps, 'dw, 'ds> $crate::reaction::ContinuousReactionExecutor<$P<'pw, 'ps>, $D<'dw, 'ds>> for $enum {
+            fn execute_continuous(&self, efficiency: f32, params: &mut $P, data: &mut $D) {
+                match self {
+                    $(
+                        Self::$variant(inner) => {
+                            $crate::reaction::ContinuousReactionExecutor::execute_continuous(
+                                inner,
+                                efficiency,
+                                params,
+                                data,
+                            )
                         }
                     )*
                 }
@@ -362,13 +554,65 @@ macro_rules! define_ruleset {
                 match self {
                     $(
                         Self::$variant(inner) => {
-                            $crate::reaction::ReactionExecutor::execute_zero(inner, params, data)
+                            $crate::reaction::ContinuousReactionExecutor::execute_zero(
+                                inner,
+                                params,
+                                data,
+                            )
                         }
                     )*
                 }
             }
         }
     };
+
+    (@directives $ctx:tt $($directive:ident)*) => {
+        $(
+            $crate::reaction::define_ruleset!(@directive $directive $ctx);
+        )*
+    };
+
+    (@directive all_continuous {
+        P($P:ident),
+        D($D:ident),
+        input($input:ident { $($input_variant:ident)* }),
+        catalyst($catalyst:ident { $($catalyst_variant:ident)* }),
+        output($output:ident { $($output_variant:ident)* }),
+    }) => {
+        $crate::reaction::define_ruleset!(@impl ContinuousReactionExecutor<$P, $D> for $input { $($input_variant)* });
+        $crate::reaction::define_ruleset!(@impl ContinuousReactionExecutor<$P, $D> for $output { $($output_variant)* });
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct Triple<Input, Catalyst, Output> {
+    pub inputs:    Vec<Input>,
+    pub catalysts: Vec<Catalyst>,
+    pub outputs:   Vec<Output>,
+}
+
+impl<Input, Catalyst, Output> Default for Triple<Input, Catalyst, Output> {
+    fn default() -> Self { Self { inputs: Vec::new(), catalysts: Vec::new(), outputs: Vec::new() } }
+}
+
+impl<Input, Catalyst, Output> Triple<Input, Catalyst, Output> {
+    #[must_use]
+    pub fn with_input(mut self, input: impl Into<Input>) -> Self {
+        self.inputs.push(input.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_catalyst(mut self, catalyst: impl Into<Catalyst>) -> Self {
+        self.catalysts.push(catalyst.into());
+        self
+    }
+
+    #[must_use]
+    pub fn with_output(mut self, output: impl Into<Output>) -> Self {
+        self.outputs.push(output.into());
+        self
+    }
 }
 
 pub(crate) use define_ruleset;

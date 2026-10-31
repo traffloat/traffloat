@@ -10,17 +10,18 @@ use snafu::Snafu;
 use traffloat_util::{EntityWorldMutExt, loc};
 
 use crate::graph::facility::{self, PersistTypes, blueprint};
-use crate::graph::{Facility, building};
+use crate::graph::{Facility, building, conduit};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::{WorldObject, fluid, persist, reactor, view};
+use crate::{WorldObject, fluid, persist, reaction, reactor, view};
 
 #[derive(Clone)]
 pub struct Persist;
 
 pub struct Deps {
-    building:      Depend<building::Persist>,
-    facility_type: Depend<PersistTypes>,
-    fluid_type:    Depend<fluid::PersistTypes>,
+    building:            Depend<building::Persist>,
+    facility_type:       Depend<PersistTypes>,
+    fluid_type:          Depend<fluid::PersistTypes>,
+    fluid_storage_ports: (Depend<building::Persist>, Depend<conduit::Persist>),
 }
 
 impl Persistable for Persist {
@@ -29,9 +30,13 @@ impl Persistable for Persist {
     type Deps = Deps;
     fn depends(&self, depends: &mut impl persist::Depends) -> Self::Deps {
         Deps {
-            building:      depends.request(building::Persist),
-            facility_type: depends.request(PersistTypes),
-            fluid_type:    depends.request(fluid::PersistTypes::default()),
+            building:            depends.request(building::Persist),
+            facility_type:       depends.request(PersistTypes),
+            fluid_type:          depends.request(fluid::PersistTypes::default()),
+            fluid_storage_ports: (
+                depends.request(building::Persist),
+                depends.request(conduit::Persist),
+            ),
         }
     }
 
@@ -54,7 +59,7 @@ impl Persistable for Persist {
                     building:         ctx.get_id(deps.building, data.building.0)?,
                     ty:               ctx.get_id(deps.facility_type, data.ty.0)?,
                     interior_pos:     data.facility.interior_pos,
-                    blueprint_params: BlueprintParams::extract(&data, ctx)?,
+                    blueprint_params: BlueprintParams::extract(deps, &data, ctx)?,
                     fluid:            data.fluid.map(fluid::persist::StorageEntry::from_component),
                 })
             })
@@ -136,26 +141,34 @@ pub struct BlueprintParams {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReactorParams {
-    pub fluid_storages: Vec<Option<persist::Id>>,
+    pub execution_state: reaction::ExecutionState,
+    pub fluid_storages:  Vec<Option<persist::Id>>,
 }
 
 impl BlueprintParams {
-    fn extract(data: &OutputQueryDataItem, ctx: &OutputContext) -> Result<Self, ()> {
+    fn extract(deps: &Deps, data: &OutputQueryDataItem, ctx: &OutputContext) -> Result<Self, ()> {
         Ok(Self {
-            reactor: data.reactor.map(|reactor| Self::extract_reactor(reactor, ctx)).transpose()?,
+            reactor: data
+                .reactor
+                .map(|reactor| Self::extract_reactor(deps, reactor, ctx))
+                .transpose()?,
         })
     }
 
     fn extract_reactor(
+        deps: &Deps,
         reactor: &reactor::Facility,
         ctx: &OutputContext,
     ) -> Result<ReactorParams, ()> {
         Ok(ReactorParams {
-            fluid_storages: reactor
+            execution_state: reactor.state.clone(),
+            fluid_storages:  reactor
                 .ports
                 .fluid_storages
                 .iter()
-                .map(|&entity| entity.map(|entity| ctx.get_id_unchecked(entity)).transpose())
+                .map(|&entity| {
+                    entity.map(|entity| ctx.get_id(deps.fluid_storage_ports, entity)).transpose()
+                })
                 .collect::<Result<_, ()>>()?,
         })
     }
@@ -171,6 +184,7 @@ impl BlueprintParams {
     ) -> Result<Option<blueprint::ReactorParams>, InputError> {
         let Some(reactor) = &self.reactor else { return Ok(None) };
         Ok(Some(blueprint::ReactorParams {
+            reaction_state: reactor.execution_state.clone(),
             fluid_storages: reactor
                 .fluid_storages
                 .iter()

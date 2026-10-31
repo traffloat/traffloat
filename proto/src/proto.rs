@@ -59,6 +59,7 @@ pub enum AlphaOrBeta {
 )]
 pub enum Update {
     SetFluidTypes(SetFluidTypes),
+    SetCargoTypes(SetCargoTypes),
     SetResidentAttrTypes(SetResidentAttrTypes),
     SetVehicleTypes(SetVehicleTypes),
     ShowGenericToast(ShowGenericToast),
@@ -93,7 +94,21 @@ pub struct SetFluidTypes {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct FluidType {
-    pub name: String,
+    pub name:        String,
+    pub description: String,
+}
+
+/// Defines all cargo types.
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct SetCargoTypes {
+    pub types: Vec<CargoType>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct CargoType {
+    pub name:        String,
+    pub description: String,
+    pub density:     f32,
 }
 
 /// Defines all resident attribute types.
@@ -188,7 +203,7 @@ pub struct UpdateBuilding {
     pub id:    Id,
     pub color: Color,
 
-    pub ambient_fluid: Option<FluidStorageDetail>,
+    pub ambient: Option<FluidStorageDetail>,
 }
 
 /// Subscribed to a new corridor.
@@ -208,7 +223,7 @@ pub struct UpdateCorridor {
     pub id:    Id,
     pub color: Color,
 
-    pub ambient_fluid: Option<FluidStorageDetail>,
+    pub ambient: Option<FluidStorageDetail>,
 }
 
 /// Set or unset the endpoint building of a corridor.
@@ -249,7 +264,7 @@ pub struct FacilityDisplay {
     /// Currently loads from `assets/sprites/{sprite_path}.png` directly.
     /// May be extended to support dynamically loaded assets in the future.
     pub sprite_path: String,
-    /// `Some` when the facility is a fluid storage, represents the fluid color.
+    /// `Some` when the facility is a fluid storage, representing the fluid color.
     pub taint:       Option<Color>,
 }
 

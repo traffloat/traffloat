@@ -16,7 +16,7 @@ use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_util::{QueryExt, duration_to_timesteps, loc};
 
-use crate::{fluid, reaction, resident, types};
+use crate::{cargo, fluid, reaction, resident, types};
 
 pub struct Plug;
 
@@ -51,6 +51,7 @@ pub struct ExecuteSystemSet;
 #[derive(SystemParam)]
 struct ExecuteSystemParams<'w, 's> {
     fluid_storage: Query<'w, 's, &'static mut fluid::Storage>,
+    cargo_storage: Query<'w, 's, &'static mut cargo::Storage>,
     resident:
         Query<'w, 's, (&'static mut resident::Attributes, &'static resident::InteractingWith)>,
 }
@@ -59,7 +60,7 @@ struct ExecuteSystemParams<'w, 's> {
 #[query_data(mutable)]
 struct ExecuteFacilityData {
     entity:            Entity,
-    facility:          &'static Facility,
+    facility:          &'static mut Facility,
     facility_status:   &'static mut FacilityStatus,
     interaction_slots: Option<&'static resident::InteractingResidents>,
 }
@@ -92,7 +93,7 @@ fn execute_rule(
     def: &TypeDef,
     params: &mut ExecuteSystemParams,
 ) {
-    let efficiency = reaction::execute_once(
+    let efficiency = reaction::execute_one_reaction_stateful(
         params,
         reactor,
         &def.inputs,
@@ -100,6 +101,7 @@ fn execute_rule(
         &def.outputs,
         reactor.facility.efficiency_cap,
         1.0,
+        |reactor| &mut reactor.facility.state,
     );
     reactor.facility_status.efficiency = efficiency;
 }
@@ -112,6 +114,7 @@ pub struct Facility {
     /// The maximum efficiency as configured by the player.
     pub efficiency_cap: f32,
     pub ports:          Ports,
+    pub state:          reaction::ExecutionState,
 }
 
 /// Component on facilities.
@@ -131,12 +134,7 @@ types::define_type! {
 }
 
 /// A component on facilities.
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub struct TypeDef {
-    pub inputs:    Vec<Input>,
-    pub outputs:   Vec<Output>,
-    pub catalysts: Vec<Catalyst>,
-}
+pub type TypeDef = reaction::Triple<Input, Catalyst, Output>;
 
 #[derive(Debug, Reflect)]
 pub struct Ports {
@@ -199,6 +197,56 @@ impl<'pw, 'ps, 'dw, 'ds>
     }
 }
 
+impl<'pw, 'ps, 'dw, 'ds>
+    reaction::CargoStorageSelector<ExecuteSystemParams<'pw, 'ps>, ExecuteFacilityDataItem<'dw, 'ds>>
+    for FluidPortSelector
+{
+    fn select<R>(
+        &self,
+        params: &ExecuteSystemParams<'pw, 'ps>,
+        data: &ExecuteFacilityDataItem<'dw, 'ds>,
+        then: impl FnOnce(&cargo::Storage) -> R,
+    ) -> Option<R> {
+        match data
+            .facility
+            .ports
+            .fluid_storages
+            .get(usize::try_from(self.port).expect("usize >= u32"))
+        {
+            Some(&Some(entity)) => params.cargo_storage.log_get(entity, loc!()).map(then),
+            Some(None) => None,
+            None => {
+                tracing::warn!("Reference to undefined port {}", self.port);
+                None
+            }
+        }
+    }
+
+    fn select_mut<R>(
+        &self,
+        params: &mut ExecuteSystemParams<'pw, 'ps>,
+        data: &mut ExecuteFacilityDataItem<'dw, 'ds>,
+        then: impl FnOnce(&mut cargo::Storage) -> R,
+    ) -> Option<R> {
+        match data
+            .facility
+            .ports
+            .fluid_storages
+            .get(usize::try_from(self.port).expect("usize >= u32"))
+        {
+            Some(&Some(entity)) => params
+                .cargo_storage
+                .log_get_mut(entity, loc!())
+                .map(|mut storage| then(&mut storage)),
+            Some(None) => None,
+            None => {
+                tracing::warn!("Reference to undefined port {}", self.port);
+                None
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct ResidentSlotSelector {
     pub slot_index: usize,
@@ -247,12 +295,13 @@ reaction::define_ruleset! {
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
     pub input Input {
         /// Removes fluid from a storage.
-        Fluid(reaction::input::Fluid<FluidPortSelector>),
+        Fluid(Continuous: reaction::input::Fluid<FluidPortSelector>),
         /// Removes heat from a storage.
         ///
         /// For reactors that consume coldness instead,
         /// they should use a catalyst and an output.
-        Heat(reaction::input::Heat<FluidPortSelector>),
+        Heat(Continuous: reaction::input::Heat<FluidPortSelector>),
+        Cargo(Granular: reaction::input::Cargo<FluidPortSelector>),
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
@@ -265,8 +314,8 @@ reaction::define_ruleset! {
 
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
     pub output Output {
-        Fluid(reaction::output::Fluid<FluidPortSelector>),
-        Temperature(reaction::output::Heat<FluidPortSelector>),
-        ResidentAttr(reaction::output::ResidentAttr<ResidentSlotSelector>),
+        Fluid(Continuous: reaction::output::Fluid<FluidPortSelector>),
+        Temperature(Continuous: reaction::output::Heat<FluidPortSelector>),
+        ResidentAttr(Continuous: reaction::output::ResidentAttr<ResidentSlotSelector>),
     }
 }

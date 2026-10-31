@@ -262,8 +262,8 @@ impl Command for SaveCommand {
 pub struct MenuActionSave;
 
 impl menu::Action for MenuActionSave {
-    fn shortcut(&self) -> egui::KeyboardShortcut {
-        egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::S)
+    fn shortcut(&self) -> Option<egui::KeyboardShortcut> {
+        Some(egui::KeyboardShortcut::new(egui::Modifiers::COMMAND, egui::Key::S))
     }
 
     fn icon(&self) -> MaterialIcon { icons::ICON_SAVE }
@@ -289,8 +289,11 @@ impl menu::Action for MenuActionSave {
 pub struct MenuActionSaveAs;
 
 impl menu::Action for MenuActionSaveAs {
-    fn shortcut(&self) -> egui::KeyboardShortcut {
-        egui::KeyboardShortcut::new(egui::Modifiers::COMMAND | egui::Modifiers::SHIFT, egui::Key::S)
+    fn shortcut(&self) -> Option<egui::KeyboardShortcut> {
+        Some(egui::KeyboardShortcut::new(
+            egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
+            egui::Key::S,
+        ))
     }
 
     fn icon(&self) -> MaterialIcon { icons::ICON_SAVE_AS }

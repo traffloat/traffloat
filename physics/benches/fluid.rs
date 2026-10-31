@@ -18,6 +18,7 @@ fn base_app(types: u32) -> App {
         (0..types)
             .map(|_ty| fluid::TypeDef {
                 name:                 String::new(),
+                description:          String::new(),
                 molar_heat_capacity:  2.0,
                 advective_fluidity:   0.2,
                 diffusive_fluidity:   0.1,

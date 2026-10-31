@@ -3,7 +3,8 @@ use bevy::ecs::query::QueryData;
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::system::{Commands, Query, Res, SystemParam};
 use traffloat_scene::conduit::CorridorConduits;
-use traffloat_scene::{FluidTypes, GenericViewable, corridor};
+use traffloat_scene::meta::FluidTypes;
+use traffloat_scene::{GenericViewable, corridor};
 use traffloat_util::{Alpha, Beta, QueryExt, Which, loc};
 
 use crate::dock::viewable_info::{show_fluid, show_link};

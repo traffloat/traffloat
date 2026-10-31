@@ -1,38 +1,55 @@
-//! Relationship between archetype and key component types in the physics world..
+//! This page outlines the relationship between archetype and key component types in the physics world.
+//!
+//! All objects without a parent should have the [`WorldObject`] component.
 //!
 //! # Building
 //! Components:
 //! - [`graph::Building`]
+//! - Viewable
 //! - [`fluid::Storage`] (for ambient storage)
-//! - [`view::Viewable`]
+//!     - [`fluid::Sensor`]
+//! - [`cargo::Storage`]
 //!
 //! Parent of:
-//! - Facility.
-//! - Graph Edge
+//! - Facility, via [`graph::facility::ListInBuilding`]
+//! - Graph Edge, via [`graph::edge::BuildingEdges`]
+//!
+//! Non-cascading parent of:
+//! - Resident, via [`resident::ListInAmbientFixture`]
+//! - Vehicle, via [`vehicle::ListInBuilding`]
 //!
 //! # Facility
 //! Components:
 //! - [`graph::Facility`]
-//! - [`graph::FacilityType`]
-//! - [`view::Viewable`]
+//! - Viewable
 //! - By facility type:
 //!   - [`fluid::Storage`]
+//!     - [`fluid::Sensor`]
+//!   - [`cargo::Storage`]
 //!   - [`reactor::Facility`]
+//!     - [`reactor::FacilityStatus`]
 //! - [`resident::InteractionSlots`]
+//! - [`resident::InteractingResidents`]
 //!
 //! Child of:
-//! - Building.
-//! - Facility Type
+//! - Building, via [`graph::facility::OfBuilding`]
+//! - Facility Type, via [`graph::FacilityType`]
+//! - Facility Connection, via [`graph::connection::ListOnMainFacility`]
 //!
 //! # Corridor
 //! Components:
 //! - [`graph::Corridor`]
+//! - Viewable
 //! - [`fluid::Storage`] (for ambient storage)
-//! - [`view::Viewable`]
+//!     - [`fluid::Sensor`]
+//! - [`cargo::Storage`]
 //!
 //! Parent of:
-//! - Conduit.
-//! - Graph Edge
+//! - Conduit, via [`graph::conduit::ListInCorridor`]
+//! - Graph Edge, via [`graph::edge::CorridorEdge`]
+//!
+//! Non-cascading parent of:
+//! - Resident, via [`resident::ListInAmbientFixture`]
 //!
 //! # Graph edge
 //! Describes the connection between a corridor and a building.
@@ -66,54 +83,69 @@
 //! - [`graph::FacilityTypeDef`]
 //!
 //! Parent of:
-//! - Facility
+//! - Facility, via [`graph::FacilityTypeInstances`]
 //!
 //! # Conduit
 //! Components:
 //! - [`graph::Conduit`]
-//! - [`view::Viewable`]
+//! - Viewable
 //! - Fluid conduits:
 //!   - [`fluid::Storage`]
+//!     - [`fluid::Sensor`]
 //!   - [`fluid::Sensor`]
 //! - Rails:
 //!   - [`vehicle::Rail`]
+//!   - [`vehicle::rail::Reservation`]
+//!   - [`vehicle::ListOnRail`]
 //!
 //! Child of:
-//! - Corridor
+//! - Corridor, via [`graph::conduit::OfCorridor`]
 //!
 //! # Resident
 //! Components:
 //! - [`resident::Resident`]
+//! - Viewable
 //! - [`resident::Location`]
-//! - [`resident::InteractingWith`], if interacting with a facility
-//! - [`vehicle::PassengerOfCompartment`], if riding in a vehicle
-//! - [`vehicle::OperatorOf`], if operating a vehicle
-//! - [`view::Viewable`]
+//! - [`resident::Attributes`]
+//!   - `resident::LastSentAttributes`
+//!
+//! Non-cascading child of:
+//! - Building, via [`resident::IsInAmbientFixture`]
+//! - Corridor, via [`resident::IsInAmbientFixture`]
+//! - Facility, via [`resident::InteractingWith`]
+//! - Vehicle Copmartment, via [`vehicle::PassengerOfCompartment`]
+//! - Vehicle, via [`vehicle::OperatorOf`], if operating a vehicle
 //!
 //! # Vehicle
 //! Components:
 //! - [`vehicle::Vehicle`]
+//! - Viewable
 //! - [`vehicle::Location`]
-//! - [`vehicle::OperatorList`]
-//! - [`view::Viewable`]
 //! - [`vehicle::propulsion::Desired`]
-//! - [`vehicle::propulsion::Status`]
+//!   - [`vehicle::propulsion::Status`]
+//! - [`vehicle::motion::Intent`]
 //!
 //! Parent of:
-//! - Vehicle compartment
+//! - Vehicle Compartment, via [`vehicle::CompartmentList`]
 //!
-//! # Vehicle compartment
+//! Non-cascading parent of:
+//! - [`vehicle::OperatorList`]
+//!
+//! # Vehicle Compartment
 //! Components:
-//! - [`vehicle::CompartmentOf`]
-//! - [`vehicle::CompartmentPassengerList`]
 //! - [`fluid::Storage`]
+//!     - [`fluid::Sensor`]
+//! - [`cargo::Storage`]
 //! - [`fluid::Sensor`]
 //!
 //! Child of:
-//! - Vehicle
+//! - Vehicle, via [`vehicle::CompartmentOf`]
 //!
 //! Parent of:
-//! - Vehicle compartment vent
+//! - Vehicle compartment vent, via [`vehicle::CompartmentHasVent`]
+//!
+//! Non-cascading parent of:
+//! - [`vehicle::CompartmentPassengerList`]
 //!
 //! # Vehicle compartment vent
 //! - [`fluid::Edge`]
@@ -121,7 +153,7 @@
 //! - [`fluid::EdgeBeta`], referencing the building/corridor ambient storage
 //!
 //! Child of:
-//! - Vehicle compartment
+//! - Vehicle compartment, via [`vehicle::CompartmentVentOf`]
 //!
 //! Note: every time the vehicle moves to a new fixture,
 //! the vent entities are despawned and recreated.
@@ -130,5 +162,12 @@
 //! Components:
 //! - [`view::Viewer`]
 //! - [`fluid::ViewerSynced`]
+//! - [`cargo::ViewerSynced`]
+//!
+//! # Viewable
+//! Viewables archetypes listed above have the following components:
+//! - [`view::Viewable`]
+//! - [`view::Named`]
+//! - [`view::CullingRect`]
 
 use crate::*;

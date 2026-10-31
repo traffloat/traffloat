@@ -238,6 +238,7 @@ impl Target {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FluidMetric {
+    Volume,
     Pressure,
     Temperature,
     Moles { ty: usize },
@@ -247,6 +248,7 @@ pub enum FluidMetric {
 impl FluidMetric {
     fn resolve(&self, fluid: &proto::FluidStorageDetail) -> Option<f32> {
         match *self {
+            FluidMetric::Volume => Some(fluid.volume),
             FluidMetric::Pressure => fluid.pressure,
             FluidMetric::Temperature => fluid.temperature,
             FluidMetric::Moles { ty } => fluid.types.as_ref()?.get(ty).copied(),

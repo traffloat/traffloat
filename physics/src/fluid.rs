@@ -44,7 +44,6 @@ impl Plugin for Plug {
         types::init::<TypeDef>(app);
 
         app.init_resource::<Conf>();
-        app.init_resource::<Types>();
 
         app.add_systems(app::FixedUpdate, transfer::transfer_system.in_set(TransferSystemSet));
         app.add_systems(
@@ -179,6 +178,7 @@ impl Command for AddTypeCommand {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct TypeDef {
     pub name:                 String,
+    pub description:          String,
     /// Heat energy per mole.
     pub molar_heat_capacity:  f32,
     /// Mass per mole.
@@ -214,7 +214,7 @@ pub struct Storage {
 
     /// Heat energy in the storage.
     pub heat:  Energy,
-    /// Must always be sorted by type.
+    /// Data for each fluid type, indexed by [`TypeId`] as usize.
     // TODO benchmark possible alternative representations:
     // 1. use smallvec
     // 2. use dynamic components for each type
@@ -480,7 +480,7 @@ pub struct Sensor {
 
 /// Component on viewers to track fluid type definition sync.
 #[derive(Component, Reflect)]
-struct ViewerSynced {
+pub struct ViewerSynced {
     num_types: usize,
 }
 
@@ -491,7 +491,10 @@ fn sync_types_to_viewers_system(
     mut writer: MessageWriter<view::SentUpdate>,
 ) {
     fn def_to_proto(type_def: &TypeDef) -> proto::FluidType {
-        proto::FluidType { name: type_def.name.clone() }
+        proto::FluidType {
+            name:        type_def.name.clone(),
+            description: type_def.description.clone(),
+        }
     }
 
     for (entity, viewer) in viewers {

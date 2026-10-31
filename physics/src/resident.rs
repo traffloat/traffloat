@@ -11,7 +11,9 @@ use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::math::Vec3;
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
-use traffloat_util::{QueryExt, SliceGet, loc, run_stateless_closure, try_log};
+use traffloat_util::{
+    EntityWorldMutExt, QueryExt, SliceGet, WorldExt, loc, run_stateless_closure, try_log,
+};
 
 use crate::graph::facility;
 use crate::persist::AppExt;
@@ -64,7 +66,7 @@ impl Plugin for Plug {
 #[derive(Component, Reflect)]
 pub struct Resident;
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Debug, Clone, Copy)]
 pub enum Location {
     /// The resident is moving inside a building and not bound to a specific facility.
     Building {
@@ -99,6 +101,23 @@ pub enum Location {
         compartment: Entity,
     },
 }
+
+/// List of residents in a building/corridor. Component on buildings and corridors.
+///
+/// Includes those interacting with facilities inside,
+/// but excluding those in vehicles.
+///
+/// This is used for computing resident volume displacement.
+#[derive(Component, Reflect)]
+#[relationship_target(relationship = IsInAmbientFixture)]
+pub struct ListInAmbientFixture(Vec<Entity>);
+
+/// The ambient fixture this resident is in.
+///
+/// References a building or a corridor.
+#[derive(Component, Reflect)]
+#[relationship(relationship_target = ListInAmbientFixture)]
+pub struct IsInAmbientFixture(pub Entity);
 
 /// Defines how residents can interact with a facility.
 /// Component on facilities.
@@ -184,6 +203,8 @@ pub enum SpawnAt {
 impl EntityCommand for SpawnCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
+        let entity_id = entity.id();
+
         let name = self.name.unwrap_or_else(|| {
             let id = entity.resource_mut::<NextResidentId>().next();
             format!("#{id}")
@@ -199,29 +220,46 @@ impl EntityCommand for SpawnCommand {
             Attributes { values: attrs.into_boxed_slice() },
         ));
 
-        match self.at {
-            SpawnAt::Building { building, interior_pos } => {
-                entity.insert(Location::Building { entity: building, interior_pos });
-            }
-            SpawnAt::Corridor { corridor, distance_from_alpha } => {
-                entity.insert(Location::Corridor { entity: corridor, distance_from_alpha });
-            }
-            SpawnAt::Facility { facility, slot_index } => {
-                entity.insert((
-                    Location::Facility { entity: facility },
-                    InteractingWith { facility, slot_index },
-                ));
-            }
-            SpawnAt::Vehicle { vehicle, compartment, compartment_index, operator_slot } => {
-                entity.insert(Location::Vehicle { compartment });
-                entity.insert(vehicle::PassengerOfCompartment { compartment, compartment_index });
-                if let Some(slot) = operator_slot {
-                    entity.insert(crate::vehicle::OperatorOf { vehicle, slot });
-                }
-            }
-        }
+        enter_location(&mut entity, self.at);
 
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
+    }
+}
+
+fn enter_location(entity: &mut EntityWorldMut, at: SpawnAt) {
+    let entity_id = entity.id();
+    match at {
+        SpawnAt::Building { building, interior_pos } => {
+            entity.insert((
+                Location::Building { entity: building, interior_pos },
+                IsInAmbientFixture(building),
+            ));
+        }
+        SpawnAt::Corridor { corridor, distance_from_alpha } => {
+            entity.insert((
+                Location::Corridor { entity: corridor, distance_from_alpha },
+                IsInAmbientFixture(corridor),
+            ));
+        }
+        SpawnAt::Facility { facility, slot_index } => {
+            entity.insert((
+                Location::Facility { entity: facility },
+                InteractingWith { facility, slot_index },
+            ));
+            if let Some(&facility::OfBuilding(building)) = entity.world().log_get(facility, loc!())
+            {
+                entity.insert(IsInAmbientFixture(building));
+            }
+        }
+        SpawnAt::Vehicle { vehicle, compartment, compartment_index, operator_slot } => {
+            entity.insert((
+                Location::Vehicle { compartment },
+                vehicle::PassengerOfCompartment { compartment, compartment_index },
+            ));
+            if let Some(slot) = operator_slot {
+                entity.insert(vehicle::OperatorOf { vehicle, slot });
+            }
+        }
     }
 }
 
@@ -231,7 +269,27 @@ impl EntityCommand for DespawnCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
         view::before_viewable_despawn(&mut entity);
+        on_exit_location(&mut entity);
         entity.despawn();
+    }
+}
+
+fn on_exit_location(entity: &mut EntityWorldMut) {
+    let entity_id = entity.id();
+    let Some(&location) = entity.log_get::<Location>(loc!()) else { return };
+    match location {
+        Location::Building { entity: building, .. } => {
+            entity.remove::<IsInAmbientFixture>();
+        }
+        Location::Corridor { entity: corridor, .. } => {
+            entity.remove::<IsInAmbientFixture>();
+        }
+        Location::Facility { entity: facility } => {
+            entity.remove::<(IsInAmbientFixture, InteractingWith)>();
+        }
+        Location::Vehicle { compartment } => {
+            entity.remove::<(vehicle::PassengerOfCompartment, vehicle::OperatorOf)>();
+        }
     }
 }
 
@@ -266,7 +324,7 @@ impl Command for StartInteractCommand {
             mut resident_query: Query<&mut Location>,
             mut facility_query: Query<(&mut InteractionSlots, &facility::OfBuilding)>,
             | {
-                let Some((mut slots, parent_building)) = facility_query.log_get_mut(self.facility,  loc!()) else { return false };
+                let Some((mut slots, parent_building)) = facility_query.log_get_mut(self.facility, loc!()) else { return false };
                 let Some(mut location) = resident_query.log_get_mut(self.resident,  loc!()) else { return false };
                 let Location::Building { entity: resident_building, .. } = *location else { return false };
                 if resident_building != parent_building.0 {

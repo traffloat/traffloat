@@ -1,8 +1,25 @@
 # Cargo system
 
-Cargo is the concept of a stationary resource that can be transported in arbitrary amounts.
+Cargo is a stationary resource that can be transported in granules.
 
-Cargo is measured as a `u64` quantity in terms of volume.
+Cargo is measured in granules, which is the smallest unit of a cargo type.
+A granule can be thought as the number of "items".
+
+Similar to fluids, cargo is also stored in a fluid storage,
+but has the following differences:
+
+| Property | Fluid | Cargo |
+| :---: | :---: | :---: |
+| Reaction unit | Moles | Granules |
+| Data type | `f64` | `i64` |
+| Displaces volume | :white_check_mark: | :white_check_mark: |
+| Diffusion | :white_check_mark: | :x: |
+| Storage in building ambient space | :white_check_mark: | :white_check_mark: |
+| Storage in corridor ambient space | :white_check_mark: | :white_check_mark: |
+| Storage in fluid conduits | :white_check_mark: | :x: |
+| Storage in facilities with fluid storage | :white_check_mark: | depends on facility type |
+| Storage in vehicle compartments | :white_check_mark: | depends on compartment type |
+| Storage in resident inventory | :x: (but may be converted into cargo first) | :white_check_mark: |
 
 The game defines distinct cargo types with the following properties:
 

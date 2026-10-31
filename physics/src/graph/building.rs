@@ -8,16 +8,16 @@ use bevy::ecs::name::Name;
 use bevy::ecs::query::{QueryData, With};
 use bevy::ecs::relationship::RelationshipTarget;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{EntityCommand, Query, SystemParam};
+use bevy::ecs::system::{EntityCommand, Query, Res, SystemParam};
 use bevy::ecs::world::EntityWorldMut;
 use bevy::math::{Rect, Vec2};
 use bevy::reflect::Reflect;
 use traffloat_proto::proto;
-use traffloat_util::{Alpha, Beta, EntityWorldMutExt, QueryExt, Which, WorldExt, loc};
+use traffloat_util::{Alpha, Beta, QueryExt, Which, loc};
 
 use crate::graph::{Facility, ViewInitSystemSets, edge, facility};
 use crate::persist::AppExt;
-use crate::{Vector, fluid, view};
+use crate::{Vector, cargo, fluid, resident, vehicle, view};
 
 mod persist;
 pub use persist::Persist;
@@ -42,6 +42,8 @@ impl Plugin for Plug {
                 .in_set(super::ViewIncrSystemSets::Building)
                 .in_set(view::SendUpdatesSystemSet::Incr),
         );
+
+        app.add_systems(app::Update, recompute_ambient_volume_system);
     }
 }
 
@@ -166,28 +168,89 @@ impl EntityCommand for DespawnCommand {
     }
 }
 
-pub struct RecomputeAmbientVolume;
+#[derive(SystemParam)]
+struct RecomputeAmbientVolumeContextParams<'w, 's> {
+    facility_query:  Query<'w, 's, &'static Facility>,
+    resident_niches: Res<'w, resident::attr::Niches>,
+    resident_query:  Query<'w, 's, &'static resident::Attributes>,
+    vehicle_types:   Res<'w, vehicle::Types>,
+    vehicle_query:   Query<'w, 's, &'static vehicle::Vehicle>,
+    cargo_types:     Res<'w, cargo::Types>,
+}
 
-impl EntityCommand for RecomputeAmbientVolume {
-    type Out = ();
-    fn apply(self, mut entity: EntityWorldMut) {
-        let used_by_facilities: f32 =
-            if let Some(facility_list) = entity.get::<facility::ListOnBuilding>() {
-                let facilities: Vec<_> = facility_list.iter().collect();
-                facilities
-                    .iter()
-                    .filter_map(|&f| entity.world().log_get::<Facility>(f, loc!()))
-                    .map(|f| f.volume)
-                    .sum()
-            } else {
-                0.0
-            };
-        let Some(mut building) = entity.log_get_mut::<Building>(loc!()) else { return };
+#[derive(QueryData)]
+struct RecomputeAmbientVolumeData {
+    facilities: Option<&'static facility::ListInBuilding>,
+    residents:  Option<&'static resident::ListInAmbientFixture>,
+    vehicles:   Option<&'static vehicle::ListInBuilding>,
+    cargo:      Option<&'static cargo::Storage>,
+}
 
-        let ambient_volume = sphere_volume(building.radius) - used_by_facilities;
+fn recompute_ambient_volume_system(
+    building_query: Query<(&mut Building, RecomputeAmbientVolumeData, Option<&mut fluid::Storage>)>,
+    ctx: RecomputeAmbientVolumeContextParams,
+) {
+    fn used_by_facilities(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
+        let Some(list) = data.facilities else { return 0.0 };
+        list.iter().filter_map(|f| ctx.facility_query.log_get(f, loc!())).map(|f| f.volume).sum()
+    }
+
+    fn used_by_residents(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
+        let Some(list) = data.residents else { return 0.0 };
+        let Some(volume_attr) = ctx.resident_niches.niches[resident::attr::Niche::Volume] else {
+            return 0.0;
+        };
+        list.iter()
+            .filter_map(|r| ctx.resident_query.log_get(r, loc!()))
+            .map(|attrs| attrs.get(volume_attr))
+            .sum()
+    }
+
+    fn used_by_vehicles(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
+        let Some(list) = data.vehicles else { return 0.0 };
+        list.0
+            .iter()
+            .filter_map(|&v| ctx.vehicle_query.log_get(v, loc!()))
+            .map(|vehicle| ctx.vehicle_types.get(vehicle.ty).physical.volume)
+            .sum()
+    }
+
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "precision loss is acceptable after conversion to volume"
+    )]
+    fn used_by_cargo(
+        data: &RecomputeAmbientVolumeDataItem,
+        ctx: &RecomputeAmbientVolumeContextParams,
+    ) -> f32 {
+        let Some(storage) = data.cargo else { return 0.0 };
+        storage
+            .types()
+            .map(|t| ctx.cargo_types.get(t.ty).granule_volume * (t.granules.0 as f32))
+            .sum()
+    }
+
+    // This loop is perfectly parallelizable, but the task is largely memory-bound,
+    // so parallelization would only be more likely to increase L3 cache misses.
+    for (mut building, data, fluid_storage) in building_query {
+        let used = used_by_facilities(&data, &ctx)
+            + used_by_residents(&data, &ctx)
+            + used_by_vehicles(&data, &ctx)
+            + used_by_cargo(&data, &ctx);
+
+        let ambient_volume = sphere_volume(building.radius) - used;
         building.ambient_volume = ambient_volume;
 
-        if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>(loc!()) {
+        if let Some(mut fluid) = fluid_storage {
             fluid.volume = ambient_volume;
         }
     }
@@ -224,17 +287,17 @@ fn incr_viewer_system(
     for (viewable, storage, sensor) in building_query {
         messages.write_batch(viewable.broadcast_update(|level| {
             let mut update = proto::UpdateBuilding {
-                id:            viewable.id,
-                color:         proto::Color(storage.rgba),
-                ambient_fluid: None,
+                id:      viewable.id,
+                color:   proto::Color(storage.rgba),
+                ambient: None,
             };
             match level {
                 view::SubscriptionLevel::Optical => {}
                 view::SubscriptionLevel::Detail => {
-                    update.ambient_fluid = Some(storage.to_proto_normal(sensor));
+                    update.ambient = Some(storage.to_proto_normal(sensor));
                 }
                 view::SubscriptionLevel::Debug => {
-                    update.ambient_fluid = Some(storage.to_proto_debug());
+                    update.ambient = Some(storage.to_proto_debug());
                 }
             }
             [update.into()]

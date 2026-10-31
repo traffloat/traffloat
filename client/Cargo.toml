@@ -45,13 +45,10 @@ getrandom = { version = "0.4.3", features = ["std", "wasm_js"] }
 fnv = "1.0.7"
 
 [dependencies.bevy-inspector-egui]
-version = "0.37.0"
+version = "0.38.0"
 default-features = false
 optional = true
 features = ["documentation", "egui_clipboard", "bevy_render"]
-# TODO remove this when updated
-git = "https://github.com/SOF3/bevy-inspector-egui"
-rev = "f6383b0781e2f06fc75eee882db84a2961ed2adb"
 
 [dependencies.bevy]
 workspace = true

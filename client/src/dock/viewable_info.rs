@@ -5,7 +5,8 @@ use bevy::ecs::system::{Command, Commands, ParamSet, Query, SystemParam};
 use bevy::ecs::world::World;
 use egui_material_icons::icons;
 use traffloat_proto::proto;
-use traffloat_scene::{self, FluidTypes, GenericViewable, OutboundRequest, ProtoId, ViewableKind};
+use traffloat_scene::meta::FluidTypes;
+use traffloat_scene::{self, GenericViewable, OutboundRequest, ProtoId, ViewableKind};
 use traffloat_util::{QueryExt, loc};
 
 use crate::dock::{self, DockCommand, TabPlacement, plot, viewable_info};
@@ -211,7 +212,18 @@ fn show_fluid(
     make_name: impl Fn(&str) -> String,
     make_plot_target: impl Fn(plot::FluidMetric) -> plot::Target,
 ) {
-    ui.label(format!("Volume: {:.2}", fluid.volume));
+    ui.horizontal(|ui| {
+        ui.label(format!("Volume: {:.2}", fluid.volume));
+        ui.push_id(new_id!(), |ui| {
+            show_graph_button(
+                ui,
+                commands,
+                || make_name("Volume"),
+                make_plot_target(plot::FluidMetric::Volume),
+            );
+        });
+    });
+
     if let Some(pressure) = fluid.pressure {
         ui.horizontal(|ui| {
             ui.label(format!("Pressure: {pressure:.2}"));

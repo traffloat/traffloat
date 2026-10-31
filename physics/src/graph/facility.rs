@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 use traffloat_util::{QueryExt, WorldExt, loc};
 
-use crate::graph::{Building, Conduit, ViewInitSystemSets, building};
+use crate::graph::{Building, Conduit, ViewInitSystemSets};
 use crate::persist::AppExt;
 use crate::view::{IdIndex, SentUpdate};
 use crate::{fluid, reactor, request, view};
@@ -31,7 +31,7 @@ pub struct Plug;
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Facility>();
-        app.register_type::<ListOnBuilding>();
+        app.register_type::<ListInBuilding>();
         app.register_type::<OfBuilding>();
         app.register_type::<FacilityTypeInstances>();
         app.register_type::<FacilityType>();
@@ -64,11 +64,11 @@ pub struct Facility {
 /// Facilities in a building. Component on buildings.
 #[derive(Component, Reflect)]
 #[relationship_target(relationship = OfBuilding, linked_spawn)]
-pub struct ListOnBuilding(Vec<Entity>);
+pub struct ListInBuilding(Vec<Entity>);
 
 /// Building owning the facility. Component on facilities.
 #[derive(Component, Reflect)]
-#[relationship(relationship_target = ListOnBuilding)]
+#[relationship(relationship_target = ListInBuilding)]
 pub struct OfBuilding(pub Entity);
 
 /// Facility instances of a facility type. Component on facility types.
@@ -94,8 +94,6 @@ pub struct FacilityTypeDef {
 }
 
 /// Spawns the facility and recomputes building ambient volume.
-///
-/// Facility blueprint is not handled by this command since they require additional parameters.
 pub struct SpawnCommand {
     pub name:         Option<String>,
     pub building:     Entity,
@@ -132,10 +130,6 @@ impl EntityCommand for SpawnCommand {
             building_rect,
         ));
         entity.reborrow_scope(|entity| view::AddViewableCommand.apply(entity));
-
-        entity.world_scope(|world| {
-            building::RecomputeAmbientVolume.apply(world.entity_mut(self.building));
-        });
 
         let Some(def) = entity.world().log_get::<FacilityTypeDef>(self.ty, loc!()) else { return };
         def.blueprint.populate(&self.blueprint_params)(&mut entity);

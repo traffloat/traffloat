@@ -1,10 +1,11 @@
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
-use crate::fluid;
 use crate::reaction::{
-    EfficiencyModifier, EfficiencyModifierResult, FluidStorageSelector, ReactionExecutor, Threshold,
+    CargoStorageSelector, ContinuousReactionExecutor, EfficiencyModifier, EfficiencyModifierResult,
+    FluidStorageSelector, GranularReactionExecutor, Threshold,
 };
+use crate::{cargo, fluid};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct Fluid<S> {
@@ -37,11 +38,11 @@ where
     }
 }
 
-impl<S, P, D> ReactionExecutor<P, D> for Fluid<S>
+impl<S, P, D> ContinuousReactionExecutor<P, D> for Fluid<S>
 where
     S: FluidStorageSelector<P, D>,
 {
-    fn execute(&self, efficiency: f32, params: &mut P, data: &mut D) {
+    fn execute_continuous(&self, efficiency: f32, params: &mut P, data: &mut D) {
         self.selector.select_mut(params, data, |storage| {
             let typed = storage.get_type_mut(self.ty);
             // The min branch is mathematically impossible since the efficiency would have reduced accordingly,
@@ -80,15 +81,55 @@ where
     }
 }
 
-impl<S, P, D> ReactionExecutor<P, D> for Heat<S>
+impl<S, P, D> ContinuousReactionExecutor<P, D> for Heat<S>
 where
     S: FluidStorageSelector<P, D>,
 {
-    fn execute(&self, efficiency: f32, params: &mut P, data: &mut D) {
+    fn execute_continuous(&self, efficiency: f32, params: &mut P, data: &mut D) {
         self.selector.select_mut(params, data, |storage| {
             // The min branch is mathematically impossible, see comment in Fluid::execute.
             let heat_to_take = fluid::Energy((efficiency * self.max_rate.0).min(storage.heat.0));
             storage.heat -= heat_to_take;
+        });
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+pub struct Cargo<S> {
+    pub selector: S,
+    pub ty:       cargo::TypeId,
+    pub granules: cargo::Granules,
+}
+
+impl<S, P, D> EfficiencyModifier<P, D> for Cargo<S>
+where
+    S: CargoStorageSelector<P, D>,
+{
+    fn compute_efficiency(&self, params: &P, data: &D) -> EfficiencyModifierResult {
+        self.selector
+            .select(params, data, |storage| {
+                let has_granules = storage.get_type(self.ty).map_or_default(|t| t.granules);
+                let mut out = EfficiencyModifierResult::default();
+                if has_granules < self.granules {
+                    out.maximum = out.maximum.min(has_granules.div_f32(self.granules));
+                }
+                out
+            })
+            .unwrap_or(EfficiencyModifierResult::DISABLE)
+    }
+}
+
+impl<S, P, D> GranularReactionExecutor<P, D> for Cargo<S>
+where
+    S: CargoStorageSelector<P, D>,
+{
+    fn execute_granule(&self, params: &mut P, data: &mut D, multiplier: u32) {
+        self.selector.select_mut(params, data, |storage| {
+            if let Some(typed) = storage.get_type_mut(self.ty) {
+                // The min branch is mathematically impossible since the efficiency would have reduced accordingly,
+                // but we still include it just to avoid panicking.
+                typed.granules -= (self.granules * multiplier).min(typed.granules);
+            }
         });
     }
 }

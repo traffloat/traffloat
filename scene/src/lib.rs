@@ -29,11 +29,11 @@ pub mod building;
 pub mod conduit;
 pub mod corridor;
 pub mod facility;
+pub mod meta;
 pub mod resident;
 pub mod vehicle;
 
 pub mod gui;
-
 mod picking;
 pub mod util;
 
@@ -53,13 +53,13 @@ where
 
         app.init_state::<LevelState>();
         app.init_resource::<IdRegistry>();
-        app.init_resource::<FluidTypes>();
         app.init_config::<M, Conf>("scene");
         app.add_message::<OutboundRequest>();
         app.add_message::<InboundUpdate>();
 
         app.add_plugins(util::shapes::Plug);
         app.add_plugins(gui::Plug);
+        app.add_plugins(meta::Plug);
         app.add_plugins(picking::Plug);
         app.add_plugins(building::Plug::<M>::default());
         app.add_plugins(corridor::Plug::<M>::default());
@@ -315,7 +315,8 @@ fan_out! {
     ['w, 's]
     define_params, define_params_tuple, define_params_item;
     8, 2;
-    SetFluidTypes(SetFluidTypesParams<'w>),
+    SetFluidTypes(meta::SetFluidTypesParams<'w>),
+    SetCargoTypes(meta::SetCargoTypesParams<'w>),
     SetResidentAttrTypes(resident::SetResidentAttrTypesParams<'w>),
     SetVehicleTypes(vehicle::SetVehicleTypesParams<'w>),
     ShowGenericToast(ShowGenericToastParams<'w>),
@@ -340,21 +341,6 @@ fan_out! {
     UpdateVehicleFluid(vehicle::UpdateVehicleFluidParams<'w, 's>),
     UpdateViewableName(UpdateViewableNameParams<'w, 's>),
     RemoveViewable(RemoveViewableParams<'w, 's>),
-}
-
-#[derive(SystemParam)]
-struct SetFluidTypesParams<'w> {
-    fluids: ResMut<'w, FluidTypes>,
-}
-
-impl UpdateHandler for SetFluidTypesParams<'_> {
-    type Update = proto::SetFluidTypes;
-
-    fn classify(_update: &Self::Update) -> HandlerClass { HandlerClass::Meta }
-
-    fn handle(&mut self, update: &proto::SetFluidTypes) {
-        self.fluids.0 = update.types.iter().map(|t| FluidType { name: t.name.clone() }).collect();
-    }
 }
 
 #[derive(SystemParam)]
@@ -469,13 +455,6 @@ pub enum ViewableKind {
     Conduit,
     Resident,
     Vehicle,
-}
-
-#[derive(Resource, Default)]
-pub struct FluidTypes(pub Vec<FluidType>);
-
-pub struct FluidType {
-    pub name: String,
 }
 
 #[derive(Config)]

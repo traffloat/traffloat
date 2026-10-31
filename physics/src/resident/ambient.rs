@@ -39,41 +39,16 @@ pub struct Interactions {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct Interaction {
     pub name:             String,
-    pub inputs:           Vec<Input>,
-    pub catalysts:        Vec<Catalyst>,
-    pub outputs:          Vec<Output>,
+    pub details:          Formula,
     pub time_step_period: u32,
     time_step_counter:    u32,
 }
 
+pub type Formula = reaction::Triple<Input, Catalyst, Output>;
+
 impl Interaction {
-    pub fn new(name: impl Into<String>, time_step_period: u32) -> Self {
-        Self {
-            name: name.into(),
-            inputs: Vec::new(),
-            catalysts: Vec::new(),
-            outputs: Vec::new(),
-            time_step_period,
-            time_step_counter: 0,
-        }
-    }
-
-    #[must_use]
-    pub fn with_input(mut self, input: Input) -> Self {
-        self.inputs.push(input);
-        self
-    }
-
-    #[must_use]
-    pub fn with_catalyst(mut self, catalyst: Catalyst) -> Self {
-        self.catalysts.push(catalyst);
-        self
-    }
-
-    #[must_use]
-    pub fn with_output(mut self, output: Output) -> Self {
-        self.outputs.push(output);
-        self
+    pub fn new(name: impl Into<String>, time_step_period: u32, details: Formula) -> Self {
+        Self { name: name.into(), details, time_step_period, time_step_counter: 0 }
     }
 }
 
@@ -127,12 +102,12 @@ fn interact_once(
     };
     let mut data = PreparedResidentData { data: resident, storage_entity };
 
-    let _efficiency = reaction::execute_once(
+    let _efficiency = reaction::execute_one_reaction(
         params,
         &mut data,
-        &interaction.inputs,
-        &interaction.catalysts,
-        &interaction.outputs,
+        &interaction.details.inputs,
+        &interaction.details.catalysts,
+        &interaction.details.outputs,
         1.0,
         1.0,
     );
@@ -200,12 +175,12 @@ impl<'pw, 'ps, 'dw, 'ds>
 }
 
 reaction::define_ruleset! {
-    [P = InteractParams, D = PreparedResidentData]
+    [@all_continuous P = InteractParams, D = PreparedResidentData]
 
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
     pub input Input {
-        Fluid(reaction::input::Fluid<AmbientFluidSelector>),
-        Heat(reaction::input::Heat<AmbientFluidSelector>),
+        Fluid(Continuous: reaction::input::Fluid<AmbientFluidSelector>),
+        Heat(Continuous: reaction::input::Heat<AmbientFluidSelector>),
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
@@ -218,8 +193,8 @@ reaction::define_ruleset! {
 
     #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
     pub output Output {
-        Fluid(reaction::output::Fluid<AmbientFluidSelector>),
-        Heat(reaction::output::Heat<AmbientFluidSelector>),
-        ResidentAttr(reaction::output::ResidentAttr<SelfResidentSelector>),
+        Fluid(Continuous: reaction::output::Fluid<AmbientFluidSelector>),
+        Heat(Continuous: reaction::output::Heat<AmbientFluidSelector>),
+        ResidentAttr(Continuous: reaction::output::ResidentAttr<SelfResidentSelector>),
     }
 }

@@ -18,7 +18,7 @@ use traffloat_util::loc;
 
 pub mod def;
 pub use def::Def as TypeDef;
-mod motion;
+pub mod motion;
 mod persist;
 pub use persist::Persist;
 pub mod propulsion;
@@ -137,7 +137,7 @@ pub struct LocationRail {
 
 /// Component on buildings, referencing the vehicle entities.
 #[derive(Component, Reflect)]
-pub struct ListInBuilding(Vec<Entity>);
+pub struct ListInBuilding(pub Vec<Entity>);
 
 /// Component on rail conduit.
 #[derive(Component, Reflect)]
@@ -223,10 +223,12 @@ pub struct OperatorOf {
     pub slot:    usize,
 }
 
+/// Component on compartments, referencing the vent entities.
 #[derive(Component, Reflect)]
-#[relationship_target(relationship = CompartmentVentOf)]
+#[relationship_target(relationship = CompartmentVentOf, linked_spawn)]
 pub struct CompartmentHasVent(Entity);
 
+/// Component on vent entities, referencing the compartment.
 #[derive(Component, Reflect)]
 #[relationship(relationship_target = CompartmentHasVent)]
 pub struct CompartmentVentOf(pub Entity);
