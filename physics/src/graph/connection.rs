@@ -207,7 +207,7 @@ impl EntityCommand for SpawnCommand {
 }
 
 fn init_viewer_system(
-    building_query: Query<(&view::Viewable, &facility::ListOnBuilding)>,
+    building_query: Query<(&view::Viewable, &facility::ListInBuilding)>,
     mut params: BroadcastChangesParams,
 ) {
     for (viewable, facility_list) in building_query {
@@ -216,7 +216,7 @@ fn init_viewer_system(
 }
 
 fn broadcast_building_changes_system(
-    building_query: Query<(&view::Viewable, &mut BuildingHasChanges, &facility::ListOnBuilding)>,
+    building_query: Query<(&view::Viewable, &mut BuildingHasChanges, &facility::ListInBuilding)>,
     mut params: BroadcastChangesParams,
 ) {
     for (viewable, mut has_changes, facility_list) in building_query {
@@ -247,7 +247,7 @@ struct BroadcastChangesConnectionData {
 
 fn broadcast_changes(
     building_viewable: &view::Viewable,
-    facility_list: &facility::ListOnBuilding,
+    facility_list: &facility::ListInBuilding,
     params: &mut BroadcastChangesParams,
     is_init: bool,
 ) {

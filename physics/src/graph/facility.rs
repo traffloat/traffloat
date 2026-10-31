@@ -31,7 +31,7 @@ pub struct Plug;
 impl Plugin for Plug {
     fn build(&self, app: &mut App) {
         app.register_type::<Facility>();
-        app.register_type::<ListOnBuilding>();
+        app.register_type::<ListInBuilding>();
         app.register_type::<OfBuilding>();
         app.register_type::<FacilityTypeInstances>();
         app.register_type::<FacilityType>();
@@ -64,11 +64,11 @@ pub struct Facility {
 /// Facilities in a building. Component on buildings.
 #[derive(Component, Reflect)]
 #[relationship_target(relationship = OfBuilding, linked_spawn)]
-pub struct ListOnBuilding(Vec<Entity>);
+pub struct ListInBuilding(Vec<Entity>);
 
 /// Building owning the facility. Component on facilities.
 #[derive(Component, Reflect)]
-#[relationship(relationship_target = ListOnBuilding)]
+#[relationship(relationship_target = ListInBuilding)]
 pub struct OfBuilding(pub Entity);
 
 /// Facility instances of a facility type. Component on facility types.

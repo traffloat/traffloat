@@ -56,7 +56,7 @@ types::define_type! {
         type ExtraOutputParams<'w, 's> = Res<'w, Niches>;
 
         fn output_extra(params: &mut Self::ExtraOutputParams<'_, '_>, _: &mut persist::OutputContext) -> Result<PersistExtraData, ()> {
-            let niches=  params
+            let niches = params
                 .niches
                 .iter()
                 .filter_map(|(niche, &ty)| Some(NicheEntry { niche, ty: ty? }))

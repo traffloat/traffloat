@@ -212,7 +212,18 @@ fn show_fluid(
     make_name: impl Fn(&str) -> String,
     make_plot_target: impl Fn(plot::FluidMetric) -> plot::Target,
 ) {
-    ui.label(format!("Volume: {:.2}", fluid.volume));
+    ui.horizontal(|ui| {
+        ui.label(format!("Volume: {:.2}", fluid.volume));
+        ui.push_id(new_id!(), |ui| {
+            show_graph_button(
+                ui,
+                commands,
+                || make_name("Volume"),
+                make_plot_target(plot::FluidMetric::Volume),
+            );
+        });
+    });
+
     if let Some(pressure) = fluid.pressure {
         ui.horizontal(|ui| {
             ui.label(format!("Pressure: {pressure:.2}"));

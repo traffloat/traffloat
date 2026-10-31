@@ -17,7 +17,7 @@ use traffloat_util::{Alpha, Beta, QueryExt, Which, loc};
 
 use crate::graph::{Facility, ViewInitSystemSets, edge, facility};
 use crate::persist::AppExt;
-use crate::{Vector, cargo, fluid, vehicle, view};
+use crate::{Vector, cargo, fluid, resident, vehicle, view};
 
 mod persist;
 pub use persist::Persist;
@@ -170,16 +170,18 @@ impl EntityCommand for DespawnCommand {
 
 #[derive(SystemParam)]
 struct RecomputeAmbientVolumeContextParams<'w, 's> {
-    facility_query: Query<'w, 's, &'static Facility>,
-    vehicle_types:  Res<'w, vehicle::Types>,
-    vehicle_query:  Query<'w, 's, &'static vehicle::Vehicle>,
-    cargo_types:    Res<'w, cargo::Types>,
+    facility_query:  Query<'w, 's, &'static Facility>,
+    resident_niches: Res<'w, resident::attr::Niches>,
+    resident_query:  Query<'w, 's, &'static resident::Attributes>,
+    vehicle_types:   Res<'w, vehicle::Types>,
+    vehicle_query:   Query<'w, 's, &'static vehicle::Vehicle>,
+    cargo_types:     Res<'w, cargo::Types>,
 }
 
 #[derive(QueryData)]
 struct RecomputeAmbientVolumeData {
-    facilities: Option<&'static facility::ListOnBuilding>,
-    // residents:  Option<&'static resident::ListInBuilding>,
+    facilities: Option<&'static facility::ListInBuilding>,
+    residents:  Option<&'static resident::ListInAmbientFixture>,
     vehicles:   Option<&'static vehicle::ListInBuilding>,
     cargo:      Option<&'static cargo::Storage>,
 }
@@ -200,8 +202,14 @@ fn recompute_ambient_volume_system(
         data: &RecomputeAmbientVolumeDataItem,
         ctx: &RecomputeAmbientVolumeContextParams,
     ) -> f32 {
-        // TODO implement resident::ListInBuilding
-        0.0
+        let Some(list) = data.residents else { return 0.0 };
+        let Some(volume_attr) = ctx.resident_niches.niches[resident::attr::Niche::Volume] else {
+            return 0.0;
+        };
+        list.iter()
+            .filter_map(|r| ctx.resident_query.log_get(r, loc!()))
+            .map(|attrs| attrs.get(volume_attr))
+            .sum()
     }
 
     fn used_by_vehicles(
@@ -232,7 +240,7 @@ fn recompute_ambient_volume_system(
     }
 
     // This loop is perfectly parallelizable, but the task is largely memory-bound,
-    // so parallelization would only be more likely to increase cache misses.
+    // so parallelization would only be more likely to increase L3 cache misses.
     for (mut building, data, fluid_storage) in building_query {
         let used = used_by_facilities(&data, &ctx)
             + used_by_residents(&data, &ctx)
