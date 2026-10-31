@@ -19,7 +19,7 @@ use traffloat_util::{
     run_stateless_closure,
 };
 
-use crate::graph::conduit::{self, ListInCorridor};
+use crate::graph::conduit;
 use crate::graph::{Building, Conduit, ViewInitSystemSets, building, edge};
 use crate::persist::AppExt;
 use crate::{Vector, cargo, fluid, resident, view};

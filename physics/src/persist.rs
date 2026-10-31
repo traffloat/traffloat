@@ -2,8 +2,8 @@ use std::any::{TypeId, type_name};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::io;
 use std::marker::PhantomData;
+use std::{fmt, io};
 
 use bevy::app::{App, Plugin};
 use bevy::ecs::entity::{Entity, EntityHashMap};
@@ -123,9 +123,49 @@ pub trait Persistable: Clone + Send + Sync + 'static {
     }
 }
 
+pub trait DependCollection {
+    fn contains(&self, type_id: TypeId) -> bool;
+
+    fn print(&self, f: &mut fmt::Formatter) -> fmt::Result;
+}
+
 #[derive(derivative::Derivative)]
 #[derivative(Clone, Copy, Default)]
 pub struct Depend<T>(PhantomData<T>);
+
+impl<T: Persistable> DependCollection for Depend<T> {
+    fn contains(&self, type_id: TypeId) -> bool { type_id == TypeId::of::<T>() }
+
+    fn print(&self, f: &mut fmt::Formatter) -> fmt::Result { write!(f, "{}", type_name::<T>()) }
+}
+
+macro_rules! impl_depend_collection {
+    ($(($n:tt, $T:ident)),*) => {
+        impl<$($T: DependCollection),*> DependCollection for ($($T,)*) {
+            fn contains(&self, type_id: TypeId) -> bool {
+                $(
+                    if self.$n.contains(type_id) {
+                        return true;
+                    }
+                )*
+                false
+            }
+
+            fn print(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                let mut first = true;
+                $(
+                    if std::mem::replace(&mut first, false) {
+                        write!(f, " | ")?;
+                    }
+                    self.$n.print(f)?;
+                )*
+                Ok(())
+            }
+        }
+    }
+}
+
+variadics_please::all_tuples_enumerated!(impl_depend_collection, 1, 8, T);
 
 #[derive(Debug, Clone)]
 struct DependRef(Cow<'static, str>);
@@ -182,18 +222,23 @@ impl OutputContext {
 
     /// Gets the ID corresponding to the given entity
     /// that should have been previously allocated with [`Self::alloc`].
-    pub fn get_id<P: Persistable>(&self, _depend: Depend<P>, entity: Entity) -> Result<Id, ()> {
+    pub fn get_id(&self, depend: impl DependCollection, entity: Entity) -> Result<Id, ()> {
         if let Some(entry) = self.id_map.get(&entity) {
-            assert_eq!(
-                entry.type_id,
-                TypeId::of::<P>(),
-                "Entity {entity:?} was allocated with a different type ({} != {})",
-                entry.type_name,
-                type_name::<P>()
-            );
-            Ok(entry.id)
+            if depend.contains(entry.type_id) {
+                Ok(entry.id)
+            } else {
+                bevy::log::warn!(
+                    "Entity {entity:?} was allocated with a different type ({} not subtype of {})",
+                    entry.type_name,
+                    fmt::from_fn(|f| depend.print(f)),
+                );
+                Err(())
+            }
         } else {
-            bevy::log::warn!("Entity {entity:?} should have been persisted first");
+            bevy::log::warn!(
+                "Entity {entity:?} of type {} should have been persisted first",
+                fmt::from_fn(|f| depend.print(f)),
+            );
             Err(())
         }
     }

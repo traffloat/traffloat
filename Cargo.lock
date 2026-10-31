@@ -6769,6 +6769,7 @@ dependencies = [
  "traffloat-proto",
  "traffloat-util",
  "typed-builder",
+ "variadics_please 2.0.0",
  "zstd",
 ]
 

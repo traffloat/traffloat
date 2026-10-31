@@ -49,7 +49,7 @@
 //! - Graph Edge, via [`graph::edge::CorridorEdge`]
 //!
 //! Non-cascading parent of:
-//! - Resident, via [`resident::ListInAmbient`]
+//! - Resident, via [`resident::ListInAmbientFixture`]
 //!
 //! # Graph edge
 //! Describes the connection between a corridor and a building.

@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 use traffloat_util::{QueryExt, WorldExt, loc};
 
-use crate::graph::{Corridor, ViewInitSystemSets, corridor};
+use crate::graph::{Corridor, ViewInitSystemSets};
 use crate::persist::AppExt;
 use crate::{fluid, vehicle, view};
 
