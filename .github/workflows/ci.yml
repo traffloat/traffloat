@@ -12,9 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: "actions/checkout@v4"
-      - uses: "dtolnay/rust-toolchain@nightly"
+      - id: rust-toolchain
+        run: echo RUST_TOOLCHAIN=$(cat rust-toolchain) >$GITHUB_OUTPUT
+      - uses: "dtolnay/rust-toolchain@master"
         with:
-          components: "rustfmt"
+          toolchain: ${{ steps.rust-toolchain.outputs.RUST_TOOLCHAIN }}
+          components: rustfmt
       - run: "cargo fmt --all -- --check"
   lint:
     name: "Clippy lint"
@@ -22,7 +25,12 @@ jobs:
     steps:
       - run: "sudo apt-get update && sudo apt-get install -y libudev-dev"
       - uses: "actions/checkout@v4"
-      - uses: "dtolnay/rust-toolchain@clippy"
+      - id: rust-toolchain
+        run: echo RUST_TOOLCHAIN=$(cat rust-toolchain) >$GITHUB_OUTPUT
+      - uses: "dtolnay/rust-toolchain@master"
+        with:
+          toolchain: ${{ steps.rust-toolchain.outputs.RUST_TOOLCHAIN }}
+          components: clippy
       - run: |
           cargo clippy --all --tests -- \
             -D warnings \
@@ -36,7 +44,11 @@ jobs:
     steps:
       - run: "sudo apt-get update && sudo apt-get install -y libudev-dev"
       - uses: "actions/checkout@v4"
-      - uses: "dtolnay/rust-toolchain@nightly"
+      - id: rust-toolchain
+        run: echo RUST_TOOLCHAIN=$(cat rust-toolchain) >$GITHUB_OUTPUT
+      - uses: "dtolnay/rust-toolchain@master"
+        with:
+          toolchain: ${{ steps.rust-toolchain.outputs.RUST_TOOLCHAIN }}
       - run: "cargo test --all"
   udeps:
     name: "Find unused dependencies"
@@ -44,7 +56,11 @@ jobs:
     steps:
       - run: "sudo apt-get update && sudo apt-get install -y libudev-dev libwayland-dev"
       - uses: "actions/checkout@v4"
-      - uses: "dtolnay/rust-toolchain@nightly"
+      - id: rust-toolchain
+        run: echo RUST_TOOLCHAIN=$(cat rust-toolchain) >$GITHUB_OUTPUT
+      - uses: "dtolnay/rust-toolchain@master"
+        with:
+          toolchain: ${{ steps.rust-toolchain.outputs.RUST_TOOLCHAIN }}
       - run: "cargo install cargo-udeps"
       - run: |
           cargo metadata --format-version 1 --no-deps | \
