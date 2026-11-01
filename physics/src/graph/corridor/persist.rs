@@ -9,7 +9,7 @@ use snafu::Snafu;
 use traffloat_util::{AlphaBeta, EntityWorldMutExt, loc};
 
 use crate::graph::{Corridor, corridor};
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{Depend, InputContext, Logged, OutputContext, Persistable};
 use crate::{Vector, WorldObject, cargo, fluid, persist, view};
 
 #[derive(Clone)]
@@ -35,7 +35,7 @@ impl Persistable for Persist {
         _: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         params
             .corridor_query
             .iter()
@@ -50,7 +50,7 @@ impl Persistable for Persist {
                     cargo:              cargo::persist::StorageEntry::from_component(data.cargo),
                 })
             })
-            .collect::<Result<_, ()>>()
+            .collect::<Result<_, Logged>>()
     }
 
     type Input = Vec<Entry>;

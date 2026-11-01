@@ -5,7 +5,7 @@ use bevy::ecs::world::World;
 use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{Depend, InputContext, Logged, OutputContext, Persistable};
 use crate::resident::ambient;
 use crate::{fluid, resident};
 
@@ -36,7 +36,7 @@ impl Persistable for Persist {
         _: &Deps,
         params: &mut OutputParams<'_>,
         _: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         Ok(params.types.list.iter().map(|def| Entry { def: def.clone() }).collect())
     }
 

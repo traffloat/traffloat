@@ -10,7 +10,7 @@ use snafu::Snafu;
 use traffloat_util::{EntityWorldMutExt, loc};
 
 use crate::graph::{Conduit, ConduitType, conduit, corridor};
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{Depend, InputContext, Logged, OutputContext, Persistable};
 use crate::{WorldObject, fluid, persist, vehicle, view};
 
 #[derive(Clone)]
@@ -42,7 +42,7 @@ impl Persistable for Persist {
         deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         params
             .conduit_query
             .iter()
@@ -60,7 +60,7 @@ impl Persistable for Persist {
                         .map(vehicle::rail::persist::StorageEntry::from_component),
                 })
             })
-            .collect::<Result<_, ()>>()
+            .collect::<Result<_, Logged>>()
     }
 
     type Input = Vec<Entry>;

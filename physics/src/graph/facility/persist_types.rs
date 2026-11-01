@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 
 use crate::graph::FacilityTypeDef;
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{Depend, InputContext, Logged, OutputContext, Persistable};
 use crate::{WorldObject, fluid, persist, reactor, resident};
 
 #[derive(Clone)]
@@ -40,7 +40,7 @@ impl Persistable for Persist {
         _: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         Ok(params
             .types
             .iter()

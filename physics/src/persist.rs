@@ -86,6 +86,10 @@ impl PersistableTypes {
     }
 }
 
+#[derive(Debug, Clone, Copy, snafu::Snafu)]
+#[snafu(display("see logs above"))]
+pub struct Logged;
+
 pub trait Persistable: Clone + Send + Sync + 'static {
     fn id(&self) -> impl Into<Cow<'static, str>>;
 
@@ -100,7 +104,7 @@ pub trait Persistable: Clone + Send + Sync + 'static {
         depends: &Self::Deps,
         params: &mut <Self::OutputParams<'_, '_> as SystemParam>::Item<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()>;
+    ) -> Result<Self::Output, Logged>;
 
     type Input: DeserializeOwned;
     type InputError: std::error::Error;
@@ -222,7 +226,7 @@ impl OutputContext {
 
     /// Gets the ID corresponding to the given entity
     /// that should have been previously allocated with [`Self::alloc`].
-    pub fn get_id(&self, depend: impl DependCollection, entity: Entity) -> Result<Id, ()> {
+    pub fn get_id(&self, depend: impl DependCollection, entity: Entity) -> Result<Id, Logged> {
         if let Some(entry) = self.id_map.get(&entity) {
             if depend.contains(entry.type_id) {
                 Ok(entry.id)
@@ -232,27 +236,14 @@ impl OutputContext {
                     entry.type_name,
                     fmt::from_fn(|f| depend.print(f)),
                 );
-                Err(())
+                Err(Logged)
             }
         } else {
             bevy::log::warn!(
                 "Entity {entity:?} of type {} should have been persisted first",
                 fmt::from_fn(|f| depend.print(f)),
             );
-            Err(())
-        }
-    }
-
-    /// Similar to [`Self::get_id`], but does not check the entity type.
-    ///
-    /// This will be deprecated in the future in favor of union types.
-    pub fn get_id_unchecked(&self, entity: Entity) -> Result<Id, ()> {
-        match self.id_map.get(&entity) {
-            Some(entry) => Ok(entry.id),
-            None => {
-                bevy::log::warn!("Entity {entity:?} should have been persisted first");
-                Err(())
-            }
+            Err(Logged)
         }
     }
 }
@@ -331,7 +322,7 @@ trait PersistableDyn: Send + Sync + 'static {
 
     fn depends(&self) -> Vec<DependRef>;
 
-    fn output(&self, world: &mut World, ctx: &mut OutputContext) -> Result<Vec<u8>, ()>;
+    fn output(&self, world: &mut World, ctx: &mut OutputContext) -> Result<Vec<u8>, Logged>;
 
     fn input(
         &self,
@@ -355,7 +346,7 @@ impl<P: Persistable> PersistableDyn for P {
     }
 
     #[tracing::instrument(skip_all, fields(ty = self.id().into().as_ref()))]
-    fn output(&self, world: &mut World, ctx: &mut OutputContext) -> Result<Vec<u8>, ()> {
+    fn output(&self, world: &mut World, ctx: &mut OutputContext) -> Result<Vec<u8>, Logged> {
         let depends = Persistable::depends(self, &mut DependsNoop);
 
         let output =
@@ -371,7 +362,7 @@ impl<P: Persistable> PersistableDyn for P {
             }
             Err(err) => {
                 bevy::log::error!("Error serializing data for {}: {err}", self.id().into());
-                Err(())
+                Err(Logged)
             }
         }
     }
@@ -405,7 +396,7 @@ impl<P: Persistable> PersistableDyn for P {
     fn clone_box(&self) -> PersistableBox { Box::new(self.clone()) }
 }
 
-pub fn output(world: &mut World) -> Result<Vec<u8>, ()> {
+pub fn output(world: &mut World) -> Result<Vec<u8>, Logged> {
     let types = {
         let mut types = world.resource_mut::<PersistableTypes>();
         types.sorted_clone()
@@ -425,12 +416,12 @@ pub fn output(world: &mut World) -> Result<Vec<u8>, ()> {
             Ok(buf) => Ok(buf),
             Err(err) => {
                 bevy::log::error!("Error compressing persist data: {err}");
-                Err(())
+                Err(Logged)
             }
         },
         Err(err) => {
             bevy::log::error!("Error serializing persist data: {err}");
-            Err(())
+            Err(Logged)
         }
     }
 }

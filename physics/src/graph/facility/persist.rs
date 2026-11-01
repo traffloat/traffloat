@@ -11,7 +11,7 @@ use traffloat_util::{EntityWorldMutExt, loc};
 
 use crate::graph::facility::{self, PersistTypes, blueprint};
 use crate::graph::{Facility, building, conduit};
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{Depend, InputContext, Logged, OutputContext, Persistable};
 use crate::{WorldObject, cargo, fluid, persist, reaction, reactor, view};
 
 #[derive(Clone)]
@@ -46,7 +46,7 @@ impl Persistable for Persist {
         deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         params
             .facility_query
             .iter()
@@ -62,7 +62,7 @@ impl Persistable for Persist {
                     cargo:            data.cargo.map(cargo::persist::StorageEntry::from_component),
                 })
             })
-            .collect::<Result<_, ()>>()
+            .collect::<Result<_, Logged>>()
     }
 
     type Input = Vec<Entry>;
@@ -154,7 +154,11 @@ pub struct ReactorParams {
 }
 
 impl BlueprintParams {
-    fn extract(deps: &Deps, data: &OutputQueryDataItem, ctx: &OutputContext) -> Result<Self, ()> {
+    fn extract(
+        deps: &Deps,
+        data: &OutputQueryDataItem,
+        ctx: &OutputContext,
+    ) -> Result<Self, Logged> {
         Ok(Self {
             reactor: data
                 .reactor
@@ -167,7 +171,7 @@ impl BlueprintParams {
         deps: &Deps,
         reactor: &reactor::Facility,
         ctx: &OutputContext,
-    ) -> Result<ReactorParams, ()> {
+    ) -> Result<ReactorParams, Logged> {
         Ok(ReactorParams {
             execution_state: reactor.state.clone(),
             fluid_storages:  reactor
@@ -177,7 +181,7 @@ impl BlueprintParams {
                 .map(|&entity| {
                     entity.map(|entity| ctx.get_id(deps.fluid_storage_ports, entity)).transpose()
                 })
-                .collect::<Result<_, ()>>()?,
+                .collect::<Result<_, Logged>>()?,
         })
     }
 

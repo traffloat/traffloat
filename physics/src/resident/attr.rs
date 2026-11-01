@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use traffloat_proto::proto;
 
+use crate::persist::Logged;
 use crate::{persist, types, view};
 
 pub struct Plug;
@@ -54,7 +55,7 @@ types::define_type! {
         type ExtraData = PersistExtraData;
         type ExtraOutputParams<'w, 's> = Res<'w, Niches>;
 
-        fn output_extra(params: &mut Self::ExtraOutputParams<'_, '_>, _: &mut persist::OutputContext) -> Result<PersistExtraData, ()> {
+        fn output_extra(params: &mut Self::ExtraOutputParams<'_, '_>, _: &mut persist::OutputContext) -> Result<PersistExtraData, Logged> {
             let niches = params
                 .niches
                 .iter()

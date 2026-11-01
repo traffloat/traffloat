@@ -15,7 +15,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 use crate::CleanupAppExt;
-use crate::persist::{self, AppExt, InputContext, OutputContext, Persistable};
+use crate::persist::{self, AppExt, InputContext, Logged, OutputContext, Persistable};
 
 macro_rules! define_type_ {
     (
@@ -102,7 +102,10 @@ macro_rules! default_serde_ {
         type ExtraData = ();
         type ExtraOutputParams<'w, 's> = ();
 
-        fn output_extra((): &mut (), _: &mut $crate::persist::OutputContext) -> Result<(), ()> {
+        fn output_extra(
+            (): &mut (),
+            _: &mut $crate::persist::OutputContext,
+        ) -> Result<(), $crate::persist::Logged> {
             Ok(())
         }
 
@@ -158,7 +161,7 @@ pub trait TypeDef: Sized + Send + Sync + 'static {
     fn output_extra(
         params: &mut <Self::ExtraOutputParams<'_, '_> as SystemParam>::Item<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::ExtraData, ()>;
+    ) -> Result<Self::ExtraData, Logged>;
 
     fn input_extra(
         world: &mut World,
@@ -258,7 +261,7 @@ impl<T: TypeDef> Persistable for Persist<T> {
         _: &Self::Deps,
         (types, extra_params): &mut <Self::OutputParams<'_, '_> as SystemParam>::Item<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         let entries =
             types.iter().map(|(_ty, def)| PersistOutputEntry { def: def.to_serialize() }).collect();
         let extra = T::output_extra(extra_params, ctx)?;

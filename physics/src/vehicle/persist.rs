@@ -11,7 +11,7 @@ use snafu::Snafu;
 use traffloat_util::{QueryExt, loc};
 
 use crate::graph::{building, conduit, corridor};
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{Depend, InputContext, Logged, OutputContext, Persistable};
 use crate::vehicle::{
     self, CompartmentList, CompartmentOf, CompartmentPassengerList, Location, LocationBuilding,
     LocationRail, SpawnCommand, TypeId, Vehicle, propulsion,
@@ -52,7 +52,7 @@ impl Persistable for Persist {
         deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         params
             .vehicle_query
             .iter()
@@ -78,14 +78,16 @@ impl Persistable for Persist {
                         .iter()
                         .flat_map(|list| list.iter())
                         .map(|cpmt_entity| {
-                            let cpmt =
-                                params.compartment_query.log_get(cpmt_entity, loc!()).ok_or(())?;
+                            let cpmt = params
+                                .compartment_query
+                                .log_get(cpmt_entity, loc!())
+                                .ok_or(Logged)?;
                             Ok(CompartmentEntry {
                                 fluid: fluid::persist::StorageEntry::from_component(cpmt.fluid),
                                 cargo: cargo::persist::StorageEntry::from_component(cpmt.cargo),
                             })
                         })
-                        .collect::<Result<_, ()>>()?,
+                        .collect::<Result<_, Logged>>()?,
                 })
             })
             .collect()

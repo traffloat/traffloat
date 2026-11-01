@@ -5,13 +5,13 @@ dev-log level *args:
 	RUST_BACKTRACE=1 RUST_LOG=info,traffloat_physics={{level}},traffloat_client={{level}} cargo run -p traffloat-client -F dev -- --assets-path $PWD/assets {{args}}
 
 fmt:
-	cargo +nightly fmt --all
+	cargo fmt --all
 
 imports:
 	cargo clippy --fix --tests --allow-staged -- -D unused_imports
 
 precommit:
-	cargo +nightly fmt --all
+	cargo fmt --all
 	cargo clippy --tests --benches --examples -- \
 		-W clippy::dbg_macro \
 		-W clippy::unused_self \

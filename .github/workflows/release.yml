@@ -34,7 +34,7 @@ jobs:
     steps:
       - run: "sudo apt-get install -y libudev-dev"
       - uses: "actions/checkout@v4"
-      - uses: "dtolnay/rust-toolchain@stable"
+      - uses: "dtolnay/rust-toolchain@nightly"
       - run: "cargo doc"
       - uses: "actions/upload-artifact@v4"
         with:

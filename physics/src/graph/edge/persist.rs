@@ -10,7 +10,7 @@ use traffloat_proto::proto::AlphaOrBeta;
 use traffloat_util::{Alpha, Beta, Which};
 
 use crate::graph::{Edge, building, corridor, edge};
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{Depend, InputContext, Logged, OutputContext, Persistable};
 use crate::{WorldObject, persist};
 
 #[derive(Clone)]
@@ -40,7 +40,7 @@ impl Persistable for Persist {
         deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         fn run<Ab: Which>(
             output: &mut Vec<Entry>,
             params: &mut OutputParams<'_, '_>,
@@ -51,7 +51,7 @@ impl Persistable for Persist {
                 &'a mut Query<'w, 's, OutputQueryData<Beta>>,
             )
                 -> &'a mut Query<'w, 's, OutputQueryData<Ab>>,
-        ) -> Result<(), ()> {
+        ) -> Result<(), Logged> {
             let edge_query = select(&mut params.edge_alpha_query, &mut params.edge_beta_query);
             for data in edge_query {
                 output.push(Entry {

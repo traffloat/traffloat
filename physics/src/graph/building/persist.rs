@@ -9,7 +9,7 @@ use snafu::Snafu;
 use traffloat_util::{EntityWorldMutExt, loc};
 
 use crate::graph::{Building, building};
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{Depend, InputContext, Logged, OutputContext, Persistable};
 use crate::{Vector, WorldObject, cargo, fluid, persist, view};
 
 #[derive(Clone)]
@@ -35,7 +35,7 @@ impl Persistable for Persist {
         _: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         Ok(params
             .building_query
             .iter()

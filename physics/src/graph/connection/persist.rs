@@ -9,7 +9,7 @@ use snafu::Snafu;
 use traffloat_util::{EntityWorldMutExt, loc};
 
 use crate::graph::{Connection, building, conduit, connection, facility};
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{Depend, InputContext, Logged, OutputContext, Persistable};
 use crate::{WorldObject, fluid, persist};
 
 #[derive(Clone)]
@@ -41,7 +41,7 @@ impl Persistable for Persist {
         deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         params
             .connection_query
             .iter()
@@ -61,7 +61,7 @@ impl Persistable for Persist {
                     current_area: data.fluid_edge.area,
                 })
             })
-            .collect::<Result<_, ()>>()
+            .collect::<Result<_, Logged>>()
     }
 
     type Input = Vec<Entry>;

@@ -10,7 +10,7 @@ use snafu::Snafu;
 use traffloat_util::{EntityWorldMutExt, QueryExt, loc, try_log};
 
 use crate::graph::{building, corridor, facility};
-use crate::persist::{Depend, InputContext, OutputContext, Persistable};
+use crate::persist::{Depend, InputContext, Logged, OutputContext, Persistable};
 use crate::resident::Resident;
 use crate::vehicle::{self, Vehicle};
 use crate::{WorldObject, persist, resident, view};
@@ -48,7 +48,7 @@ impl Persistable for Persist {
         deps: &Deps,
         params: &mut OutputParams<'_, '_>,
         ctx: &mut OutputContext,
-    ) -> Result<Self::Output, ()> {
+    ) -> Result<Self::Output, Logged> {
         params
             .resident_query
             .iter()
@@ -79,7 +79,7 @@ impl Persistable for Persist {
                                     data.entity,
                                     data.interaction
                                 );
-                                return Err(());
+                                return Err(Logged);
                             };
                             EntryLocation::Facility {
                                 facility:   ctx.get_id(deps.facility, entity)?,
@@ -89,9 +89,9 @@ impl Persistable for Persist {
                         }
                         resident::Location::Vehicle { compartment } => {
                             let cpmt_data =
-                                params.compartment_query.log_get(compartment,  loc!()).ok_or(())?;
+                                params.compartment_query.log_get(compartment,  loc!()).ok_or(Logged)?;
                             let vehicle = ctx.get_id(deps.vehicle, cpmt_data.vehicle.0)?;
-                            let as_passenger = try_log!(data.passenger, expect "location vehicle implies passenger component" or return Err(()));
+                            let as_passenger = try_log!(data.passenger, expect "location vehicle implies passenger component" or return Err(Logged));
                             let cpmt_index = as_passenger.compartment_index;
                             let operator_slot = data.operator.map(|op| {
                                 debug_assert_eq!(
