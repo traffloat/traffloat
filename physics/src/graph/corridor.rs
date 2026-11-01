@@ -19,8 +19,7 @@ use traffloat_util::{
     run_stateless_closure,
 };
 
-use crate::graph::conduit;
-use crate::graph::{Building, Conduit, ViewInitSystemSets, building, edge};
+use crate::graph::{Building, Conduit, ViewInitSystemSets, building, conduit, edge};
 use crate::persist::AppExt;
 use crate::{Vector, cargo, fluid, resident, view};
 
@@ -110,6 +109,7 @@ impl EntityCommand for SpawnCommand {
             }
             .apply(entity);
         });
+        entity.reborrow_scope(|entity| cargo::AddStorageCommand.apply(entity));
 
         recompute_culling_rect(entity);
     }
@@ -192,7 +192,7 @@ struct RecomputeAmbientVolumeData {
 }
 
 fn recompute_ambient_volume_system(
-    corridor_query: Query<(&mut Corridor, RecomputeAmbientVolumeData, Option<&mut fluid::Storage>)>,
+    corridor_query: Query<(&mut Corridor, RecomputeAmbientVolumeData, &mut fluid::Storage)>,
     ctx: RecomputeAmbientVolumeContextParams,
 ) {
     fn area_used_by_conduits_before_pi(
@@ -237,7 +237,7 @@ fn recompute_ambient_volume_system(
 
     // This loop is perfectly parallelizable, but the task is largely memory-bound,
     // so parallelization would only be more likely to increase L3 cache misses.
-    for (mut corridor, data, fluid_storage) in corridor_query {
+    for (mut corridor, data, mut fluid_storage) in corridor_query {
         let ambient_area_before_pi =
             corridor.radius * corridor.radius - area_used_by_conduits_before_pi(&data, &ctx);
         let mut ambient_volume = ambient_area_before_pi * PI * corridor.length;
@@ -246,9 +246,7 @@ fn recompute_ambient_volume_system(
 
         corridor.ambient_area = ambient_volume / corridor.length;
 
-        if let Some(mut fluid) = fluid_storage {
-            fluid.volume = ambient_volume;
-        }
+        fluid_storage.volume = ambient_volume;
     }
 }
 

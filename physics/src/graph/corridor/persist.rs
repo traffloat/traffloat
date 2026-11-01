@@ -10,7 +10,7 @@ use traffloat_util::{AlphaBeta, EntityWorldMutExt, loc};
 
 use crate::graph::{Corridor, corridor};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::{Vector, WorldObject, fluid, persist, view};
+use crate::{Vector, WorldObject, cargo, fluid, persist, view};
 
 #[derive(Clone)]
 pub struct Persist;
@@ -47,6 +47,7 @@ impl Persistable for Persist {
                     wall_thickness:     data.corridor.wall_thickness,
                     endpoint_positions: data.corridor.endpoint_positions,
                     fluid:              fluid::persist::StorageEntry::from_component(data.fluid),
+                    cargo:              cargo::persist::StorageEntry::from_component(data.cargo),
                 })
             })
             .collect::<Result<_, ()>>()
@@ -79,6 +80,10 @@ impl Persistable for Persist {
             if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>(loc!()) {
                 entry.fluid.apply_to_component(&mut fluid);
             }
+
+            if let Some(mut cargo) = entity.log_get_mut::<cargo::Storage>(loc!()) {
+                entry.cargo.apply_to_component(&mut cargo);
+            }
         }
         Ok(())
     }
@@ -95,6 +100,7 @@ struct OutputQueryData {
     corridor: &'static Corridor,
     named:    &'static view::Named,
     fluid:    &'static fluid::Storage,
+    cargo:    &'static cargo::Storage,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -105,6 +111,7 @@ pub struct Entry {
     pub wall_thickness:     f32,
     pub endpoint_positions: AlphaBeta<Vector>,
     pub fluid:              fluid::persist::StorageEntry,
+    pub cargo:              cargo::persist::StorageEntry,
 }
 
 #[derive(Debug, Snafu)]

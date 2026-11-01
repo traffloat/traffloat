@@ -6,13 +6,15 @@ use bevy::ecs::entity::Entity;
 use bevy::ecs::message::MessageWriter;
 use bevy::ecs::query::With;
 use bevy::ecs::schedule::IntoScheduleConfigs;
-use bevy::ecs::system::{Commands, Query, Res};
-use bevy::ecs::world::World;
+use bevy::ecs::system::{Commands, EntityCommand, Query, Res};
+use bevy::ecs::world::{EntityWorldMut, World};
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use traffloat_proto::proto;
 
 use crate::{types, view};
+
+pub mod persist;
 
 pub struct Plug;
 
@@ -79,39 +81,6 @@ impl Granules {
     pub fn div_f32(self, other: Self) -> f32 { self.0 as f32 / other.0 as f32 }
 }
 
-/// Component on viewers to track cargo type definition sync.
-#[derive(Component, Reflect)]
-pub struct ViewerSynced {
-    num_types: usize,
-}
-
-fn sync_types_to_viewers_system(
-    types: Res<Types>,
-    viewers: Query<(Entity, Option<&ViewerSynced>), With<view::Viewer>>,
-    mut commands: Commands,
-    mut writer: MessageWriter<view::SentUpdate>,
-) {
-    fn def_to_proto(type_def: &TypeDef) -> proto::CargoType {
-        proto::CargoType {
-            name:        type_def.name.clone(),
-            description: type_def.description.clone(),
-            density:     type_def.granule_mass / type_def.granule_volume,
-        }
-    }
-
-    for (entity, viewer) in viewers {
-        if viewer.is_none_or(|v| v.num_types != types.len()) {
-            commands.entity(entity).insert(ViewerSynced { num_types: types.len() });
-            writer.write(view::SentUpdate {
-                viewers: [entity].into(),
-                body:    proto::Update::SetCargoTypes(proto::SetCargoTypes {
-                    types: types.iter().map(|(_, def)| def_to_proto(def)).collect(),
-                }),
-            });
-        }
-    }
-}
-
 /// Stores information about cargo in a fluid storage.
 ///
 /// This component must only be applied on entities that also have a fluid storage.
@@ -156,4 +125,44 @@ pub struct TypedStorage {
     pub ty:       TypeId,
     /// Number of granules of this cargo in the storage.
     pub granules: Granules,
+}
+
+pub struct AddStorageCommand;
+
+impl EntityCommand for AddStorageCommand {
+    type Out = ();
+    fn apply(self, mut entity: EntityWorldMut) { entity.insert(Storage { typed: Vec::new() }); }
+}
+
+/// Component on viewers to track cargo type definition sync.
+#[derive(Component, Reflect)]
+pub struct ViewerSynced {
+    num_types: usize,
+}
+
+fn sync_types_to_viewers_system(
+    types: Res<Types>,
+    viewers: Query<(Entity, Option<&ViewerSynced>), With<view::Viewer>>,
+    mut commands: Commands,
+    mut writer: MessageWriter<view::SentUpdate>,
+) {
+    fn def_to_proto(type_def: &TypeDef) -> proto::CargoType {
+        proto::CargoType {
+            name:        type_def.name.clone(),
+            description: type_def.description.clone(),
+            density:     type_def.granule_mass / type_def.granule_volume,
+        }
+    }
+
+    for (entity, viewer) in viewers {
+        if viewer.is_none_or(|v| v.num_types != types.len()) {
+            commands.entity(entity).insert(ViewerSynced { num_types: types.len() });
+            writer.write(view::SentUpdate {
+                viewers: [entity].into(),
+                body:    proto::Update::SetCargoTypes(proto::SetCargoTypes {
+                    types: types.iter().map(|(_, def)| def_to_proto(def)).collect(),
+                }),
+            });
+        }
+    }
 }

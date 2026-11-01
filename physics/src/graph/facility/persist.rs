@@ -12,7 +12,7 @@ use traffloat_util::{EntityWorldMutExt, loc};
 use crate::graph::facility::{self, PersistTypes, blueprint};
 use crate::graph::{Facility, building, conduit};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::{WorldObject, fluid, persist, reaction, reactor, view};
+use crate::{WorldObject, cargo, fluid, persist, reaction, reactor, view};
 
 #[derive(Clone)]
 pub struct Persist;
@@ -20,7 +20,6 @@ pub struct Persist;
 pub struct Deps {
     building:            Depend<building::Persist>,
     facility_type:       Depend<PersistTypes>,
-    fluid_type:          Depend<fluid::PersistTypes>,
     fluid_storage_ports: (Depend<building::Persist>, Depend<conduit::Persist>),
 }
 
@@ -32,7 +31,6 @@ impl Persistable for Persist {
         Deps {
             building:            depends.request(building::Persist),
             facility_type:       depends.request(PersistTypes),
-            fluid_type:          depends.request(fluid::PersistTypes::default()),
             fluid_storage_ports: (
                 depends.request(building::Persist),
                 depends.request(conduit::Persist),
@@ -61,6 +59,7 @@ impl Persistable for Persist {
                     interior_pos:     data.facility.interior_pos,
                     blueprint_params: BlueprintParams::extract(deps, &data, ctx)?,
                     fluid:            data.fluid.map(fluid::persist::StorageEntry::from_component),
+                    cargo:            data.cargo.map(cargo::persist::StorageEntry::from_component),
                 })
             })
             .collect::<Result<_, ()>>()
@@ -102,6 +101,13 @@ impl Persistable for Persist {
                 };
                 entry_fluid.apply_to_component(&mut fluid);
             }
+
+            if let Some(entry_cargo) = &entry.cargo {
+                let Some(mut cargo) = entity.log_get_mut::<cargo::Storage>(loc!()) else {
+                    return Err(InputError::CargoStorageNotExpectedInBlueprint);
+                };
+                entry_cargo.apply_to_component(&mut cargo);
+            }
         }
         Ok(())
     }
@@ -121,6 +127,7 @@ struct OutputQueryData {
     ty:       &'static facility::FacilityType,
     reactor:  Option<&'static reactor::Facility>,
     fluid:    Option<&'static fluid::Storage>,
+    cargo:    Option<&'static cargo::Storage>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -132,6 +139,7 @@ pub struct Entry {
     pub interior_pos:     Vec3,
     pub blueprint_params: BlueprintParams,
     pub fluid:            Option<fluid::persist::StorageEntry>,
+    pub cargo:            Option<cargo::persist::StorageEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -212,8 +220,13 @@ pub enum InputError {
     #[snafu(display("Unresolved fluid storage at index {index}: {err}"))]
     UnresolvedFluidStorage { err: persist::IdError, index: usize },
     #[snafu(display(
-        "Blueprint for this facility type did not declare a blueprint type, but the facility \
+        "Blueprint for this facility type did not declare a fluid storage, but the facility \
          declared a fluid storage"
     ))]
     FluidStorageNotExpectedInBlueprint,
+    #[snafu(display(
+        "Blueprint for this facility type did not declare a fluid storage accepting cargo, but \
+         the facility declared a fluid storage"
+    ))]
+    CargoStorageNotExpectedInBlueprint,
 }

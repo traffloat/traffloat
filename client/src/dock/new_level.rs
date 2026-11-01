@@ -7,8 +7,7 @@ use rand::RngExt;
 use rand::distr::Alphanumeric;
 use traffloat_physics::generate;
 
-use crate::dock::{self};
-use crate::singleplayer;
+use crate::{dock, singleplayer};
 
 pub struct Plug;
 

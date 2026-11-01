@@ -15,8 +15,7 @@ use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use traffloat_proto::proto;
 
-use crate::persist::{self};
-use crate::{types, view};
+use crate::{persist, types, view};
 
 pub struct Plug;
 

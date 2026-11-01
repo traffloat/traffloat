@@ -203,8 +203,6 @@ pub enum SpawnAt {
 impl EntityCommand for SpawnCommand {
     type Out = ();
     fn apply(self, mut entity: EntityWorldMut) {
-        let entity_id = entity.id();
-
         let name = self.name.unwrap_or_else(|| {
             let id = entity.resource_mut::<NextResidentId>().next();
             format!("#{id}")
@@ -227,7 +225,6 @@ impl EntityCommand for SpawnCommand {
 }
 
 fn enter_location(entity: &mut EntityWorldMut, at: SpawnAt) {
-    let entity_id = entity.id();
     match at {
         SpawnAt::Building { building, interior_pos } => {
             entity.insert((
@@ -275,19 +272,18 @@ impl EntityCommand for DespawnCommand {
 }
 
 fn on_exit_location(entity: &mut EntityWorldMut) {
-    let entity_id = entity.id();
     let Some(&location) = entity.log_get::<Location>(loc!()) else { return };
     match location {
-        Location::Building { entity: building, .. } => {
+        Location::Building { .. } => {
             entity.remove::<IsInAmbientFixture>();
         }
-        Location::Corridor { entity: corridor, .. } => {
+        Location::Corridor { .. } => {
             entity.remove::<IsInAmbientFixture>();
         }
-        Location::Facility { entity: facility } => {
+        Location::Facility { .. } => {
             entity.remove::<(IsInAmbientFixture, InteractingWith)>();
         }
-        Location::Vehicle { compartment } => {
+        Location::Vehicle { .. } => {
             entity.remove::<(vehicle::PassengerOfCompartment, vehicle::OperatorOf)>();
         }
     }

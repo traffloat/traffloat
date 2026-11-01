@@ -13,7 +13,7 @@ use enum_map::EnumMap;
 use serde::{Deserialize, Serialize};
 use traffloat_util::try_log;
 
-use crate::{fluid, reaction, reactor, resident};
+use crate::{cargo, fluid, reaction, reactor, resident};
 
 // This type is currently a struct instead of an enum
 // in case a combination of multiple functional components is needed in the future.
@@ -48,12 +48,16 @@ impl Blueprint {
 
     fn insert_fluid(&self) -> Option<impl FnOnce(&mut EntityWorldMut) + use<>> {
         let def = self.fluid_storage.as_ref()?;
-        let command = fluid::AddStorageCommand {
+        let fluid_command = fluid::AddStorageCommand {
             volume:         def.volume,
             optical_length: def.optical_length,
         };
+        let cargo_command = def.can_store_cargo.then_some(cargo::AddStorageCommand);
         Some(move |entity: &mut EntityWorldMut| {
-            entity.reborrow_scope(|entity| command.apply(entity));
+            entity.reborrow_scope(|entity| fluid_command.apply(entity));
+            if let Some(cargo_command) = cargo_command {
+                entity.reborrow_scope(|entity| cargo_command.apply(entity));
+            }
         })
     }
 
@@ -107,6 +111,9 @@ pub struct FluidStorage {
 
     /// Length of the fluid storage in terms of light absorption
     pub optical_length: f32,
+
+    /// If true, the fluid storage can store cargo too.
+    pub can_store_cargo: bool,
 }
 
 /// Constrains changes to a [`reactor::Facility`].

@@ -33,7 +33,7 @@ use traffloat_util::{
 
 use crate::graph::{Corridor, conduit};
 use crate::persist::AppExt;
-use crate::{fluid, types, view};
+use crate::{cargo, fluid, types, view};
 
 pub struct Plug;
 
@@ -323,6 +323,7 @@ impl EntityCommand for SpawnCommand {
 
                     cpmt_entity.insert(Name::new(cpmt_name));
                     cpmt_entity.reborrow_scope(|child| add_storage_cmd.apply(child));
+                    cpmt_entity.reborrow_scope(|child| cargo::AddStorageCommand.apply(child));
                     cpmt_entity.world_scope(|world| {
                         let vent_entity = world.spawn(CompartmentVentOf(cmpt_entity_id));
                         add_edge_cmd.apply(vent_entity);

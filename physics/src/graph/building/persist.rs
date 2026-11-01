@@ -10,7 +10,7 @@ use traffloat_util::{EntityWorldMutExt, loc};
 
 use crate::graph::{Building, building};
 use crate::persist::{Depend, InputContext, OutputContext, Persistable};
-use crate::{Vector, WorldObject, fluid, persist, view};
+use crate::{Vector, WorldObject, cargo, fluid, persist, view};
 
 #[derive(Clone)]
 pub struct Persist;
@@ -46,6 +46,7 @@ impl Persistable for Persist {
                 radius:         data.building.radius,
                 wall_thickness: data.building.wall_thickness,
                 fluid:          fluid::persist::StorageEntry::from_component(data.fluid),
+                cargo:          cargo::persist::StorageEntry::from_component(data.cargo),
             })
             .collect())
     }
@@ -78,6 +79,10 @@ impl Persistable for Persist {
             if let Some(mut fluid) = entity.log_get_mut::<fluid::Storage>(loc!()) {
                 entry.fluid.apply_to_component(&mut fluid);
             }
+
+            if let Some(mut cargo) = entity.log_get_mut::<cargo::Storage>(loc!()) {
+                entry.cargo.apply_to_component(&mut cargo);
+            }
         }
         Ok(())
     }
@@ -94,6 +99,7 @@ struct OutputQueryData {
     building: &'static Building,
     named:    &'static view::Named,
     fluid:    &'static fluid::Storage,
+    cargo:    &'static cargo::Storage,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -104,6 +110,7 @@ pub struct Entry {
     pub radius:         f32,
     pub wall_thickness: f32,
     pub fluid:          fluid::persist::StorageEntry,
+    pub cargo:          cargo::persist::StorageEntry,
 }
 
 #[derive(Debug, Snafu)]

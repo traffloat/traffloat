@@ -96,6 +96,7 @@ impl EntityCommand for SpawnCommand {
             }
             .apply(entity);
         });
+        entity.reborrow_scope(|entity| cargo::AddStorageCommand.apply(entity));
     }
 }
 
@@ -187,7 +188,7 @@ struct RecomputeAmbientVolumeData {
 }
 
 fn recompute_ambient_volume_system(
-    building_query: Query<(&mut Building, RecomputeAmbientVolumeData, Option<&mut fluid::Storage>)>,
+    building_query: Query<(&mut Building, RecomputeAmbientVolumeData, &mut fluid::Storage)>,
     ctx: RecomputeAmbientVolumeContextParams,
 ) {
     fn used_by_facilities(
@@ -241,7 +242,7 @@ fn recompute_ambient_volume_system(
 
     // This loop is perfectly parallelizable, but the task is largely memory-bound,
     // so parallelization would only be more likely to increase L3 cache misses.
-    for (mut building, data, fluid_storage) in building_query {
+    for (mut building, data, mut fluid_storage) in building_query {
         let used = used_by_facilities(&data, &ctx)
             + used_by_residents(&data, &ctx)
             + used_by_vehicles(&data, &ctx)
@@ -250,9 +251,7 @@ fn recompute_ambient_volume_system(
         let ambient_volume = sphere_volume(building.radius) - used;
         building.ambient_volume = ambient_volume;
 
-        if let Some(mut fluid) = fluid_storage {
-            fluid.volume = ambient_volume;
-        }
+        fluid_storage.volume = ambient_volume;
     }
 }
 

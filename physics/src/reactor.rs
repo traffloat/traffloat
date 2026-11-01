@@ -316,6 +316,7 @@ reaction::define_ruleset! {
     pub output Output {
         Fluid(Continuous: reaction::output::Fluid<FluidPortSelector>),
         Temperature(Continuous: reaction::output::Heat<FluidPortSelector>),
+        Cargo(Granular: reaction::output::Cargo<FluidPortSelector>),
         ResidentAttr(Continuous: reaction::output::ResidentAttr<ResidentSlotSelector>),
     }
 }

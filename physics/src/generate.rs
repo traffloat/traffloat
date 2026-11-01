@@ -259,8 +259,9 @@ fn gen_facility_types(
                 sprite_path:  "facility/small-tank".into(),
                 blueprint:    Blueprint {
                     fluid_storage: Some(blueprint::FluidStorage {
-                        volume:         100.0,
-                        optical_length: inverse_sphere_volume(100.0),
+                        volume:          100.0,
+                        optical_length:  inverse_sphere_volume(100.0),
+                        can_store_cargo: true,
                     }),
                     ..Default::default()
                 },

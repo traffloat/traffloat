@@ -16,14 +16,13 @@ use crate::vehicle::{
     self, CompartmentList, CompartmentOf, CompartmentPassengerList, Location, LocationBuilding,
     LocationRail, SpawnCommand, TypeId, Vehicle, propulsion,
 };
-use crate::{WorldObject, fluid, persist, resident, view};
+use crate::{WorldObject, cargo, fluid, persist, resident, view};
 
 #[derive(Clone)]
 pub struct Persist;
 
 #[derive(Default)]
 pub struct Deps {
-    fluid_type:    Depend<fluid::PersistTypes>,
     resident_attr: Depend<resident::PersistAttrTypes>,
     building:      Depend<building::Persist>,
     corridor:      Depend<corridor::Persist>,
@@ -37,7 +36,6 @@ impl Persistable for Persist {
     type Deps = Deps;
     fn depends(&self, depends: &mut impl persist::Depends) -> Deps {
         Deps {
-            fluid_type:    depends.request(fluid::PersistTypes::default()),
             resident_attr: depends.request(resident::PersistAttrTypes::default()),
             building:      depends.request(building::Persist),
             corridor:      depends.request(corridor::Persist),
@@ -84,6 +82,7 @@ impl Persistable for Persist {
                                 params.compartment_query.log_get(cpmt_entity, loc!()).ok_or(())?;
                             Ok(CompartmentEntry {
                                 fluid: fluid::persist::StorageEntry::from_component(cpmt.fluid),
+                                cargo: cargo::persist::StorageEntry::from_component(cpmt.cargo),
                             })
                         })
                         .collect::<Result<_, ()>>()?,
@@ -151,6 +150,11 @@ impl Persistable for Persist {
                         .expect("Compartment should have fluid storage");
                     cpmt.fluid.apply_to_component(&mut storage);
 
+                    let mut storage = cpmt_entity
+                        .get_mut::<cargo::Storage>()
+                        .expect("Compartment should have cargo storage");
+                    cpmt.cargo.apply_to_component(&mut storage);
+
                     Ok(())
                 })?;
             }
@@ -178,6 +182,7 @@ struct OutputQueryData {
 #[derive(QueryData)]
 struct CompartmentQueryData {
     fluid:      &'static fluid::Storage,
+    cargo:      &'static cargo::Storage,
     passengers: Option<&'static CompartmentPassengerList>,
 }
 
@@ -193,6 +198,7 @@ pub struct Entry {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompartmentEntry {
     pub fluid: fluid::persist::StorageEntry,
+    pub cargo: cargo::persist::StorageEntry,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
