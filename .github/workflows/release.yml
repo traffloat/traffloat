@@ -1,0 +1,72 @@
+name: "Build"
+on:
+  push:
+    branches: ["master"]
+jobs:
+  bin:
+    name: "Build desktop client"
+    strategy:
+      matrix:
+        target:
+          - os: "ubuntu-latest"
+            target: "x86_64-unknown-linux-gnu"
+          - os: "macos-latest"
+            target: "aarch64-apple-darwin"
+          - os: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
+            suffix: ".exe"
+    runs-on: "${{matrix.target.os}}"
+    steps:
+      - run: "sudo apt-get install -y libudev-dev"
+        if: "matrix.target.os == 'ubuntu-latest'"
+      - uses: "actions/checkout@v4"
+      - uses: "houseabsolute/actions-rust-cross@v0"
+        with:
+          target: "${{matrix.target.target}}"
+          args: "--release --no-default-features -p traffloat-client"
+      - uses: "actions/upload-artifact@v4"
+        with:
+          name: "bin-${{matrix.target.target}}"
+          path: "target/${{matrix.target.target}}/release/traffloat-client${{matrix.target.suffix}}"
+  docs:
+    name: "Generate rustdoc"
+    runs-on: ubuntu-latest
+    steps:
+      - run: "sudo apt-get install -y libudev-dev"
+      - uses: "actions/checkout@v4"
+      - uses: "dtolnay/rust-toolchain@stable"
+      - run: "cargo doc"
+      - uses: "actions/upload-artifact@v4"
+        with:
+          name: "docs"
+          path: "target/doc"
+  prepare-pages:
+    name: "Prepare GitHub pages"
+    runs-on: ubuntu-latest
+    needs: ["bin", "docs"]
+    steps:
+      - uses: "actions/download-artifact@v4"
+        with:
+          path: "artifacts"
+      - run: "mkdir output"
+      - run: "cp -r artifacts/bin-* output"
+      - run: "cp -r artifacts/docs output/rustdoc"
+      - run: "tree output"
+      - id: deployment
+        uses: "actions/upload-pages-artifact@v3"
+        with:
+          path: "output"
+  deploy:
+    environment:
+      name: "github-pages"
+      url: "${{ steps.deployment.outputs.page_url }}"
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    name: "Deploy pages"
+    runs-on: ubuntu-latest
+    needs: ["prepare-pages"]
+    steps:
+      - name: "Deploy to GitHub Pages"
+        uses: "actions/deploy-pages@v4"
